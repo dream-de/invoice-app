@@ -1,0 +1,22 @@
+{
+  "name": "@invoice-platform/server",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsc",
+    "lint": "echo \"lint server\"",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@invoice-platform/accounting-core": "workspace:*",
+    "@invoice-platform/auth": "workspace:*",
+    "@invoice-platform/database": "workspace:*",
+    "@invoice-platform/invoice-core": "workspace:*",
+    "@invoice-platform/api": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsx": "latest"
+  }
+}

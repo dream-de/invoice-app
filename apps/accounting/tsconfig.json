@@ -1,0 +1,16 @@
+{
+  "extends": "../../packages/config/typescript/nextjs.json",
+  "compilerOptions": {
+    "paths": {
+      "@invoice-platform/ui": ["../../packages/ui/src/index.ts"],
+      "@invoice-platform/accounting-core": ["../../packages/accounting-core/src/index.ts"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "app/**/*.ts",
+    "app/**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": ["node_modules"]
+}

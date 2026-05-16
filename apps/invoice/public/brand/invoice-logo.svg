@@ -1,0 +1,6 @@
+<svg width="172" height="44" viewBox="0 0 172 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="2" y="4" width="36" height="36" rx="12" fill="#111827"/>
+  <path d="M15 13.5H25.5C28.5376 13.5 31 15.9624 31 19C31 22.0376 28.5376 24.5 25.5 24.5H19.5V30.5H15V13.5Z" fill="#D8F63C"/>
+  <path d="M19.5 20.8H25.1C26.0941 20.8 26.9 19.9941 26.9 19C26.9 18.0059 26.0941 17.2 25.1 17.2H19.5V20.8Z" fill="#111827"/>
+  <text x="48" y="28.5" font-family="Inter, Arial, sans-serif" font-size="23" font-weight="850" letter-spacing="-0.8" fill="#111827">Invoice</text>
+</svg>

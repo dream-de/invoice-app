@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@invoice-platform/ui": ["packages/ui/src"],
+      "@invoice-platform/database": ["packages/database/src"],
+      "@invoice-platform/utils": ["packages/utils/src"],
+      "@invoice-platform/tax": ["packages/tax/src"],
+      "@invoice-platform/pdf": ["packages/pdf/src"],
+      "@invoice-platform/invoice-core": ["packages/invoice-core/src"],
+      "@invoice-platform/accounting-core": ["packages/accounting-core/src"]
+    }
+  }
+}

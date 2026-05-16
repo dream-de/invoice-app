@@ -1,0 +1,106 @@
+import type { DocumentTemplate } from "./types";
+
+export const A4_WIDTH_PX = 794;
+export const A4_HEIGHT_PX = 1123;
+
+/**
+ * Default‑Vorlage für Rechnungen. Diese Vorlage nutzt Platzhalter,
+ * die beim Rendern mit Daten aus dem PreviewInvoice ersetzt werden.
+ */
+export const DEFAULT_INVOICE_TEMPLATE: DocumentTemplate = {
+  id: "default-invoice",
+  name: "Standard Rechnung",
+  type: "invoice",
+  page: {
+    width: A4_WIDTH_PX,
+    height: A4_HEIGHT_PX,
+  },
+  elements: [
+    {
+      id: "logo",
+      type: "logo",
+      x: 30,
+      y: 30,
+      width: 100,
+      height: 60,
+      backgroundColor: "#F4F4F4",
+    },
+    {
+      id: "invoiceNumber",
+      type: "text",
+      x: 560,
+      y: 30,
+      width: 200,
+      height: 30,
+      content: "Rechnung {{number}}",
+      fontSize: 18,
+      fontWeight: "bold",
+      align: "right",
+    },
+    {
+      id: "invoiceDate",
+      type: "text",
+      x: 560,
+      y: 65,
+      width: 200,
+      height: 20,
+      content: "Datum: {{date}}",
+      fontSize: 12,
+      align: "right",
+    },
+    {
+      id: "customerAddress",
+      type: "text",
+      x: 30,
+      y: 120,
+      width: 250,
+      height: 80,
+      content: "{{customerAddress}}",
+      fontSize: 12,
+      fontWeight: "normal",
+    },
+    {
+      id: "itemsTable",
+      type: "table",
+      x: 30,
+      y: 250,
+      width: 734,
+      height: 300,
+    },
+    {
+      id: "totals",
+      type: "text",
+      x: 560,
+      y: 600,
+      width: 200,
+      height: 80,
+      content: "Netto: {{net}}\\nMwSt. 19%: {{vat}}\\nGesamt: {{gross}}",
+      fontSize: 12,
+      fontWeight: "bold",
+      align: "right",
+    },
+    {
+      id: "note",
+      type: "text",
+      x: 30,
+      y: 700,
+      width: 500,
+      height: 60,
+      content: "{{note}}",
+      fontSize: 10,
+      color: "#555",
+    },
+    {
+      id: "paymentQr",
+      type: "paymentQr",
+      x: 620,
+      y: 850,
+      width: 120,
+      height: 120,
+      content: "SEPA QR",
+      fontSize: 10,
+      color: "#111111",
+      backgroundColor: "#ffffff",
+    },
+  ],
+};

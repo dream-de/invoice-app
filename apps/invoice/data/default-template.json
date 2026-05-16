@@ -1,0 +1,22 @@
+{
+  "id": "default-template",
+  "name": "Standard Rechnung",
+  "page": {
+    "width": 794,
+    "height": 1123
+  },
+  "elements": [
+    {
+      "id": "paymentQr",
+      "type": "paymentQr",
+      "x": 642,
+      "y": 880,
+      "width": 96,
+      "height": 96,
+      "content": "Rechnung {{number}}",
+      "fontSize": 10,
+      "color": "#111111",
+      "backgroundColor": "#ffffff"
+    }
+  ]
+}

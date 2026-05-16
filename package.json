@@ -1,0 +1,31 @@
+{
+  "name": "invoice-platform",
+  "version": "0.0.0",
+  "private": true,
+  "packageManager": "pnpm@10.0.0",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "dev:invoice": "pnpm --filter @invoice-platform/invoice dev",
+    "dev:accounting": "pnpm --filter @invoice-platform/accounting dev",
+    "dev:admin": "pnpm --filter @invoice-platform/admin dev",
+    "dev:server": "pnpm --filter @invoice-platform/server dev",
+    "db:generate": "pnpm --filter @invoice-platform/database db:generate",
+    "db:migrate": "pnpm --filter @invoice-platform/database db:migrate",
+    "db:studio": "pnpm --filter @invoice-platform/database db:studio",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "db:deploy": "pnpm --filter @invoice-platform/database db:deploy",
+    "docker:build": "docker compose build",
+    "docker:restart": "docker compose restart",
+    "prebuild": "pnpm --filter @invoice-platform/database db:generate"
+  },
+  "devDependencies": {
+    "turbo": "latest",
+    "typescript": "latest"
+  }
+}

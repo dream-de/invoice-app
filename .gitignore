@@ -1,0 +1,29 @@
+node_modules
+.next
+apps/web/.next
+apps/web/node_modules
+.pnpm-store
+.env
+.env.local
+.DS_Store
+
+# Turbo cache
+.turbo/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Turbo cache
+
+# TypeScript build info
+
+# Environment
+.env.*.local
+
+# License private keys and generated customer licenses
+private-license-key.pem
+*.private.pem
+*.license-private.pem
+*.license-key.txt
+license-keys/
+.env.production

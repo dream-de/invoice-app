@@ -1,0 +1,13 @@
+.git
+.next
+.turbo
+node_modules
+**/node_modules
+**/.next
+**/.turbo
+.env
+.env.local
+*.log
+backup
+_tmp_*
+.DS_Store
