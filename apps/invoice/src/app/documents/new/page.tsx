@@ -137,17 +137,18 @@ export default function NewDocumentPage() {
   }
 
   return (
-    <div className="grid min-h-screen grid-cols-[520px_1fr] bg-neutral-700">
-      <aside className="h-screen overflow-y-auto bg-white p-8">
-        <Link href="/documents" className="text-sm font-black uppercase tracking-widest text-slate-400 no-underline">
-          ← Zurück zur Übersicht
-        </Link>
+    <div className="min-h-screen bg-neutral-700 lg:grid lg:grid-cols-[minmax(420px,520px)_minmax(0,1fr)]">
+      <aside className="flex min-h-screen flex-col bg-white lg:h-screen lg:min-h-0">
+        <div className="flex-1 overflow-y-auto p-6 pb-28 sm:p-8 sm:pb-32">
+          <Link href="/documents" className="text-sm font-black uppercase tracking-widest text-slate-400 no-underline">
+            ← Zurück zur Übersicht
+          </Link>
 
-        <h1 className="mt-8 text-3xl font-black text-slate-950">
-          Rechnung erstellen
-        </h1>
+          <h1 className="mt-8 text-3xl font-black text-slate-950">
+            Rechnung erstellen
+          </h1>
 
-        <div className="mt-8 space-y-6">
+          <div className="mt-8 space-y-6">
           <Select
             label="KUNDE"
             value={customerId}
@@ -200,29 +201,32 @@ export default function NewDocumentPage() {
             value={note}
             onChange={(event) => setNote(event.target.value)}
           />
+          </div>
+        </div>
 
+        <div className="sticky bottom-0 border-t border-slate-200 bg-white/95 p-6 shadow-[0_-18px_45px_rgba(15,23,42,0.10)] backdrop-blur sm:p-8">
           <Button onClick={createInvoice} disabled={status === "saving"} className="w-full">
             {status === "saving" ? "Speichert..." : "Rechnung erstellen"}
           </Button>
 
           {message && (
-            <p className="rounded-2xl bg-red-50 px-4 py-3 text-sm font-black text-red-700">
+            <p className="mt-3 rounded-2xl bg-red-50 px-4 py-3 text-sm font-black text-red-700">
               {message}
             </p>
           )}
         </div>
       </aside>
 
-      <main className="h-screen overflow-y-auto p-10">
-        <p className="mb-6 text-center text-xs font-black uppercase tracking-widest text-slate-300">
+      <main className="h-[78vh] overflow-auto bg-neutral-700 p-3 sm:p-6 lg:h-screen lg:p-8">
+        <p className="mb-5 text-center text-xs font-black uppercase tracking-widest text-slate-300">
           Live Vorschau
         </p>
 
-        <div className="flex justify-center">
+        <div className="flex justify-center pb-10">
           <DocumentCanvas
             template={DEFAULT_INVOICE_TEMPLATE}
             invoice={previewInvoice}
-            scale={1}
+            scale={0.46}
           />
         </div>
       </main>
