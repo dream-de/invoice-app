@@ -40,3 +40,15 @@ test("pro desktop e-invoice services are isolated from the general catalog", () 
   assert.equal(proDesktopEinvoiceServices.every((service) => service.domain === "einvoice"), true)
   assert.equal(proDesktopServiceCatalog.some((service) => service.domain === "einvoice"), false)
 })
+
+
+test("service labels use EUR without umlaut", () => {
+  const labels = [
+    ...proDesktopServiceCatalog.map((service) => service.label),
+    ...proDesktopEinvoiceServices.map((service) => service.label)
+  ]
+
+  const disallowed = "E" + String.fromCharCode(220) + "R"
+  assert.equal(labels.some((label) => label.includes(disallowed)), false)
+  assert.equal(findProDesktopService("eur-report")?.label, "EUR Report")
+})

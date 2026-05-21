@@ -49,7 +49,7 @@ export const proDesktopServiceCatalog = [
   }),
   createDesktopServiceDescriptor({
     id: "eur-report",
-    label: "EÜR Report",
+    label: "EUR Report",
     domain: "finance",
     proOnly: true,
     plannedCapabilities: ["eur-catalog", "classification-pipeline", "suggestion-review"]
