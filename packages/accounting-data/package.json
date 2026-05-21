@@ -1,0 +1,20 @@
+{
+  "name": "@dream-invoice/accounting-data",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "pnpm typecheck",
+    "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
+    "test": "tsx --test src/**/*.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "tsx": "latest",
+    "typescript": "latest"
+  }
+}

@@ -1,6 +1,6 @@
 <img src="apps/web/public/brand/dream-invoice-header-logo.png" alt="Dream Invoice" width="220" />
 
-### Dream Invoice
+### **Dream Invoice**
 
 ---
 
@@ -37,6 +37,8 @@ Important: legal, tax, and accounting compliance always depends on setup, proces
 - `apps/server-worker`: worker foundation for scheduled jobs, reminders, and automations
 - `apps/admin`: admin app foundation
 - `apps/accounting`: accounting app foundation
+- `packages/accounting-core`: accounting domain and journal foundations
+- `packages/accounting-data`: international accounting data catalog foundations
 - `packages/database`: Prisma schema, client, and database workflows
 - `packages/ui`: shared UI building blocks
 - `packages/licensing`: licensing and edition foundations
