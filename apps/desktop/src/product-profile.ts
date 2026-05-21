@@ -1,9 +1,13 @@
+import { standardDesktopIdentity } from "@invoice-platform/desktop-core"
+import { desktopContractNamespace } from "@invoice-platform/desktop-contracts"
+
 export type DesktopRuntime = "planned" | "electron"
 
 export type DesktopProductProfile = {
   productName: string
   appId: string
   protocol: string
+  preloadNamespace: typeof desktopContractNamespace
   runtime: DesktopRuntime
   window: {
     minWidth: number
@@ -14,9 +18,10 @@ export type DesktopProductProfile = {
 }
 
 export const desktopProductProfile: DesktopProductProfile = {
-  productName: "Dream Invoice Desktop",
-  appId: "com.dreaminvoice.desktop",
-  protocol: "dream-invoice",
+  productName: standardDesktopIdentity.productName,
+  appId: standardDesktopIdentity.appId,
+  protocol: standardDesktopIdentity.protocol,
+  preloadNamespace: desktopContractNamespace,
   runtime: "planned",
   window: {
     minWidth: 1180,

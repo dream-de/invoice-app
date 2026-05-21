@@ -84,6 +84,31 @@ importers:
         version: 6.0.3
 
   apps/desktop:
+    dependencies:
+      '@invoice-platform/desktop-contracts':
+        specifier: workspace:*
+        version: link:../../packages/desktop-contracts
+      '@invoice-platform/desktop-core':
+        specifier: workspace:*
+        version: link:../../packages/desktop-core
+      '@invoice-platform/desktop-data':
+        specifier: workspace:*
+        version: link:../../packages/desktop-data
+      '@invoice-platform/desktop-renderer':
+        specifier: workspace:*
+        version: link:../../packages/desktop-renderer
+      '@invoice-platform/desktop-services':
+        specifier: workspace:*
+        version: link:../../packages/desktop-services
+      '@invoice-platform/desktop-state':
+        specifier: workspace:*
+        version: link:../../packages/desktop-state
+      '@invoice-platform/desktop-ui':
+        specifier: workspace:*
+        version: link:../../packages/desktop-ui
+      '@invoice-platform/desktop-utils':
+        specifier: workspace:*
+        version: link:../../packages/desktop-utils
     devDependencies:
       '@types/node':
         specifier: ^20

@@ -1,14 +1,18 @@
+import { proDesktopIdentity } from "@invoice-platform/desktop-core"
+
 export type ProDesktopProductProfile = {
   productName: string
   appId: string
+  protocol: string
   tier: "pro"
   runtime: "planned"
   includesAccountingWorkspace: boolean
 }
 
 export const proDesktopProductProfile: ProDesktopProductProfile = {
-  productName: "Dream Invoice Pro Desktop",
-  appId: "com.dreaminvoice.pro-desktop",
+  productName: proDesktopIdentity.productName,
+  appId: proDesktopIdentity.appId,
+  protocol: proDesktopIdentity.protocol,
   tier: "pro",
   runtime: "planned",
   includesAccountingWorkspace: true

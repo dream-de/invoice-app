@@ -8,3 +8,5 @@ export {
   defaultProDesktopTenantScope
 } from "./tenant-scope"
 export type { ProDesktopTenantScope } from "./tenant-scope"
+
+export { proDesktopWorkspacePlan } from "./workspace-plan"
