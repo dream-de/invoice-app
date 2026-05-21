@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { prisma } from "@dream-invoice/database"
+import { prisma, type Prisma } from "@dream-invoice/database"
 
 type InvoiceItemPayload = {
   name?: string
@@ -62,7 +62,7 @@ export async function PUT(
     const vatTotal = netTotal * taxRate
     const grossTotal = netTotal + vatTotal + tip
 
-    const updated = await prisma.$transaction(async (tx) => {
+    const updated = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       await tx.invoicePosition.deleteMany({
         where: { invoiceId: id }
       })

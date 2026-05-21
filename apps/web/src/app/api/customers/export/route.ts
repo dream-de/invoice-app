@@ -1,4 +1,4 @@
-import { prisma } from "@dream-invoice/database"
+import { prisma, type Customer } from "@dream-invoice/database"
 import { createCsvResponse } from "@/lib/export/csv-response"
 
 
@@ -9,7 +9,7 @@ export async function GET() {
 
   const rows = [
     ["Nummer", "Name", "Ansprechpartner", "Status", "E-Mail", "Telefon", "Strasse", "PLZ", "Stadt", "Land"],
-    ...customers.map((customer) => [
+    ...customers.map((customer: Customer) => [
       customer.number,
       customer.name,
       customer.contact,

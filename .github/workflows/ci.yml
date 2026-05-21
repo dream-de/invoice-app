@@ -28,6 +28,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Generate database client
+        run: pnpm --filter @dream-invoice/database db:generate
+
       - name: Lint
         run: pnpm lint
 
