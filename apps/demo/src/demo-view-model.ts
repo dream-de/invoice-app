@@ -72,8 +72,10 @@ export function createDemoNavigation(): DemoNavigationItem[] {
     { href: "/customers", label: "Customers" },
     { href: "/projects", label: "Projects" },
     { href: "/documents", label: "Documents", badge: String(demoSnapshot.documents.length) },
+    { href: "/templates", label: "Templates", badge: String(demoSnapshot.templates.length) },
     { href: "/finance", label: "Finance" },
     { href: "/articles", label: "Articles" },
+    { href: "/settings", label: "Settings" },
   ];
 }
 

@@ -2,16 +2,16 @@
   "company": {
     "name": "Dream Invoice Studio",
     "legalName": "Dream Invoice Studio LLC",
-    "email": "billing@example.com",
+    "email": "billing@dream-invoice-demo.example",
     "city": "Metropolis",
     "country": "United States",
     "taxId": "DEMO-TAX-0001"
   },
   "metrics": {
     "revenue": 18420,
-    "openAmount": 5270,
-    "overdueAmount": 640,
-    "draftDocuments": 3
+    "openAmount": 8649.1,
+    "overdueAmount": 761.6,
+    "draftDocuments": 1
   },
   "customers": [
     {
@@ -133,6 +133,19 @@
       "tax": 121.6,
       "gross": 761.6,
       "projectId": "demo-project-003"
+    },
+    {
+      "id": "demo-document-004",
+      "type": "invoice",
+      "number": "RE-DEMO-1003",
+      "customerId": "demo-customer-002",
+      "projectId": "demo-project-002",
+      "issueDate": "2026-03-22",
+      "dueDate": "2026-04-05",
+      "status": "paid",
+      "net": 18420,
+      "tax": 3499.8,
+      "gross": 21919.8
     }
   ],
   "bankAccounts": [
@@ -152,5 +165,35 @@
       "currency": "USD",
       "balance": 9400
     }
-  ]
+  ],
+  "templates": [
+    {
+      "id": "demo-template-standard-invoice",
+      "name": "Standard Invoice",
+      "type": "invoice",
+      "accent": "Lime / Slate",
+      "status": "active"
+    },
+    {
+      "id": "demo-template-classic-goods",
+      "name": "Classic Goods Invoice",
+      "type": "invoice",
+      "accent": "Wine / Sand",
+      "status": "draft"
+    },
+    {
+      "id": "demo-template-offer",
+      "name": "Modern Offer",
+      "type": "offer",
+      "accent": "Blue / Green",
+      "status": "active"
+    }
+  ],
+  "settings": {
+    "language": "English",
+    "currency": "EUR",
+    "numbering": "RE-DEMO-####",
+    "emailMode": "Demo preview only",
+    "licensePlan": "Public Demo"
+  }
 }

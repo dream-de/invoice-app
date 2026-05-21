@@ -51,6 +51,22 @@ export type DemoBankAccount = {
   balance: number;
 };
 
+export type DemoTemplate = {
+  id: string;
+  name: string;
+  type: "invoice" | "offer";
+  accent: string;
+  status: "active" | "draft";
+};
+
+export type DemoSettings = {
+  language: string;
+  currency: "EUR" | "USD";
+  numbering: string;
+  emailMode: string;
+  licensePlan: string;
+};
+
 export type DemoSnapshot = {
   company: {
     name: string;
@@ -71,6 +87,8 @@ export type DemoSnapshot = {
   projects: DemoProject[];
   documents: DemoDocument[];
   bankAccounts: DemoBankAccount[];
+  templates: DemoTemplate[];
+  settings: DemoSettings;
 };
 
 export const demoSnapshot = demoData as DemoSnapshot;

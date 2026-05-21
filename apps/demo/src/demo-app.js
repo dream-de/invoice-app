@@ -3,8 +3,10 @@ const routes = [
   { id: "customers", label: "Customers", hash: "#/customers" },
   { id: "projects", label: "Projects", hash: "#/projects" },
   { id: "documents", label: "Documents", hash: "#/documents" },
+  { id: "templates", label: "Templates", hash: "#/templates" },
   { id: "finance", label: "Finance", hash: "#/finance" },
-  { id: "articles", label: "Articles", hash: "#/articles" }
+  { id: "articles", label: "Articles", hash: "#/articles" },
+  { id: "settings", label: "Settings", hash: "#/settings" }
 ];
 
 const currencyFormatters = new Map();
@@ -168,7 +170,7 @@ function renderDashboard(snapshot) {
   const quickActions = createElement("div", "quick-actions");
   for (const action of [
     ["Create invoice", "Prepare a demo invoice", "#/documents"],
-    ["Add customer", "Open sample customer data", "#/customers"],
+    ["Edit template", "Preview safe templates", "#/templates"],
     ["Import statement", "Preview finance import", "#/finance"]
   ]) {
     const link = createElement("a", "quick-action");
@@ -337,12 +339,63 @@ function renderArticlesPage(snapshot) {
   return section;
 }
 
+function renderTemplatesPage(snapshot) {
+  const section = createElement("section", "page-grid single");
+  const panel = createElement("article", "panel");
+  panel.append(createSectionHeader("Templates", "Safe invoice and offer templates prepared with fictional placeholder data.", "Open editor"));
+
+  const list = createElement("div", "data-list");
+  for (const template of snapshot.templates) {
+    const row = createElement("article", "data-row");
+    const copy = createElement("div", "");
+    copy.append(createElement("strong", "", template.name));
+    copy.append(createElement("span", "", template.type + " - " + template.accent));
+    row.append(copy, createStatus(template.status));
+    list.append(row);
+  }
+
+  panel.append(list);
+  section.append(panel);
+  return section;
+}
+
+function renderSettingsPage(snapshot) {
+  const section = createElement("section", "page-grid");
+  const settings = createElement("article", "panel");
+  settings.append(createSectionHeader("Settings", "Read-only public configuration for the demo workspace."));
+
+  const list = createElement("div", "data-list");
+  for (const row of [
+    ["Language", snapshot.settings.language],
+    ["Currency", snapshot.settings.currency],
+    ["Numbering", snapshot.settings.numbering],
+    ["Email", snapshot.settings.emailMode],
+    ["License", snapshot.settings.licensePlan]
+  ]) {
+    const item = createElement("article", "data-row");
+    item.append(createElement("strong", "", row[0]), createElement("span", "row-value", row[1]));
+    list.append(item);
+  }
+
+  settings.append(list);
+
+  const safety = createElement("article", "panel panel-dark");
+  safety.append(createElement("h2", "", "Reset-safe demo"));
+  safety.append(createElement("p", "", "The public demo does not persist edits, does not send email and does not connect to production banking or customer data."));
+  safety.append(createButton("primary-button", "Show safety note", () => showDemoToast("Demo mode is read-only and fictional.")));
+
+  section.append(settings, safety);
+  return section;
+}
+
 function renderRoute(snapshot, routeId) {
   if (routeId === "customers") return renderCustomersPage(snapshot);
   if (routeId === "projects") return renderProjectsPage(snapshot);
   if (routeId === "documents") return renderDocumentsPage(snapshot);
+  if (routeId === "templates") return renderTemplatesPage(snapshot);
   if (routeId === "finance") return renderFinancePage(snapshot);
   if (routeId === "articles") return renderArticlesPage(snapshot);
+  if (routeId === "settings") return renderSettingsPage(snapshot);
   return renderDashboard(snapshot);
 }
 
