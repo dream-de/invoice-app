@@ -1,0 +1,27 @@
+{
+  "name": "@invoice-platform/pro-desktop",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts",
+    "build": "pnpm typecheck",
+    "check": "pnpm typecheck && pnpm test"
+  },
+  "dependencies": {
+    "@invoice-platform/desktop-contracts": "workspace:*",
+    "@invoice-platform/desktop-core": "workspace:*",
+    "@invoice-platform/desktop-data": "workspace:*",
+    "@invoice-platform/desktop-renderer": "workspace:*",
+    "@invoice-platform/desktop-services": "workspace:*",
+    "@invoice-platform/desktop-state": "workspace:*",
+    "@invoice-platform/desktop-ui": "workspace:*",
+    "@invoice-platform/desktop-utils": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsx": "latest",
+    "typescript": "latest"
+  }
+}

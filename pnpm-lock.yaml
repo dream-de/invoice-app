@@ -186,6 +186,43 @@ importers:
         specifier: latest
         version: 6.0.3
 
+  apps/pro-desktop:
+    dependencies:
+      '@invoice-platform/desktop-contracts':
+        specifier: workspace:*
+        version: link:../../packages/desktop-contracts
+      '@invoice-platform/desktop-core':
+        specifier: workspace:*
+        version: link:../../packages/desktop-core
+      '@invoice-platform/desktop-data':
+        specifier: workspace:*
+        version: link:../../packages/desktop-data
+      '@invoice-platform/desktop-renderer':
+        specifier: workspace:*
+        version: link:../../packages/desktop-renderer
+      '@invoice-platform/desktop-services':
+        specifier: workspace:*
+        version: link:../../packages/desktop-services
+      '@invoice-platform/desktop-state':
+        specifier: workspace:*
+        version: link:../../packages/desktop-state
+      '@invoice-platform/desktop-ui':
+        specifier: workspace:*
+        version: link:../../packages/desktop-ui
+      '@invoice-platform/desktop-utils':
+        specifier: workspace:*
+        version: link:../../packages/desktop-utils
+    devDependencies:
+      '@types/node':
+        specifier: ^20
+        version: 20.19.40
+      tsx:
+        specifier: latest
+        version: 4.22.3
+      typescript:
+        specifier: latest
+        version: 6.0.3
+
   apps/server:
     dependencies:
       '@invoice-platform/accounting-core':
@@ -253,6 +290,60 @@ importers:
       prisma:
         specifier: ^6.19.0
         version: 6.19.0(typescript@6.0.3)
+
+  packages/desktop-contracts:
+    devDependencies:
+      typescript:
+        specifier: latest
+        version: 6.0.3
+
+  packages/desktop-core:
+    devDependencies:
+      typescript:
+        specifier: latest
+        version: 6.0.3
+
+  packages/desktop-data:
+    devDependencies:
+      typescript:
+        specifier: latest
+        version: 6.0.3
+
+  packages/desktop-hooks:
+    devDependencies:
+      typescript:
+        specifier: latest
+        version: 6.0.3
+
+  packages/desktop-renderer:
+    devDependencies:
+      typescript:
+        specifier: latest
+        version: 6.0.3
+
+  packages/desktop-services:
+    devDependencies:
+      typescript:
+        specifier: latest
+        version: 6.0.3
+
+  packages/desktop-state:
+    devDependencies:
+      typescript:
+        specifier: latest
+        version: 6.0.3
+
+  packages/desktop-ui:
+    devDependencies:
+      typescript:
+        specifier: latest
+        version: 6.0.3
+
+  packages/desktop-utils:
+    devDependencies:
+      typescript:
+        specifier: latest
+        version: 6.0.3
 
   packages/invoice-core:
     dependencies:
