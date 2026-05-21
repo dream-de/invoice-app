@@ -10,3 +10,10 @@ export {
 export type { ProDesktopTenantScope } from "./tenant-scope"
 
 export { proDesktopWorkspacePlan } from "./workspace-plan"
+
+export {
+  findProDesktopService,
+  proDesktopServiceCatalog,
+  proDesktopServiceDomains
+} from "../services/service-catalog"
+export { proDesktopEinvoiceServices } from "../services/einvoice/service-catalog"
