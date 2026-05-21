@@ -7,7 +7,8 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test test/*.test.ts",
     "build": "pnpm typecheck",
-    "check": "pnpm typecheck && pnpm test"
+    "check": "pnpm typecheck && pnpm test",
+    "lint": "eslint ."
   },
   "dependencies": {
     "@dream-invoice/desktop-contracts": "workspace:*",

@@ -7,7 +7,8 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test src/jobs/__tests__/*.test.ts",
     "worker": "tsx src/cli.ts",
-    "worker:smoke": "pnpm worker -- --schedule-file config/schedules.example.json --now 2026-05-20T10:00:00.000Z"
+    "worker:smoke": "pnpm worker -- --schedule-file config/schedules.example.json --now 2026-05-20T10:00:00.000Z",
+    "lint": "eslint ."
   },
   "dependencies": {},
   "devDependencies": {

@@ -4,6 +4,15 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "@dream-invoice/auth": [
+        "../../packages/auth/src/index.ts"
+      ],
+      "@dream-invoice/database": [
+        "../../packages/database/src/index.ts"
+      ],
+      "@dream-invoice/ui": [
+        "../../packages/ui/src/index.ts"
       ]
     },
     "types": [

@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "tsx src/index.ts",
     "build": "tsc",
-    "lint": "echo \"lint server\"",
+    "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

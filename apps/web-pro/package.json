@@ -6,7 +6,8 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "pnpm typecheck",
-    "check": "pnpm typecheck"
+    "check": "pnpm typecheck",
+    "lint": "eslint ."
   },
   "dependencies": {
     "@dream-invoice/licensing": "workspace:*"

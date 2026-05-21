@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "preview": "node scripts/serve-static.mjs",
     "check:safety": "node scripts/verify-landing-safety.mjs",
-    "check:integrity": "node scripts/verify-landing-integrity.mjs"
+    "check:integrity": "node scripts/verify-landing-integrity.mjs",
+    "lint": "eslint ."
   },
   "exports": {
     ".": "./src/index.ts",

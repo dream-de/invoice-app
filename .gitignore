@@ -75,7 +75,6 @@ docker-compose.override.yml
 # ---------------------------------------------------------
 .cache/
 .eslintcache
-.next/cache/
 
 # ---------------------------------------------------------
 # License private keys and generated customer licenses

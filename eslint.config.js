@@ -17,7 +17,7 @@ module.exports = [
   },
   js.configs.recommended,
   {
-    files: ["**/*.{js,jsx,ts,tsx}"],
+    files: ["**/*.{js,jsx,mjs,cjs,ts,tsx}"],
     plugins: {
       "@typescript-eslint": tsPlugin,
       import: importPlugin,
@@ -41,13 +41,16 @@ module.exports = [
         }
       ],
       "unused-imports/no-unused-imports": "warn",
+      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/consistent-type-imports": "warn",
       "import/no-duplicates": "warn",
+      "import/no-cycle": "warn",
       "no-undef": "off",
       "no-restricted-syntax": [
         "warn",
         {
           selector:
-            "Literal[value=/space-y-|shadow-|rounded-|gap-|p-|m-|hover:|bg-|text-|border-/]",
+            "JSXAttribute[name.name='className'] Literal[value=/space-y-|shadow-|rounded-|gap-|p-|m-|hover:|bg-|text-|border-/]",
           message:
             "Use designTokens instead of raw Tailwind classes"
         }

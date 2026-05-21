@@ -13,6 +13,7 @@ RUN corepack enable
 COPY . .
 
 RUN pnpm install --frozen-lockfile
+RUN pnpm --filter @dream-invoice/database db:generate
 RUN pnpm --filter @dream-invoice/server-worker typecheck
 
 CMD ["pnpm", "--filter", "@dream-invoice/server-worker", "worker"]
