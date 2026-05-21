@@ -1,0 +1,156 @@
+{
+  "company": {
+    "name": "Dream Invoice Studio",
+    "legalName": "Dream Invoice Studio LLC",
+    "email": "billing@example.com",
+    "city": "Metropolis",
+    "country": "United States",
+    "taxId": "DEMO-TAX-0001"
+  },
+  "metrics": {
+    "revenue": 18420,
+    "openAmount": 5270,
+    "overdueAmount": 640,
+    "draftDocuments": 3
+  },
+  "customers": [
+    {
+      "id": "demo-customer-001",
+      "name": "Blue Harbor Atelier LLC",
+      "contact": "Mia Carter",
+      "email": "accounts@blue-harbor-atelier.example",
+      "city": "Metropolis",
+      "country": "United States",
+      "status": "active"
+    },
+    {
+      "id": "demo-customer-002",
+      "name": "Northline Studios",
+      "contact": "Evan Brooks",
+      "email": "finance@northline.example",
+      "city": "Brooklyn",
+      "country": "United States",
+      "status": "active"
+    },
+    {
+      "id": "demo-customer-003",
+      "name": "Lumen Goods GmbH",
+      "contact": "Clara Weiss",
+      "email": "invoice@lumen-goods.example",
+      "city": "Koeln",
+      "country": "Germany",
+      "status": "lead"
+    }
+  ],
+  "articles": [
+    {
+      "id": "demo-article-001",
+      "sku": "DI-CONSULT-01",
+      "title": "Strategy Workshop",
+      "category": "Consulting",
+      "unit": "hour",
+      "netPrice": 120,
+      "taxRate": 19
+    },
+    {
+      "id": "demo-article-002",
+      "sku": "DI-DESIGN-01",
+      "title": "Brand Layout Package",
+      "category": "Design",
+      "unit": "package",
+      "netPrice": 950,
+      "taxRate": 19
+    },
+    {
+      "id": "demo-article-003",
+      "sku": "DI-HOST-01",
+      "title": "Managed Hosting",
+      "category": "Hosting",
+      "unit": "month",
+      "netPrice": 89,
+      "taxRate": 19
+    }
+  ],
+  "projects": [
+    {
+      "id": "demo-project-001",
+      "title": "Storefront Refresh",
+      "customerId": "demo-customer-001",
+      "status": "active",
+      "budget": 8200
+    },
+    {
+      "id": "demo-project-002",
+      "title": "Quarterly Billing Automation",
+      "customerId": "demo-customer-002",
+      "status": "planned",
+      "budget": 5400
+    },
+    {
+      "id": "demo-project-003",
+      "title": "Wholesale Portal Setup",
+      "customerId": "demo-customer-003",
+      "status": "completed",
+      "budget": 3600
+    }
+  ],
+  "documents": [
+    {
+      "id": "demo-document-001",
+      "type": "invoice",
+      "number": "RE-DEMO-1001",
+      "customerId": "demo-customer-001",
+      "projectId": "demo-project-001",
+      "issueDate": "2026-05-14",
+      "dueDate": "2026-05-28",
+      "status": "sent",
+      "net": 1250,
+      "tax": 237.5,
+      "gross": 1487.5
+    },
+    {
+      "id": "demo-document-002",
+      "type": "offer",
+      "number": "AN-DEMO-2001",
+      "customerId": "demo-customer-002",
+      "projectId": "demo-project-002",
+      "issueDate": "2026-05-16",
+      "dueDate": "2026-06-15",
+      "status": "draft",
+      "net": 5400,
+      "tax": 1026,
+      "gross": 6426
+    },
+    {
+      "id": "demo-document-003",
+      "type": "invoice",
+      "number": "RE-DEMO-1002",
+      "customerId": "demo-customer-003",
+      "issueDate": "2026-04-18",
+      "dueDate": "2026-05-02",
+      "status": "overdue",
+      "net": 640,
+      "tax": 121.6,
+      "gross": 761.6,
+      "projectId": "demo-project-003"
+    }
+  ],
+  "bankAccounts": [
+    {
+      "id": "demo-bank-001",
+      "name": "Demo Operating Account",
+      "iban": "DE00 0000 0000 0000 0000 00",
+      "bic": "DEMODEFFXXX",
+      "currency": "EUR",
+      "balance": 22480
+    },
+    {
+      "id": "demo-bank-002",
+      "name": "Demo USD Reserve",
+      "iban": "US00 DEMO 0000 0000 0000",
+      "bic": "DEMOUS33XXX",
+      "currency": "USD",
+      "balance": 9400
+    }
+  ]
+}

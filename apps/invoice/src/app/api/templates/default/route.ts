@@ -18,7 +18,7 @@ export async function GET() {
     return NextResponse.json(JSON.parse(raw), { status: 200 });
   } catch {
     return NextResponse.json(
-      { ...DEFAULT_INVOICE_TEMPLATE, id: "default-template", name: "Standard Rechnung" },
+      { ...DEFAULT_INVOICE_TEMPLATE, id: "default-template", name: "Dream Invoice Standard" },
       { status: 200 }
     );
   }

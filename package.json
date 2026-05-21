@@ -22,7 +22,10 @@
     "db:deploy": "pnpm --filter @invoice-platform/database db:deploy",
     "docker:build": "docker compose build",
     "docker:restart": "docker compose restart",
-    "prebuild": "pnpm --filter @invoice-platform/database db:generate"
+    "prebuild": "pnpm --filter @invoice-platform/database db:generate",
+    "worker:server": "pnpm --filter @invoice-platform/server-worker worker",
+    "worker:server:smoke": "pnpm --filter @invoice-platform/server-worker worker:smoke",
+    "docker:worker": "docker compose -f docker/docker-compose.yml --profile worker run --rm --no-deps server-worker"
   },
   "devDependencies": {
     "turbo": "latest",

@@ -10,7 +10,7 @@ export default function Error({
   return (
     <ErrorState
       title="Seite konnte nicht geladen werden"
-      description="Beim Laden der Invoice Platform ist ein Fehler aufgetreten."
+      description="Beim Laden von Dream Invoice ist ein Fehler aufgetreten."
       action={<Button onClick={() => reset()}>Erneut versuchen</Button>}
     />
   )

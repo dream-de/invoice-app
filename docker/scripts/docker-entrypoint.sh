@@ -7,5 +7,5 @@ pnpm --filter @invoice-platform/database db:generate
 echo "Applying database migrations..."
 pnpm --filter @invoice-platform/database db:deploy
 
-echo "Starting Invoice Platform..."
+echo "Starting Dream Invoice..."
 exec "$@"

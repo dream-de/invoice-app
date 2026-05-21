@@ -14,6 +14,7 @@ import {
   X
 } from "lucide-react"
 import { Currency, PageShell } from "@invoice-platform/ui"
+import { useLanguage } from "@/lib/i18n"
 
 type Account = {
   name: string
@@ -46,6 +47,7 @@ export default function FinanceAccountsPage() {
   const [accountName, setAccountName] = useState("")
   const [iban, setIban] = useState("")
   const [balance, setBalance] = useState("0")
+  const { t } = useLanguage()
 
   function addAccount() {
     if (!accountName.trim()) return
@@ -54,7 +56,7 @@ export default function FinanceAccountsPage() {
       ...items,
       {
         name: accountName.trim(),
-        iban: iban.trim() || "Keine IBAN hinterlegt",
+        iban: iban.trim() || t("finance.accounts.missingIban"),
         balance: Number(balance) || 0
       }
     ])
@@ -71,32 +73,32 @@ export default function FinanceAccountsPage() {
 
   const actionCards = [
     {
-      title: "Transaktionen zuordnen",
-      description: "6 offene Transaktionen warten auf Zuordnung",
+      title: t("finance.accounts.cards.assign.title"),
+      description: t("finance.accounts.cards.assign.description"),
       value: "6",
       icon: ArrowRight,
       active: true
     },
     {
-      title: "EUR direkt klassifizieren",
-      description: "8 Transaktionen für EUR offen",
+      title: t("finance.accounts.cards.eur.title"),
+      description: t("finance.accounts.cards.eur.description"),
       value: "8",
       icon: Landmark
     },
     {
-      title: "CSV importieren",
-      description: "Importieren Sie Transaktionen aus Ihrer Bank",
+      title: t("finance.accounts.cards.csv.title"),
+      description: t("finance.accounts.cards.csv.description"),
       icon: Download
     },
     {
-      title: "Import-Historie",
-      description: "Vergangene Importe einsehen und rückgängig machen",
+      title: t("finance.accounts.cards.history.title"),
+      description: t("finance.accounts.cards.history.description"),
       icon: Upload,
       onClick: () => setShowImportHistory(true)
     },
     {
-      title: "Konten verwalten",
-      description: "Erstellen und bearbeiten Sie Ihre Konten",
+      title: t("finance.accounts.cards.manage.title"),
+      description: t("finance.accounts.cards.manage.description"),
       icon: Plus,
       onClick: () => setShowAccountModal(true)
     }
@@ -104,8 +106,8 @@ export default function FinanceAccountsPage() {
 
   return (
     <PageShell
-      title="Konten & Transaktionen"
-      description="Verwalten Sie Ihre Konten und ordnen Sie Transaktionen zu."
+      title={t("finance.accounts.title")}
+      description={t("finance.accounts.description")}
     >
       <div className="space-y-6">
         <div className="flex justify-end">
@@ -115,13 +117,13 @@ export default function FinanceAccountsPage() {
             className="inline-flex items-center gap-2 rounded-full bg-black px-5 py-2.5 text-sm font-bold text-[var(--brand-lime)] shadow-sm"
           >
             <Plus className="h-4 w-4" />
-            Neues Konto
+            {t("finance.accounts.actions.newAccount")}
           </button>
         </div>
 
         <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4">
           <p className="text-xs font-bold uppercase tracking-widest text-slate-400">
-            Konto auswählen
+            {t("finance.accounts.selectAccount")}
           </p>
 
           <div className="mt-3 grid gap-3 md:grid-cols-[1fr_auto]">
@@ -132,7 +134,7 @@ export default function FinanceAccountsPage() {
             </select>
 
             <div className="flex h-12 items-center rounded-full bg-white px-5 text-sm font-semibold text-slate-500 ring-1 ring-gray-200">
-              Saldo: <span className="ml-2 font-extrabold text-slate-950"><Currency value={accounts[0]?.balance ?? 0} /></span>
+              {t("finance.accounts.balance")}: <span className="ml-2 font-extrabold text-slate-950"><Currency value={accounts[0]?.balance ?? 0} /></span>
             </div>
           </div>
         </div>
@@ -191,17 +193,17 @@ export default function FinanceAccountsPage() {
 
           <div>
             <p className="font-extrabold text-amber-900">
-              Sie haben 6 unzugeordnete Transaktionen
+              {t("finance.accounts.warning.title")}
             </p>
             <p className="mt-1 text-sm leading-6 text-amber-800">
-              Ordnen Sie Transaktionen Ihren Rechnungen zu, um den Zahlungsstatus automatisch zu aktualisieren.
+              {t("finance.accounts.warning.description")}
             </p>
           </div>
         </div>
 
         <div className="mt-8">
           <h2 className="text-xl font-extrabold text-slate-950">
-            Ihre Konten
+            {t("finance.accounts.yourAccounts")}
           </h2>
 
           <div className="mt-4 space-y-3">
@@ -227,14 +229,14 @@ export default function FinanceAccountsPage() {
                   </p>
 
                   <button className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-600 ring-1 ring-gray-200">
-                    Für Import
+                    {t("finance.accounts.forImport")}
                   </button>
 
                   <button
                     type="button"
                     onClick={() => deleteAccount(account.name)}
                     className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-red-50 text-red-600 ring-1 ring-red-100"
-                    aria-label="Konto löschen"
+                    aria-label={t("finance.accounts.deleteAccount")}
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -251,10 +253,10 @@ export default function FinanceAccountsPage() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-2xl font-extrabold text-slate-950">
-                  Neues Bankkonto
+                  {t("finance.accounts.modal.newAccount.title")}
                 </h3>
                 <p className="mt-1 text-sm text-slate-500">
-                  Fügen Sie ein neues Konto hinzu
+                  {t("finance.accounts.modal.newAccount.description")}
                 </p>
               </div>
 
@@ -262,7 +264,7 @@ export default function FinanceAccountsPage() {
                 type="button"
                 onClick={() => setShowAccountModal(false)}
                 className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200"
-                aria-label="Fenster schließen"
+                aria-label={t("finance.accounts.modal.close")}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -270,17 +272,17 @@ export default function FinanceAccountsPage() {
 
             <div className="mt-6 space-y-4">
               <label className="block">
-                <span className="text-sm font-bold text-slate-700">Kontoname *</span>
+                <span className="text-sm font-bold text-slate-700">{t("finance.accounts.modal.newAccount.nameRequired")}</span>
                 <input
                   value={accountName}
                   onChange={(event) => setAccountName(event.target.value)}
-                  placeholder="z.B. Geschäftskonto"
+                  placeholder={t("finance.accounts.modal.newAccount.namePlaceholder")}
                   className="mt-2 h-12 w-full rounded-full bg-[#f3f6fa] px-5 text-sm font-semibold text-slate-800 outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900"
                 />
               </label>
 
               <label className="block">
-                <span className="text-sm font-bold text-slate-700">IBAN (optional)</span>
+                <span className="text-sm font-bold text-slate-700">{t("finance.accounts.modal.newAccount.ibanOptional")}</span>
                 <input
                   value={iban}
                   onChange={(event) => setIban(event.target.value)}
@@ -290,7 +292,7 @@ export default function FinanceAccountsPage() {
               </label>
 
               <label className="block">
-                <span className="text-sm font-bold text-slate-700">Anfangssaldo</span>
+                <span className="text-sm font-bold text-slate-700">{t("finance.accounts.modal.newAccount.openingBalance")}</span>
                 <input
                   value={balance}
                   onChange={(event) => setBalance(event.target.value)}
@@ -307,7 +309,7 @@ export default function FinanceAccountsPage() {
                 onClick={() => setShowAccountModal(false)}
                 className="rounded-full bg-slate-100 px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-200"
               >
-                Abbrechen
+                {t("finance.accounts.modal.cancel")}
               </button>
 
               <button
@@ -315,7 +317,7 @@ export default function FinanceAccountsPage() {
                 onClick={addAccount}
                 className="rounded-full bg-black px-5 py-2.5 text-sm font-bold text-[var(--brand-lime)]"
               >
-                Konto speichern
+                {t("finance.accounts.modal.save")}
               </button>
             </div>
           </div>
@@ -328,10 +330,10 @@ export default function FinanceAccountsPage() {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h3 className="text-2xl font-extrabold text-slate-950">
-                  Import-Historie
+                  {t("finance.accounts.modal.history.title")}
                 </h3>
                 <p className="mt-1 text-sm text-slate-500">
-                  Übersicht aller CSV-Importe mit Rollback-Möglichkeit
+                  {t("finance.accounts.modal.history.rollbackDescription")}
                 </p>
               </div>
 
@@ -339,7 +341,7 @@ export default function FinanceAccountsPage() {
                 type="button"
                 onClick={() => setShowImportHistory(false)}
                 className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200"
-                aria-label="Fenster schließen"
+                aria-label={t("finance.accounts.modal.close")}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -348,10 +350,10 @@ export default function FinanceAccountsPage() {
             <div className="mt-8 rounded-3xl border border-dashed border-slate-200 bg-[#f7f9fc] p-8 text-center">
               <Upload className="mx-auto h-9 w-9 text-slate-300" />
               <p className="mt-4 text-base font-extrabold text-slate-900">
-                Keine Importe vorhanden
+                {t("finance.accounts.modal.history.emptyTitle")}
               </p>
               <p className="mt-2 text-sm text-slate-500">
-                Wähle einen Import aus der Liste
+                {t("finance.accounts.modal.history.pickImport")}
               </p>
             </div>
 
@@ -361,7 +363,7 @@ export default function FinanceAccountsPage() {
                 onClick={() => setShowImportHistory(false)}
                 className="rounded-full bg-slate-100 px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-200"
               >
-                Schließen
+                {t("finance.accounts.modal.close")}
               </button>
             </div>
           </div>

@@ -29,6 +29,7 @@ Pruefen:
 git --version
 docker --version
 docker compose version
+```
 
 ## Backup
 
@@ -115,3 +116,11 @@ LICENSE_PRIVATE_KEY="$(cat private-license-key.pem)" node tools/license/generate
 ```
 
 Unterstuetzte Plaene: `free`, `starter`, `team`, `business`, `enterprise`, `unlimited`.
+
+Lizenz-Tools und technische Details liegen unter:
+
+```text
+tools/license/
+  generate-license-key.mjs
+  docs/
+```

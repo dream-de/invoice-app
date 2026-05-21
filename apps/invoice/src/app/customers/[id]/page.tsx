@@ -1,3 +1,5 @@
+"use client"
+
 import Link from "next/link"
 import {
   Button,
@@ -12,6 +14,7 @@ import {
   customers,
   documents
 } from "@/data/invoice-data"
+import { translateStatus, useLanguage } from "@/lib/i18n"
 
 type CustomerDetailPageProps = {
   params: {
@@ -28,12 +31,14 @@ const statusClass: Record<string, string> = {
 const documentStatusClass: Record<string, string> = {
   Bezahlt: "bg-emerald-50 text-emerald-700 ring-emerald-100",
   Offen: "bg-orange-50 text-orange-700 ring-orange-100",
+  Entwurf: "bg-slate-50 text-slate-700 ring-slate-100",
   Überfällig: "bg-red-50 text-red-700 ring-red-100"
 }
 
 export default function CustomerDetailPage({
   params
 }: CustomerDetailPageProps) {
+  const { t } = useLanguage()
   const customer =
     customers.find((item) => item.id === params.id) ??
     customers[0]
@@ -55,53 +60,66 @@ export default function CustomerDetailPage({
     (document) => document.status === "Bezahlt"
   )
 
+  const customerStatusLabel = (status: string) => {
+    if (status === "Aktiv" || status === "active") return t("customers.status.active")
+    if (status === "Offen" || status === "open") return t("customers.status.open")
+    if (status === "Inaktiv" || status === "inactive") return t("customers.status.inactive")
+    return status
+  }
+
+  const documentTypeLabel = (type: string) => {
+    if (type === "Rechnung") return t("customers.detail.documentTypes.invoice")
+    if (type === "Angebot") return t("customers.detail.documentTypes.offer")
+    return type
+  }
+
   return (
     <PageShell
       title={customer.name}
-      description="Kundenprofil, Rechnungen, Kontaktinformationen und Umsatzübersicht."
+      description={t("customers.detail.description")}
     >
       <div className="mb-2 flex flex-wrap items-center gap-3">
         <Link
           href="/customers"
           className="rounded-full bg-white px-4 py-2 text-sm font-black text-slate-600 no-underline shadow-sm ring-1 ring-slate-200 hover:bg-slate-50"
         >
-          Zurück zu Kunden
+          {t("customers.detail.actions.back")}
         </Link>
 
         <Link
           href="/documents/new"
           className="rounded-full bg-blue-600 px-4 py-2 text-sm font-black text-white no-underline shadow-sm hover:bg-blue-700"
         >
-          Neue Rechnung
+          {t("customers.detail.actions.newInvoice")}
         </Link>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          label="Dokumente"
+          label={t("customers.detail.stats.documents.label")}
           value={customerDocuments.length}
-          helper="Für diesen Kunden"
+          helper={t("customers.detail.stats.documents.helper")}
           tone="blue"
         />
 
         <StatCard
-          label="Bezahlt"
+          label={t("customers.detail.stats.paid.label")}
           value={paidDocuments.length}
-          helper="Abgeschlossen"
+          helper={t("customers.detail.stats.paid.helper")}
           tone="green"
         />
 
         <StatCard
-          label="Offen"
+          label={t("customers.detail.stats.open.label")}
           value={<Currency value={openAmount} />}
-          helper="Noch ausstehend"
+          helper={t("customers.detail.stats.open.helper")}
           tone="orange"
         />
 
         <StatCard
-          label="Volumen"
+          label={t("customers.detail.stats.volume.label")}
           value={<Currency value={totalAmount} />}
-          helper="Gesamtumsatz"
+          helper={t("customers.detail.stats.volume.helper")}
           tone="slate"
         />
       </div>
@@ -112,7 +130,7 @@ export default function CustomerDetailPage({
             <div className="flex flex-col justify-between gap-5 border-b border-slate-100 pb-6 md:flex-row md:items-start">
               <div>
                 <p className="text-xs font-black uppercase tracking-widest text-slate-400">
-                  Kunde
+                  {t("customers.detail.customer.eyebrow")}
                 </p>
                 <h2 className="mt-2 text-3xl font-black text-slate-950">
                   {customer.name}
@@ -127,14 +145,14 @@ export default function CustomerDetailPage({
                   statusClass[customer.status] ?? "bg-slate-50 text-slate-700 ring-slate-100"
                 }`}
               >
-                {customer.status}
+                {customerStatusLabel(customer.status)}
               </span>
             </div>
 
             <div className="mt-6 grid gap-4 md:grid-cols-2">
               <div className="rounded-[22px] bg-slate-50 p-5">
                 <p className="text-xs font-black uppercase tracking-widest text-slate-400">
-                  Ansprechpartner
+                  {t("customers.detail.fields.contact")}
                 </p>
                 <p className="mt-2 text-lg font-black text-slate-950">
                   {customer.contact}
@@ -143,7 +161,7 @@ export default function CustomerDetailPage({
 
               <div className="rounded-[22px] bg-slate-50 p-5">
                 <p className="text-xs font-black uppercase tracking-widest text-slate-400">
-                  E-Mail
+                  {t("customers.detail.fields.email")}
                 </p>
                 <p className="mt-2 text-lg font-black text-slate-950">
                   {customer.email}
@@ -152,7 +170,7 @@ export default function CustomerDetailPage({
 
               <div className="rounded-[22px] bg-slate-50 p-5">
                 <p className="text-xs font-black uppercase tracking-widest text-slate-400">
-                  Kundennummer
+                  {t("customers.detail.fields.customerNumber")}
                 </p>
                 <p className="mt-2 text-lg font-black text-slate-950">
                   KD-{customer.id.padStart(4, "0")}
@@ -161,27 +179,27 @@ export default function CustomerDetailPage({
 
               <div className="rounded-[22px] bg-slate-50 p-5">
                 <p className="text-xs font-black uppercase tracking-widest text-slate-400">
-                  Status
+                  {t("customers.detail.fields.status")}
                 </p>
                 <p className="mt-2 text-lg font-black text-slate-950">
-                  {customer.status}
+                  {customerStatusLabel(customer.status)}
                 </p>
               </div>
             </div>
           </ContentCard>
 
           <ContentCard
-            title="Dokumente"
-            description="Rechnungen und Angebote dieses Kunden."
+            title={t("customers.detail.documents.title")}
+            description={t("customers.detail.documents.description")}
           >
             <div className="overflow-hidden rounded-[26px] border border-slate-200">
               <table className="w-full text-sm">
                 <thead className="bg-slate-50 text-left text-xs font-black uppercase tracking-widest text-slate-500">
                   <tr>
-                    <th className="px-5 py-4">Nummer</th>
-                    <th className="px-5 py-4">Typ</th>
-                    <th className="px-5 py-4">Status</th>
-                    <th className="px-5 py-4 text-right">Betrag</th>
+                    <th className="px-5 py-4">{t("customers.detail.documents.table.number")}</th>
+                    <th className="px-5 py-4">{t("customers.detail.documents.table.type")}</th>
+                    <th className="px-5 py-4">{t("customers.detail.documents.table.status")}</th>
+                    <th className="px-5 py-4 text-right">{t("customers.detail.documents.table.amount")}</th>
                   </tr>
                 </thead>
 
@@ -202,7 +220,7 @@ export default function CustomerDetailPage({
 
                       <td className="px-5 py-5">
                         <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black text-slate-600">
-                          {document.type}
+                          {documentTypeLabel(document.type)}
                         </span>
                       </td>
 
@@ -212,7 +230,7 @@ export default function CustomerDetailPage({
                             documentStatusClass[document.status] ?? "bg-slate-50 text-slate-700 ring-slate-100"
                           }`}
                         >
-                          {document.status}
+                          {translateStatus(document.status, t)}
                         </span>
                       </td>
 
@@ -228,7 +246,7 @@ export default function CustomerDetailPage({
                         colSpan={4}
                         className="px-5 py-10 text-center text-sm font-semibold text-slate-500"
                       >
-                        Keine Dokumente für diesen Kunden vorhanden.
+                        {t("customers.detail.documents.empty")}
                       </td>
                     </tr>
                   )}
@@ -240,24 +258,24 @@ export default function CustomerDetailPage({
 
         <div className="space-y-6">
           <ContentCard
-            title="Finanzen"
-            description="Kundenumsatz."
+            title={t("customers.detail.finance.title")}
+            description={t("customers.detail.finance.description")}
           >
             <div className="rounded-[24px] bg-blue-600 p-6 text-white">
               <p className="text-xs font-black uppercase tracking-widest text-blue-100">
-                Gesamtvolumen
+                {t("customers.detail.finance.totalVolume")}
               </p>
               <p className="mt-3 text-3xl font-black">
                 <Currency value={totalAmount} />
               </p>
               <p className="mt-2 text-sm font-semibold text-blue-100">
-                Aus Dokumenten berechnet
+                {t("customers.detail.finance.calculatedFromDocuments")}
               </p>
             </div>
 
             <div className="mt-5 space-y-4">
               <div className="flex items-center justify-between">
-                <span className="font-semibold text-slate-500">Offen</span>
+                <span className="font-semibold text-slate-500">{t("customers.detail.finance.open")}</span>
                 <span className="font-black text-slate-950">
                   <Currency value={openAmount} />
                 </span>
@@ -266,7 +284,7 @@ export default function CustomerDetailPage({
               <Divider />
 
               <div className="flex items-center justify-between">
-                <span className="font-semibold text-slate-500">Dokumente</span>
+                <span className="font-semibold text-slate-500">{t("customers.detail.finance.documents")}</span>
                 <span className="font-black text-slate-950">
                   {customerDocuments.length}
                 </span>
@@ -275,25 +293,25 @@ export default function CustomerDetailPage({
           </ContentCard>
 
           <ContentCard
-            title="Aktionen"
-            description="Kundenbezogene Schnellaktionen."
+            title={t("customers.detail.quickActions.title")}
+            description={t("customers.detail.quickActions.description")}
           >
             <div className="space-y-3">
               <Link href="/documents/new" className="block no-underline">
                 <Button className="w-full">
-                  Neue Rechnung
+                  {t("customers.detail.quickActions.newInvoice")}
                 </Button>
               </Link>
 
               <Link href="/documents/new" className="block no-underline">
                 <Button variant="secondary" className="w-full">
-                  Neues Angebot
+                  {t("customers.detail.quickActions.newOffer")}
                 </Button>
               </Link>
 
               <Link href="/customers/new" className="block no-underline">
                 <Button variant="secondary" className="w-full">
-                  Kunde bearbeiten
+                  {t("customers.detail.quickActions.editCustomer")}
                 </Button>
               </Link>
             </div>

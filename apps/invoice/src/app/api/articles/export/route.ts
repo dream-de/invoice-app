@@ -1,4 +1,5 @@
 import { prisma } from "@invoice-platform/database"
+import { createCsvResponse } from "@/lib/export/csv-response"
 
 export const dynamic = "force-dynamic"
 
@@ -30,18 +31,6 @@ export async function GET() {
     ])
   ]
 
-  const csv = rows
-    .map((row) =>
-      row
-        .map((value) => `"${String(value ?? "").replaceAll('"', '""')}"`)
-        .join(";")
-    )
-    .join("\n")
 
-  return new Response(csv, {
-    headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": 'attachment; filename="preisliste-export.csv"'
-    }
-  })
+  return createCsvResponse(rows, "preisliste-export.csv")
 }

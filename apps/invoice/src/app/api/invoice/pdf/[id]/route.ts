@@ -4,26 +4,55 @@ import { NextResponse } from "next/server"
 import { prisma } from "@invoice-platform/database"
 import puppeteer from "puppeteer"
 import * as QRCode from "qrcode"
+import { createPdfContentDisposition, createPdfFileName } from "@invoice-platform/pdf"
 import { pdfLayout } from "@/lib/pdf/layout"
 import type { DocumentTemplate } from "@/lib/document-templates/types"
 import { DEFAULT_INVOICE_TEMPLATE } from "@/lib/document-templates/constants"
 import { createSepaQrPayload } from "@/lib/payment/sepa-qr"
 
 const APP_ROOT = process.cwd()
-const TEMPLATE_PATH = path.join(APP_ROOT, "data", "default-template.json")
+const LEGACY_TEMPLATE_PATH = path.join(APP_ROOT, "data", "default-template.json")
+const TEMPLATES_PATH = path.join(APP_ROOT, "data", "templates.json")
 
-async function loadDefaultTemplate(): Promise<DocumentTemplate> {
+type TemplateRecord = {
+  id: string
+  name: string
+  type: "invoice" | "offer"
+  active?: boolean
+  data?: DocumentTemplate
+}
+
+function normalizeTemplate(data: Partial<DocumentTemplate> | undefined): DocumentTemplate {
+  return {
+    ...DEFAULT_INVOICE_TEMPLATE,
+    ...data,
+    page: data?.page ?? DEFAULT_INVOICE_TEMPLATE.page,
+    elements: Array.isArray(data?.elements) && data.elements.length
+      ? data.elements
+      : DEFAULT_INVOICE_TEMPLATE.elements
+  }
+}
+
+async function loadInvoiceTemplate(templateId: string | null): Promise<DocumentTemplate> {
   try {
-    const raw = await fs.readFile(TEMPLATE_PATH, "utf8")
-    const data = JSON.parse(raw)
-    return {
-      ...DEFAULT_INVOICE_TEMPLATE,
-      ...data,
-      page: data.page ?? DEFAULT_INVOICE_TEMPLATE.page,
-      elements: Array.isArray(data.elements) && data.elements.length
-        ? data.elements
-        : DEFAULT_INVOICE_TEMPLATE.elements
+    const raw = await fs.readFile(TEMPLATES_PATH, "utf8")
+    const templates = JSON.parse(raw) as TemplateRecord[]
+    const invoiceTemplates = templates.filter((template) => template.type === "invoice")
+    const selected = templateId
+      ? invoiceTemplates.find((template) => template.id === templateId)
+      : invoiceTemplates.find((template) => template.active) ?? invoiceTemplates[0]
+
+    if (selected) {
+      return normalizeTemplate(selected.data ?? selected)
     }
+  } catch {
+    // Legacy fallback below keeps older local installs working.
+  }
+
+  try {
+    const raw = await fs.readFile(LEGACY_TEMPLATE_PATH, "utf8")
+    const data = JSON.parse(raw)
+    return normalizeTemplate(data)
   } catch {
     return DEFAULT_INVOICE_TEMPLATE
   }
@@ -38,6 +67,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
+  const { searchParams } = new URL(req.url)
 
   try {
     const invoice = await prisma.invoice.findUnique({
@@ -58,7 +88,7 @@ export async function GET(
     const companySettings = await prisma.companySettings.findFirst()
 
     const company = companySettings ?? {
-      company: "Invoice Platform",
+      company: "Dream Invoice",
       street: null,
       zip: null,
       city: null,
@@ -93,7 +123,7 @@ export async function GET(
       unitPrice: Number(p.netPrice)
     }))
 
-    const template = await loadDefaultTemplate()
+    const template = await loadInvoiceTemplate(searchParams.get("templateId"))
     const qrElement = template.elements.find((element) => element.type === "paymentQr")
     const paymentNote = replacePaymentPlaceholders(qrElement?.content, invoice.number)
 
@@ -135,23 +165,29 @@ export async function GET(
       args: ["--no-sandbox", "--disable-setuid-sandbox"]
     })
 
-    const page = await browser.newPage()
-    await page.setContent(html, { waitUntil: "load" })
+    try {
+      const page = await browser.newPage()
+      await page.setContent(html, { waitUntil: "load" })
 
-    const pdf = await page.pdf({
-      format: "A4",
-      printBackground: true,
-      preferCSSPageSize: true
-    })
+      const pdf = await page.pdf({
+        format: "A4",
+        printBackground: true,
+        preferCSSPageSize: true
+      })
 
-    await browser.close()
+      const disposition = searchParams.get("inline") === "1" || searchParams.get("download") === "0" ? "inline" : "attachment"
+      const fileName = createPdfFileName(invoice.number)
 
-    return new NextResponse(Buffer.from(pdf), {
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": 'attachment; filename="invoice.pdf"'
-      }
-    })
+      return new NextResponse(Buffer.from(pdf), {
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": createPdfContentDisposition(disposition, fileName),
+          "Cache-Control": "no-store"
+        }
+      })
+    } finally {
+      await browser.close().catch(() => undefined)
+    }
   } catch (err) {
     console.error(err)
     return NextResponse.json({ error: "PDF error" }, { status: 500 })

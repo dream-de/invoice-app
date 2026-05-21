@@ -2,32 +2,38 @@
 
 import { Download, IconButton, RotateCcw, SettingCard } from "../_components/SettingsControls"
 import { SettingsLayout } from "../_components/SettingsLayout"
+import { LanguageSettings } from "./LanguageSettings"
+import { useLanguage } from "@/lib/i18n"
 
 export default function SystemSettingsPage() {
+  const { t } = useLanguage()
+
   return (
     <SettingsLayout
-      title="System"
-      description="Audit-Log, Backup und Wiederherstellung."
+      title={t("settings.system.title")}
+      description={t("settings.system.description")}
     >
-      <SettingCard title="Audit" description="Audit-Log prüfen und als CSV exportieren.">
+      <LanguageSettings />
+
+      <SettingCard title={t("settings.audit.title")} description={t("settings.audit.description")}>
         <div className="flex flex-wrap gap-2">
-          <IconButton>Verify</IconButton>
+          <IconButton>{t("settings.audit.verify")}</IconButton>
           <IconButton>
             <Download className="h-4 w-4" />
-            Export CSV
+            {t("settings.audit.export")}
           </IconButton>
         </div>
       </SettingCard>
 
-      <SettingCard title="Backup" description="Datenbank sichern oder aus einer Sicherung wiederherstellen.">
+      <SettingCard title={t("settings.backup.title")} description={t("settings.backup.description")}>
         <div className="flex flex-wrap gap-2">
           <IconButton kind="success">
             <Download className="h-4 w-4" />
-            Backup erstellen
+            {t("settings.backup.create")}
           </IconButton>
           <IconButton>
             <RotateCcw className="h-4 w-4" />
-            Restore
+            {t("settings.backup.restore")}
           </IconButton>
         </div>
       </SettingCard>

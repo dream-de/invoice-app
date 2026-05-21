@@ -1,3 +1,5 @@
+"use client"
+
 import Link from "next/link"
 import {
   ArrowRight,
@@ -6,44 +8,40 @@ import {
   Landmark
 } from "lucide-react"
 import { PageShell } from "@invoice-platform/ui"
-
-const modules = [
-  {
-    title: "Konten & Transaktionen",
-    description: "CSV-Import, Zuordnung zu Rechnungen, Kontenverwaltung.",
-    href: "/finance/accounts",
-    icon: Landmark
-  },
-  {
-    title: "Statistiken",
-    description: "Umsätze, Kategorien, Zeiträume, Trends.",
-    href: "/finance/statistics",
-    icon: BarChart3
-  },
-  {
-    title: "EUR",
-    description: "Anlage EUR Kategorien, Klassifizierung und Export.",
-    href: "/finance/eur",
-    icon: FileSpreadsheet
-  }
-]
+import { useLanguage } from "@/lib/i18n"
 
 export default function FinancePage() {
+  const { t } = useLanguage()
+
+  const modules = [
+    {
+      title: t("finance.overview.accounts.title"),
+      description: t("finance.overview.accounts.description"),
+      href: "/finance/accounts",
+      icon: Landmark
+    },
+    {
+      title: t("finance.overview.statistics.title"),
+      description: t("finance.overview.statistics.description"),
+      href: "/finance/statistics",
+      icon: BarChart3
+    },
+    {
+      title: t("finance.overview.eur.title"),
+      description: t("finance.overview.eur.description"),
+      href: "/finance/eur",
+      icon: FileSpreadsheet
+    }
+  ]
+
   return (
-    <PageShell
-      title="Finanzen"
-      description="Konten, Transaktionen und Auswertungen."
-    >
+    <PageShell title={t("finance.overview.title")} description={t("finance.overview.description")}>
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         {modules.map((item) => {
           const Icon = item.icon
 
           return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="group relative min-h-[186px] rounded-3xl border border-gray-200 bg-gray-50 p-6 text-left text-slate-950 no-underline transition-colors hover:bg-gray-100"
-            >
+            <Link key={item.href} href={item.href} className="group relative min-h-[186px] rounded-3xl border border-gray-200 bg-gray-50 p-6 text-left text-slate-950 no-underline transition-colors hover:bg-gray-100">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-black text-[var(--brand-lime)] shadow-sm">
                   <Icon className="h-5 w-5" />
@@ -54,13 +52,8 @@ export default function FinancePage() {
                 </div>
               </div>
 
-              <h2 className="mt-8 text-xl font-extrabold tracking-tight text-slate-950">
-                {item.title}
-              </h2>
-
-              <p className="mt-3 max-w-[310px] text-sm font-medium leading-6 text-slate-500">
-                {item.description}
-              </p>
+              <h2 className="mt-8 text-xl font-extrabold tracking-tight text-slate-950">{item.title}</h2>
+              <p className="mt-3 max-w-[310px] text-sm font-medium leading-6 text-slate-500">{item.description}</p>
             </Link>
           )
         })}

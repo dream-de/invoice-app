@@ -77,6 +77,24 @@ importers:
         specifier: ^4
         version: 4.3.0
 
+  apps/demo:
+    devDependencies:
+      typescript:
+        specifier: latest
+        version: 6.0.3
+
+  apps/desktop:
+    devDependencies:
+      '@types/node':
+        specifier: ^20
+        version: 20.19.40
+      tsx:
+        specifier: latest
+        version: 4.22.3
+      typescript:
+        specifier: latest
+        version: 6.0.3
+
   apps/invoice:
     dependencies:
       '@invoice-platform/invoice-core':
@@ -85,6 +103,9 @@ importers:
       '@invoice-platform/ocr':
         specifier: workspace:*
         version: link:../../packages/ocr
+      '@invoice-platform/pdf':
+        specifier: workspace:*
+        version: link:../../packages/pdf
       '@invoice-platform/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -97,6 +118,9 @@ importers:
       next:
         specifier: 16.2.5
         version: 16.2.5(@babel/core@7.29.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      nodemailer:
+        specifier: ^8.0.7
+        version: 8.0.7
       puppeteer:
         specifier: ^24.43.1
         version: 24.43.1(typescript@5.9.3)
@@ -125,6 +149,9 @@ importers:
       '@types/node':
         specifier: ^20
         version: 20.19.40
+      '@types/nodemailer':
+        specifier: ^8.0.0
+        version: 8.0.0
       '@types/qrcode':
         specifier: ^1.5.6
         version: 1.5.6
@@ -146,9 +173,18 @@ importers:
       tailwindcss:
         specifier: ^4
         version: 4.3.0
+      tsx:
+        specifier: latest
+        version: 4.22.3
       typescript:
         specifier: ^5
         version: 5.9.3
+
+  apps/landing-page:
+    devDependencies:
+      typescript:
+        specifier: latest
+        version: 6.0.3
 
   apps/server:
     dependencies:
@@ -173,7 +209,19 @@ importers:
         version: 20.19.40
       tsx:
         specifier: latest
-        version: 4.22.0
+        version: 4.22.3
+
+  apps/server-worker:
+    devDependencies:
+      '@types/node':
+        specifier: ^20
+        version: 20.19.40
+      tsx:
+        specifier: latest
+        version: 4.22.3
+      typescript:
+        specifier: latest
+        version: 6.0.3
 
   packages/accounting-core: {}
 
@@ -212,9 +260,23 @@ importers:
         specifier: workspace:*
         version: link:../tax
 
-  packages/ocr: {}
+  packages/ocr:
+    devDependencies:
+      tsx:
+        specifier: latest
+        version: 4.22.3
 
-  packages/pdf: {}
+  packages/pdf:
+    devDependencies:
+      '@types/node':
+        specifier: ^20
+        version: 20.19.40
+      tsx:
+        specifier: latest
+        version: 4.22.3
+      typescript:
+        specifier: latest
+        version: 6.0.3
 
   packages/tax: {}
 
@@ -991,6 +1053,9 @@ packages:
 
   '@types/node@20.19.40':
     resolution: {integrity: sha512-xxx6M2IpSTnnKcR0cMvIiohkiCx20/oRPtWGbenFygKCGl3zqUzdNjQ/1V4solq1LU+dgv0nQzeGOuqkqZGg0Q==}
+
+  '@types/nodemailer@8.0.0':
+    resolution: {integrity: sha512-fyf8jWULsCo0d0BuoQ75i6IeoHs47qcqxWc7yUdUcV0pOZGjUTTOvwdG1PRXUDqN/8A64yQdQdnA2pZgcdi+cA==}
 
   '@types/qrcode@1.5.6':
     resolution: {integrity: sha512-te7NQcV2BOvdj2b1hCAHzAoMNuj65kNBMz0KBaxM6c3VGBOhU0dURQKOtH8CFNI/dsKkwlv32p26qYQTWoB5bw==}
@@ -2317,6 +2382,10 @@ packages:
   node-releases@2.0.38:
     resolution: {integrity: sha512-3qT/88Y3FbH/Kx4szpQQ4HzUbVrHPKTLVpVocKiLfoYvw9XSGOX2FmD2d6DrXbVYyAQTF2HeF6My8jmzx7/CRw==}
 
+  nodemailer@8.0.7:
+    resolution: {integrity: sha512-pkjE4mkBzQjdJT4/UmlKl3pX0rC9fZmjh7c6C9o7lv66Ac6w9WCnzPzhbPNxwZAzlF4mdq4CSWB5+FbK6FWCow==}
+    engines: {node: '>=6.0.0'}
+
   nypm@0.6.6:
     resolution: {integrity: sha512-vRyr0r4cbBapw07Xw8xrj9Teq3o7MUD35rSaTcanDbW+aK2XHDgJFiU6ZTj2GBw7Q12ysdsyFss+Vdz4hQ0Y6Q==}
     engines: {node: '>=18'}
@@ -2782,8 +2851,8 @@ packages:
   tslib@2.8.1:
     resolution: {integrity: sha512-oJFu94HQb+KVduSUQL7wnpmqnfmLsOA/nAh6b6EH0wCEoK0/mPeXU6c3wKDV83MkOuHPRHtSXKKU99IBazS/2w==}
 
-  tsx@4.22.0:
-    resolution: {integrity: sha512-8ccZMPD69s1AbKXx0C5ddTNZfNjwV04iIKgjZmKfKxMynEtSYcK0Lh7iQFh53fI5Yu4pb9usgAiqyPmEONaALg==}
+  tsx@4.22.3:
+    resolution: {integrity: sha512-mdoNxBC/cSQObGGVQ5Bpn5i+yv7j68gk3Nfm3wFjcJg3Z0Mix9jzAFfP12prmm5eVGmDKtp0yyArrs0Q+8gZHg==}
     engines: {node: '>=18.0.0'}
     hasBin: true
 
@@ -3573,6 +3642,10 @@ snapshots:
   '@types/node@20.19.40':
     dependencies:
       undici-types: 6.21.0
+
+  '@types/nodemailer@8.0.0':
+    dependencies:
+      '@types/node': 20.19.40
 
   '@types/qrcode@1.5.6':
     dependencies:
@@ -5049,6 +5122,8 @@ snapshots:
 
   node-releases@2.0.38: {}
 
+  nodemailer@8.0.7: {}
+
   nypm@0.6.6:
     dependencies:
       citty: 0.2.2
@@ -5672,7 +5747,7 @@ snapshots:
 
   tslib@2.8.1: {}
 
-  tsx@4.22.0:
+  tsx@4.22.3:
     dependencies:
       esbuild: 0.28.0
     optionalDependencies:

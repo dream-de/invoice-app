@@ -1,20 +1,49 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@invoice-platform/database"
 
+type InvoiceItemPayload = {
+  name?: string
+  label?: string
+  quantity?: number | string
+  price?: number | string
+  category?: string | null
+}
+
+function toNumber(value: unknown) {
+  return Number(String(value ?? 0).replace(",", ".")) || 0
+}
+
+function parseCustomerAddress(value: unknown) {
+  const lines = String(value ?? "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+
+  const street = lines[0] || ""
+  const place = lines[1] || ""
+  const placeMatch = place.match(/^(\d{4,6})\s+(.+)$/)
+
+  return {
+    street,
+    zip: placeMatch?.[1] || "",
+    city: placeMatch?.[2] || place
+  }
+}
+
 export async function PUT(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
 
-
-try {
-    const invoiceId = id
+  try {
     const data = await req.json()
+    const items = Array.isArray(data.items) ? data.items as InvoiceItemPayload[] : []
+    const taxRate = toNumber(data.taxRate ?? 0.19)
+    const tip = toNumber(data.tip)
 
-    // 1. Rechnung prüfen
     const existing = await prisma.invoice.findUnique({
-      where: { id: invoiceId },
+      where: { id },
       include: { positions: true }
     })
 
@@ -25,48 +54,117 @@ try {
       )
     }
 
-    // 2. Summen neu berechnen
-    const netTotal = data.items.reduce(
-      (sum: number, item: any) => sum + item.price * item.quantity,
+    const netTotal = items.reduce(
+      (sum, item) => sum + toNumber(item.price) * toNumber(item.quantity),
       0
     )
 
-    const vatTotal = netTotal * data.taxRate
-    const grossTotal = netTotal + vatTotal + data.tip
+    const vatTotal = netTotal * taxRate
+    const grossTotal = netTotal + vatTotal + tip
 
-    // 3. Positionen löschen (wir legen sie neu an)
-    await prisma.invoicePosition.deleteMany({
-      where: { invoiceId }
-    })
+    const updated = await prisma.$transaction(async (tx) => {
+      await tx.invoicePosition.deleteMany({
+        where: { invoiceId: id }
+      })
 
-    // 4. Rechnung aktualisieren
-    const updated = await prisma.invoice.update({
-      where: { id: invoiceId },
-      data: {
-        issueDate: new Date(data.date),
+      const customerName = typeof data.customerName === "string" ? data.customerName.trim() : ""
+      const customerEmail = typeof data.customerEmail === "string" ? data.customerEmail.trim() : ""
+      const customerAddress = parseCustomerAddress(data.customerAddress)
+      const payloadCustomerId = typeof data.customerId === "string" && data.customerId.trim()
+        ? data.customerId.trim()
+        : ""
+      let customerRelation: { connect: { id: string } } | { disconnect: true } | undefined = undefined
 
-        netTotal,
-        vatTotal,
-        grossTotal,
+      if (customerName === "(Kein Kunde)") {
+        customerRelation = { disconnect: true }
+      } else if (customerName) {
+        const customerData = {
+          name: customerName,
+          email: customerEmail || null,
+          street: customerAddress.street || null,
+          zip: customerAddress.zip || null,
+          city: customerAddress.city || null
+        }
 
-        customer: data.customerId
-          ? { connect: { id: data.customerId } }
-          : undefined,
+        let customerId = payloadCustomerId || existing.customerId || ""
 
-        positions: {
-          create: data.items.map((item: any, index: number) => ({
-            title: item.name,
-            quantity: item.quantity,
-            netPrice: item.price,
-            vatRate: data.taxRate * 100,
-            sortOrder: index
-          }))
+        if (!customerId) {
+          const customerMatches = [
+            customerEmail ? { email: customerEmail } : null,
+            { name: customerName }
+          ].filter(Boolean) as Array<{ email: string } | { name: string }>
+
+          const matchedCustomer = await tx.customer.findFirst({
+            where: { OR: customerMatches },
+            orderBy: { createdAt: "desc" }
+          })
+
+          customerId = matchedCustomer?.id || ""
+        }
+
+        if (customerId) {
+          await tx.customer.update({
+            where: { id: customerId },
+            data: customerData
+          })
+          customerRelation = { connect: { id: customerId } }
+        } else {
+          let nextNumberValue = await tx.customer.count() + 1
+          let customerNumber = "KD-" + String(nextNumberValue).padStart(4, "0")
+
+          while (await tx.customer.findUnique({ where: { number: customerNumber } })) {
+            nextNumberValue += 1
+            customerNumber = "KD-" + String(nextNumberValue).padStart(4, "0")
+          }
+
+          const customer = await tx.customer.create({
+            data: {
+              number: customerNumber,
+              ...customerData,
+              country: "Deutschland",
+              status: "active"
+            }
+          })
+
+          customerRelation = { connect: { id: customer.id } }
         }
       }
+
+      return tx.invoice.update({
+        where: { id },
+        data: {
+          number: typeof data.number === "string" && data.number.trim()
+            ? data.number.trim()
+            : existing.number,
+          issueDate: data.date ? new Date(data.date) : existing.issueDate,
+          dueDate: data.dueDate ? new Date(data.dueDate) : null,
+          notes: typeof data.note === "string" ? data.note : null,
+
+          netTotal,
+          vatTotal,
+          grossTotal,
+
+          customer: customerRelation,
+
+          positions: {
+            create: items.map((item, index) => ({
+              title: item.name || item.label || "Position",
+              description: item.category || null,
+              quantity: toNumber(item.quantity) || 1,
+              netPrice: toNumber(item.price),
+              vatRate: taxRate * 100,
+              sortOrder: index
+            }))
+          }
+        },
+        include: {
+          positions: { orderBy: { sortOrder: "asc" } },
+          customer: true
+        }
+      })
     })
 
     return NextResponse.json({ success: true, invoice: updated })
-
   } catch (err) {
     console.error(err)
     return NextResponse.json(

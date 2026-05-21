@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useState } from "react"
+import { useLanguage } from "@/lib/i18n"
 import {
   Button,
   ContentCard,
@@ -34,10 +35,11 @@ const initialState: FormState = {
   street: "",
   zip: "",
   city: "",
-  country: "Deutschland"
+  country: ""
 }
 
 export default function NewCustomerPage() {
+  const { t } = useLanguage()
   const [form, setForm] = useState<FormState>(initialState)
   const [status, setStatus] = useState<"idle" | "saving" | "success" | "error">("idle")
   const [message, setMessage] = useState("")
@@ -67,115 +69,115 @@ export default function NewCustomerPage() {
       const result = await response.json()
 
       if (!response.ok) {
-        throw new Error(result?.error || "Kunde konnte nicht erstellt werden.")
+        throw new Error(result?.error || t("customers.new.error.createFailed"))
       }
 
       setStatus("success")
-      setMessage(`Kunde wurde erstellt: ${result.customer?.name}`)
+      setMessage(`${t("customers.new.success.created")}: ${result.customer?.name}`)
       setForm(initialState)
     } catch (error) {
       setStatus("error")
-      setMessage(error instanceof Error ? error.message : "Unbekannter Fehler")
+      setMessage(error instanceof Error ? error.message : t("customers.new.error.unknown"))
     }
   }
 
   return (
     <PageShell
-      title="Neuer Kunde"
-      description="Kundenprofil mit Kontakt, Rechnungsadresse und Status erstellen."
+      title={t("customers.new.title")}
+      description={t("customers.new.description")}
     >
       <div className="mb-2">
         <Link
           href="/customers"
           className="rounded-full bg-white px-4 py-2 text-sm font-black text-slate-600 no-underline shadow-sm ring-1 ring-slate-200 hover:bg-slate-50"
         >
-          Zurück zu Kunden
+          {t("customers.new.back")}
         </Link>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.45fr_0.8fr]">
         <ContentCard
-          title="Kundendaten"
-          description="Stammdaten, Kontaktinformationen und Status."
+          title={t("customers.new.customerData.title")}
+          description={t("customers.new.customerData.description")}
         >
           <div className="grid gap-5 md:grid-cols-2">
             <Input
-              label="FIRMENNAME"
-              placeholder="Muster GmbH"
+              label={t("customers.new.fields.companyName")}
+              placeholder={t("customers.new.placeholders.companyName")}
               value={form.name}
               onChange={(event) => updateField("name", event.target.value)}
             />
 
             <Input
-              label="ANSPRECHPARTNER"
-              placeholder="Erika Beispiel"
+              label={t("customers.new.fields.contact")}
+              placeholder={t("customers.new.placeholders.contact")}
               value={form.contact}
               onChange={(event) => updateField("contact", event.target.value)}
             />
 
             <Input
-              label="E-MAIL"
-              placeholder="kontakt@example.com"
+              label={t("customers.new.fields.email")}
+              placeholder={t("customers.new.placeholders.email")}
               value={form.email}
               onChange={(event) => updateField("email", event.target.value)}
             />
 
             <Input
-              label="TELEFON"
-              placeholder="+49 40 123456"
+              label={t("customers.new.fields.phone")}
+              placeholder={t("customers.new.placeholders.phone")}
               value={form.phone}
               onChange={(event) => updateField("phone", event.target.value)}
             />
 
             <Input
-              label="KUNDENNUMMER"
-              placeholder="wird automatisch gesetzt"
+              label={t("customers.new.fields.customerNumber")}
+              placeholder={t("customers.new.placeholders.customerNumber")}
               value={form.number}
               onChange={(event) => updateField("number", event.target.value)}
             />
 
             <Select
-              label="STATUS"
+              label={t("customers.new.fields.status")}
               value={form.status}
               onChange={(event) => updateField("status", event.target.value)}
               options={[
-                { label: "Aktiv", value: "active" },
-                { label: "Offen", value: "open" },
-                { label: "Inaktiv", value: "inactive" }
+                { label: t("customers.new.status.active"), value: "active" },
+                { label: t("customers.new.status.open"), value: "open" },
+                { label: t("customers.new.status.inactive"), value: "inactive" }
               ]}
             />
           </div>
 
           <div className="mt-8 border-t border-slate-100 pt-8">
             <h3 className="text-lg font-black text-slate-950">
-              Rechnungsadresse
+              {t("customers.new.billingAddress")}
             </h3>
 
             <div className="mt-5 grid gap-5 md:grid-cols-2">
               <Input
-                label="STRASSE"
-                placeholder="Musterstraße 12"
+                label={t("customers.new.fields.street")}
+                placeholder={t("customers.new.placeholders.street")}
                 value={form.street}
                 onChange={(event) => updateField("street", event.target.value)}
               />
 
               <Input
-                label="PLZ"
-                placeholder="10115"
+                label={t("customers.new.fields.zip")}
+                placeholder={t("customers.new.placeholders.zip")}
                 value={form.zip}
                 onChange={(event) => updateField("zip", event.target.value)}
               />
 
               <Input
-                label="ORT"
-                placeholder="Berlin"
+                label={t("customers.new.fields.city")}
+                placeholder={t("customers.new.placeholders.city")}
                 value={form.city}
                 onChange={(event) => updateField("city", event.target.value)}
               />
 
               <Input
-                label="LAND"
-                placeholder="Deutschland"
+                label={t("customers.new.fields.country")}
+                placeholder={t("customers.new.placeholders.country")}
                 value={form.country}
                 onChange={(event) => updateField("country", event.target.value)}
               />
@@ -184,14 +186,14 @@ export default function NewCustomerPage() {
 
           <FormActions>
             <Link href="/customers" className="no-underline">
-              <Button variant="secondary">Abbrechen</Button>
+              <Button variant="secondary">{t("customers.new.actions.cancel")}</Button>
             </Link>
 
             <Button
               onClick={createCustomer}
               disabled={status === "saving"}
             >
-              {status === "saving" ? "Speichert..." : "Kunde erstellen"}
+              {status === "saving" ? t("customers.new.actions.saving") : t("customers.new.actions.create")}
             </Button>
           </FormActions>
 
@@ -210,31 +212,31 @@ export default function NewCustomerPage() {
 
         <div className="space-y-6">
           <ContentCard
-            title="Status"
-            description="Datenbankverbindung."
+            title={t("customers.new.statusCard.title")}
+            description={t("customers.new.statusCard.description")}
           >
             <div className="rounded-[24px] bg-black p-6 text-white">
               <p className="text-xs font-black uppercase tracking-widest text-lime-200">
-                Neuer Datensatz
+                {t("customers.new.statusCard.eyebrow")}
               </p>
               <p className="mt-3 text-3xl font-black">
-                Kunde
+                {t("customers.new.statusCard.entity")}
               </p>
               <p className="mt-2 text-sm font-semibold text-slate-300">
-                Wird jetzt in PostgreSQL gespeichert.
+                {t("customers.new.statusCard.copy")}
               </p>
             </div>
           </ContentCard>
 
           <ContentCard
-            title="Nach dem Speichern"
-            description="Nächste Schritte."
+            title={t("customers.new.afterSave.title")}
+            description={t("customers.new.afterSave.description")}
           >
             <div className="space-y-4">
               {[
-                ["Kundenübersicht", "Der Kunde ist danach über die API abrufbar."],
-                ["Rechnungen", "Der Kunde kann später Rechnungen zugeordnet werden."],
-                ["Projekte", "Projekte können danach mit Kunden verbunden werden."]
+                [t("customers.new.afterSave.overview.title"), t("customers.new.afterSave.overview.copy")],
+                [t("customers.new.afterSave.invoices.title"), t("customers.new.afterSave.invoices.copy")],
+                [t("customers.new.afterSave.projects.title"), t("customers.new.afterSave.projects.copy")]
               ].map((item) => (
                 <div key={item[0]} className="rounded-[22px] bg-slate-50 p-4">
                   <p className="font-black text-slate-950">{item[0]}</p>

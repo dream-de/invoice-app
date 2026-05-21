@@ -1,0 +1,42 @@
+[
+  {
+    "id": "recurring-invoices-daily",
+    "kind": "recurring-invoices",
+    "enabled": true,
+    "cadence": "daily",
+    "timezone": "Europe/Berlin",
+    "nextRunAt": "2026-05-20T06:00:00.000Z",
+    "lookbackMinutes": 1440,
+    "dryRun": true
+  },
+  {
+    "id": "payment-reminders-daily",
+    "kind": "payment-reminders",
+    "enabled": true,
+    "cadence": "daily",
+    "timezone": "Europe/Berlin",
+    "nextRunAt": "2026-05-20T07:00:00.000Z",
+    "lookbackMinutes": 1440,
+    "dryRun": true
+  },
+  {
+    "id": "dunning-run-weekly",
+    "kind": "dunning-run",
+    "enabled": true,
+    "cadence": "weekly",
+    "timezone": "Europe/Berlin",
+    "nextRunAt": "2026-05-18T07:30:00.000Z",
+    "lookbackMinutes": 10080,
+    "dryRun": true
+  },
+  {
+    "id": "maintenance-nightly",
+    "kind": "maintenance",
+    "enabled": true,
+    "cadence": "daily",
+    "timezone": "Europe/Berlin",
+    "nextRunAt": "2026-05-20T02:00:00.000Z",
+    "lookbackMinutes": 1440,
+    "dryRun": true
+  }
+]

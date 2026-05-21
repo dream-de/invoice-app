@@ -1,5 +1,7 @@
 node_modules
 .next
+apps/demo/dist
+apps/landing-page/dist
 apps/web/.next
 apps/web/node_modules
 .pnpm-store
@@ -27,3 +29,9 @@ private-license-key.pem
 *.license-key.txt
 license-keys/
 .env.production
+
+# Local email delivery settings
+apps/invoice/data/email-settings.local.json
+
+# Local email delivery log
+apps/invoice/data/email-delivery-log.local.json

@@ -1,15 +1,16 @@
-
 {
-
   "name": "@invoice-platform/pdf",
-
   "version": "0.0.0",
-
   "private": true,
-
   "main": "./src/index.ts",
-
-  "types": "./src/index.ts"
-
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test src/**/*.test.ts"
+  },
+  "devDependencies": {
+    "typescript": "latest",
+    "@types/node": "^20",
+    "tsx": "latest"
+  }
 }
-

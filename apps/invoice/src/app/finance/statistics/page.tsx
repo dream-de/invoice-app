@@ -12,6 +12,7 @@ import {
   TrendingUp
 } from "lucide-react"
 import { Currency, PageShell } from "@invoice-platform/ui"
+import { useLanguage } from "@/lib/i18n"
 
 const months = [
   { label: "Jan", value: 0 },
@@ -28,40 +29,25 @@ const months = [
   { label: "Dez", value: 0 }
 ]
 
-const metrics = [
-  {
-    label: "Umsatz (Bezahlt)",
-    value: 0,
-    icon: CircleDollarSign
-  },
-  {
-    label: "Offene Forderungen",
-    value: 0,
-    icon: Clock3
-  },
-  {
-    label: "Ø Rechnungswert",
-    value: 0,
-    icon: ReceiptText
-  },
-  {
-    label: "Zahlungsquote",
-    value: "0%",
-    icon: Percent
-  }
-]
-
 export default function FinanceStatisticsPage() {
-  const [period, setPeriod] = useState("Jahr")
+  const { t } = useLanguage()
+  const periods = [t("finance.statistics.period.month"), t("finance.statistics.period.quarter"), t("finance.statistics.period.year"), t("finance.statistics.period.total")]
+  const metrics = [
+    { label: t("finance.statistics.metrics.paidRevenue"), value: 0, icon: CircleDollarSign },
+    { label: t("finance.statistics.metrics.openClaims"), value: 0, icon: Clock3 },
+    { label: t("finance.statistics.metrics.averageInvoice"), value: 0, icon: ReceiptText },
+    { label: t("finance.statistics.metrics.paymentRate"), value: "0%", icon: Percent }
+  ]
+  const [period, setPeriod] = useState(t("finance.statistics.period.year"))
 
   return (
     <PageShell
-      title="Statistiken"
-      description="Finanzüberblick und Geschäftsentwicklung"
+      title={t("finance.statistics.title")}
+      description={t("finance.statistics.description")}
     >
       <div className="space-y-6">
         <div className="flex w-max max-w-full items-center gap-1 overflow-x-auto rounded-full bg-[#eef2f7] p-1">
-          {["Monat", "Quartal", "Jahr", "Gesamt"].map((item) => (
+          {periods.map((item) => (
             <button
               key={item}
               type="button"
@@ -109,10 +95,10 @@ export default function FinanceStatisticsPage() {
             <div className="flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-xl font-extrabold text-slate-950">
-                  Umsatzentwicklung
+                  {t("finance.statistics.revenue.title")}
                 </h2>
                 <p className="mt-1 text-sm font-medium text-slate-500">
-                  Bezahlte Rechnungen
+                  {t("finance.statistics.revenue.description")}
                 </p>
               </div>
 
@@ -142,10 +128,10 @@ export default function FinanceStatisticsPage() {
             <div className="flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-xl font-extrabold text-slate-950">
-                  Top Kunden
+                  {t("finance.statistics.topCustomers.title")}
                 </h2>
                 <p className="mt-1 text-sm font-medium text-slate-500">
-                  Beste Kunden im Zeitraum
+                  {t("finance.statistics.topCustomers.description")}
                 </p>
               </div>
 
@@ -156,7 +142,7 @@ export default function FinanceStatisticsPage() {
 
             <div className="mt-8 rounded-2xl border border-dashed border-gray-200 bg-white p-8 text-center">
               <p className="text-sm font-semibold text-slate-500">
-                Keine Daten für diesen Zeitraum
+                {t("finance.statistics.empty")}
               </p>
             </div>
 
@@ -164,7 +150,7 @@ export default function FinanceStatisticsPage() {
               href="/customers"
               className="mt-6 inline-flex items-center gap-2 rounded-full bg-black px-5 py-2.5 text-sm font-bold text-white no-underline"
             >
-              Alle Kunden ansehen
+              {t("finance.statistics.allCustomers")}
               <ArrowRight className="h-4 w-4" />
             </Link>
           </section>

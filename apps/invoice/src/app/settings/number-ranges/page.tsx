@@ -4,9 +4,12 @@ import { FileDigit } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { Field, SoftInput } from "../_components/SettingsControls"
 import { SettingsLayout } from "../_components/SettingsLayout"
+import { useLanguage } from "@/lib/i18n"
+
+type RangeType = "invoice" | "offer" | "customer"
 
 type RangeForm = {
-  type: string
+  type: RangeType
   title: string
   prefix: string
   nextValue: string
@@ -28,10 +31,12 @@ function makePreview(prefix: string, next: string, padding: number) {
 
 function NumberBlock({
   range,
-  update
+  update,
+  t
 }: {
   range: RangeForm
-  update: (type: string, patch: Partial<RangeForm>) => void
+  update: (type: RangeType, patch: Partial<RangeForm>) => void
+  t: ReturnType<typeof useLanguage>["t"]
 }) {
   const preview = useMemo(
     () => makePreview(range.prefix, range.nextValue, range.padding),
@@ -47,20 +52,20 @@ function NumberBlock({
           </div>
 
           <div>
-            <h3 className="text-base font-extrabold text-[#1f2937]">{range.title}</h3>
+            <h3 className="text-base font-extrabold text-[#1f2937]">{t(`settings.numberRanges.types.${range.type}`)}</h3>
             <span className="mt-1.5 inline-flex rounded-full bg-[#eef2f7] px-3 py-1 text-[11px] font-extrabold uppercase text-[#64748b]">
-              Vorschau: {preview}
+              {t("settings.numberRanges.preview")}: {preview}
             </span>
           </div>
         </div>
       </div>
 
       <div className="grid gap-3 md:grid-cols-2">
-        <Field label="Präfix Format">
+        <Field label={t("settings.numberRanges.fields.prefix")}>
           <SoftInput value={range.prefix} onChange={(event) => update(range.type, { prefix: event.target.value })} />
         </Field>
 
-        <Field label="Nächste Nummer">
+        <Field label={t("settings.numberRanges.fields.nextNumber")}>
           <SoftInput value={range.nextValue} onChange={(event) => update(range.type, { nextValue: event.target.value })} />
         </Field>
       </div>
@@ -69,10 +74,10 @@ function NumberBlock({
         <div className="mb-3 flex items-center justify-between gap-4">
           <div>
             <p className="text-xs font-extrabold uppercase tracking-widest text-[#64748b]">
-              Mindestlänge (Padding)
+              {t("settings.numberRanges.fields.padding")}
             </p>
             <p className="mt-1 text-sm font-medium text-[#94a3b8]">
-              {range.padding} Stellen, z.B. {String(1).padStart(range.padding, "0")}
+              {t("settings.numberRanges.paddingHint").replace("{count}", String(range.padding)).replace("{example}", String(1).padStart(range.padding, "0"))}
             </p>
           </div>
 
@@ -92,7 +97,7 @@ function NumberBlock({
 
         <div className="mt-2 flex justify-between text-[11px] font-bold text-[#94a3b8]">
           <span>1</span>
-          <span>3 Stellen</span>
+          <span>{t("settings.numberRanges.threeDigits")}</span>
           <span>6</span>
           <span>8</span>
         </div>
@@ -102,6 +107,7 @@ function NumberBlock({
 }
 
 export default function NumberRangesSettingsPage() {
+  const { t } = useLanguage()
   const [ranges, setRanges] = useState<RangeForm[]>(defaults)
   const [status, setStatus] = useState("")
 
@@ -130,14 +136,14 @@ export default function NumberRangesSettingsPage() {
     loadRanges()
   }, [])
 
-  function update(type: string, patch: Partial<RangeForm>) {
+  function update(type: RangeType, patch: Partial<RangeForm>) {
     setRanges((items) =>
       items.map((item) => item.type === type ? { ...item, ...patch } : item)
     )
   }
 
   async function save() {
-    setStatus("Speichert...")
+    setStatus(t("settings.numberRanges.status.saving"))
 
     const response = await fetch("/api/settings/number-ranges", {
       method: "PUT",
@@ -155,22 +161,22 @@ export default function NumberRangesSettingsPage() {
     const result = await response.json()
 
     if (!response.ok || !result.ok) {
-      setStatus(result.error || "Speichern fehlgeschlagen.")
+      setStatus(result.error || t("settings.numberRanges.status.error"))
       return
     }
 
-    setStatus("Gespeichert.")
+    setStatus(t("settings.numberRanges.status.saved"))
   }
 
   return (
     <SettingsLayout
-      title="Nummernkreise"
-      description="Definieren Sie das Format für Rechnungs-, Angebots- und Kundennummern."
+      title={t("settings.numberRanges.title")}
+      description={t("settings.numberRanges.description")}
       action={save}
       status={status}
     >
       {ranges.map((range) => (
-        <NumberBlock key={range.type} range={range} update={update} />
+        <NumberBlock key={range.type} range={range} update={update} t={t} />
       ))}
     </SettingsLayout>
   )

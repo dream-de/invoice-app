@@ -1,6 +1,9 @@
+"use client"
+
 import Link from "next/link"
 import { ArrowLeft, Building2, Plus, Trash2 } from "lucide-react"
 import { Currency, PageShell } from "@invoice-platform/ui"
+import { useLanguage } from "@/lib/i18n"
 
 const accounts = [
   ["Hauptgeschäftskonto", "DE12 3456 7890 1234 5678 90", 124500],
@@ -9,17 +12,19 @@ const accounts = [
 ] as const
 
 export default function ManageAccountsPage() {
+  const { t } = useLanguage()
+
   return (
-    <PageShell title="Konten verwalten" description="Erstellen und bearbeiten Sie Ihre Konten.">
+    <PageShell title={t("finance.accounts.manage.title")} description={t("finance.accounts.manage.description")}>
       <div className="space-y-6">
         <div className="flex items-center justify-between gap-4">
           <Link href="/finance/accounts" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 no-underline hover:text-slate-900">
             <ArrowLeft className="h-4 w-4" />
-            Zurück
+            {t("finance.accounts.manage.back")}
           </Link>
           <button className="inline-flex items-center gap-2 rounded-full bg-black px-5 py-2.5 text-sm font-bold text-[var(--brand-lime)]">
             <Plus className="h-4 w-4" />
-            Konto erstellen
+            {t("finance.accounts.manage.create")}
           </button>
         </div>
 
@@ -36,7 +41,7 @@ export default function ManageAccountsPage() {
                 </div>
               </div>
               <p className="font-extrabold text-slate-950 md:text-right"><Currency value={balance} /></p>
-              <button className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-red-50 text-red-600 ring-1 ring-red-100">
+              <button className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-red-50 text-red-600 ring-1 ring-red-100" aria-label={t("finance.accounts.deleteAccount")}>
                 <Trash2 className="h-4 w-4" />
               </button>
             </div>

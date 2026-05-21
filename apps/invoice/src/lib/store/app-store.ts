@@ -53,9 +53,9 @@ export const defaultData: AppData = {
     {
       id: "1",
       code: "MU",
-      name: "Musterfirma GmbH",
+      name: "Aurora Labs GmbH",
       contact: "Erika Beispiel",
-      email: "info@musterfirma.de",
+      email: "billing@aurora-labs.example",
       projects: 2,
       status: "active"
     }
@@ -65,7 +65,7 @@ export const defaultData: AppData = {
       id: "1",
       code: "SE",
       category: "Entwicklung",
-      name: "Senior Entwicklung",
+      name: "Senior Integration",
       number: "DEV-001",
       net: 120,
       gross: 142.8,
@@ -77,7 +77,7 @@ export const defaultData: AppData = {
       id: "1",
       name: "Website Relaunch 2026",
       code: "PRJ-2026-001",
-      customer: "Musterfirma GmbH",
+      customer: "Aurora Labs GmbH",
       status: "Aktiv",
       start: "12.01.2026"
     }

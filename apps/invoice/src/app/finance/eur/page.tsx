@@ -4,16 +4,17 @@ import { ArrowLeft, Download, FileText, RotateCcw, Search, SlidersHorizontal } f
 import Link from "next/link"
 import { useState } from "react"
 import { Currency } from "@invoice-platform/ui"
+import { useLanguage } from "@/lib/i18n"
 
 const transactions = [
-  { date: "2025-02-17", source: "Bank", name: "Finanzamt Berlin", text: "Umsatzsteuervorauszahlung Jan 2025", amount: -990, type: "Ausgabe" },
+  { date: "2025-02-17", source: "Bank", name: "Finanzamt Koeln", text: "Umsatzsteuervorauszahlung Jan 2025", amount: -990, type: "Ausgabe" },
   { date: "2025-02-11", source: "Bank", name: "Notion Labs", text: "Team-Abo Februar", amount: -74.99, type: "Ausgabe" },
   { date: "2025-02-05", source: "Bank", name: "Meta Ads", text: "Kampagne Leadgen Februar", amount: -145, type: "Ausgabe" },
-  { date: "2025-02-03", source: "Bank", name: "StartUp Berlin AG", text: "Teilzahlung Strategieprojekt", amount: 1450, type: "Einnahme" },
+  { date: "2025-02-03", source: "Bank", name: "StartUp Koeln AG", text: "Teilzahlung Strategieprojekt", amount: 1450, type: "Einnahme" },
   { date: "2025-01-22", source: "Bank", name: "Kunde Shop #1143", text: "PayPal Checkout", amount: 680, type: "Einnahme" },
-  { date: "2025-01-19", source: "Bank", name: "Büro Center Berlin", text: "Büromaterial Q1", amount: -460, type: "Ausgabe" },
+  { date: "2025-01-19", source: "Bank", name: "Büro Center Koeln", text: "Büromaterial Q1", amount: -460, type: "Ausgabe" },
   { date: "2025-01-12", source: "Bank", name: "Telekom Deutschland", text: "Internet & Telefon Januar", amount: -189, type: "Ausgabe" },
-  { date: "2025-01-08", source: "Bank", name: "Musterfirma GmbH", text: "Abschlagszahlung Website-Relaunch", amount: 2200, type: "Einnahme" }
+  { date: "2025-01-08", source: "Bank", name: "Aurora Labs GmbH", text: "Abschlagszahlung Portal-Relaunch", amount: 2200, type: "Einnahme" }
 ]
 
 const categories = [
@@ -34,6 +35,7 @@ const categories = [
 
 export default function EurPage() {
   const [selected, setSelected] = useState<string | null>(null)
+  const { t } = useLanguage()
 
   return (
     <div className="mx-auto max-w-[1480px]">
@@ -49,9 +51,9 @@ export default function EurPage() {
             </div>
 
             <div>
-              <h1 className="text-3xl font-extrabold tracking-tight text-[#151b2b]">Anlage EUR</h1>
+              <h1 className="text-3xl font-extrabold tracking-tight text-[#151b2b]">{t("finance.eur.title")}</h1>
               <p className="mt-1 text-sm font-medium text-[#64748b]">
-                Klassifizierung und Auswertung für Steuerjahr 2025.
+                {t("finance.eur.description")}
               </p>
             </div>
           </div>
@@ -60,15 +62,15 @@ export default function EurPage() {
             <button className="rounded-full border border-[#dfe5ed] bg-white px-5 py-2.5 text-sm font-semibold text-[#1f2937]">2025</button>
             <button className="inline-flex items-center gap-2 rounded-full border border-[#dfe5ed] bg-white px-5 py-2.5 text-sm font-semibold text-[#1f2937]">
               <SlidersHorizontal className="h-4 w-4" />
-              Regeln
+              {t("finance.eur.rules")}
             </button>
             <button className="inline-flex items-center gap-2 rounded-full bg-black px-5 py-2.5 text-sm font-bold text-white">
               <Download className="h-4 w-4" />
-              CSV exportieren
+              {t("finance.eur.exportCsv")}
             </button>
             <button className="inline-flex items-center gap-2 rounded-full bg-[#eef2f7] px-5 py-2.5 text-sm font-semibold text-[#1f2937]">
               <Download className="h-4 w-4" />
-              PDF exportieren
+              {t("finance.eur.exportPdf")}
             </button>
           </div>
         </div>
@@ -76,42 +78,42 @@ export default function EurPage() {
         <div className="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
           <div className="rounded-[28px] border border-[#e1e7ef] bg-white p-5 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="text-lg font-extrabold text-[#151b2b]">Queue</h2>
-              <span className="text-sm font-medium text-[#7b8799]">8 Einträge</span>
+              <h2 className="text-lg font-extrabold text-[#151b2b]">{t("finance.eur.queue")}</h2>
+              <span className="text-sm font-medium text-[#7b8799]">{t("finance.eur.entries").replace("{count}", "8")}</span>
             </div>
 
             <div className="grid grid-cols-2 gap-2 rounded-[22px] border border-[#e6ebf1] bg-[#f7f9fc] p-2 text-center text-sm font-semibold text-[#64748b]">
-              <button className="rounded-full bg-white px-4 py-2 text-[#151b2b] shadow-sm">Offen (8)</button>
-              <button className="rounded-full px-4 py-2">Klassifiziert (0)</button>
-              <button className="rounded-full px-4 py-2">Ausgeschl. (0)</button>
-              <button className="rounded-full px-4 py-2">Alle (8)</button>
+              <button className="rounded-full bg-white px-4 py-2 text-[#151b2b] shadow-sm">{t("finance.eur.tabs.open").replace("{count}", "8")}</button>
+              <button className="rounded-full px-4 py-2">{t("finance.eur.tabs.classified")}</button>
+              <button className="rounded-full px-4 py-2">{t("finance.eur.tabs.excluded")}</button>
+              <button className="rounded-full px-4 py-2">{t("finance.eur.tabs.all").replace("{count}", "8")}</button>
             </div>
 
             <div className="mt-4 flex items-center gap-3 rounded-full border border-[#e1e7ef] bg-white px-4 py-3">
               <Search className="h-4 w-4 text-slate-400" />
-              <input className="w-full bg-transparent text-sm font-medium outline-none placeholder:text-slate-400" placeholder="Gegenpartei, Zweck oder Datum..." />
+              <input className="w-full bg-transparent text-sm font-medium outline-none placeholder:text-slate-400" placeholder={t("finance.eur.search")} />
             </div>
 
             <div className="mt-4 grid grid-cols-2 gap-3">
-              <button className="rounded-full border border-[#e1e7ef] bg-white px-4 py-2.5 text-sm font-semibold text-[#1f2937]">Alle Typen</button>
-              <button className="rounded-full border border-[#e1e7ef] bg-white px-4 py-2.5 text-sm font-semibold text-[#1f2937]">Neueste zuerst</button>
+              <button className="rounded-full border border-[#e1e7ef] bg-white px-4 py-2.5 text-sm font-semibold text-[#1f2937]">{t("finance.eur.allTypes")}</button>
+              <button className="rounded-full border border-[#e1e7ef] bg-white px-4 py-2.5 text-sm font-semibold text-[#1f2937]">{t("finance.eur.newestFirst")}</button>
             </div>
 
             <div className="mt-4 rounded-[22px] border border-[#e6ebf1] bg-[#f7f9fc] p-3">
               <div className="mb-3 flex items-center justify-between text-sm">
                 <label className="flex items-center gap-2 font-semibold text-[#334155]">
                   <input type="checkbox" className="h-4 w-4 rounded border-slate-300" />
-                  0 ausgewählt
+                  {t("finance.eur.selectedCount")}
                 </label>
-                <button className="font-medium text-[#64748b]">Auswahl löschen</button>
+                <button className="font-medium text-[#64748b]">{t("finance.eur.clearSelection")}</button>
               </div>
 
               <div className="grid gap-2">
-                <button className="rounded-full bg-white px-4 py-2.5 text-left text-sm font-medium text-[#94a3b8]">Vorschlag anwenden</button>
-                <button className="rounded-full bg-white px-4 py-2.5 text-left text-sm font-medium text-[#94a3b8]">Als privat/Transfer markieren</button>
+                <button className="rounded-full bg-white px-4 py-2.5 text-left text-sm font-medium text-[#94a3b8]">{t("finance.eur.applySuggestion")}</button>
+                <button className="rounded-full bg-white px-4 py-2.5 text-left text-sm font-medium text-[#94a3b8]">{t("finance.eur.markPrivate")}</button>
                 <button className="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2.5 text-left text-sm font-medium text-[#94a3b8]">
                   <RotateCcw className="h-4 w-4" />
-                  Klassifizierung zurücksetzen
+                  {t("finance.eur.resetClassification")}
                 </button>
               </div>
             </div>
@@ -138,9 +140,9 @@ export default function EurPage() {
                   <p className="mt-1 text-sm font-medium text-[#64748b]">{item.text}</p>
 
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-bold text-orange-700">Offen</span>
+                    <span className="rounded-full bg-orange-50 px-3 py-1 text-xs font-bold text-orange-700">{t("finance.eur.open")}</span>
                     <span className="rounded-full bg-[#eef2f7] px-3 py-1 text-xs font-bold text-[#475569]">{item.type}</span>
-                    <span className="rounded-full bg-[#eef2f7] px-3 py-1 text-xs font-bold text-[#475569]">Stichwort</span>
+                    <span className="rounded-full bg-[#eef2f7] px-3 py-1 text-xs font-bold text-[#475569]">{t("finance.eur.keyword")}</span>
                   </div>
                 </button>
               ))}
@@ -149,32 +151,32 @@ export default function EurPage() {
 
           <div className="space-y-5">
             <div className="rounded-[28px] border border-[#e1e7ef] bg-white p-5 shadow-sm">
-              <h2 className="text-lg font-extrabold text-[#151b2b]">Klassifizierung</h2>
+              <h2 className="text-lg font-extrabold text-[#151b2b]">{t("finance.eur.classification")}</h2>
 
               <div className="mt-5 rounded-[24px] border border-dashed border-[#d8e0ea] bg-[#f7f9fc] p-8 text-center">
                 <p className="text-base font-extrabold text-[#151b2b]">
-                  {selected ? selected : "Kein Eintrag ausgewählt"}
+                  {selected ? selected : t("finance.eur.noEntry")}
                 </p>
                 <p className="mt-2 text-sm font-medium text-[#64748b]">
-                  {selected ? "Kategorie auswählen und Klassifizierung speichern." : "Wählen Sie links einen Eintrag zur Klassifizierung aus."}
+                  {selected ? t("finance.eur.pickCategory") : t("finance.eur.pickEntry")}
                 </p>
               </div>
             </div>
 
             <div className="rounded-[28px] border border-[#e1e7ef] bg-white p-5 shadow-sm">
-              <h2 className="text-lg font-extrabold text-[#151b2b]">Report</h2>
+              <h2 className="text-lg font-extrabold text-[#151b2b]">{t("finance.eur.report")}</h2>
 
               <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4">
                 {[
-                  ["Einnahmen", 0],
-                  ["Ausgaben", 0],
-                  ["Überschuss", 0],
-                  ["Unklassifiziert", 8]
+                  [t("finance.eur.revenue"), 0],
+                  [t("finance.eur.expenses"), 0],
+                  [t("finance.eur.surplus"), 0],
+                  [t("finance.eur.unclassified"), 8]
                 ].map(([label, value]) => (
                   <div key={label} className="rounded-[20px] bg-[#f7f9fc] p-4">
                     <p className="text-xs font-bold uppercase tracking-widest text-[#94a3b8]">{label}</p>
                     <p className="mt-2 text-lg font-extrabold text-[#111827]">
-                      {label === "Unklassifiziert" ? value : <Currency value={Number(value)} />}
+                      {label === t("finance.eur.unclassified") ? value : <Currency value={Number(value)} />}
                     </p>
                   </div>
                 ))}
@@ -184,9 +186,9 @@ export default function EurPage() {
                 <table className="w-full text-sm">
                   <thead className="bg-[#f7f9fc] text-left text-xs font-bold uppercase tracking-widest text-[#64748b]">
                     <tr>
-                      <th className="px-4 py-3">Kz</th>
-                      <th className="px-4 py-3">Bezeichnung</th>
-                      <th className="px-4 py-3 text-right">Betrag</th>
+                      <th className="px-4 py-3">{t("finance.eur.code")}</th>
+                      <th className="px-4 py-3">{t("finance.eur.label")}</th>
+                      <th className="px-4 py-3 text-right">{t("finance.eur.amount")}</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-[#edf2f7] bg-white">

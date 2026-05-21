@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Button } from "@invoice-platform/ui";
+import { useLanguage } from "@/lib/i18n";
 
 type TemplateRecord = {
   id: string;
@@ -15,6 +16,7 @@ type TemplateRecord = {
 export default function TemplatesPage() {
   const [tab, setTab] = useState<"invoice" | "offer">("invoice");
   const [items, setItems] = useState<TemplateRecord[]>([]);
+  const { t } = useLanguage();
 
   useEffect(() => {
     (async () => {
@@ -32,8 +34,8 @@ export default function TemplatesPage() {
     <div className="rounded-[34px] border border-[#e3e9f1] bg-[#f8f9fb] p-8 shadow-[0_8px_26px_rgba(15,23,42,0.05)]">
       <div className="mb-6 flex items-start justify-between">
         <div>
-          <h1 className="text-5xl font-black tracking-[-0.02em] text-[#1d2433]">Vorlagen</h1>
-          <p className="mt-2 text-lg text-[#64748b]">Gestalten Sie Ihre Geschäftsdokumente.</p>
+          <h1 className="text-5xl font-black tracking-[-0.02em] text-[#1d2433]">{t("templates.overview.title")}</h1>
+          <p className="mt-2 text-lg text-[#64748b]">{t("templates.overview.description")}</p>
         </div>
 
         <div className="inline-flex rounded-full bg-[#eceff3] p-1">
@@ -41,13 +43,13 @@ export default function TemplatesPage() {
             className={`rounded-full px-7 py-3 text-lg font-extrabold ${tab === "invoice" ? "bg-white text-[#111827] shadow" : "text-[#7a879c]"}`}
             onClick={() => setTab("invoice")}
           >
-            Rechnungen
+            {t("templates.overview.tabs.invoices")}
           </button>
           <button
             className={`rounded-full px-7 py-3 text-lg font-extrabold ${tab === "offer" ? "bg-white text-[#111827] shadow" : "text-[#7a879c]"}`}
             onClick={() => setTab("offer")}
           >
-            Angebote
+            {t("templates.overview.tabs.offers")}
           </button>
         </div>
       </div>
@@ -62,7 +64,7 @@ export default function TemplatesPage() {
               +
             </div>
             <p className="text-3xl font-extrabold text-[#8b97aa]">
-              Neue {tab === "invoice" ? "Rechnungsvorlage" : "Angebotsvorlage"}
+              {tab === "invoice" ? t("templates.overview.create.invoice") : t("templates.overview.create.offer")}
             </p>
           </div>
         </Link>
@@ -70,14 +72,14 @@ export default function TemplatesPage() {
         {items.map((item) => (
           <div key={item.id} className="rounded-[28px] border border-[#e2e8f0] bg-white p-5 shadow-sm">
             <div className="mb-3 inline-flex rounded-full bg-[#d8f63c] px-3 py-1 text-xs font-extrabold text-black">
-              {item.active ? "AKTIV" : "VORLAGE"}
+              {item.active ? t("templates.overview.badge.active") : t("templates.overview.badge.template")}
             </div>
             <h3 className="text-3xl font-black text-[#1f2937]">{item.name}</h3>
-            <p className="mt-1 text-sm text-[#64748b]">A4 • {item.type === "invoice" ? "Rechnung" : "Angebot"}</p>
+            <p className="mt-1 text-sm text-[#64748b]">A4 • {item.type === "invoice" ? t("templates.overview.format.invoice") : t("templates.overview.format.offer")}</p>
 
             <div className="mt-6 flex gap-2">
               <Link href={`/documents/templates/default/edit?templateId=${item.id}`} className="no-underline">
-                <Button variant="secondary">Bearbeiten</Button>
+                <Button variant="secondary">{t("templates.overview.actions.edit")}</Button>
               </Link>
             </div>
           </div>

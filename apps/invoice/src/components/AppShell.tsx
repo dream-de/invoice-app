@@ -144,7 +144,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                     <div className="space-y-3">
                       {[
                         ["Neue Rechnung erstellt", "RE-2026-001 wurde gespeichert."],
-                        ["Zahlung erhalten", "Musterfirma GmbH hat bezahlt."],
+                        ["Zahlung erhalten", "Aurora Labs GmbH hat bezahlt."],
                         ["Backup erfolgreich", "System Sicherung wurde erstellt."]
                       ].map((item) => (
                         <div key={item[0]} className="rounded-2xl bg-slate-50 p-4">

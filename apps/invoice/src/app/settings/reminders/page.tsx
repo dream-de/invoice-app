@@ -2,41 +2,44 @@
 
 import { Field, SettingCard, SoftInput, ToggleRow } from "../_components/SettingsControls"
 import { SettingsLayout } from "../_components/SettingsLayout"
+import { useLanguage } from "@/lib/i18n"
 
 export default function RemindersSettingsPage() {
+  const { t } = useLanguage()
+
   return (
     <SettingsLayout
-      title="Mahnwesen"
-      description="Automatische Zahlungserinnerungen und Mahnungen."
+      title={t("settings.reminders.title")}
+      description={t("settings.reminders.description")}
     >
       <SettingCard>
         <div className="space-y-4">
           <ToggleRow
-            title="Mahnwesen aktivieren"
-            description="Automatische Zahlungserinnerungen für überfällige Rechnungen."
+            title={t("settings.reminders.enable.title")}
+            description={t("settings.reminders.enable.description")}
           />
 
           <ToggleRow
-            title="Automatische Abo-Rechnungen"
-            description="Automatische Generierung wiederkehrender Rechnungen."
+            title={t("settings.reminders.recurring.title")}
+            description={t("settings.reminders.recurring.description")}
           />
         </div>
       </SettingCard>
 
-      <SettingCard title="Automatisierung">
+      <SettingCard title={t("settings.reminders.automation.title")}>
         <div className="grid gap-4 md:grid-cols-3">
-          <Field label="Tägliche Ausführung um">
+          <Field label={t("settings.reminders.fields.dailyRun")}>
             <SoftInput defaultValue="03:00" />
           </Field>
-          <Field label="Letzter Lauf">
-            <SoftInput defaultValue="Noch nie" />
+          <Field label={t("settings.reminders.fields.lastRun")}>
+            <SoftInput defaultValue={t("settings.reminders.values.never")} />
           </Field>
-          <Field label="Nächster Lauf">
-            <SoftInput defaultValue="Sa., 16. Mai, 03:00" />
+          <Field label={t("settings.reminders.fields.nextRun")}>
+            <SoftInput defaultValue={t("settings.reminders.values.nextRun")} />
           </Field>
         </div>
         <p className="mt-4 text-sm font-medium text-[#64748b]">
-          Empfohlen: 03:00 Uhr nachts, um Konflikte mit Mahnlauf und Rechnungsversand zu vermeiden.
+          {t("settings.reminders.automation.hint")}
         </p>
       </SettingCard>
     </SettingsLayout>

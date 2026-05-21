@@ -1,3 +1,5 @@
+"use client"
+
 import Link from "next/link"
 import {
   Button,
@@ -8,97 +10,100 @@ import {
   Select,
   Textarea
 } from "@invoice-platform/ui"
+import { useLanguage } from "@/lib/i18n"
 
 export default function NewProjectPage() {
+  const { t } = useLanguage()
+
   return (
     <PageShell
-      title="Neues Projekt"
-      description="Kundenprojekt, Budget, Status und Beschreibung anlegen."
+      title={t("projects.new.title")}
+      description={t("projects.new.description")}
     >
       <div className="mb-2">
         <Link
           href="/projects"
           className="rounded-full bg-white px-4 py-2 text-sm font-black text-slate-600 no-underline shadow-sm ring-1 ring-slate-200 hover:bg-slate-50"
         >
-          Zurück zu Projekten
+          {t("projects.new.back")}
         </Link>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.45fr_0.8fr]">
         <ContentCard
-          title="Projektdaten"
-          description="Projektinformationen und Kundenzuordnung."
+          title={t("projects.new.projectData.title")}
+          description={t("projects.new.projectData.description")}
         >
           <div className="grid gap-5 md:grid-cols-2">
-            <Input label="PROJEKTNAME" placeholder="Website Relaunch" />
+            <Input label={t("projects.new.fields.projectName")} placeholder={t("projects.new.placeholders.projectName")} />
 
             <Select
-              label="KUNDE"
+              label={t("projects.new.fields.customer")}
               defaultValue="muster"
               options={[
-                { label: "Muster GmbH", value: "muster" },
-                { label: "Beispiel AG", value: "beispiel" },
-                { label: "Nord Solutions", value: "nord" }
+                { label: "Aurora Labs GmbH", value: "muster" },
+                { label: "Urban Commerce AG", value: "beispiel" },
+                { label: "Polar Digital GmbH", value: "nord" }
               ]}
             />
 
-            <Input label="BUDGET" placeholder="8.500,00 €" />
-            <Input label="PROJEKTNUMMER" placeholder="PR-1004" />
+            <Input label={t("projects.new.fields.budget")} placeholder={t("projects.new.placeholders.budget")} />
+            <Input label={t("projects.new.fields.projectNumber")} placeholder={t("projects.new.placeholders.projectNumber")} />
 
             <Select
-              label="STATUS"
+              label={t("projects.new.fields.status")}
               defaultValue="planung"
               options={[
-                { label: "Planung", value: "planung" },
-                { label: "Aktiv", value: "aktiv" },
-                { label: "Review", value: "review" },
-                { label: "Abgeschlossen", value: "abgeschlossen" }
+                { label: t("projects.status.planning"), value: "planung" },
+                { label: t("projects.status.active"), value: "aktiv" },
+                { label: t("projects.status.review"), value: "review" },
+                { label: t("projects.status.completed"), value: "abgeschlossen" }
               ]}
             />
 
             <Select
-              label="PRIORITÄT"
+              label={t("projects.new.fields.priority")}
               defaultValue="normal"
               options={[
-                { label: "Niedrig", value: "low" },
-                { label: "Normal", value: "normal" },
-                { label: "Hoch", value: "high" }
+                { label: t("projects.priority.low"), value: "low" },
+                { label: t("projects.priority.normal"), value: "normal" },
+                { label: t("projects.priority.high"), value: "high" }
               ]}
             />
           </div>
 
           <div className="mt-8 border-t border-slate-100 pt-8">
             <h3 className="text-lg font-black text-slate-950">
-              Beschreibung
+              {t("projects.new.projectDescription.title")}
             </h3>
 
             <div className="mt-5">
               <Textarea
-                label="PROJEKTBESCHREIBUNG"
-                placeholder="Projektziele, Umfang, Leistungen und Hinweise..."
+                label={t("projects.new.fields.description")}
+                placeholder={t("projects.new.placeholders.description")}
               />
             </div>
           </div>
 
           <FormActions>
             <Link href="/projects" className="no-underline">
-              <Button variant="secondary">Abbrechen</Button>
+              <Button variant="secondary">{t("projects.actions.cancel")}</Button>
             </Link>
 
-            <Button>Projekt erstellen</Button>
+            <Button>{t("projects.new.actions.create")}</Button>
           </FormActions>
         </ContentCard>
 
         <div className="space-y-6">
           <ContentCard
-            title="Projekt Setup"
-            description="Vorbereitung für spätere Funktionen."
+            title={t("projects.new.setup.title")}
+            description={t("projects.new.setup.description")}
           >
             <div className="space-y-4">
               {[
-                ["Kundenzuordnung", "Das Projekt wird einem Kunden zugeordnet."],
-                ["Budget", "Budget und Fortschritt werden später in der Finanzübersicht genutzt."],
-                ["Dokumente", "Rechnungen und Angebote können später direkt mit dem Projekt verbunden werden."]
+                [t("projects.new.setup.customer.title"), t("projects.new.setup.customer.copy")],
+                [t("projects.new.setup.budget.title"), t("projects.new.setup.budget.copy")],
+                [t("projects.new.setup.documents.title"), t("projects.new.setup.documents.copy")]
               ].map((item) => (
                 <div key={item[0]} className="rounded-[22px] bg-slate-50 p-4">
                   <p className="font-black text-slate-950">{item[0]}</p>
@@ -111,18 +116,18 @@ export default function NewProjectPage() {
           </ContentCard>
 
           <ContentCard
-            title="Status"
-            description="Neuer Datensatz."
+            title={t("projects.new.statusCard.title")}
+            description={t("projects.new.statusCard.description")}
           >
             <div className="rounded-[24px] bg-blue-600 p-6 text-white">
               <p className="text-xs font-black uppercase tracking-widest text-blue-100">
-                Neues Projekt
+                {t("projects.new.statusCard.eyebrow")}
               </p>
               <p className="mt-3 text-3xl font-black">
-                Planung
+                {t("projects.status.planning")}
               </p>
               <p className="mt-2 text-sm font-semibold text-blue-100">
-                Wird aktuell als UI vorbereitet.
+                {t("projects.new.statusCard.copy")}
               </p>
             </div>
           </ContentCard>

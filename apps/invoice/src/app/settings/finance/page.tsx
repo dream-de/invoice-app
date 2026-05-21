@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { Field, SettingCard, SoftInput } from "../_components/SettingsControls"
 import { SettingsLayout } from "../_components/SettingsLayout"
+import { useLanguage } from "@/lib/i18n"
 
 type FinanceForm = {
   company: string
@@ -15,8 +16,8 @@ type FinanceForm = {
 }
 
 const fallback: FinanceForm = {
-  company: "Mustermann GmbH",
-  bankName: "Berliner Sparkasse",
+  company: "Dream Ledger GmbH",
+  bankName: "Koelner Sparkasse",
   iban: "DE12 1005 0000 1234 5678 90",
   bic: "BELA DE BE XXX",
   taxNumber: "12/345/67890",
@@ -25,6 +26,7 @@ const fallback: FinanceForm = {
 }
 
 export default function FinanceSettingsPage() {
+  const { t } = useLanguage()
   const [form, setForm] = useState<FinanceForm>(fallback)
   const [status, setStatus] = useState("")
 
@@ -54,7 +56,7 @@ export default function FinanceSettingsPage() {
   }
 
   async function save() {
-    setStatus("Speichert...")
+    setStatus(t("settings.finance.status.saving"))
 
     const existingResponse = await fetch("/api/settings/company", { cache: "no-store" })
     const existingResult = await existingResponse.json()
@@ -78,44 +80,44 @@ export default function FinanceSettingsPage() {
     const result = await response.json()
 
     if (!response.ok || !result.ok) {
-      setStatus(result.error || "Speichern fehlgeschlagen.")
+      setStatus(result.error || t("settings.finance.status.error"))
       return
     }
 
-    setStatus("Gespeichert.")
+    setStatus(t("settings.finance.status.saved"))
   }
 
   return (
     <SettingsLayout
-      title="Bankverbindung & Steuer"
-      description="Wichtig für den Zahlungsverkehr und die Pflichtangaben auf der Rechnung."
+      title={t("settings.finance.title")}
+      description={t("settings.finance.description")}
       action={save}
       status={status}
     >
-      <SettingCard title="Bankkonto">
+      <SettingCard title={t("settings.finance.bank.title")}>
         <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Bankname">
+          <Field label={t("settings.finance.fields.bankName")}>
             <SoftInput value={form.bankName} onChange={(event) => update("bankName", event.target.value)} />
           </Field>
-          <Field label="IBAN">
+          <Field label={t("settings.finance.fields.iban")}>
             <SoftInput value={form.iban} onChange={(event) => update("iban", event.target.value)} />
           </Field>
-          <Field label="BIC">
+          <Field label={t("settings.finance.fields.bic")}>
             <SoftInput value={form.bic} onChange={(event) => update("bic", event.target.value)} />
           </Field>
         </div>
       </SettingCard>
 
-      <SettingCard title="Steuerdaten">
+      <SettingCard title={t("settings.finance.tax.title")}>
         <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Steuernummer">
+          <Field label={t("settings.finance.fields.taxNumber")}>
             <SoftInput value={form.taxNumber} onChange={(event) => update("taxNumber", event.target.value)} />
           </Field>
-          <Field label="USt-IdNr.">
+          <Field label={t("settings.finance.fields.vatId")}>
             <SoftInput value={form.vatId} onChange={(event) => update("vatId", event.target.value)} />
           </Field>
           <div className="md:col-span-2">
-            <Field label="Registergericht / HRB">
+            <Field label={t("settings.finance.fields.registerCourt")}>
               <SoftInput value={form.registerCourt} onChange={(event) => update("registerCourt", event.target.value)} />
             </Field>
           </div>

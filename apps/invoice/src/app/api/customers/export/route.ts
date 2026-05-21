@@ -1,28 +1,28 @@
-import { customers } from "@/data/invoice-data"
+import { prisma } from "@invoice-platform/database"
+import { createCsvResponse } from "@/lib/export/csv-response"
+
 
 export async function GET() {
+  const customers = await prisma.customer.findMany({
+    orderBy: { createdAt: "desc" }
+  })
+
   const rows = [
-    ["Name", "Ansprechpartner", "Status", "E-Mail"],
+    ["Nummer", "Name", "Ansprechpartner", "Status", "E-Mail", "Telefon", "Strasse", "PLZ", "Stadt", "Land"],
     ...customers.map((customer) => [
+      customer.number,
       customer.name,
       customer.contact,
       customer.status,
-      customer.email
+      customer.email,
+      customer.phone,
+      customer.street,
+      customer.zip,
+      customer.city,
+      customer.country
     ])
   ]
 
-  const csv = rows
-    .map((row) =>
-      row
-        .map((value) => `"${String(value ?? "").replaceAll('"', '""')}"`)
-        .join(";")
-    )
-    .join("\n")
 
-  return new Response(csv, {
-    headers: {
-      "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": 'attachment; filename="kunden-export.csv"'
-    }
-  })
+  return createCsvResponse(rows, "kunden-export.csv")
 }

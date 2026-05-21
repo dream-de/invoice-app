@@ -21,7 +21,9 @@ export function DocumentCanvas({
   guideX = null,
   guideY = null,
   showGrid = false,
-  gridSize = 10
+  gridSize = 10,
+  showTemplateTokens = false,
+  showRuler = true
 }: {
   template: DocumentTemplate
   invoice: PreviewInvoice
@@ -38,13 +40,18 @@ export function DocumentCanvas({
   guideY?: number | null
   showGrid?: boolean
   gridSize?: number
+  showTemplateTokens?: boolean
+  showRuler?: boolean
 }) {
   const pageRef = useRef<HTMLDivElement | null>(null)
   const [drag, setDrag] = useState<{ id: string; dx: number; dy: number } | null>(null)
   const [groupDrag, setGroupDrag] = useState<Array<{ id: string; dx: number; dy: number }> | null>(null)
   const [resize, setResize] = useState<{ id: string; sx: number; sy: number; sw: number; sh: number } | null>(null)
 
-  const elements = renderPreviewElements(template, invoice)
+  const renderedElements = renderPreviewElements(template, invoice)
+  const elements = showTemplateTokens
+    ? renderedElements.map((element) => template.elements.find((item) => item.id === element.id) ?? element)
+    : renderedElements
 
   function startDrag(event: ReactMouseEvent<Element>, id: string) {
     if (!editable || !pageRef.current) return
@@ -128,14 +135,16 @@ export function DocumentCanvas({
   }
 
   return (
-    <div className="relative">
-      <div className="h-6 w-full border-b border-slate-200 bg-white text-[10px] text-slate-400">
-        {Array.from({ length: 34 }).map((_, index) => (
-          <span key={index} className="inline-block w-8 text-center">
-            {index * 10}
-          </span>
-        ))}
-      </div>
+    <div className="relative mx-auto w-fit">
+      {showRuler && (
+        <div className="h-6 w-full border-b border-slate-100 bg-white text-[10px] font-semibold text-slate-300">
+          {Array.from({ length: 34 }).map((_, index) => (
+            <span key={index} className="inline-block w-8 text-center">
+              {index * 10}
+            </span>
+          ))}
+        </div>
+      )}
 
       <div
         style={{
@@ -145,14 +154,13 @@ export function DocumentCanvas({
       >
         <div
           ref={pageRef}
-          className="relative bg-white shadow-2xl"
+          className="relative bg-white shadow-[0_18px_45px_rgba(15,23,42,0.12)]"
           style={{
             width: template.page.width,
             height: template.page.height,
             transform: `scale(${scale})`,
             transformOrigin: "top left"
           }}
-          onClick={() => onSelectElement?.("")}
           onMouseMove={move}
           onMouseUp={stopActions}
           onMouseLeave={stopActions}
@@ -175,7 +183,7 @@ export function DocumentCanvas({
               className="pointer-events-none absolute inset-0"
               style={{
                 backgroundImage:
-                  "linear-gradient(to right, rgba(148,163,184,0.14) 1px, transparent 1px), linear-gradient(to bottom, rgba(148,163,184,0.14) 1px, transparent 1px)",
+                  "linear-gradient(to right, rgba(148,163,184,0.10) 1px, transparent 1px), linear-gradient(to bottom, rgba(148,163,184,0.10) 1px, transparent 1px)",
                 backgroundSize: `${gridSize}px ${gridSize}px`,
               }}
             />
@@ -188,6 +196,7 @@ export function DocumentCanvas({
               invoice={invoice}
               selected={editable && selectedId === element.id}
               editable={editable}
+              highlightTokens={showTemplateTokens}
               onSelect={onSelectElement}
               onMouseDown={startDrag}
               onResizeStart={startResize}

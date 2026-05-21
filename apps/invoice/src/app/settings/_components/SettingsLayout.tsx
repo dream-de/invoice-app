@@ -13,27 +13,31 @@ import {
   Globe2,
   Hash,
   Mail,
-  Settings
-, UsersRound } from "lucide-react"
+  Settings,
+  UsersRound
+} from "lucide-react"
+import { useLanguage } from "@/lib/i18n"
+
+type TranslationKey = Parameters<ReturnType<typeof useLanguage>["t"]>[0]
 
 type Item = {
   href: string
-  label: string
-  sub: string
+  labelKey: TranslationKey
+  subKey: TranslationKey
   icon: ComponentType<{ className?: string }>
 }
 
 const items: Item[] = [
-  { href: "/settings/company", label: "Stammdaten", sub: "Adresse & Kontakt", icon: Building2 },
-  { href: "/settings/categories", label: "Kategorien", sub: "Produkte & Leistungen", icon: FolderTree },
-  { href: "/settings/finance", label: "Finanzen", sub: "Bank & Steuern", icon: Banknote },
-  { href: "/settings/number-ranges", label: "Nummernkreise", sub: "Rechnungs-, Angebots- & Kundennr.", icon: Hash },
-  { href: "/settings/email", label: "E-Mail", sub: "SMTP & Resend", icon: Mail },
-  { href: "/settings/reminders", label: "Mahnwesen", sub: "Mahnstufen & Gebühren", icon: BellRing },
-  { href: "/settings/legal", label: "Rechtliches", sub: "AGB & Steuerregeln", icon: Gavel },
-  { href: "/settings/portal", label: "Portal", sub: "Angebotslinks & Sync", icon: Globe2 },  { href: "/settings/users", label: "Benutzer & Rechte", sub: "Login, Rollen & Zugriff", icon: UsersRound },
-
-  { href: "/settings/system", label: "System", sub: "Backup & Audit", icon: FileKey2 }
+  { href: "/settings/company", labelKey: "settings.nav.company", subKey: "settings.nav.company.sub", icon: Building2 },
+  { href: "/settings/categories", labelKey: "settings.nav.categories", subKey: "settings.nav.categories.sub", icon: FolderTree },
+  { href: "/settings/finance", labelKey: "settings.nav.finance", subKey: "settings.nav.finance.sub", icon: Banknote },
+  { href: "/settings/number-ranges", labelKey: "settings.nav.numberRanges", subKey: "settings.nav.numberRanges.sub", icon: Hash },
+  { href: "/settings/email", labelKey: "settings.nav.email", subKey: "settings.nav.email.sub", icon: Mail },
+  { href: "/settings/reminders", labelKey: "settings.nav.reminders", subKey: "settings.nav.reminders.sub", icon: BellRing },
+  { href: "/settings/legal", labelKey: "settings.nav.legal", subKey: "settings.nav.legal.sub", icon: Gavel },
+  { href: "/settings/portal", labelKey: "settings.nav.portal", subKey: "settings.nav.portal.sub", icon: Globe2 },
+  { href: "/settings/users", labelKey: "settings.nav.users", subKey: "settings.nav.users.sub", icon: UsersRound },
+  { href: "/settings/system", labelKey: "settings.nav.system", subKey: "settings.nav.system.sub", icon: FileKey2 }
 ]
 
 export function SettingsLayout({
@@ -50,13 +54,14 @@ export function SettingsLayout({
   status?: string
 }) {
   const pathname = usePathname()
+  const { t } = useLanguage()
 
   return (
     <div className="overflow-hidden rounded-[36px] border border-[#e3e9f1] bg-[#f8f9fb] shadow-[0_10px_32px_rgba(15,23,42,0.06)]">
       <div className="grid min-h-[760px] grid-cols-[315px_1fr]">
         <aside className="border-r border-[#e6ebf1] p-7">
           <h2 className="mb-7 text-[34px] font-extrabold tracking-tight text-[#1d2433]">
-            Einstellungen
+            {t("settings.title")}
           </h2>
 
           <div className="space-y-3">
@@ -85,10 +90,10 @@ export function SettingsLayout({
 
                     <div className="min-w-0">
                       <p className="truncate text-base font-extrabold">
-                        {item.label}
+                        {t(item.labelKey)}
                       </p>
                       <p className="mt-0.5 line-clamp-2 text-xs font-semibold text-[#94a3b8]">
-                        {item.sub}
+                        {t(item.subKey)}
                       </p>
                     </div>
                   </div>
@@ -98,7 +103,7 @@ export function SettingsLayout({
           </div>
 
           <div className="mt-8 rounded-[26px] border border-[#dce6b0] bg-[#edf4cf] p-4 text-sm font-semibold leading-6 text-[#2f3a20]">
-            Alle Änderungen wirken sich sofort auf neue Dokumente aus.
+            {t("settings.instantNote")}
           </div>
         </aside>
 
@@ -130,7 +135,7 @@ export function SettingsLayout({
           className="inline-flex items-center gap-2 rounded-full bg-black px-8 py-3 font-extrabold text-[var(--brand-lime)] shadow-sm"
         >
           <Settings className="h-4 w-4" />
-          Einstellungen speichern
+          {t("settings.save")}
         </button>
       </div>
     </div>

@@ -2,28 +2,31 @@
 
 import { Field, IconButton, SettingCard, SoftInput } from "../_components/SettingsControls"
 import { SettingsLayout } from "../_components/SettingsLayout"
+import { useLanguage } from "@/lib/i18n"
 
 export default function PortalSettingsPage() {
+  const { t } = useLanguage()
+
   return (
     <SettingsLayout
-      title="Offer Portal"
-      description="Angebotslinks veröffentlichen und Status synchronisieren."
+      title={t("settings.portal.title")}
+      description={t("settings.portal.description")}
     >
       <SettingCard>
         <div className="space-y-4">
-          <Field label="Portal Base URL">
+          <Field label={t("settings.portal.fields.baseUrl")}>
             <SoftInput defaultValue="https://portal.invoice.local" />
           </Field>
 
           <p className="text-sm font-medium text-[#64748b]">
-            Tipp: Setup-Seite im Portal: /admin/setup
+            {t("settings.portal.hint")}
           </p>
 
-          <Field label="Publish API Key (optional)">
-            <SoftInput type="password" defaultValue="" placeholder="API Key eintragen" />
+          <Field label={t("settings.portal.fields.apiKey")}>
+            <SoftInput type="password" defaultValue="" placeholder={t("settings.portal.placeholders.apiKey")} />
           </Field>
 
-          <IconButton>Verbindung testen</IconButton>
+          <IconButton>{t("settings.portal.testConnection")}</IconButton>
         </div>
       </SettingCard>
     </SettingsLayout>

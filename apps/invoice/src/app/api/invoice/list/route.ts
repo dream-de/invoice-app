@@ -13,7 +13,10 @@ export async function GET() {
     const formatted = invoices.map((inv: any) => ({
       id: inv.id,
       number: inv.number,
+      type: inv.type,
       date: inv.issueDate,
+      dueDate: inv.dueDate,
+      createdAt: inv.createdAt,
       status: inv.status,
       customer: inv.customer?.name ?? "Unbekannt",
       netTotal: inv.netTotal,

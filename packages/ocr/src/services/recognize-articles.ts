@@ -60,12 +60,12 @@ export async function recognizeArticlesFromFile(file: File): Promise<ArticleImpo
     const row = Object.fromEntries(headers.map((header, index) => [header, cells[index] ?? ""]))
 
     const name = getValue(row, ["Artikel", "Artikelname", "Name", "Bezeichnung", "Leistung", "Produkt"])
-    const number = getValue(row, ["Artikelnummer", "Nummer", "Nr", "Code", "SKU"])
-    const category = getValue(row, ["Kategorie", "Gruppe"])
+    const number = getValue(row, ["Artikelnummer", "Nummer", "Number", "Nr", "Code", "SKU"])
+    const category = getValue(row, ["Kategorie", "Category", "Gruppe"])
     const unit = getValue(row, ["Einheit", "Unit"])
     const description = getValue(row, ["Beschreibung", "Description"])
-    const price = getValue(row, ["Preis", "Nettopreis", "Netto", "Price"])
-    const vatRate = getValue(row, ["MwSt", "USt", "VAT", "Steuer"])
+    const price = getValue(row, ["Preis", "Nettopreis", "Netto", "NetPrice", "Net Price", "Price", "Unit Price"])
+    const vatRate = getValue(row, ["MwSt", "USt", "VAT", "VatRate", "Vat Rate", "Tax", "Steuer"])
 
     return {
       name,

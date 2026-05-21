@@ -1,20 +1,12 @@
 import type { Metadata } from "next"
-import { NavigationShell } from "@invoice-platform/ui"
+import { LocalizedNavigationShell } from "@/components/LocalizedNavigationShell"
+import { PageTranslationBridge } from "@/components/PageTranslationBridge"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "Invoice Platform",
-  description: "Invoice Platform"
+  title: "Dream Invoice",
+  description: "Dream Invoice"
 }
-
-const navigationItems = [
-  { href: "/dashboard", label: "Dashboard", icon: "⌂" },
-  { href: "/customers", label: "Kunden", icon: "♙" },
-  { href: "/projects", label: "Projekte", icon: "◇" },
-  { href: "/documents", label: "Dokumente", icon: "□" },
-  { href: "/finance", label: "Finanzen", icon: "⌁" },
-  { href: "/articles", label: "Artikel", icon: "▣" }
-]
 
 export default function RootLayout({
   children
@@ -22,15 +14,10 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="de">
+    <html lang="de" suppressHydrationWarning>
       <body>
-        <NavigationShell
-          title="Invoice"
-          items={navigationItems}
-          variant="light"
-        >
-          {children}
-        </NavigationShell>
+        <LocalizedNavigationShell>{children}</LocalizedNavigationShell>
+        <PageTranslationBridge />
       </body>
     </html>
   )

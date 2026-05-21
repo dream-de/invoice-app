@@ -1,0 +1,11 @@
+{
+  "nav.dashboard": "Dashboard",
+  "nav.customers": "Customers",
+  "nav.projects": "Projects",
+  "nav.documents": "Documents",
+  "nav.finance": "Finance",
+  "nav.articles": "Articles",
+  "nav.search": "Search…",
+  "nav.settings": "Settings",
+  "nav.notifications": "Notifications"
+}

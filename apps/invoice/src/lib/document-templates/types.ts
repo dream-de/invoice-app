@@ -10,6 +10,7 @@ export interface DocumentElement {
   content?: string;
   fontSize?: number;
   fontWeight?: "normal" | "bold" | "black";
+  fontFamily?: string;
   color?: string;
   backgroundColor?: string;
   align?: "left" | "center" | "right";
@@ -44,9 +45,26 @@ export interface PreviewItem {
 export interface PreviewInvoice {
   number: string;
   date: string;
+  dueDate?: string;
+  serviceDate?: string;
   customerName: string;
   customerAddress: string;
+  customerEmail?: string;
+  customerNumber?: string;
+  companyName?: string;
+  companyStreet?: string;
+  companyCity?: string;
+  companyVatId?: string;
+  iban?: string;
+  bic?: string;
+  taxNumber?: string;
   note?: string;
+  tableHeaders?: {
+    description: string;
+    quantity: string;
+    unitPrice: string;
+    total: string;
+  };
   items: PreviewItem[];
   totals: {
     net: number;

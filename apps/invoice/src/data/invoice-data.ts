@@ -1,23 +1,23 @@
 export const customers = [
   {
     id: "1",
-    name: "Muster GmbH",
-    contact: "Erika Beispiel",
-    email: "kontakt@muster.de",
+    name: "Aurora Labs GmbH",
+    contact: "Lea Novak",
+    email: "billing@aurora-labs.example",
     status: "Aktiv"
   },
   {
     id: "2",
-    name: "Beispiel AG",
-    contact: "Julia Becker",
-    email: "office@beispiel.de",
+    name: "Urban Commerce AG",
+    contact: "Mira Klein",
+    email: "office@urban-commerce.example",
     status: "Offen"
   },
   {
     id: "3",
-    name: "Nord Solutions",
-    contact: "Daniel Weber",
-    email: "info@nord-solutions.de",
+    name: "Polar Digital GmbH",
+    contact: "Noah Richter",
+    email: "hello@polar-digital.example",
     status: "Aktiv"
   }
 ]
@@ -25,24 +25,24 @@ export const customers = [
 export const documents = [
   {
     id: "1",
-    number: "RE-2026-1001",
-    customer: "Muster GmbH",
+    number: "DI-2026-1001",
+    customer: "Aurora Labs GmbH",
     type: "Rechnung",
     status: "Offen",
     amount: 1160.25
   },
   {
     id: "2",
-    number: "AN-2026-5001",
-    customer: "Beispiel AG",
+    number: "OF-2026-5001",
+    customer: "Urban Commerce AG",
     type: "Angebot",
     status: "Entwurf",
     amount: 2450
   },
   {
     id: "3",
-    number: "RE-2026-1002",
-    customer: "Nord Solutions",
+    number: "DI-2026-1002",
+    customer: "Polar Digital GmbH",
     type: "Rechnung",
     status: "Bezahlt",
     amount: 890
@@ -76,24 +76,24 @@ export const articles = [
 export const projects = [
   {
     id: "1",
-    name: "Website Relaunch",
-    customer: "Muster GmbH",
+    name: "Portal Relaunch",
+    customer: "Aurora Labs GmbH",
     status: "Aktiv",
     progress: "70 %",
     budget: "8.500,00 €"
   },
   {
     id: "2",
-    name: "ERP Integration",
-    customer: "Beispiel AG",
+    name: "Operations Integration",
+    customer: "Urban Commerce AG",
     status: "Planung",
     progress: "25 %",
     budget: "18.000,00 €"
   },
   {
     id: "3",
-    name: "Portal Setup",
-    customer: "Nord Solutions",
+    name: "Client Portal Setup",
+    customer: "Polar Digital GmbH",
     status: "Review",
     progress: "90 %",
     budget: "4.200,00 €"

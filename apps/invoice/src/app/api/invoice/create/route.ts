@@ -1,11 +1,24 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@invoice-platform/database"
 
+type InvoiceItemPayload = {
+  name?: string
+  quantity?: number | string
+  price?: number | string
+  category?: string | null
+}
+
+function toNumber(value: unknown) {
+  return Number(String(value ?? 0).replace(",", ".")) || 0
+}
+
 export async function POST(req: Request) {
   try {
     const data = await req.json()
+    const items = Array.isArray(data.items) ? data.items as InvoiceItemPayload[] : []
+    const taxRate = toNumber(data.taxRate ?? 0.19)
+    const tip = toNumber(data.tip)
 
-    // 1. Nummernkreis abrufen
     const range = await prisma.numberRange.findUnique({
       where: { type: "invoice" }
     })
@@ -17,25 +30,24 @@ export async function POST(req: Request) {
       )
     }
 
-    // 2. Neue Rechnungsnummer generieren
     const padded = String(range.nextValue).padStart(range.padding, "0")
-    const invoiceNumber = `${range.prefix}${padded}`
+    const invoiceNumber = range.prefix + padded
 
-    // 3. Netto / MwSt / Brutto berechnen
-    const netTotal = data.items.reduce(
-      (sum: number, item: any) => sum + item.price * item.quantity,
+    const netTotal = items.reduce(
+      (sum, item) => sum + toNumber(item.price) * toNumber(item.quantity),
       0
     )
 
-    const vatTotal = netTotal * data.taxRate
-    const grossTotal = netTotal + vatTotal + data.tip
+    const vatTotal = netTotal * taxRate
+    const grossTotal = netTotal + vatTotal + tip
 
-    // 4. Rechnung speichern
     const invoice = await prisma.invoice.create({
       data: {
         number: invoiceNumber,
         status: "draft",
-        issueDate: new Date(data.date),
+        issueDate: data.date ? new Date(data.date) : new Date(),
+        dueDate: data.dueDate ? new Date(data.dueDate) : null,
+        notes: typeof data.note === "string" ? data.note : null,
 
         customer: data.customerId
           ? { connect: { id: data.customerId } }
@@ -46,25 +58,24 @@ export async function POST(req: Request) {
         grossTotal,
 
         positions: {
-          create: data.items.map((item: any, index: number) => ({
-            title: item.name,
-            quantity: item.quantity,
-            netPrice: item.price,
-            vatRate: data.taxRate * 100,
+          create: items.map((item, index) => ({
+            title: item.name || "Neue Position",
+            description: item.category || null,
+            quantity: toNumber(item.quantity) || 1,
+            netPrice: toNumber(item.price),
+            vatRate: taxRate * 100,
             sortOrder: index
           }))
         }
       }
     })
 
-    // 5. Nummernkreis erhöhen
     await prisma.numberRange.update({
       where: { type: "invoice" },
       data: { nextValue: range.nextValue + 1 }
     })
 
     return NextResponse.json({ success: true, invoice })
-
   } catch (err) {
     console.error(err)
     return NextResponse.json({ error: "Server error" }, { status: 500 })

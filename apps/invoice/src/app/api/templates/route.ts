@@ -23,11 +23,11 @@ async function ensureStore() {
     const seed: TemplateRecord[] = [
       {
         id: "default-invoice",
-        name: "Standard Rechnung",
+        name: "Dream Invoice Standard",
         type: "invoice",
         active: true,
         updatedAt: new Date().toISOString(),
-        data: { ...DEFAULT_INVOICE_TEMPLATE, id: "default-invoice", name: "Standard Rechnung" },
+        data: { ...DEFAULT_INVOICE_TEMPLATE, id: "default-invoice", name: "Dream Invoice Standard" },
       },
     ];
     await fs.writeFile(FILE_PATH, JSON.stringify(seed, null, 2), "utf8");
