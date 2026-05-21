@@ -1,7 +1,7 @@
 
 # Copilot Instructions
 
-Invoice Platform is a pnpm and Turborepo monorepo.
+Dream Invoice is a pnpm and Turborepo monorepo.
 
 Rules:
 

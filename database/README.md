@@ -1,6 +1,6 @@
 # Database
 
-Database layer for Invoice Platform.
+Database layer for Dream Invoice.
 
 Contains:
 - Prisma schema
