@@ -2,9 +2,16 @@
   "extends": "../../packages/config/typescript/nextjs.json",
   "compilerOptions": {
     "paths": {
-      "@dream-invoice/ui": ["../../packages/ui/src/index.ts"],
-      "@dream-invoice/accounting-core": ["../../packages/accounting-core/src/index.ts"]
-    }
+      "@dream-invoice/ui": [
+        "../../packages/ui/src/index.ts"
+      ],
+      "@dream-invoice/accounting-core": [
+        "../../packages/accounting-core/src/index.ts"
+      ]
+    },
+    "types": [
+      "node"
+    ]
   },
   "include": [
     "next-env.d.ts",
@@ -12,5 +19,7 @@
     "app/**/*.tsx",
     ".next/types/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules"
+  ]
 }

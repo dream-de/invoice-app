@@ -2,13 +2,69 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@dream-invoice/ui": ["packages/ui/src"],
-      "@dream-invoice/database": ["packages/database/src"],
-      "@dream-invoice/utils": ["packages/utils/src"],
-      "@dream-invoice/tax": ["packages/tax/src"],
-      "@dream-invoice/pdf": ["packages/pdf/src"],
-      "@dream-invoice/invoice-core": ["packages/invoice-core/src"],
-      "@dream-invoice/accounting-core": ["packages/accounting-core/src"]
+      "@dream-invoice/accounting-core": [
+        "packages/accounting-core/src/index.ts"
+      ],
+      "@dream-invoice/api": [
+        "packages/api/src/index.ts"
+      ],
+      "@dream-invoice/auth": [
+        "packages/auth/src/index.ts"
+      ],
+      "@dream-invoice/database": [
+        "packages/database/src/index.ts"
+      ],
+      "@dream-invoice/desktop-contracts": [
+        "packages/desktop-contracts/src/index.ts"
+      ],
+      "@dream-invoice/desktop-core": [
+        "packages/desktop-core/src/index.ts"
+      ],
+      "@dream-invoice/desktop-data": [
+        "packages/desktop-data/src/index.ts"
+      ],
+      "@dream-invoice/desktop-hooks": [
+        "packages/desktop-hooks/src/index.ts"
+      ],
+      "@dream-invoice/desktop-renderer": [
+        "packages/desktop-renderer/src/index.ts"
+      ],
+      "@dream-invoice/desktop-services": [
+        "packages/desktop-services/src/index.ts"
+      ],
+      "@dream-invoice/desktop-state": [
+        "packages/desktop-state/src/index.ts"
+      ],
+      "@dream-invoice/desktop-ui": [
+        "packages/desktop-ui/src/index.ts"
+      ],
+      "@dream-invoice/desktop-utils": [
+        "packages/desktop-utils/src/index.ts"
+      ],
+      "@dream-invoice/invoice-core": [
+        "packages/invoice-core/src/index.ts"
+      ],
+      "@dream-invoice/licensing": [
+        "packages/licensing/src/index.ts"
+      ],
+      "@dream-invoice/ocr": [
+        "packages/ocr/src/index.ts"
+      ],
+      "@dream-invoice/pdf": [
+        "packages/pdf/src/index.ts"
+      ],
+      "@dream-invoice/server-core": [
+        "packages/server-core/src/index.ts"
+      ],
+      "@dream-invoice/tax": [
+        "packages/tax/src/index.ts"
+      ],
+      "@dream-invoice/ui": [
+        "packages/ui/src/index.ts"
+      ],
+      "@dream-invoice/utils": [
+        "packages/utils/src/index.ts"
+      ]
     }
   }
 }

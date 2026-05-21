@@ -25,9 +25,21 @@
     "prebuild": "pnpm --filter @dream-invoice/database db:generate",
     "worker:server": "pnpm --filter @dream-invoice/server-worker worker",
     "worker:server:smoke": "pnpm --filter @dream-invoice/server-worker worker:smoke",
-    "docker:worker": "docker compose -f docker/docker-compose.yml --profile worker run --rm --no-deps server-worker"
+    "docker:worker": "docker compose -f docker/docker-compose.yml --profile worker run --rm --no-deps server-worker",
+    "docker:build:web": "docker compose -f docker/docker-compose.yml build web",
+    "docker:build:demo": "docker compose -f docker/docker-compose.yml build demo",
+    "docker:build:landing": "docker compose -f docker/docker-compose.yml build landing-page",
+    "docker:build:worker": "docker compose -f docker/docker-compose.yml --profile worker build server-worker",
+    "docker:build:all": "pnpm build && docker compose -f docker/docker-compose.yml --profile worker build"
   },
   "devDependencies": {
+    "@types/node": "^20",
+    "@typescript-eslint/eslint-plugin": "^8",
+    "@typescript-eslint/parser": "^8",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.5",
+    "eslint-plugin-import": "^2",
+    "eslint-plugin-unused-imports": "^4",
     "turbo": "latest",
     "typescript": "latest"
   }

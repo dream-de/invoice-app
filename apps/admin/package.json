@@ -5,7 +5,6 @@
   "scripts": {
     "dev": "next dev -p 3002",
     "build": "next build",
-    "lint": "next lint",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -17,6 +16,7 @@
     "react-dom": "^19.2.6"
   },
   "devDependencies": {
+    "@types/node": "^20",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "tailwindcss": "^4"
