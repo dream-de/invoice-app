@@ -21,7 +21,7 @@ export default function AdminSettingsPage() {
                 </label>
 
                 <input
-                  defaultValue="Invoice Platform"
+                  defaultValue="Dream Invoice"
                   className="mt-2 w-full rounded-lg border border-neutral-300 px-4 py-2"
                 />
               </div>

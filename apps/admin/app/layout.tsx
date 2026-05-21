@@ -4,7 +4,7 @@ import "./globals.css"
 
 export const metadata: Metadata = {
   title: "Admin Platform",
-  description: "Administration der Invoice Platform"
+  description: "Administration von Dream Invoice"
 }
 
 const navItems = [

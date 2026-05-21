@@ -1,6 +1,6 @@
-# Invoice Platform
+# Dream Invoice
 
-Invoice Platform ist eine webbasierte App fuer Rechnungen, Angebote, Kunden, Artikel, Finanzen und Unternehmenseinstellungen.
+Dream Invoice ist eine webbasierte App fuer Rechnungen, Angebote, Kunden, Artikel, Finanzen und Unternehmenseinstellungen.
 
 ## Funktionen
 
@@ -99,6 +99,6 @@ http://localhost:3000
 
 <sub>Dieses Projekt ist source-available und darf fuer private, nicht-kommerzielle Zwecke genutzt, installiert und veraendert werden. Kommerzielle Nutzung, Weiterverkauf, Hosting als kostenpflichtiger Dienst, Weiterverbreitung oder Nutzung in Kundenprojekten ist ohne ausdrueckliche schriftliche Genehmigung des Urhebers nicht erlaubt. Copyright (c) 2026 DikiTe. Alle Rechte vorbehalten. Siehe [LICENSE](./LICENSE).</sub>
 
-## License Tools
+## Lizenz-Tools
 
 Lizenzschluessel, Sicherheitsregeln und technische Workflows liegen in [tools/license](./tools/license/README.md).
