@@ -1,4 +1,4 @@
-import { calculateGross, calculateVAT } from "@invoice-platform/tax"
+import { calculateGross, calculateVAT } from "@dream-invoice/tax"
 import type { InvoiceItem } from "../models/invoice"
 
 export function calculateInvoiceItem(item: InvoiceItem) {

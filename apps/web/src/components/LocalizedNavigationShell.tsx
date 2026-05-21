@@ -1,7 +1,7 @@
 "use client"
 
 import type { ReactNode } from "react"
-import { NavigationShell } from "@invoice-platform/ui"
+import { NavigationShell } from "@dream-invoice/ui"
 import { useLanguage } from "@/lib/i18n"
 
 export function LocalizedNavigationShell({ children }: { children: ReactNode }) {

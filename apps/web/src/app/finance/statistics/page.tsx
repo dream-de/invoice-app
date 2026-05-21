@@ -11,7 +11,7 @@ import {
   ReceiptText,
   TrendingUp
 } from "lucide-react"
-import { Currency, PageShell } from "@invoice-platform/ui"
+import { Currency, PageShell } from "@dream-invoice/ui"
 import { useLanguage } from "@/lib/i18n"
 
 const months = [

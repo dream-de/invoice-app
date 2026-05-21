@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { prisma } from "@invoice-platform/database"
+import { prisma } from "@dream-invoice/database"
 import { appendEmailDeliveryLog } from "@/lib/email/delivery-log"
 import { cleanString, isEmail, readEmailSettings, sendEmail } from "@/lib/email/delivery"
 

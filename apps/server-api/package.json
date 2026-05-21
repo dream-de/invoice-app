@@ -1,5 +1,5 @@
 {
-  "name": "@invoice-platform/server-api",
+  "name": "@dream-invoice/server-api",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -10,8 +10,8 @@
     "check": "pnpm typecheck && pnpm test"
   },
   "dependencies": {
-    "@invoice-platform/licensing": "workspace:*",
-    "@invoice-platform/server-core": "workspace:*"
+    "@dream-invoice/licensing": "workspace:*",
+    "@dream-invoice/server-core": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20",

@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { NavigationShell } from "@invoice-platform/ui"
+import { NavigationShell } from "@dream-invoice/ui"
 import "./globals.css"
 
 export const metadata: Metadata = {

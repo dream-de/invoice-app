@@ -1,4 +1,4 @@
-import { getEnabledFeatures, licensePlanLabels } from "@invoice-platform/licensing"
+import { getEnabledFeatures, licensePlanLabels } from "@dream-invoice/licensing"
 
 export const webProAppProfile = {
   id: "web-pro",

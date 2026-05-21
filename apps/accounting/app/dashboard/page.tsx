@@ -1,6 +1,6 @@
-import { StatCard } from "@invoice-platform/ui"
+import { StatCard } from "@dream-invoice/ui"
 import { AccountingContentCard } from "../../components/AccountingContentCard"
-import { PageHeader } from "@invoice-platform/ui"
+import { PageHeader } from "@dream-invoice/ui"
 import { AccountingStatusBadge } from "../../components/AccountingStatusBadge"
 
 export default function AccountingDashboardPage() {

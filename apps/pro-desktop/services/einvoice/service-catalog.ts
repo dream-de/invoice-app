@@ -1,7 +1,7 @@
 import {
   createDesktopServiceDescriptor,
   type DesktopServiceDescriptor
-} from "@invoice-platform/desktop-services"
+} from "@dream-invoice/desktop-services"
 
 export const proDesktopEinvoiceServices = [
   createDesktopServiceDescriptor({

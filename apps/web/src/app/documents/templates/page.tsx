@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Button } from "@invoice-platform/ui";
+import { Button } from "@dream-invoice/ui";
 import { useLanguage } from "@/lib/i18n";
 
 type TemplateRecord = {

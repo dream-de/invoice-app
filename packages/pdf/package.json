@@ -1,5 +1,5 @@
 {
-  "name": "@invoice-platform/pdf",
+  "name": "@dream-invoice/pdf",
   "version": "0.0.0",
   "private": true,
   "main": "./src/index.ts",

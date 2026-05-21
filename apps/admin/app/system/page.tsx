@@ -1,7 +1,7 @@
-import { StatCard } from "@invoice-platform/ui"
-import { Table, TableCell, TableRow } from "@invoice-platform/ui"
+import { StatCard } from "@dream-invoice/ui"
+import { Table, TableCell, TableRow } from "@dream-invoice/ui"
 import { AdminContentCard } from "../../components/AdminContentCard"
-import { PageHeader } from "@invoice-platform/ui"
+import { PageHeader } from "@dream-invoice/ui"
 
 export default function SystemPage() {
   return (

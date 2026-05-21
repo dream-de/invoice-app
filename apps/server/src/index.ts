@@ -1,4 +1,4 @@
-import { healthCheck, previewInvoice, validateAccountingEntry } from "@invoice-platform/api"
+import { healthCheck, previewInvoice, validateAccountingEntry } from "@dream-invoice/api"
 
 console.log(healthCheck())
 

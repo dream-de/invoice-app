@@ -10,7 +10,7 @@ import {
   Input,
   PageShell,
   Select
-} from "@invoice-platform/ui"
+} from "@dream-invoice/ui"
 
 type FormState = {
   name: string

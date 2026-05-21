@@ -1,4 +1,4 @@
-import { PageHeader } from "@invoice-platform/ui"
+import { PageHeader } from "@dream-invoice/ui"
 export default function AdminSettingsPage() {
   return (
     <main className="p-10">

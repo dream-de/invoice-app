@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { prisma } from "@invoice-platform/database"
+import { prisma } from "@dream-invoice/database"
 
 function toNumber(value: unknown) {
   return Number(String(value ?? "").replace(",", ".")) || 0

@@ -68,7 +68,7 @@ docker compose -f docker/docker-compose.yml exec postgres pg_isready -U postgres
 Migrationen manuell ausfuehren:
 
 ```bash
-docker compose -f docker/docker-compose.yml exec web-app pnpm --filter @invoice-platform/database db:deploy
+docker compose -f docker/docker-compose.yml exec web-app pnpm --filter @dream-invoice/database db:deploy
 ```
 
 Neu bauen:

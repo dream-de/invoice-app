@@ -17,13 +17,13 @@ importers:
 
   apps/accounting:
     dependencies:
-      '@invoice-platform/accounting-core':
+      '@dream-invoice/accounting-core':
         specifier: workspace:*
         version: link:../../packages/accounting-core
-      '@invoice-platform/database':
+      '@dream-invoice/database':
         specifier: workspace:*
         version: link:../../packages/database
-      '@invoice-platform/ui':
+      '@dream-invoice/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       next:
@@ -48,13 +48,13 @@ importers:
 
   apps/admin:
     dependencies:
-      '@invoice-platform/auth':
+      '@dream-invoice/auth':
         specifier: workspace:*
         version: link:../../packages/auth
-      '@invoice-platform/database':
+      '@dream-invoice/database':
         specifier: workspace:*
         version: link:../../packages/database
-      '@invoice-platform/ui':
+      '@dream-invoice/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       next:
@@ -85,31 +85,31 @@ importers:
 
   apps/desktop:
     dependencies:
-      '@invoice-platform/desktop-contracts':
+      '@dream-invoice/desktop-contracts':
         specifier: workspace:*
         version: link:../../packages/desktop-contracts
-      '@invoice-platform/desktop-core':
+      '@dream-invoice/desktop-core':
         specifier: workspace:*
         version: link:../../packages/desktop-core
-      '@invoice-platform/desktop-data':
+      '@dream-invoice/desktop-data':
         specifier: workspace:*
         version: link:../../packages/desktop-data
-      '@invoice-platform/desktop-renderer':
+      '@dream-invoice/desktop-renderer':
         specifier: workspace:*
         version: link:../../packages/desktop-renderer
-      '@invoice-platform/desktop-services':
+      '@dream-invoice/desktop-services':
         specifier: workspace:*
         version: link:../../packages/desktop-services
-      '@invoice-platform/desktop-state':
+      '@dream-invoice/desktop-state':
         specifier: workspace:*
         version: link:../../packages/desktop-state
-      '@invoice-platform/desktop-ui':
+      '@dream-invoice/desktop-ui':
         specifier: workspace:*
         version: link:../../packages/desktop-ui
-      '@invoice-platform/desktop-utils':
+      '@dream-invoice/desktop-utils':
         specifier: workspace:*
         version: link:../../packages/desktop-utils
-      '@invoice-platform/licensing':
+      '@dream-invoice/licensing':
         specifier: workspace:*
         version: link:../../packages/licensing
     devDependencies:
@@ -131,31 +131,31 @@ importers:
 
   apps/pro-desktop:
     dependencies:
-      '@invoice-platform/desktop-contracts':
+      '@dream-invoice/desktop-contracts':
         specifier: workspace:*
         version: link:../../packages/desktop-contracts
-      '@invoice-platform/desktop-core':
+      '@dream-invoice/desktop-core':
         specifier: workspace:*
         version: link:../../packages/desktop-core
-      '@invoice-platform/desktop-data':
+      '@dream-invoice/desktop-data':
         specifier: workspace:*
         version: link:../../packages/desktop-data
-      '@invoice-platform/desktop-renderer':
+      '@dream-invoice/desktop-renderer':
         specifier: workspace:*
         version: link:../../packages/desktop-renderer
-      '@invoice-platform/desktop-services':
+      '@dream-invoice/desktop-services':
         specifier: workspace:*
         version: link:../../packages/desktop-services
-      '@invoice-platform/desktop-state':
+      '@dream-invoice/desktop-state':
         specifier: workspace:*
         version: link:../../packages/desktop-state
-      '@invoice-platform/desktop-ui':
+      '@dream-invoice/desktop-ui':
         specifier: workspace:*
         version: link:../../packages/desktop-ui
-      '@invoice-platform/desktop-utils':
+      '@dream-invoice/desktop-utils':
         specifier: workspace:*
         version: link:../../packages/desktop-utils
-      '@invoice-platform/licensing':
+      '@dream-invoice/licensing':
         specifier: workspace:*
         version: link:../../packages/licensing
     devDependencies:
@@ -171,19 +171,19 @@ importers:
 
   apps/server:
     dependencies:
-      '@invoice-platform/accounting-core':
+      '@dream-invoice/accounting-core':
         specifier: workspace:*
         version: link:../../packages/accounting-core
-      '@invoice-platform/api':
+      '@dream-invoice/api':
         specifier: workspace:*
         version: link:../../packages/api
-      '@invoice-platform/auth':
+      '@dream-invoice/auth':
         specifier: workspace:*
         version: link:../../packages/auth
-      '@invoice-platform/database':
+      '@dream-invoice/database':
         specifier: workspace:*
         version: link:../../packages/database
-      '@invoice-platform/invoice-core':
+      '@dream-invoice/invoice-core':
         specifier: workspace:*
         version: link:../../packages/invoice-core
     devDependencies:
@@ -196,10 +196,10 @@ importers:
 
   apps/server-api:
     dependencies:
-      '@invoice-platform/licensing':
+      '@dream-invoice/licensing':
         specifier: workspace:*
         version: link:../../packages/licensing
-      '@invoice-platform/server-core':
+      '@dream-invoice/server-core':
         specifier: workspace:*
         version: link:../../packages/server-core
     devDependencies:
@@ -227,16 +227,16 @@ importers:
 
   apps/web:
     dependencies:
-      '@invoice-platform/invoice-core':
+      '@dream-invoice/invoice-core':
         specifier: workspace:*
         version: link:../../packages/invoice-core
-      '@invoice-platform/ocr':
+      '@dream-invoice/ocr':
         specifier: workspace:*
         version: link:../../packages/ocr
-      '@invoice-platform/pdf':
+      '@dream-invoice/pdf':
         specifier: workspace:*
         version: link:../../packages/pdf
-      '@invoice-platform/ui':
+      '@dream-invoice/ui':
         specifier: workspace:*
         version: link:../../packages/ui
       '@prisma/client':
@@ -312,7 +312,7 @@ importers:
 
   apps/web-pro:
     dependencies:
-      '@invoice-platform/licensing':
+      '@dream-invoice/licensing':
         specifier: workspace:*
         version: link:../../packages/licensing
     devDependencies:
@@ -324,16 +324,16 @@ importers:
 
   packages/api:
     dependencies:
-      '@invoice-platform/accounting-core':
+      '@dream-invoice/accounting-core':
         specifier: workspace:*
         version: link:../accounting-core
-      '@invoice-platform/auth':
+      '@dream-invoice/auth':
         specifier: workspace:*
         version: link:../auth
-      '@invoice-platform/database':
+      '@dream-invoice/database':
         specifier: workspace:*
         version: link:../database
-      '@invoice-platform/invoice-core':
+      '@dream-invoice/invoice-core':
         specifier: workspace:*
         version: link:../invoice-core
 
@@ -407,7 +407,7 @@ importers:
 
   packages/invoice-core:
     dependencies:
-      '@invoice-platform/tax':
+      '@dream-invoice/tax':
         specifier: workspace:*
         version: link:../tax
 
@@ -437,7 +437,7 @@ importers:
 
   packages/server-core:
     dependencies:
-      '@invoice-platform/licensing':
+      '@dream-invoice/licensing':
         specifier: workspace:*
         version: link:../licensing
     devDependencies:

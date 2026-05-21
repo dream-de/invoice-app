@@ -7,7 +7,7 @@ import {
   type LicensePlan,
   type LicenseSnapshot,
   type LicenseStatus
-} from "@invoice-platform/licensing"
+} from "@dream-invoice/licensing"
 
 export type LicenseActivationRequest = {
   licenseKey: string

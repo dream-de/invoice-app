@@ -29,7 +29,7 @@ export type ServerWorkerCliRunResult = {
 }
 
 const usage = [
-  "Usage: pnpm --filter @invoice-platform/server-worker worker -- [options]",
+  "Usage: pnpm --filter @dream-invoice/server-worker worker -- [options]",
   "",
   "Options:",
   "  --mode queue|scheduled     Worker mode. Defaults to scheduled when --schedule-file is provided.",

@@ -3,7 +3,7 @@
 import { ArrowLeft, Download, FileText, RotateCcw, Search, SlidersHorizontal } from "lucide-react"
 import Link from "next/link"
 import { useState } from "react"
-import { Currency } from "@invoice-platform/ui"
+import { Currency } from "@dream-invoice/ui"
 import { useLanguage } from "@/lib/i18n"
 
 const transactions = [

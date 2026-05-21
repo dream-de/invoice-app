@@ -1,4 +1,4 @@
-import { proDesktopIdentity } from "@invoice-platform/desktop-core"
+import { proDesktopIdentity } from "@dream-invoice/desktop-core"
 
 export type ProDesktopProductProfile = {
   productName: string

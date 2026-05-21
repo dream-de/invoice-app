@@ -7,7 +7,7 @@ export type HealthStatus = {
 export function getHealthStatus(): HealthStatus {
   return {
     status: "ok",
-    service: "invoice-platform-server",
+    service: "dream-invoice-server",
     timestamp: new Date().toISOString()
   }
 }

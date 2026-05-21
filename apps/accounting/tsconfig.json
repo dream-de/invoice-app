@@ -2,8 +2,8 @@
   "extends": "../../packages/config/typescript/nextjs.json",
   "compilerOptions": {
     "paths": {
-      "@invoice-platform/ui": ["../../packages/ui/src/index.ts"],
-      "@invoice-platform/accounting-core": ["../../packages/accounting-core/src/index.ts"]
+      "@dream-invoice/ui": ["../../packages/ui/src/index.ts"],
+      "@dream-invoice/accounting-core": ["../../packages/accounting-core/src/index.ts"]
     }
   },
   "include": [

@@ -1,5 +1,5 @@
 import type { ReactNode } from "react"
-import { PageShell } from "@invoice-platform/ui"
+import { PageShell } from "@dream-invoice/ui"
 
 const settingsItems = [
   {

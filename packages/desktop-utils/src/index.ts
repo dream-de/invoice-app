@@ -1,3 +1,3 @@
 export function isDesktopPackageName(value: string) {
-  return value.startsWith("@invoice-platform/desktop-")
+  return value.startsWith("@dream-invoice/desktop-")
 }

@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { ArrowLeft, RotateCcw } from "lucide-react"
-import { PageShell } from "@invoice-platform/ui"
+import { PageShell } from "@dream-invoice/ui"
 import { useLanguage } from "@/lib/i18n"
 
 const imports = [

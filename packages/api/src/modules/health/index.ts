@@ -3,7 +3,7 @@ import { ok } from "../../core/response"
 export function healthCheck() {
   return ok({
     status: "ok",
-    service: "invoice-platform-api",
+    service: "dream-invoice-api",
     timestamp: new Date().toISOString()
   })
 }

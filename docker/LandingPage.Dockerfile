@@ -12,8 +12,8 @@ RUN corepack enable
 COPY . .
 
 RUN pnpm install --frozen-lockfile
-RUN pnpm --filter @invoice-platform/landing-page build
+RUN pnpm --filter @dream-invoice/landing-page build
 
 EXPOSE 4174
 
-CMD ["pnpm", "--filter", "@invoice-platform/landing-page", "preview"]
+CMD ["pnpm", "--filter", "@dream-invoice/landing-page", "preview"]

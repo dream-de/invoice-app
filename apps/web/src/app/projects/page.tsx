@@ -1,7 +1,7 @@
 "use client"
 
 import { useMemo, useState } from "react"
-import { Input, PageShell } from "@invoice-platform/ui"
+import { Input, PageShell } from "@dream-invoice/ui"
 import { projects } from "@/data/invoice-data"
 import { useLanguage } from "@/lib/i18n"
 

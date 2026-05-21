@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto"
-import { prisma } from "@invoice-platform/database"
+import { prisma } from "@dream-invoice/database"
 import { verifyLicenseKey } from "./keys"
 
 type LicenseTransaction = {

@@ -1,4 +1,4 @@
-import { prisma } from "@invoice-platform/database"
+import { prisma } from "@dream-invoice/database"
 import { NextResponse } from "next/server"
 
 type CustomerImportRow = Record<string, string>

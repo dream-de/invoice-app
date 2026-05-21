@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react"
 import { AlertCircle, CheckCircle2 } from "lucide-react"
-import { PageShell } from "@invoice-platform/ui"
+import { PageShell } from "@dream-invoice/ui"
 import { customers } from "@/data/invoice-data"
 import { useLanguage } from "@/lib/i18n"
 

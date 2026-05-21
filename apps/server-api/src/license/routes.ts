@@ -1,4 +1,4 @@
-import { createLicenseVerificationSnapshot, createPendingLicenseActivation } from "@invoice-platform/server-core"
+import { createLicenseVerificationSnapshot, createPendingLicenseActivation } from "@dream-invoice/server-core"
 
 export type ServerApiRouteDefinition = {
   method: "GET" | "POST"

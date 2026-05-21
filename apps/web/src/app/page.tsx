@@ -7,7 +7,7 @@ import {
   Currency,
   PageShell,
   StatCard
-} from "@invoice-platform/ui"
+} from "@dream-invoice/ui"
 import { useLanguage } from "@/lib/i18n"
 
 const focusCard =

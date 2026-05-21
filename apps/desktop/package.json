@@ -1,5 +1,5 @@
 {
-  "name": "@invoice-platform/desktop",
+  "name": "@dream-invoice/desktop",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -10,15 +10,15 @@
     "check": "pnpm typecheck && pnpm test"
   },
   "dependencies": {
-    "@invoice-platform/desktop-contracts": "workspace:*",
-    "@invoice-platform/desktop-core": "workspace:*",
-    "@invoice-platform/desktop-data": "workspace:*",
-    "@invoice-platform/desktop-renderer": "workspace:*",
-    "@invoice-platform/desktop-services": "workspace:*",
-    "@invoice-platform/desktop-state": "workspace:*",
-    "@invoice-platform/desktop-ui": "workspace:*",
-    "@invoice-platform/desktop-utils": "workspace:*",
-    "@invoice-platform/licensing": "workspace:*"
+    "@dream-invoice/desktop-contracts": "workspace:*",
+    "@dream-invoice/desktop-core": "workspace:*",
+    "@dream-invoice/desktop-data": "workspace:*",
+    "@dream-invoice/desktop-renderer": "workspace:*",
+    "@dream-invoice/desktop-services": "workspace:*",
+    "@dream-invoice/desktop-state": "workspace:*",
+    "@dream-invoice/desktop-ui": "workspace:*",
+    "@dream-invoice/desktop-utils": "workspace:*",
+    "@dream-invoice/licensing": "workspace:*"
   },
   "devDependencies": {
     "typescript": "latest",

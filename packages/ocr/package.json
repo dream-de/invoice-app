@@ -1,5 +1,5 @@
 {
-  "name": "@invoice-platform/ocr",
+  "name": "@dream-invoice/ocr",
   "version": "0.0.0",
   "private": true,
   "type": "module",

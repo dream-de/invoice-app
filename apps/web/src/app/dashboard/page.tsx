@@ -5,7 +5,7 @@ import {
   ContentCard,
   Currency,
   PageShell
-} from "@invoice-platform/ui"
+} from "@dream-invoice/ui"
 
 import {
   articles,

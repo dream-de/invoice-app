@@ -1,4 +1,4 @@
-import { prisma } from "@invoice-platform/database"
+import { prisma } from "@dream-invoice/database"
 import { FREE_USER_LIMIT } from "./plans"
 
 export type UserLimitStatus = {

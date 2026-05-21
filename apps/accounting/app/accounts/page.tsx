@@ -1,5 +1,5 @@
-import { Table, TableCell, TableRow } from "@invoice-platform/ui"
-import { PageHeader } from "@invoice-platform/ui"
+import { Table, TableCell, TableRow } from "@dream-invoice/ui"
+import { PageHeader } from "@dream-invoice/ui"
 import { AccountingButton } from "../../components/AccountingButton"
 import { AccountingStatusBadge } from "../../components/AccountingStatusBadge"
 

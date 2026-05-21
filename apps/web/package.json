@@ -1,5 +1,5 @@
 {
-  "name": "@invoice-platform/web",
+  "name": "@dream-invoice/web",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -10,9 +10,9 @@
     "test": "tsx --test src/lib/**/*.test.ts"
   },
   "dependencies": {
-    "@invoice-platform/invoice-core": "workspace:*",
-    "@invoice-platform/ocr": "workspace:*",
-    "@invoice-platform/ui": "workspace:*",
+    "@dream-invoice/invoice-core": "workspace:*",
+    "@dream-invoice/ocr": "workspace:*",
+    "@dream-invoice/ui": "workspace:*",
     "@prisma/client": "^6.19.0",
     "lucide-react": "^1.14.0",
     "next": "16.2.5",
@@ -24,7 +24,7 @@
     "react-hook-form": "^7.75.0",
     "swr": "^2.4.1",
     "zod": "^4.4.3",
-    "@invoice-platform/pdf": "workspace:*"
+    "@dream-invoice/pdf": "workspace:*"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

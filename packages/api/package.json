@@ -1,13 +1,13 @@
 {
-  "name": "@invoice-platform/api",
+  "name": "@dream-invoice/api",
   "version": "0.0.0",
   "private": true,
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "dependencies": {
-    "@invoice-platform/auth": "workspace:*",
-    "@invoice-platform/database": "workspace:*",
-    "@invoice-platform/invoice-core": "workspace:*",
-    "@invoice-platform/accounting-core": "workspace:*"
+    "@dream-invoice/auth": "workspace:*",
+    "@dream-invoice/database": "workspace:*",
+    "@dream-invoice/invoice-core": "workspace:*",
+    "@dream-invoice/accounting-core": "workspace:*"
   }
 }

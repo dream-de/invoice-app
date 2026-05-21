@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { ChangeEvent, useRef, useState } from "react"
 import { AlertCircle, ArrowLeft, CheckCircle2, FileUp, Upload } from "lucide-react"
-import { PageShell } from "@invoice-platform/ui"
+import { PageShell } from "@dream-invoice/ui"
 import { useLanguage } from "@/lib/i18n"
 
 type BankTransactionPreview = {

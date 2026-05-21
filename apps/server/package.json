@@ -1,5 +1,5 @@
 {
-  "name": "@invoice-platform/server",
+  "name": "@dream-invoice/server",
   "version": "0.0.0",
   "private": true,
   "scripts": {
@@ -9,11 +9,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@invoice-platform/accounting-core": "workspace:*",
-    "@invoice-platform/auth": "workspace:*",
-    "@invoice-platform/database": "workspace:*",
-    "@invoice-platform/invoice-core": "workspace:*",
-    "@invoice-platform/api": "workspace:*"
+    "@dream-invoice/accounting-core": "workspace:*",
+    "@dream-invoice/auth": "workspace:*",
+    "@dream-invoice/database": "workspace:*",
+    "@dream-invoice/invoice-core": "workspace:*",
+    "@dream-invoice/api": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20",

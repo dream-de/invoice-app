@@ -1,5 +1,5 @@
 {
-  "name": "@invoice-platform/desktop-renderer",
+  "name": "@dream-invoice/desktop-renderer",
   "version": "0.0.0",
   "private": true,
   "type": "module",

@@ -175,7 +175,7 @@ describe("server worker CLI", () => {
       const run = await runServerWorkerCli(["--help"], { stdout: stdout.stream })
 
       assert.equal(run.exitCode, 0)
-      assert.match(stdout.read(), /Usage: pnpm --filter @invoice-platform\/server-worker worker/)
+      assert.match(stdout.read(), /Usage: pnpm --filter @dream-invoice\/server-worker worker/)
     } finally {
       if (previous === undefined) {
         delete process.env.SERVER_WORKER_NOW
@@ -190,6 +190,6 @@ describe("server worker CLI", () => {
     const run = await runServerWorkerCli(["--help"], { stdout: stdout.stream })
 
     assert.equal(run.exitCode, 0)
-    assert.match(stdout.read(), /Usage: pnpm --filter @invoice-platform\/server-worker worker/)
+    assert.match(stdout.read(), /Usage: pnpm --filter @dream-invoice\/server-worker worker/)
   })
 })

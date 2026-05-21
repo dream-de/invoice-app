@@ -1,4 +1,4 @@
-import { prisma } from "@invoice-platform/database"
+import { prisma } from "@dream-invoice/database"
 import { createCsvResponse } from "@/lib/export/csv-response"
 
 export const dynamic = "force-dynamic"

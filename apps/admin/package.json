@@ -1,5 +1,5 @@
 {
-  "name": "@invoice-platform/admin",
+  "name": "@dream-invoice/admin",
   "version": "0.0.0",
   "private": true,
   "scripts": {
@@ -9,9 +9,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@invoice-platform/auth": "workspace:*",
-    "@invoice-platform/database": "workspace:*",
-    "@invoice-platform/ui": "workspace:*",
+    "@dream-invoice/auth": "workspace:*",
+    "@dream-invoice/database": "workspace:*",
+    "@dream-invoice/ui": "workspace:*",
     "next": "^16.2.6",
     "react": "^19.2.6",
     "react-dom": "^19.2.6"

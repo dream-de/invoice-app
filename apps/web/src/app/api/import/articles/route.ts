@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { recognizeArticlesFromFile } from "@invoice-platform/ocr"
+import { recognizeArticlesFromFile } from "@dream-invoice/ocr"
 
 export async function POST(request: Request) {
   const formData = await request.formData()

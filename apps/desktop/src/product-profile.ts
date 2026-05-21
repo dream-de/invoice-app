@@ -1,5 +1,5 @@
-import { standardDesktopIdentity } from "@invoice-platform/desktop-core"
-import { desktopContractNamespace } from "@invoice-platform/desktop-contracts"
+import { standardDesktopIdentity } from "@dream-invoice/desktop-core"
+import { desktopContractNamespace } from "@dream-invoice/desktop-contracts"
 
 export type DesktopRuntime = "planned" | "electron"
 

@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { ArrowLeft, Building2, Plus, Trash2 } from "lucide-react"
-import { Currency, PageShell } from "@invoice-platform/ui"
+import { Currency, PageShell } from "@dream-invoice/ui"
 import { useLanguage } from "@/lib/i18n"
 
 const accounts = [

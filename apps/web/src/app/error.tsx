@@ -1,6 +1,6 @@
 "use client"
 
-import { Button, ErrorState } from "@invoice-platform/ui"
+import { Button, ErrorState } from "@dream-invoice/ui"
 
 export default function Error({
   reset

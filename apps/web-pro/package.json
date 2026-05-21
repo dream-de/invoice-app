@@ -1,5 +1,5 @@
 {
-  "name": "@invoice-platform/web-pro",
+  "name": "@dream-invoice/web-pro",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -9,7 +9,7 @@
     "check": "pnpm typecheck"
   },
   "dependencies": {
-    "@invoice-platform/licensing": "workspace:*"
+    "@dream-invoice/licensing": "workspace:*"
   },
   "devDependencies": {
     "typescript": "latest"

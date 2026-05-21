@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
-import { Button, Currency, PageShell } from "@invoice-platform/ui"
+import { Button, Currency, PageShell } from "@dream-invoice/ui"
 import { documents } from "@/data/invoice-data"
 import { translateStatus, useLanguage } from "@/lib/i18n"
 import type { TranslationKey } from "@/i18n/dictionary"

@@ -1,7 +1,7 @@
 
 {
 
-  "name": "@invoice-platform/invoice-core",
+  "name": "@dream-invoice/invoice-core",
 
   "version": "0.0.0",
 
@@ -13,7 +13,7 @@
 
   "dependencies": {
 
-    "@invoice-platform/tax": "workspace:*"
+    "@dream-invoice/tax": "workspace:*"
 
   }
 

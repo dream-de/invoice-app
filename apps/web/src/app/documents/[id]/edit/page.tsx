@@ -4,7 +4,7 @@ import Link from "next/link"
 import { useParams } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 import { Check, FileUp, Mail, PackagePlus, Plus, Sparkles, Trash2, UserRound, X } from "lucide-react"
-import { Button, ContentCard, Currency, Input, Select, Textarea } from "@invoice-platform/ui"
+import { Button, ContentCard, Currency, Input, Select, Textarea } from "@dream-invoice/ui"
 import { documents } from "@/data/invoice-data"
 import { useLanguage } from "@/lib/i18n"
 

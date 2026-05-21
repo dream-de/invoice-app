@@ -18,7 +18,7 @@ import {
   Share2,
   Trash2
 } from "lucide-react"
-import { ContentCard, Currency, PageShell } from "@invoice-platform/ui"
+import { ContentCard, Currency, PageShell } from "@dream-invoice/ui"
 
 import { documents } from "@/data/invoice-data"
 import { translateStatus, useLanguage } from "@/lib/i18n"

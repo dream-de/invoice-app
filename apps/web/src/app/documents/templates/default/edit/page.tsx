@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Button, Input } from "@invoice-platform/ui";
+import { Button, Input } from "@dream-invoice/ui";
 import { DocumentCanvas } from "@/components/document-editor/DocumentCanvas";
 import { DEFAULT_INVOICE_TEMPLATE } from "@/lib/document-templates/constants";
 import { FONT_OPTIONS, INVOICE_LAYER_NAMES, INVOICE_LAYER_Z, LAYER_TYPE_ICON, createDynamicTokenGroups, getElementTypeLabel, getInvoiceLayerName } from "@/lib/document-templates/editor-options";

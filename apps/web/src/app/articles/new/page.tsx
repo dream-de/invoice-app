@@ -9,7 +9,7 @@ import {
   PageShell,
   Select,
   Textarea
-} from "@invoice-platform/ui"
+} from "@dream-invoice/ui"
 import { useLanguage } from "@/lib/i18n"
 
 export default function NewArticlePage() {

@@ -1,7 +1,7 @@
-import { defaultDesktopDataScope } from "@invoice-platform/desktop-data"
-import { createDesktopServiceStatus } from "@invoice-platform/desktop-services"
-import { createDesktopWorkspaceState } from "@invoice-platform/desktop-state"
-import { createDesktopUiPreferences } from "@invoice-platform/desktop-ui"
+import { defaultDesktopDataScope } from "@dream-invoice/desktop-data"
+import { createDesktopServiceStatus } from "@dream-invoice/desktop-services"
+import { createDesktopWorkspaceState } from "@dream-invoice/desktop-state"
+import { createDesktopUiPreferences } from "@dream-invoice/desktop-ui"
 
 export const proDesktopWorkspacePlan = {
   dataScope: defaultDesktopDataScope,

@@ -1,5 +1,5 @@
-import { StatCard } from "@invoice-platform/ui"
-import { PageHeader } from "@invoice-platform/ui"
+import { StatCard } from "@dream-invoice/ui"
+import { PageHeader } from "@dream-invoice/ui"
 
 export default function AdminHomePage() {
   return (

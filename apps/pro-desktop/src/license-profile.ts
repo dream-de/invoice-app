@@ -1,4 +1,4 @@
-import { createLicenseSnapshot, getEnabledFeatures, licensePlanLabels } from "@invoice-platform/licensing"
+import { createLicenseSnapshot, getEnabledFeatures, licensePlanLabels } from "@dream-invoice/licensing"
 
 export const proDesktopLicenseProfile = {
   appId: "pro-desktop",

@@ -4,12 +4,12 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@invoice-platform/ui": ["../../packages/ui/src"],
-      "@invoice-platform/database": ["../../packages/database/src"],
-      "@invoice-platform/utils": ["../../packages/utils/src"],
-      "@invoice-platform/tax": ["../../packages/tax/src"],
-      "@invoice-platform/pdf": ["../../packages/pdf/src"],
-      "@invoice-platform/invoice-core": ["../../packages/invoice-core/src"]
+      "@dream-invoice/ui": ["../../packages/ui/src"],
+      "@dream-invoice/database": ["../../packages/database/src"],
+      "@dream-invoice/utils": ["../../packages/utils/src"],
+      "@dream-invoice/tax": ["../../packages/tax/src"],
+      "@dream-invoice/pdf": ["../../packages/pdf/src"],
+      "@dream-invoice/invoice-core": ["../../packages/invoice-core/src"]
     }
   },
   "include": [

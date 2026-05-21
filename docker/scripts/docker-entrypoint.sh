@@ -2,10 +2,10 @@
 set -eu
 
 echo "Generating Prisma client..."
-pnpm --filter @invoice-platform/database db:generate
+pnpm --filter @dream-invoice/database db:generate
 
 echo "Applying database migrations..."
-pnpm --filter @invoice-platform/database db:deploy
+pnpm --filter @dream-invoice/database db:deploy
 
 echo "Starting Dream Invoice..."
 exec "$@"

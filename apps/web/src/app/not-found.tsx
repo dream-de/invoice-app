@@ -1,4 +1,4 @@
-import { Button, EmptyState } from "@invoice-platform/ui"
+import { Button, EmptyState } from "@dream-invoice/ui"
 
 export default function NotFound() {
   return (

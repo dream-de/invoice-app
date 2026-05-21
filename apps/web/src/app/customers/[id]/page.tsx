@@ -8,7 +8,7 @@ import {
   Divider,
   PageShell,
   StatCard
-} from "@invoice-platform/ui"
+} from "@dream-invoice/ui"
 
 import {
   customers,

@@ -14,7 +14,7 @@ import {
   X
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
-import { Input } from "@invoice-platform/ui"
+import { Input } from "@dream-invoice/ui"
 import { useLanguage } from "@/lib/i18n"
 
 type ViewMode = "grid" | "list"

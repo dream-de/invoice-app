@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
-import { prisma } from "@invoice-platform/database"
-import { recognizeArticlesFromFile } from "@invoice-platform/ocr"
+import { prisma } from "@dream-invoice/database"
+import { recognizeArticlesFromFile } from "@dream-invoice/ocr"
 
 export async function POST(request: Request) {
   const formData = await request.formData()

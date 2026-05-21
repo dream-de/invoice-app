@@ -1,7 +1,7 @@
-import { Table, TableCell, TableRow } from "@invoice-platform/ui"
-import { PageHeader } from "@invoice-platform/ui"
+import { Table, TableCell, TableRow } from "@dream-invoice/ui"
+import { PageHeader } from "@dream-invoice/ui"
 import { AdminContentCard } from "../../components/AdminContentCard"
-import { StatusBadge } from "@invoice-platform/ui"
+import { StatusBadge } from "@dream-invoice/ui"
 
 const users = [
   {
