@@ -99,28 +99,6 @@ http://localhost:3000
 
 <sub>Dieses Projekt ist source-available und darf fuer private, nicht-kommerzielle Zwecke genutzt, installiert und veraendert werden. Kommerzielle Nutzung, Weiterverkauf, Hosting als kostenpflichtiger Dienst, Weiterverbreitung oder Nutzung in Kundenprojekten ist ohne ausdrueckliche schriftliche Genehmigung des Urhebers nicht erlaubt. Copyright (c) 2026 DikiTe. Alle Rechte vorbehalten. Siehe [LICENSE](./LICENSE).</sub>
 
-## Lizenzschluessel
+## License Tools
 
-Die App prueft Lizenzschluessel mit einem Public Key ueber `LICENSE_PUBLIC_KEY`.
-Der passende Private Key bleibt ausschliesslich beim Anbieter und darf nicht in GitHub,
-Docker Images oder Kundeninstallationen gespeichert werden.
-
-Lokalen Lizenzschluessel erzeugen:
-
-```bash
-LICENSE_PRIVATE_KEY="$(cat private-license-key.pem)" node tools/license/generate-license-key.mjs \
-  --plan=starter \
-  --billing=monthly \
-  --days=30 \
-  --customer="Demo Kunde"
-```
-
-Unterstuetzte Plaene: `free`, `starter`, `team`, `business`, `enterprise`, `unlimited`.
-
-Lizenz-Tools und technische Details liegen unter:
-
-```text
-tools/license/
-  generate-license-key.mjs
-  docs/
-```
+Lizenzschluessel, Sicherheitsregeln und technische Workflows liegen in [tools/license](./tools/license/README.md).

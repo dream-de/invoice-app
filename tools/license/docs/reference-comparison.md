@@ -51,8 +51,8 @@ Der feste Tools-Bereich bleibt:
 
 ```txt
 tools/
-  Lizenz/
+  license/
 ```
 
 Weitere Tool-Bereiche duerfen spaeter daneben entstehen, aber Lizenzdetails
-bleiben in `tools/Lizenz`.
+bleiben in `tools/license`.
