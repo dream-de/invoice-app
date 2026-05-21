@@ -279,6 +279,25 @@ importers:
         specifier: latest
         version: 4.22.3
 
+  apps/server-api:
+    dependencies:
+      '@invoice-platform/licensing':
+        specifier: workspace:*
+        version: link:../../packages/licensing
+      '@invoice-platform/server-core':
+        specifier: workspace:*
+        version: link:../../packages/server-core
+    devDependencies:
+      '@types/node':
+        specifier: ^20
+        version: 20.19.40
+      tsx:
+        specifier: latest
+        version: 4.22.3
+      typescript:
+        specifier: latest
+        version: 6.0.3
+
   apps/server-worker:
     devDependencies:
       '@types/node':
@@ -422,6 +441,16 @@ importers:
       tsx:
         specifier: latest
         version: 4.22.3
+      typescript:
+        specifier: latest
+        version: 6.0.3
+
+  packages/server-core:
+    dependencies:
+      '@invoice-platform/licensing':
+        specifier: workspace:*
+        version: link:../licensing
+    devDependencies:
       typescript:
         specifier: latest
         version: 6.0.3

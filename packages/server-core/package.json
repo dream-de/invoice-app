@@ -1,0 +1,19 @@
+{
+  "name": "@invoice-platform/server-core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "pnpm typecheck"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@invoice-platform/licensing": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "latest"
+  }
+}
