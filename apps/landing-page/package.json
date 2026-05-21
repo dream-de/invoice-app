@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "node scripts/serve-static.mjs",
-    "build": "pnpm check:safety && node scripts/build-static.mjs",
+    "build": "pnpm check:safety && pnpm check:integrity && node scripts/build-static.mjs",
     "typecheck": "tsc --noEmit",
     "preview": "node scripts/serve-static.mjs",
-    "check:safety": "node scripts/verify-landing-safety.mjs"
+    "check:safety": "node scripts/verify-landing-safety.mjs",
+    "check:integrity": "node scripts/verify-landing-integrity.mjs"
   },
   "exports": {
     ".": "./src/index.ts",
