@@ -1,8 +1,4 @@
-<p align="center">
-  <img src="apps/web/public/brand/dream-invoice-header-logo.png" alt="Dream Invoice" width="260" />
-</p>
-
-# Dream Invoice
+<img src="apps/web/public/brand/dream-invoice-header-logo.png" alt="Dream Invoice" width="220" />
 
 Dream Invoice ist eine webbasierte App fuer Rechnungen, Angebote, Kunden, Artikel, Finanzen und Unternehmenseinstellungen.
 
