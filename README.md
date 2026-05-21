@@ -1,4 +1,4 @@
-<img src="apps/web/public/brand/dream-invoice-header-logo.png" alt="Dream Invoice" width="220" />
+<img src="apps/web/public/brand/dream-invoice-readme-logo.png" alt="Dream Invoice" width="220" />
 
 ### **Dream Invoice**
 
