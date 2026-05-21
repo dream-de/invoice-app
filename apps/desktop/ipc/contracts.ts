@@ -1,4 +1,4 @@
-import { desktopIpcChannels } from "./channels"
+import type { desktopIpcChannels } from "./channels"
 
 export type DesktopFileSaveRequest = {
   suggestedName: string

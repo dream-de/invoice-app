@@ -12,8 +12,11 @@ import {
   desktopIpcChannels,
   desktopMainProcessPlan,
   desktopPreloadApi,
+  describeDesktopReadiness,
   desktopProductProfile,
+  desktopReadinessAreas,
   desktopRoutes,
+  listReadyDesktopAreas,
   desktopWindowOptions,
   findDesktopRoute,
   isSupportedDesktopPlatform
@@ -63,4 +66,14 @@ test("desktop native service plans stay browser independent", () => {
 test("desktop license profile keeps the normal app on the free plan", () => {
   assert.equal(desktopLicenseProfile.plan, "free")
   assert.equal(desktopLicenseProfile.enabledFeatures.includes("desktopShell"), false)
+})
+
+
+test("desktop readiness tracks ready and planned foundations", () => {
+  assert.equal(describeDesktopReadiness(), "3/5 desktop foundation areas ready")
+  assert.deepEqual(
+    listReadyDesktopAreas().map((area) => area.id),
+    ["shell", "ipc", "native-services"]
+  )
+  assert.equal(desktopReadinessAreas.some((area) => area.status === "blocked"), false)
 })

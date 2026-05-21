@@ -39,3 +39,10 @@ export type { DesktopNotificationPlan } from "../services/notification-service"
 
 export { isSupportedDesktopPlatform, normalizeDesktopPlatform } from "../utils/platform"
 export type { DesktopPlatform } from "../utils/platform"
+
+export {
+  describeDesktopReadiness,
+  desktopReadinessAreas,
+  listReadyDesktopAreas
+} from "./readiness"
+export type { DesktopReadinessArea } from "./readiness"

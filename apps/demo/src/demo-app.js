@@ -41,6 +41,16 @@ function createButton(className, label, onClick) {
   return button;
 }
 
+function createLinkButton(className, label, hash) {
+  const link = createElement("a", className, label);
+  link.href = hash;
+  return link;
+}
+
+function showReadOnlyAction(action) {
+  showDemoToast(action + " is preview-only in the public demo.");
+}
+
 function getRouteId() {
   const route = window.location.hash.replace(/^#\/?/, "") || "dashboard";
   return routes.some((item) => item.id === route) ? route : "dashboard";
@@ -147,6 +157,7 @@ function renderHeader(activeRoute) {
 
   const headerTools = createElement("div", "header-tools");
   headerTools.append(createButton("ghost-button", "Search", () => showDemoToast("Demo search is scoped to fictional records.")));
+  headerTools.append(createButton("ghost-button", "Reset demo", () => showDemoToast("Demo reset complete. No private data is stored.")));
   headerTools.append(createButton("icon-button", "?", () => showDemoToast("This demo is read-only and reset-safe.")));
   header.append(brand, nav, headerTools);
   return header;
@@ -155,8 +166,36 @@ function renderHeader(activeRoute) {
 function renderNotice() {
   const notice = createElement("section", "demo-notice");
   notice.append(createElement("strong", "", "Public demo mode"));
-  notice.append(createElement("span", "", "All records are fictional. Actions are preview-only and do not store private invoice data."));
+  notice.append(createElement("span", "", "All records are fictional. Create, import, email and export actions are simulated safely."));
+  notice.append(createButton("notice-action", "How it works", () => showDemoToast("Explore workflows freely. Changes are not persisted.")));
   return notice;
+}
+
+function renderWorkflowGuide() {
+  const guide = createElement("section", "workflow-guide");
+  const header = createElement("div", "workflow-header");
+  header.append(createElement("p", "eyebrow", "Guided demo"));
+  header.append(createElement("h2", "", "Try the core Dream Invoice flows"));
+  header.append(createElement("span", "", "Preview the real product path without writing data, sending email or touching bank connections."));
+  guide.append(header);
+
+  const steps = createElement("div", "workflow-steps");
+  for (const step of [
+    ["1", "Review customers", "Open fictional customer records and linked projects.", "#/customers"],
+    ["2", "Prepare invoice", "Walk through documents and template previews safely.", "#/documents"],
+    ["3", "Check finance", "Inspect demo accounts and statement-import messaging.", "#/finance"],
+    ["4", "Reset anytime", "Return to the same clean demo state after every visit.", "#/settings"]
+  ]) {
+    const card = createElement("a", "workflow-step");
+    card.href = step[3];
+    card.append(createElement("span", "workflow-number", step[0]));
+    card.append(createElement("strong", "", step[1]));
+    card.append(createElement("small", "", step[2]));
+    steps.append(card);
+  }
+
+  guide.append(steps);
+  return guide;
 }
 
 function renderDashboard(snapshot) {
@@ -190,6 +229,8 @@ function renderDashboard(snapshot) {
     createMetric("Drafts", String(snapshot.metrics.draftDocuments), "Prepared documents", "neutral")
   );
 
+  const workflow = renderWorkflowGuide();
+
   const content = createElement("section", "demo-content");
   const documentsCard = createElement("article", "panel");
   documentsCard.append(createSectionHeader("Recent documents", "Latest invoices and offers from the demo dataset.", "New invoice"));
@@ -200,7 +241,7 @@ function renderDashboard(snapshot) {
   customersCard.append(renderCustomersList(snapshot));
 
   content.append(documentsCard, customersCard);
-  fragment.append(hero, metrics, content);
+  fragment.append(hero, metrics, workflow, content);
   return fragment;
 }
 
@@ -211,13 +252,16 @@ function renderDocumentsList(snapshot, documents) {
   for (const documentItem of sortedDocuments) {
     const customer = findCustomer(snapshot, documentItem.customerId);
     const row = createElement("article", "document-row");
+    const project = documentItem.projectId ? findProject(snapshot, documentItem.projectId) : null;
     const main = createElement("div", "");
     main.append(createElement("strong", "", documentItem.number));
     main.append(createElement("span", "", (customer?.name ?? "Demo customer") + " - " + documentItem.issueDate));
+    if (project) main.append(createElement("small", "row-meta", project.title));
 
     const amount = createElement("div", "document-amount");
     amount.append(createElement("strong", "", formatCurrency(documentItem.gross, "EUR", 2)));
     amount.append(createStatus(documentItem.status));
+    amount.append(createButton("text-action", "Preview", () => showReadOnlyAction("Document preview")));
 
     row.append(main, amount);
     list.append(row);
@@ -245,9 +289,11 @@ function renderCustomersList(snapshot) {
     copy.append(createElement("span", "", customer.contact + " - " + customer.city));
     row.append(copy);
 
+    const actions = createElement("div", "customer-actions");
     const status = createStatus(customer.status);
     status.classList.add("customer-status");
-    row.append(status);
+    actions.append(status, createButton("text-action", "Open", () => showReadOnlyAction("Customer profile")));
+    row.append(actions);
     list.append(row);
   }
 
@@ -314,6 +360,7 @@ function renderFinancePage(snapshot) {
   safety.append(createElement("h2", "", "Safe import mode"));
   safety.append(createElement("p", "", "CSV and bank import flows are represented with fictional balances only. No connector, bank login or upload target is active in the public demo."));
   safety.append(createButton("primary-button", "Preview import flow", () => showDemoToast("Demo mode: file uploads are disabled.")));
+  safety.append(createLinkButton("secondary-link", "Review finance settings", "#/settings"));
 
   section.append(accounts, safety);
   return section;
@@ -383,6 +430,7 @@ function renderSettingsPage(snapshot) {
   safety.append(createElement("h2", "", "Reset-safe demo"));
   safety.append(createElement("p", "", "The public demo does not persist edits, does not send email and does not connect to production banking or customer data."));
   safety.append(createButton("primary-button", "Show safety note", () => showDemoToast("Demo mode is read-only and fictional.")));
+  safety.append(createButton("secondary-button", "Reset demo workspace", () => showDemoToast("Demo reset complete. The original sample data is still intact.")));
 
   section.append(settings, safety);
   return section;

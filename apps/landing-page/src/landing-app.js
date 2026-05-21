@@ -66,6 +66,42 @@ const content = {
       "description": "Server worker foundation for reminders, recurring invoices and scheduled maintenance."
     }
   ],
+  "productPaths": [
+    {
+      "label": "Website",
+      "title": "Public product page",
+      "description": "Clear overview, screenshots, feature story and route to the demo.",
+      "url": "https://dream-invoice.com",
+      "status": "Landing"
+    },
+    {
+      "label": "Demo",
+      "title": "Safe public workspace",
+      "description": "Fictional records, guided workflows and reset-safe interactions.",
+      "url": "https://demo.dream-invoice.com",
+      "status": "Public demo"
+    },
+    {
+      "label": "App",
+      "title": "Production workspace",
+      "description": "The private billing app for real customers, documents and exports.",
+      "url": "https://app.dream-invoice.com",
+      "status": "Product app"
+    },
+    {
+      "label": "Desktop",
+      "title": "Future native shell",
+      "description": "Prepared Electron foundation for local desktop workflows later.",
+      "url": "desktop-ready",
+      "status": "Foundation"
+    }
+  ],
+  "readiness": [
+    "Fictional demo data only",
+    "Separated demo and app domains",
+    "Browser-safe PDF and CSV download story",
+    "Desktop foundation can grow without changing the web app"
+  ],
   "audience": [
     "Freelancers and small teams",
     "Agencies and service providers",
@@ -109,6 +145,18 @@ function metricPill(item) {
 
 function listItem(item) {
   return `<li>${escapeHtml(item)}</li>`;
+}
+
+function pathCard(item) {
+  const href = item.url.startsWith("https://") ? item.url : "#desktop";
+  return `
+    <a class="path-card" href="${escapeHtml(href)}">
+      <span>${escapeHtml(item.label)}</span>
+      <strong>${escapeHtml(item.title)}</strong>
+      <p>${escapeHtml(item.description)}</p>
+      <em>${escapeHtml(item.status)}</em>
+    </a>
+  `;
 }
 
 function screenshotCard(item) {
@@ -208,6 +256,7 @@ root.innerHTML = `
           The demo can later run on demo.dream-invoice.com with fictional data, while the app
           remains the private product workspace.
         </p>
+        <ul class="readiness-list">${content.readiness.map(listItem).join("")}</ul>
       </div>
       <div class="domain-grid">
         <div><span>Website</span><strong>dream-invoice.com</strong></div>
@@ -215,6 +264,22 @@ root.innerHTML = `
         <div><span>App</span><strong>app.dream-invoice.com</strong></div>
       </div>
     </article>
+  </section>
+
+  <section id="desktop" class="content-band paths-band">
+    <div class="section-heading section-heading-split">
+      <div>
+        <p class="eyebrow">Product paths</p>
+        <h2>One brand, separated surfaces.</h2>
+      </div>
+      <p>
+        The repository can grow in public without mixing demo, production web app,
+        landing page and desktop foundation.
+      </p>
+    </div>
+    <div class="path-grid">
+      ${content.productPaths.map(pathCard).join("")}
+    </div>
   </section>
 
   <section class="content-band decision-band">

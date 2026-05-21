@@ -3,6 +3,14 @@ export type LandingFeature = {
   description: string
 }
 
+export type LandingPath = {
+  label: string
+  title: string
+  description: string
+  url: string
+  status: string
+}
+
 export type LandingMetric = {
   label: string
   value: string
@@ -27,6 +35,8 @@ export type LandingContent = {
   screenshots: LandingScreenshot[]
   features: LandingFeature[]
   workflow: LandingFeature[]
+  productPaths: LandingPath[]
+  readiness: string[]
   audience: string[]
   roadmap: string[]
 }
@@ -98,6 +108,42 @@ export const landingContent: LandingContent = {
       "title": "Automate",
       "description": "Server worker foundation for reminders, recurring invoices and scheduled maintenance."
     }
+  ],
+  "productPaths": [
+    {
+      "label": "Website",
+      "title": "Public product page",
+      "description": "Clear overview, screenshots, feature story and route to the demo.",
+      "url": "https://dream-invoice.com",
+      "status": "Landing"
+    },
+    {
+      "label": "Demo",
+      "title": "Safe public workspace",
+      "description": "Fictional records, guided workflows and reset-safe interactions.",
+      "url": "https://demo.dream-invoice.com",
+      "status": "Public demo"
+    },
+    {
+      "label": "App",
+      "title": "Production workspace",
+      "description": "The private billing app for real customers, documents and exports.",
+      "url": "https://app.dream-invoice.com",
+      "status": "Product app"
+    },
+    {
+      "label": "Desktop",
+      "title": "Future native shell",
+      "description": "Prepared Electron foundation for local desktop workflows later.",
+      "url": "desktop-ready",
+      "status": "Foundation"
+    }
+  ],
+  "readiness": [
+    "Fictional demo data only",
+    "Separated demo and app domains",
+    "Browser-safe PDF and CSV download story",
+    "Desktop foundation can grow without changing the web app"
   ],
   "audience": [
     "Freelancers and small teams",
