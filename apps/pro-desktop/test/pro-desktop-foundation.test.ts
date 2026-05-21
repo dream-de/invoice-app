@@ -1,4 +1,5 @@
 import test from "node:test"
+import { proDesktopLicenseProfile } from "../src/license-profile"
 import assert from "node:assert/strict"
 
 import {
@@ -51,4 +52,11 @@ test("service labels use EUR without umlaut", () => {
   const disallowed = "E" + String.fromCharCode(220) + "R"
   assert.equal(labels.some((label) => label.includes(disallowed)), false)
   assert.equal(findProDesktopService("eur-report")?.label, "EUR Report")
+})
+
+
+test("pro desktop license profile enables pro desktop features", () => {
+  assert.equal(proDesktopLicenseProfile.plan, "pro")
+  assert.equal(proDesktopLicenseProfile.enabledFeatures.includes("desktopShell"), true)
+  assert.equal(proDesktopLicenseProfile.enabledFeatures.includes("eInvoice"), true)
 })

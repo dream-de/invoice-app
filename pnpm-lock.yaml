@@ -109,6 +109,9 @@ importers:
       '@invoice-platform/desktop-utils':
         specifier: workspace:*
         version: link:../../packages/desktop-utils
+      '@invoice-platform/licensing':
+        specifier: workspace:*
+        version: link:../../packages/licensing
     devDependencies:
       '@types/node':
         specifier: ^20
@@ -237,6 +240,9 @@ importers:
       '@invoice-platform/desktop-utils':
         specifier: workspace:*
         version: link:../../packages/desktop-utils
+      '@invoice-platform/licensing':
+        specifier: workspace:*
+        version: link:../../packages/licensing
     devDependencies:
       '@types/node':
         specifier: ^20
@@ -281,6 +287,26 @@ importers:
       tsx:
         specifier: latest
         version: 4.22.3
+      typescript:
+        specifier: latest
+        version: 6.0.3
+
+  apps/web:
+    dependencies:
+      '@invoice-platform/licensing':
+        specifier: workspace:*
+        version: link:../../packages/licensing
+    devDependencies:
+      typescript:
+        specifier: latest
+        version: 6.0.3
+
+  apps/web-pro:
+    dependencies:
+      '@invoice-platform/licensing':
+        specifier: workspace:*
+        version: link:../../packages/licensing
+    devDependencies:
       typescript:
         specifier: latest
         version: 6.0.3
@@ -375,6 +401,12 @@ importers:
       '@invoice-platform/tax':
         specifier: workspace:*
         version: link:../tax
+
+  packages/licensing:
+    devDependencies:
+      typescript:
+        specifier: latest
+        version: 6.0.3
 
   packages/ocr:
     devDependencies:

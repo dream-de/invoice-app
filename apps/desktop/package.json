@@ -17,7 +17,8 @@
     "@invoice-platform/desktop-services": "workspace:*",
     "@invoice-platform/desktop-state": "workspace:*",
     "@invoice-platform/desktop-ui": "workspace:*",
-    "@invoice-platform/desktop-utils": "workspace:*"
+    "@invoice-platform/desktop-utils": "workspace:*",
+    "@invoice-platform/licensing": "workspace:*"
   },
   "devDependencies": {
     "typescript": "latest",

@@ -1,0 +1,17 @@
+{
+  "name": "@invoice-platform/web-pro",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "pnpm typecheck",
+    "check": "pnpm typecheck"
+  },
+  "dependencies": {
+    "@invoice-platform/licensing": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "latest"
+  }
+}

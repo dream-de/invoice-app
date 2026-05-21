@@ -1,4 +1,5 @@
 import test from "node:test"
+import { desktopLicenseProfile } from "../src/license-profile"
 import assert from "node:assert/strict"
 
 import {
@@ -56,4 +57,10 @@ test("desktop native service plans stay browser independent", () => {
   assert.equal(createDesktopNotificationPlan({ title: "Done", body: "PDF exported", tone: "info" }).silent, true)
   assert.equal(isSupportedDesktopPlatform("darwin"), true)
   assert.equal(isSupportedDesktopPlatform("freebsd"), false)
+})
+
+
+test("desktop license profile keeps the normal app on the free plan", () => {
+  assert.equal(desktopLicenseProfile.plan, "free")
+  assert.equal(desktopLicenseProfile.enabledFeatures.includes("desktopShell"), false)
 })
