@@ -2,10 +2,15 @@
   "extends": "../../packages/config/typescript/base.json",
   "compilerOptions": {
     "outDir": "dist",
-    "rootDir": "src"
+    "rootDir": "."
   },
   "include": [
-    "src/**/*.ts"
+    "src/**/*.ts",
+    "electron/**/*.ts",
+    "ipc/**/*.ts",
+    "services/**/*.ts",
+    "state/**/*.ts",
+    "utils/**/*.ts"
   ],
   "exclude": [
     "node_modules",

@@ -1,0 +1,17 @@
+{
+  "name": "@invoice-platform/desktop-services",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "pnpm typecheck"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "latest"
+  }
+}

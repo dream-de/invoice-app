@@ -1,4 +1,4 @@
-import { desktopProductProfile } from "../product-profile"
+import { desktopProductProfile } from "../src/product-profile"
 
 export type DesktopWindowOptions = {
   title: string

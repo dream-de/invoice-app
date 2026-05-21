@@ -1,4 +1,4 @@
-import { desktopProductProfile } from "../product-profile"
+import { desktopProductProfile } from "../src/product-profile"
 import { desktopPreloadApi } from "./preload-api"
 import { desktopWindowOptions } from "./window-options"
 

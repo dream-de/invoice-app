@@ -1,4 +1,4 @@
-import { desktopRoutes, type DesktopRouteId } from "../router"
+import { desktopRoutes, type DesktopRouteId } from "../src/router"
 
 export type DesktopShellState = {
   activeRoute: DesktopRouteId
