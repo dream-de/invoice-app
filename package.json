@@ -9,7 +9,7 @@
     "lint": "turbo run lint",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
-    "dev:invoice": "pnpm --filter @invoice-platform/invoice dev",
+    "dev:web": "pnpm --filter @invoice-platform/web dev",
     "dev:accounting": "pnpm --filter @invoice-platform/accounting dev",
     "dev:admin": "pnpm --filter @invoice-platform/admin dev",
     "dev:server": "pnpm --filter @invoice-platform/server dev",

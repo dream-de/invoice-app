@@ -31,7 +31,7 @@ license-keys/
 .env.production
 
 # Local email delivery settings
-apps/invoice/data/email-settings.local.json
+apps/web/data/email-settings.local.json
 
 # Local email delivery log
-apps/invoice/data/email-delivery-log.local.json
+apps/web/data/email-delivery-log.local.json

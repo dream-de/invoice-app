@@ -17,7 +17,7 @@ docs.dream-invoice.com  Optional public documentation site.
 ```txt
 apps/landing-page  -> dream-invoice.com
 apps/demo          -> demo.dream-invoice.com
-apps/invoice       -> app.dream-invoice.com
+apps/web       -> app.dream-invoice.com
 apps/server        -> api.dream-invoice.com, if API is deployed separately later
 apps/server-worker -> internal only, no public domain
 ```

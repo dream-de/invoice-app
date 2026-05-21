@@ -68,7 +68,7 @@ docker compose -f docker/docker-compose.yml exec postgres pg_isready -U postgres
 Migrationen manuell ausfuehren:
 
 ```bash
-docker compose -f docker/docker-compose.yml exec invoice-app pnpm --filter @invoice-platform/database db:deploy
+docker compose -f docker/docker-compose.yml exec web-app pnpm --filter @invoice-platform/database db:deploy
 ```
 
 Neu bauen:
@@ -86,7 +86,7 @@ Nur fuer Entwickler:
 pnpm install
 pnpm db:generate
 pnpm db:migrate
-pnpm dev:invoice
+pnpm dev:web
 ```
 
 Die App laeuft dann auf:

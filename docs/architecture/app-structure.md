@@ -51,7 +51,7 @@ packages/
 
 ## Rules
 
-1. Keep `apps/invoice` as the main web app until there is a real reason to rename or split it.
+1. Keep `apps/web` as the main web app until there is a real reason to rename or split it.
 2. Do not move working code only to make the repository look bigger.
 3. Add a new app only when it has a separate runtime, build target, or deployment target.
 4. Add a new package only when at least two apps or modules need to share the same logic.
@@ -125,7 +125,7 @@ The planned public domain structure is documented in `docs/architecture/domains.
 ```txt
 dream-invoice.com       -> apps/landing-page
 demo.dream-invoice.com  -> apps/demo
-app.dream-invoice.com   -> apps/invoice
+app.dream-invoice.com   -> apps/web
 api.dream-invoice.com   -> apps/server, when separated
 server-worker           -> internal only
 ```

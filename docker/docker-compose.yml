@@ -16,7 +16,7 @@ services:
       timeout: 5s
       retries: 10
 
-  invoice-app:
+  web-app:
     build:
       context: ..
       dockerfile: docker/Dockerfile
@@ -34,7 +34,7 @@ services:
     expose:
       - "3000"
     ports:
-      - "${INVOICE_PORT:-3000}:3000"
+      - "${WEB_PORT:-3000}:3000"
 
   server-worker:
     profiles:
@@ -73,7 +73,7 @@ services:
     image: nginx:1.27-alpine
     restart: unless-stopped
     depends_on:
-      - invoice-app
+      - web-app
       - demo-app
       - landing-page
     ports:

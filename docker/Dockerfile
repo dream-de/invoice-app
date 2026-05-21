@@ -25,9 +25,9 @@ COPY . .
 
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @invoice-platform/database db:generate
-RUN pnpm --filter @invoice-platform/invoice build
+RUN pnpm --filter @invoice-platform/web build
 
 EXPOSE 3000
 
 ENTRYPOINT ["sh", "docker/scripts/docker-entrypoint.sh"]
-CMD ["pnpm", "--filter", "@invoice-platform/invoice", "exec", "next", "start", "-H", "0.0.0.0", "-p", "3000"]
+CMD ["pnpm", "--filter", "@invoice-platform/web", "exec", "next", "start", "-H", "0.0.0.0", "-p", "3000"]

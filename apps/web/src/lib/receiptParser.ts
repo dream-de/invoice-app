@@ -1,5 +1,3 @@
-// apps/invoice/src/lib/receiptParser.ts
-
 export type ParsedVatDetail = {
   rate: number
   amount: number | null

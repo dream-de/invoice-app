@@ -73,7 +73,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
             <div>
               <p className="text-sm font-black text-slate-950">Admin Demo</p>
-              <p className="text-xs text-slate-500">admin@invoice-app.local</p>
+              <p className="text-xs text-slate-500">admin@dream-invoice.local</p>
             </div>
           </div>
         </div>

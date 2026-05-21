@@ -46,7 +46,7 @@ export type AppData = {
   documents: DocumentItem[];
 };
 
-const STORAGE_KEY = "invoice-app-data";
+const STORAGE_KEY = "dream-invoice-data";
 
 export const defaultData: AppData = {
   customers: [

@@ -123,91 +123,6 @@ importers:
         specifier: latest
         version: 6.0.3
 
-  apps/invoice:
-    dependencies:
-      '@invoice-platform/invoice-core':
-        specifier: workspace:*
-        version: link:../../packages/invoice-core
-      '@invoice-platform/ocr':
-        specifier: workspace:*
-        version: link:../../packages/ocr
-      '@invoice-platform/pdf':
-        specifier: workspace:*
-        version: link:../../packages/pdf
-      '@invoice-platform/ui':
-        specifier: workspace:*
-        version: link:../../packages/ui
-      '@prisma/client':
-        specifier: ^6.19.0
-        version: 6.19.0(prisma@6.19.0(typescript@5.9.3))(typescript@5.9.3)
-      lucide-react:
-        specifier: ^1.14.0
-        version: 1.14.0(react@19.2.4)
-      next:
-        specifier: 16.2.5
-        version: 16.2.5(@babel/core@7.29.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
-      nodemailer:
-        specifier: ^8.0.7
-        version: 8.0.7
-      puppeteer:
-        specifier: ^24.43.1
-        version: 24.43.1(typescript@5.9.3)
-      qrcode:
-        specifier: ^1.5.4
-        version: 1.5.4
-      react:
-        specifier: 19.2.4
-        version: 19.2.4
-      react-dom:
-        specifier: 19.2.4
-        version: 19.2.4(react@19.2.4)
-      react-hook-form:
-        specifier: ^7.75.0
-        version: 7.75.0(react@19.2.4)
-      swr:
-        specifier: ^2.4.1
-        version: 2.4.1(react@19.2.4)
-      zod:
-        specifier: ^4.4.3
-        version: 4.4.3
-    devDependencies:
-      '@tailwindcss/postcss':
-        specifier: ^4
-        version: 4.3.0
-      '@types/node':
-        specifier: ^20
-        version: 20.19.40
-      '@types/nodemailer':
-        specifier: ^8.0.0
-        version: 8.0.0
-      '@types/qrcode':
-        specifier: ^1.5.6
-        version: 1.5.6
-      '@types/react':
-        specifier: ^19
-        version: 19.2.14
-      '@types/react-dom':
-        specifier: ^19
-        version: 19.2.3(@types/react@19.2.14)
-      eslint:
-        specifier: ^9
-        version: 9.39.4(jiti@2.7.0)
-      eslint-config-next:
-        specifier: 16.2.5
-        version: 16.2.5(@typescript-eslint/parser@8.59.2(eslint@9.39.4(jiti@2.7.0))(typescript@5.9.3))(eslint@9.39.4(jiti@2.7.0))(typescript@5.9.3)
-      prisma:
-        specifier: ^6.19.0
-        version: 6.19.0(typescript@5.9.3)
-      tailwindcss:
-        specifier: ^4
-        version: 4.3.0
-      tsx:
-        specifier: latest
-        version: 4.22.3
-      typescript:
-        specifier: ^5
-        version: 5.9.3
-
   apps/landing-page:
     devDependencies:
       typescript:
@@ -312,13 +227,88 @@ importers:
 
   apps/web:
     dependencies:
-      '@invoice-platform/licensing':
+      '@invoice-platform/invoice-core':
         specifier: workspace:*
-        version: link:../../packages/licensing
+        version: link:../../packages/invoice-core
+      '@invoice-platform/ocr':
+        specifier: workspace:*
+        version: link:../../packages/ocr
+      '@invoice-platform/pdf':
+        specifier: workspace:*
+        version: link:../../packages/pdf
+      '@invoice-platform/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
+      '@prisma/client':
+        specifier: ^6.19.0
+        version: 6.19.0(prisma@6.19.0(typescript@5.9.3))(typescript@5.9.3)
+      lucide-react:
+        specifier: ^1.14.0
+        version: 1.14.0(react@19.2.4)
+      next:
+        specifier: 16.2.5
+        version: 16.2.5(@babel/core@7.29.0)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      nodemailer:
+        specifier: ^8.0.7
+        version: 8.0.7
+      puppeteer:
+        specifier: ^24.43.1
+        version: 24.43.1(typescript@5.9.3)
+      qrcode:
+        specifier: ^1.5.4
+        version: 1.5.4
+      react:
+        specifier: 19.2.4
+        version: 19.2.4
+      react-dom:
+        specifier: 19.2.4
+        version: 19.2.4(react@19.2.4)
+      react-hook-form:
+        specifier: ^7.75.0
+        version: 7.75.0(react@19.2.4)
+      swr:
+        specifier: ^2.4.1
+        version: 2.4.1(react@19.2.4)
+      zod:
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
-      typescript:
+      '@tailwindcss/postcss':
+        specifier: ^4
+        version: 4.3.0
+      '@types/node':
+        specifier: ^20
+        version: 20.19.40
+      '@types/nodemailer':
+        specifier: ^8.0.0
+        version: 8.0.0
+      '@types/qrcode':
+        specifier: ^1.5.6
+        version: 1.5.6
+      '@types/react':
+        specifier: ^19
+        version: 19.2.14
+      '@types/react-dom':
+        specifier: ^19
+        version: 19.2.3(@types/react@19.2.14)
+      eslint:
+        specifier: ^9
+        version: 9.39.4(jiti@2.7.0)
+      eslint-config-next:
+        specifier: 16.2.5
+        version: 16.2.5(@typescript-eslint/parser@8.59.2(eslint@9.39.4(jiti@2.7.0))(typescript@5.9.3))(eslint@9.39.4(jiti@2.7.0))(typescript@5.9.3)
+      prisma:
+        specifier: ^6.19.0
+        version: 6.19.0(typescript@5.9.3)
+      tailwindcss:
+        specifier: ^4
+        version: 4.3.0
+      tsx:
         specifier: latest
-        version: 6.0.3
+        version: 4.22.3
+      typescript:
+        specifier: ^5
+        version: 5.9.3
 
   apps/web-pro:
     dependencies:

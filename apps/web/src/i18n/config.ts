@@ -1,4 +1,4 @@
-export const LANGUAGE_STORAGE_KEY = "invoice-app-language"
+export const LANGUAGE_STORAGE_KEY = "dream-invoice-language"
 export const DEFAULT_LANGUAGE = "de"
 
 export const supportedLanguages = [
