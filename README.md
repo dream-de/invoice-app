@@ -38,7 +38,7 @@ Important: legal, tax, and accounting compliance always depends on setup, proces
 - `apps/admin`: admin app foundation
 - `apps/accounting`: accounting app foundation
 - `packages/accounting-core`: accounting domain and journal foundations
-- `packages/accounting-data`: international accounting data catalog foundations
+- `assets/accounting/`: accounting data manifests and future verified chart-of-accounts assets
 - `packages/database`: Prisma schema, client, and database workflows
 - `packages/ui`: shared UI building blocks
 - `packages/licensing`: licensing and edition foundations

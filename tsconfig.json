@@ -5,9 +5,6 @@
       "@dream-invoice/accounting-core": [
         "packages/accounting-core/src/index.ts"
       ],
-      "@dream-invoice/accounting-data": [
-        "packages/accounting-data/src/index.ts"
-      ],
       "@dream-invoice/api": [
         "packages/api/src/index.ts"
       ],

@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "country": "DE",
+  "description": "Accounting data asset manifest for German chart-of-accounts files. Real data files must come from verified, license-safe sources.",
+  "dataSets": [
+    {
+      "id": "de-skr03",
+      "name": "German SKR03 chart of accounts",
+      "file": "skr03.sqlite",
+      "format": "sqlite",
+      "status": "planned",
+      "intendedFor": [
+        "desktop",
+        "pro",
+        "enterprise"
+      ],
+      "notes": "Placeholder manifest entry only. Do not add copied third-party data without license verification."
+    },
+    {
+      "id": "de-skr04",
+      "name": "German SKR04 chart of accounts",
+      "file": "skr04.sqlite",
+      "format": "sqlite",
+      "status": "planned",
+      "intendedFor": [
+        "desktop",
+        "pro",
+        "enterprise"
+      ],
+      "notes": "Placeholder manifest entry only. Do not add copied third-party data without license verification."
+    }
+  ]
+}
