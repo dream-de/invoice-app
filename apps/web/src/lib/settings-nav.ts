@@ -1,7 +1,7 @@
 export const settingsNav = [
   {
     href: "/settings/company",
-    title: "Stammdaten",
+    title: "Unternehmen",
     description: "Adresse & Kontakt"
   },
   {
