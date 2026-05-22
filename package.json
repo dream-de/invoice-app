@@ -31,7 +31,8 @@
     "docker:build:landing": "docker compose -f docker/docker-compose.yml build landing-page",
     "docker:build:worker": "docker compose -f docker/docker-compose.yml --profile worker build server-worker",
     "docker:build:all": "pnpm build && docker compose -f docker/docker-compose.yml --profile worker build",
-    "pretypecheck": "pnpm --filter @dream-invoice/database db:generate"
+    "pretypecheck": "pnpm --filter @dream-invoice/database db:generate",
+    "test:flows": "node --test tests/flows/**/*.spec.mjs"
   },
   "devDependencies": {
     "@types/node": "^20",
