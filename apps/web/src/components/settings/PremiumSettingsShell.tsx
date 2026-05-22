@@ -3,7 +3,7 @@ import { PageShell } from "@dream-invoice/ui"
 
 const settingsItems = [
   {
-    title: "Stammdaten",
+    title: "Unternehmen",
     description: "Adresse & Kontakt",
     href: "/settings/company"
   },

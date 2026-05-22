@@ -32,7 +32,8 @@
     "docker:build:worker": "docker compose -f docker/docker-compose.yml --profile worker build server-worker",
     "docker:build:all": "pnpm build && docker compose -f docker/docker-compose.yml --profile worker build",
     "pretypecheck": "pnpm --filter @dream-invoice/database db:generate",
-    "test:flows": "node --test tests/flows/**/*.spec.mjs"
+    "test:flows": "node --test tests/flows/**/*.spec.mjs",
+    "test:flows:live": "DREAM_INVOICE_FLOW_LIVE=1 node --test tests/flows/**/*.spec.mjs"
   },
   "devDependencies": {
     "@types/node": "^20",

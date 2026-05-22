@@ -2,7 +2,7 @@ import Link from "next/link"
 import type { ReactNode } from "react"
 
 const settingsNav = [
-  { href: "/settings/company", title: "Stammdaten", description: "Adresse & Kontakt", icon: "▥" },
+  { href: "/settings/company", title: "Unternehmen", description: "Adresse & Kontakt", icon: "▥" },
   { href: "/settings/categories", title: "Kategorien", description: "Produkte & Leistungen", icon: "◇" },
   { href: "/settings/finance", title: "Finanzen", description: "Bank & Steuern", icon: "▤" },
   { href: "/settings/number-ranges", title: "Nummernkreise", description: "Rechnungs-, Angebots- & Kundennr.", icon: "01" },
