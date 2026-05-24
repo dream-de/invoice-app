@@ -165,7 +165,7 @@ This starts PostgreSQL, Mailpit, and Adminer for local development without sendi
 - Mailpit inbox: `http://localhost:8025`
 - Adminer: `http://localhost:8081`
 
-Use `docker/development/.env.example` as the template for custom local ports or credentials.
+Use `docker/development/.env.example` as the template for custom local ports or credentials. For production, replace all development defaults and follow [Production Deployment](./docs/deployment/production.md).
 
 ```bash
 pnpm docker:dev:ps
@@ -189,6 +189,9 @@ cat backup.sql | docker compose -f docker/docker-compose.yml exec -T postgres ps
 
 ## Documentation
 
+- [Contributing](./CONTRIBUTING.md)
+- [Production Deployment](./docs/deployment/production.md)
+- [Secrets Rotation](./docs/security/secrets-rotation.md)
 - [Releasing](./docs/releasing.md)
 - [App Structure](./docs/architecture/app-structure.md)
 - [Domains](./docs/architecture/domains.md)
