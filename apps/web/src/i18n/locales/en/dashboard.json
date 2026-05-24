@@ -46,5 +46,22 @@
   "status.paid": "Paid",
   "status.open": "Open",
   "status.overdue": "Overdue",
-  "status.draft": "Draft"
+  "status.draft": "Draft",
+  "dashboard.kpi.quotes": "Quotes",
+  "dashboard.status.overview": "Invoice Status",
+  "dashboard.current.title": "Current Invoice",
+  "dashboard.current.description": "Latest document with quick access.",
+  "dashboard.current.customer": "Client",
+  "dashboard.current.date": "Document",
+  "dashboard.current.status": "Status",
+  "dashboard.current.amount": "Amount",
+  "dashboard.current.edit": "Edit",
+  "dashboard.current.pdf": "PDF",
+  "dashboard.reports.title": "Reports",
+  "dashboard.reports.description": "Monthly overview and export access.",
+  "dashboard.reports.monthly": "Monthly Overview",
+  "dashboard.reports.csv": "CSV Export",
+  "dashboard.reports.pdf": "PDF Export",
+  "dashboard.reports.income": "Income & Expenses",
+  "dashboard.reports.quotes": "Quotes"
 }

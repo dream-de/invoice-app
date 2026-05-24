@@ -1,5 +1,7 @@
 "use client"
 
+import type { ReactNode } from "react"
+import type { TranslationKey } from "@/i18n/dictionary"
 import Link from "next/link"
 import {
   ContentCard,
@@ -16,6 +18,30 @@ import {
 import { translateStatus, useLanguage } from "@/lib/i18n"
 
 type DashboardDocumentStatus = "draft" | "open" | "paid" | "overdue" | "sent"
+
+type DashboardDocument = (typeof documents)[number] & {
+  statusKey: DashboardDocumentStatus
+}
+
+type KpiItem = {
+  title: string
+  helper: string
+  value: ReactNode
+  tone: string
+  marker: string
+}
+
+type RevenuePoint = {
+  month: string
+  value: number
+}
+
+type QuickAction = {
+  title: string
+  description: string
+  meta: string
+  href: string
+}
 
 function normalizeDashboardStatus(status: string): DashboardDocumentStatus {
   const normalized = status.trim().toLowerCase()
@@ -36,26 +62,283 @@ function statusBadgeClass(status: DashboardDocumentStatus) {
   return "bg-orange-50 text-orange-700"
 }
 
-const dashboardDocuments = documents.map((document) => ({
+function toPercent(value: number, total: number) {
+  if (total <= 0) return 0
+
+  return Math.round((value / total) * 100)
+}
+
+const dashboardDocuments: DashboardDocument[] = documents.map((document) => ({
   ...document,
   statusKey: normalizeDashboardStatus(document.status)
 }))
 
-const totalRevenue = dashboardDocuments.reduce((sum, document) => sum + document.amount, 0)
+const invoiceDocuments = dashboardDocuments.filter((document) => document.type.toLowerCase().includes("rechnung"))
+const quoteDocuments = dashboardDocuments.filter((document) => document.type.toLowerCase().includes("angebot") || document.number.startsWith("OF-"))
+const totalRevenue = invoiceDocuments.reduce((sum, document) => sum + document.amount, 0)
 const openDocuments = dashboardDocuments.filter((document) => document.statusKey === "open" || document.statusKey === "sent")
 const paidDocuments = dashboardDocuments.filter((document) => document.statusKey === "paid")
 const overdueDocuments = dashboardDocuments.filter((document) => document.statusKey === "overdue")
-const taxPreview = totalRevenue * 0.19
+const draftDocuments = dashboardDocuments.filter((document) => document.statusKey === "draft")
+const openAmount = openDocuments.reduce((sum, document) => sum + document.amount, 0)
+const paidAmount = paidDocuments.reduce((sum, document) => sum + document.amount, 0)
+const overdueAmount = overdueDocuments.reduce((sum, document) => sum + document.amount, 0)
+const quoteAmount = quoteDocuments.reduce((sum, document) => sum + document.amount, 0)
 const latestDocuments = dashboardDocuments.slice(0, 5)
+
+function DashboardKpiRow({ items }: { items: readonly KpiItem[] }) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      {items.map((item) => (
+        <div key={item.title} className="rounded-[20px] border border-[#e3e9f1] bg-white px-4 py-3.5 shadow-[0_12px_30px_rgba(15,23,42,0.08)] sm:rounded-[22px] sm:px-5 sm:py-4">
+          <div className="flex items-start gap-3">
+            <span className={["mt-1 h-3 w-3 shrink-0 rounded-full", item.marker].join(" ")} />
+            <div className="min-w-0">
+              <p className="text-[12px] font-semibold text-[#607086]">{item.title}</p>
+              <p className="mt-1 text-[27px] font-black leading-none tracking-tight text-[#1d2533]">{item.value}</p>
+              <p className={["mt-2 text-[11px] font-bold uppercase tracking-[0.16em]", item.tone].join(" ")}>{item.helper}</p>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function RevenueOverview({ title, description, series }: { title: string; description: string; series: readonly RevenuePoint[] }) {
+  const maxValue = Math.max(...series.map((item) => item.value), 1)
+  const points = series.map((item, index) => {
+    const x = 38 + index * 74
+    const y = 172 - (item.value / maxValue) * 116
+
+    return String(Math.round(x)) + "," + String(Math.round(y))
+  }).join(" ")
+
+  return (
+    <ContentCard title={title} description={description} className="dashboard-revenue-card">
+      <div className="rounded-[24px] border border-[#e4eaf1] bg-[#f9fbfe] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] sm:p-5">
+        <div className="relative h-[245px] overflow-hidden rounded-[18px] bg-white p-4">
+          <div className="absolute inset-x-4 top-10 space-y-11">
+            <div className="border-t border-[#e4eaf1]" />
+            <div className="border-t border-[#e4eaf1]" />
+            <div className="border-t border-[#e4eaf1]" />
+            <div className="border-t border-[#e4eaf1]" />
+          </div>
+
+          <div className="absolute inset-x-7 bottom-12 flex h-[150px] items-end justify-between">
+            {series.map((item) => (
+              <div key={item.month} className="w-9 rounded-t-[10px] bg-[#dbe7f4]" style={{ height: String(Math.max(28, Math.round((item.value / maxValue) * 132))) + "px" }} />
+            ))}
+          </div>
+
+          <svg viewBox="0 0 520 190" className="absolute inset-x-4 bottom-8 h-[190px] w-[calc(100%-32px)]" aria-hidden="true">
+            <polyline points={points} fill="none" stroke="#73a7e8" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+            {points.split(" ").map((point) => {
+              const [x, y] = point.split(",")
+
+              return <circle key={point} cx={x} cy={y} r="5" fill="#ffffff" stroke="#73a7e8" strokeWidth="3" />
+            })}
+          </svg>
+
+          <div className="absolute inset-x-7 bottom-4 flex justify-between text-[12px] font-semibold text-[#53627a]">
+            {series.map((item) => (
+              <span key={item.month}>{item.month}</span>
+            ))}
+          </div>
+        </div>
+      </div>
+    </ContentCard>
+  )
+}
+
+function StatusOverview({ title, paid, open, overdue, draft }: { title: string; paid: number; open: number; overdue: number; draft: number }) {
+  const total = paid + open + overdue + draft
+  const paidPercent = toPercent(paid, total)
+  const openPercent = toPercent(open, total)
+  const overduePercent = toPercent(overdue, total)
+
+  const chartBackground = "conic-gradient(#72a4df 0 " + paidPercent + "%, #d5dce6 " + paidPercent + "% " + (paidPercent + openPercent) + "%, #dc7185 " + (paidPercent + openPercent) + "% " + (paidPercent + openPercent + overduePercent) + "%, #c4cbd6 " + (paidPercent + openPercent + overduePercent) + "% 100%)"
+
+  return (
+    <ContentCard title={title} description="">
+      <div className="grid min-h-[326px] place-items-center rounded-[24px] border border-[#e4eaf1] bg-[#f9fbfe] p-5">
+        <div className="grid w-full gap-6 sm:grid-cols-[190px_1fr] xl:grid-cols-1 2xl:grid-cols-[190px_1fr]">
+          <div className="mx-auto grid h-[178px] w-[178px] place-items-center rounded-full shadow-[0_18px_34px_rgba(15,23,42,0.15)]" style={{ background: chartBackground }}>
+            <div className="grid h-[98px] w-[98px] place-items-center rounded-full bg-white text-center shadow-[inset_0_0_0_1px_rgba(15,23,42,0.06)]">
+              <span className="text-[24px] font-black text-[#1d2533]">{total}</span>
+            </div>
+          </div>
+
+          <div className="space-y-3 self-center">
+            {[
+              ["#72a4df", "Paid", paid],
+              ["#d5dce6", "Pending", open],
+              ["#dc7185", "Overdue", overdue],
+              ["#c4cbd6", "Draft", draft]
+            ].map(([color, label, value]) => (
+              <div key={label} className="flex items-center justify-between gap-4 rounded-[16px] bg-white px-4 py-2.5 shadow-[0_6px_16px_rgba(15,23,42,0.06)]">
+                <span className="flex items-center gap-3 text-sm font-bold text-[#47556c]">
+                  <span className="h-3.5 w-3.5 rounded-full" style={{ backgroundColor: color as string }} />
+                  {label}
+                </span>
+                <span className="text-sm font-black text-[#1d2533]">{value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </ContentCard>
+  )
+}
+
+function RecentDocuments({ documents: recentDocuments, title, description, t }: { documents: readonly DashboardDocument[]; title: string; description: string; t: (key: TranslationKey) => string }) {
+  return (
+    <ContentCard title={title} description={description}>
+      <div className="overflow-hidden rounded-[22px] border border-[#e2e8f0] bg-white shadow-[0_12px_28px_rgba(15,23,42,0.07)]">
+        <table className="w-full text-sm">
+          <thead className="bg-[#f6f8fb] text-left text-[12px] font-black uppercase tracking-[0.14em] text-[#6a768a]">
+            <tr>
+              <th className="px-5 py-3.5">{t("dashboard.latest.document")}</th>
+              <th className="px-5 py-3.5">{t("dashboard.latest.status")}</th>
+              <th className="px-5 py-3.5 text-right">{t("dashboard.latest.amount")}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {recentDocuments.map((doc) => (
+              <tr key={doc.id} className="border-t border-[#edf2f7]">
+                <td className="px-5 py-3.5">
+                  <Link href={"/documents/" + doc.id} className="font-black text-[#1d2533] no-underline hover:text-[#2563eb]">{doc.number}</Link>
+                  <p className="mt-1 text-xs font-semibold text-[#7a8699]">{doc.customer}</p>
+                </td>
+                <td className="px-5 py-3.5">
+                  <span className={["inline-flex rounded-full px-3 py-1 text-xs font-bold", statusBadgeClass(doc.statusKey)].join(" ")}>
+                    {translateStatus(doc.statusKey, t)}
+                  </span>
+                </td>
+                <td className="px-5 py-3.5 text-right font-black text-[#1d2533]"><Currency value={doc.amount} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </ContentCard>
+  )
+}
+
+
+function CurrentInvoicePanel({ document, t }: { document: DashboardDocument; t: (key: TranslationKey) => string }) {
+  return (
+    <ContentCard title={t("dashboard.current.title")} description={t("dashboard.current.description")}>
+      <div className="rounded-[24px] border border-[#e4eaf1] bg-[#f9fbfe] p-4">
+        <div className="rounded-[18px] bg-white p-4 shadow-[0_10px_24px_rgba(15,23,42,0.07)]">
+          <div className="space-y-3 text-sm">
+            {[
+              [t("dashboard.current.customer"), document.customer],
+              [t("dashboard.current.date"), document.number],
+              [t("dashboard.current.status"), translateStatus(document.statusKey, t)],
+              [t("dashboard.current.amount"), <Currency key="amount" value={document.amount} />]
+            ].map(([label, value]) => (
+              <div key={String(label)} className="flex items-center justify-between gap-4 border-b border-[#edf2f7] pb-2.5 last:border-b-0 last:pb-0">
+                <span className="font-bold text-[#738096]">{label}</span>
+                <span className="text-right font-black text-[#1d2533]">{value}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <Link href={"/documents/" + document.id + "/edit"} className="rounded-[12px] border border-[#d9e1ec] bg-white px-4 py-2 text-center text-sm font-black text-[#1d2533] no-underline shadow-[0_5px_14px_rgba(15,23,42,0.06)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_20px_rgba(15,23,42,0.09)]">
+              {t("dashboard.current.edit")}
+            </Link>
+            <Link href={"/documents/" + document.id} className="rounded-[12px] bg-[#72a4df] px-4 py-2 text-center text-sm font-black text-white no-underline shadow-[0_8px_18px_rgba(59,130,246,0.24)] transition hover:-translate-y-0.5 hover:bg-[#5c93d5]">
+              {t("dashboard.current.pdf")}
+            </Link>
+          </div>
+        </div>
+      </div>
+    </ContentCard>
+  )
+}
+
+function ReportsPanel({ title, description, total, paid, open, quote, t }: { title: string; description: string; total: number; paid: number; open: number; quote: number; t: (key: TranslationKey) => string }) {
+  const bars = [paid * 0.32, open * 0.48, total * 0.58, quote * 0.4, total * 0.72, total * 0.64]
+  const maxValue = Math.max(...bars, 1)
+
+  return (
+    <ContentCard title={title} description={description}>
+      <div className="rounded-[24px] border border-[#e4eaf1] bg-[#f9fbfe] p-4">
+        <div className="flex flex-wrap gap-3">
+          <Link href="/finance/statistics" className="rounded-[12px] border border-[#d9e1ec] bg-white px-4 py-2 text-sm font-black text-[#1d2533] no-underline shadow-[0_5px_14px_rgba(15,23,42,0.06)] transition hover:-translate-y-0.5">
+            {t("dashboard.reports.monthly")}
+          </Link>
+          <Link href="/api/documents/export" className="rounded-[12px] border border-[#d9e1ec] bg-white px-4 py-2 text-sm font-black text-[#1d2533] no-underline shadow-[0_5px_14px_rgba(15,23,42,0.06)] transition hover:-translate-y-0.5">
+            {t("dashboard.reports.csv")}
+          </Link>
+          <Link href="/documents" className="rounded-[12px] border border-[#d9e1ec] bg-white px-4 py-2 text-sm font-black text-[#1d2533] no-underline shadow-[0_5px_14px_rgba(15,23,42,0.06)] transition hover:-translate-y-0.5">
+            {t("dashboard.reports.pdf")}
+          </Link>
+        </div>
+
+        <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_0.75fr]">
+          <div className="rounded-[18px] bg-white p-4 shadow-[0_10px_24px_rgba(15,23,42,0.07)]">
+            <div className="flex h-36 items-end justify-between gap-3 border-b border-[#e4eaf1] px-2 pb-3">
+              {bars.map((value, index) => (
+                <div key={index} className="w-full rounded-t-[10px] bg-[#d8e6f5]" style={{ height: String(Math.max(26, Math.round((value / maxValue) * 120))) + "px" }} />
+              ))}
+            </div>
+            <div className="mt-3 flex justify-between px-1 text-xs font-bold text-[#738096]">
+              {["Mo", "Di", "Mi", "Do", "Fr", "Sa"].map((day) => <span key={day}>{day}</span>)}
+            </div>
+          </div>
+
+          <div className="rounded-[18px] bg-white p-4 shadow-[0_10px_24px_rgba(15,23,42,0.07)]">
+            <p className="text-sm font-black text-[#1d2533]">{t("dashboard.reports.income")}</p>
+            <div className="mt-3 space-y-3 text-sm">
+              {[
+                [customers[0]?.name ?? "Client A", paid],
+                [customers[1]?.name ?? "Client B", open],
+                [t("dashboard.reports.quotes"), quote]
+              ].map(([label, value]) => (
+                <div key={String(label)} className="flex items-center justify-between gap-4 border-b border-[#edf2f7] pb-2 last:border-b-0 last:pb-0">
+                  <span className="font-bold text-[#738096]">{label}</span>
+                  <span className="font-black text-[#1d2533]"><Currency value={Number(value)} /></span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </ContentCard>
+  )
+}
+
+function QuickActions({ actions }: { actions: readonly QuickAction[] }) {
+  return (
+    <>
+      <ContentCard title="Schnellaktionen" description="" className="dashboard-quick-actions-card">
+        <div className="flex flex-col items-center rounded-[24px] border border-[#e4eaf1] bg-[#f9fbfe] p-4">
+          <div className="flex w-full flex-col items-center space-y-3">
+            {actions.map((action) => (
+              <Link key={action.href} href={action.href} className="flex w-[75%] flex-col items-center rounded-[15px] border border-[#d8e2f0] bg-[#e8eeff] px-4 py-2.5 text-center no-underline shadow-[0_8px_18px_rgba(30,58,138,0.08)] transition hover:-translate-y-0.5 hover:bg-[#dbeafe] hover:shadow-[0_12px_22px_rgba(30,58,138,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-lime)]">
+                <span className="font-semibold leading-tight text-[#1e3a8a]">{action.title}</span>
+                <span className="mt-1 text-xs font-bold leading-tight text-[#64748b]">{action.meta}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </ContentCard>
+
+      <style>{`
+        .dashboard-quick-actions-card h2 {
+          margin-bottom: 1.5rem;
+          text-align: center;
+        }
+      `}</style>
+    </>
+  )
+}
 
 export default function DashboardPage() {
   const { t } = useLanguage()
-
-  const activity = [
-    { title: t("dashboard.activity.invoice.title"), text: t("dashboard.activity.invoice.text"), time: t("dashboard.time.today") },
-    { title: t("dashboard.activity.customer.title"), text: t("dashboard.activity.customer.text"), time: t("dashboard.time.yesterday") },
-    { title: t("dashboard.activity.project.title"), text: t("dashboard.activity.project.text"), time: t("dashboard.time.week") }
-  ]
 
   const quickActions = [
     { title: t("dashboard.quick.invoice.title"), description: t("dashboard.quick.invoice.description"), meta: t("dashboard.quick.invoice.meta"), href: "/documents/new" },
@@ -63,152 +346,42 @@ export default function DashboardPage() {
     { title: t("dashboard.quick.project.title"), description: t("dashboard.quick.project.description"), meta: t("dashboard.quick.project.meta"), href: "/projects/new" }
   ]
 
-  const stats = [
-    [t("dashboard.stats.customers"), customers.length, "/customers"],
-    [t("dashboard.stats.projects"), projects.length, "/projects"],
-    [t("dashboard.stats.articles"), articles.length, "/articles"],
-    [t("dashboard.stats.overdue"), overdueDocuments.length, "/documents"]
-  ] as const
+  const kpiItems: KpiItem[] = [
+    { title: t("dashboard.status.open"), helper: t("dashboard.status.documents"), value: <Currency value={openAmount} />, tone: "text-blue-500", marker: "bg-[#73a7e8]" },
+    { title: t("dashboard.status.paid"), helper: t("dashboard.status.documents"), value: <Currency value={paidAmount} />, tone: "text-emerald-500", marker: "bg-[#8fcf9b]" },
+    { title: t("dashboard.stats.overdue"), helper: t("dashboard.status.documents"), value: <Currency value={overdueAmount} />, tone: "text-rose-500", marker: "bg-[#dc7185]" },
+    { title: t("dashboard.kpi.quotes"), helper: t("dashboard.status.documents"), value: <Currency value={quoteAmount} />, tone: "text-slate-500", marker: "bg-[#aab4c3]" }
+  ]
+
+  const revenueSeries: RevenuePoint[] = [
+    { month: "Jan", value: Math.max(420, paidAmount * 0.42) },
+    { month: "Feb", value: Math.max(720, openAmount * 0.55) },
+    { month: "Mar", value: Math.max(580, paidAmount * 0.74) },
+    { month: "Apr", value: Math.max(980, totalRevenue * 0.78) },
+    { month: "May", value: Math.max(820, totalRevenue * 0.7) },
+    { month: "Jun", value: Math.max(1120, totalRevenue * 0.86) },
+    { month: "Jul", value: Math.max(1360, totalRevenue) }
+  ]
 
   return (
     <PageShell title="Dashboard" description={t("dashboard.description")}>
-      <div className="grid gap-6 xl:grid-cols-[1.55fr_1fr]">
-        <ContentCard title={t("dashboard.revenue.title")} description={t("dashboard.revenue.description")} className="dashboard-revenue-card">
-          <div className="grid gap-5 xl:grid-cols-[1.45fr_0.9fr]">
-            <div className="overflow-hidden rounded-[26px] bg-[#0f172a] p-4 text-white shadow-[0_18px_42px_rgba(15,23,42,0.22)] sm:rounded-[30px] sm:p-6">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-slate-400">{t("dashboard.revenue.current")}</p>
-                  <p className="mt-3 text-[28px] font-medium leading-none tracking-tight text-white sm:mt-4 sm:text-[34px]">4.500 €</p>
-                  <p className="mt-2 max-w-md text-xs font-normal leading-relaxed text-slate-300 sm:mt-3 sm:text-sm">{t("dashboard.revenue.note")}</p>
-                </div>
-                <span className="rounded-full bg-emerald-50 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-700">
-                  {t("dashboard.revenue.stable")}
-                </span>
-              </div>
+      <div className="space-y-6">
+        <DashboardKpiRow items={kpiItems} />
 
-              <div className="mt-3 rounded-[18px] border border-white/10 bg-white/[0.07] p-2.5 sm:mt-6 sm:rounded-[24px] sm:p-4">
-                <svg viewBox="0 0 520 140" className="h-20 w-full sm:h-36" aria-hidden="true">
-                  <defs>
-                    <linearGradient id="dashboardRevenueFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#60a5fa" stopOpacity="0.52" />
-                      <stop offset="100%" stopColor="#dbeafe" stopOpacity="0" />
-                    </linearGradient>
-                  </defs>
-                  <path d="M16 108 C62 78 96 92 136 62 C184 26 220 88 266 52 C314 14 362 46 410 28 C454 12 482 26 504 10" fill="none" stroke="#ffffff" strokeWidth="5" strokeLinecap="round" />
-                  <path d="M16 108 C62 78 96 92 136 62 C184 26 220 88 266 52 C314 14 362 46 410 28 C454 12 482 26 504 10 L504 140 L16 140 Z" fill="url(#dashboardRevenueFill)" />
-                  <circle cx="266" cy="52" r="6" fill="#f97316" stroke="#ffffff" strokeWidth="3" />
-                  <circle cx="504" cy="10" r="6" fill="#10b981" stroke="#ffffff" strokeWidth="3" />
-                </svg>
-              </div>
-            </div>
+        <div className="grid gap-6 xl:grid-cols-[1.2fr_0.9fr]">
+          <RevenueOverview title={t("dashboard.revenue.title")} description={t("dashboard.revenue.description")} series={revenueSeries} />
+          <StatusOverview title={t("dashboard.status.overview")} paid={paidDocuments.length} open={openDocuments.length} overdue={overdueDocuments.length} draft={draftDocuments.length} />
+        </div>
 
-            <div className="rounded-[26px] border border-[#e6ebf1] bg-[#f8fafc] p-4 shadow-[0_12px_28px_rgba(15,23,42,0.08)] sm:rounded-[30px] sm:p-5">
-              <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-slate-400">{t("dashboard.status.title")}</p>
-              <div className="mt-4 grid grid-cols-2 gap-2 sm:mt-5 sm:gap-3 xl:grid-cols-1">
-                {[
-                  ["bg-orange-500", t("dashboard.status.open"), "text-orange-500", openDocuments.reduce((sum, d) => sum + d.amount, 0)],
-                  ["bg-emerald-500", t("dashboard.status.paid"), "text-emerald-600", paidDocuments.reduce((sum, d) => sum + d.amount, 0)],
-                  ["bg-blue-600", t("dashboard.status.tax"), "text-blue-600", taxPreview]
-                ].map(([dot, label, color, value]) => (
-                  <div key={label as string} className="rounded-[16px] border border-[#e6ebf1] bg-white px-3 py-2.5 shadow-[0_8px_18px_rgba(15,23,42,0.05)] sm:rounded-[18px] sm:px-4 sm:py-3">
-                    <div className="flex items-center gap-3">
-                      <span className={`h-3 w-3 rounded-full ${dot}`} />
-                      <div>
-                        <p className={`text-[9px] font-medium uppercase tracking-[0.14em] sm:text-[10px] sm:tracking-[0.18em] ${color}`}>{label}</p>
-                        <p className="mt-0.5 text-[15px] font-medium text-slate-950 sm:mt-1 sm:text-[18px]"><Currency value={value as number} /></p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+        <div className="grid gap-6 xl:grid-cols-[1.35fr_0.9fr]">
+          <RecentDocuments documents={latestDocuments} title={t("dashboard.latest.title")} description={t("dashboard.latest.description")} t={t} />
+          <CurrentInvoicePanel document={latestDocuments[0]} t={t} />
+        </div>
 
-                <div className="rounded-[16px] border border-[#e6ebf1] bg-white px-3 py-2.5 shadow-[0_8px_18px_rgba(15,23,42,0.05)] sm:rounded-[18px] sm:px-4 sm:py-3">
-                  <div className="flex items-center gap-3">
-                    <span className="h-3 w-3 rounded-full bg-slate-950" />
-                    <div>
-                      <p className="text-[9px] font-medium uppercase tracking-[0.14em] text-slate-500 sm:text-[10px] sm:tracking-[0.18em]">{t("dashboard.status.documents")}</p>
-                      <p className="mt-0.5 text-[15px] font-medium text-slate-950 sm:mt-1 sm:text-[18px]">{t("dashboard.status.activeDocuments")}</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </ContentCard>
-
-        <ContentCard title={t("dashboard.quick.title")} description={t("dashboard.quick.description")}>
-          <div className="space-y-3">
-            {quickActions.map((action) => (
-              <Link key={action.href} href={action.href} className="block w-full rounded-[14px] border border-[#e6ebf1] bg-[#f8fafc] px-3 py-2.5 text-left no-underline shadow-[0_3px_10px_rgba(15,23,42,0.04)] transition hover:-translate-y-0.5 hover:bg-white hover:shadow-[0_8px_16px_rgba(15,23,42,0.07)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-lime)]">
-                <span className="flex items-start justify-between gap-4">
-                  <span className="min-w-0">
-                    <span className="block text-sm font-black text-slate-950">{action.title}</span>
-                    <span className="mt-1 block text-xs font-medium leading-5 text-slate-500">{action.description}</span>
-                  </span>
-                  <span className="shrink-0 rounded-full bg-white px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-slate-400 ring-1 ring-[#e6ebf1]">{action.meta}</span>
-                </span>
-              </Link>
-            ))}
-          </div>
-        </ContentCard>
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[1.25fr_0.85fr]">
-        <ContentCard title={t("dashboard.latest.title")} description={t("dashboard.latest.description")}>
-          <div className="overflow-hidden rounded-[24px] border border-[#e5eaf0] bg-white">
-            <table className="w-full">
-              <thead className="bg-[#f3f6fa] text-left text-xs font-extrabold uppercase tracking-widest text-[#64748b]">
-                <tr>
-                  <th className="px-5 py-4">{t("dashboard.latest.document")}</th>
-                  <th className="px-5 py-4">{t("dashboard.latest.status")}</th>
-                  <th className="px-5 py-4 text-right">{t("dashboard.latest.amount")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {latestDocuments.map((doc) => (
-                  <tr key={doc.id} className="border-t border-[#edf2f7]">
-                    <td className="px-5 py-4">
-                      <Link href={`/documents/${doc.id}`} className="font-extrabold text-[#111827] no-underline hover:text-[#2563eb]">{doc.number}</Link>
-                      <p className="mt-1 text-sm text-[#64748b]">{doc.customer}</p>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${statusBadgeClass(doc.statusKey)}`}>
-                        {translateStatus(doc.statusKey, t)}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 text-right font-extrabold text-[#111827]"><Currency value={doc.amount} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </ContentCard>
-
-        <ContentCard title={t("dashboard.activity.title")} description={t("dashboard.activity.description")}>
-          <div className="space-y-4">
-            {activity.map((item) => (
-              <div key={item.title} className="rounded-[20px] border border-[#e6ebf1] bg-[#f5f7fa] p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="font-extrabold text-[#111827]">{item.title}</p>
-                    <p className="mt-1 text-sm text-[#64748b]">{item.text}</p>
-                  </div>
-                  <span className="rounded-full bg-white px-3 py-1 text-xs font-extrabold text-[#64748b] shadow-sm">{item.time}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </ContentCard>
-      </div>
-
-      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-        {stats.map(([label, value, href]) => (
-          <Link key={label} href={href as string} className="rounded-[24px] border border-[#e4eaf1] bg-white p-6 no-underline shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-            <p className="text-xs font-extrabold uppercase tracking-widest text-[#8a94a6]">{label}</p>
-            <p className="mt-3 text-3xl font-extrabold text-[#111827]">{value}</p>
-            <p className="mt-2 text-sm font-medium text-[#64748b]">{t("dashboard.stats.openArea")}</p>
-          </Link>
-        ))}
+        <div className="grid gap-6 xl:grid-cols-[1.35fr_0.9fr]">
+          <ReportsPanel title={t("dashboard.reports.title")} description={t("dashboard.reports.description")} total={totalRevenue} paid={paidAmount} open={openAmount} quote={quoteAmount} t={t} />
+          <QuickActions actions={quickActions} />
+        </div>
       </div>
     </PageShell>
   )

@@ -46,5 +46,22 @@
   "status.paid": "Bezahlt",
   "status.open": "Offen",
   "status.overdue": "Überfällig",
-  "status.draft": "Entwurf"
+  "status.draft": "Entwurf",
+  "dashboard.kpi.quotes": "Angebote",
+  "dashboard.status.overview": "Statusuebersicht",
+  "dashboard.current.title": "Aktuelle Rechnung",
+  "dashboard.current.description": "Letztes Dokument mit Schnellzugriff.",
+  "dashboard.current.customer": "Kunde",
+  "dashboard.current.date": "Dokument",
+  "dashboard.current.status": "Status",
+  "dashboard.current.amount": "Betrag",
+  "dashboard.current.edit": "Bearbeiten",
+  "dashboard.current.pdf": "PDF",
+  "dashboard.reports.title": "Reports",
+  "dashboard.reports.description": "Monatsuebersicht und Exportzugriff.",
+  "dashboard.reports.monthly": "Monatsuebersicht",
+  "dashboard.reports.csv": "CSV Export",
+  "dashboard.reports.pdf": "PDF Export",
+  "dashboard.reports.income": "Einnahmen & Ausgaben",
+  "dashboard.reports.quotes": "Angebote"
 }
