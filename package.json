@@ -37,7 +37,8 @@
     "docker:dev:up": "docker compose -f docker/development/docker-compose.yml up -d",
     "docker:dev:down": "docker compose -f docker/development/docker-compose.yml down",
     "docker:dev:logs": "docker compose -f docker/development/docker-compose.yml logs -f",
-    "docker:dev:ps": "docker compose -f docker/development/docker-compose.yml ps"
+    "docker:dev:ps": "docker compose -f docker/development/docker-compose.yml ps",
+    "release:check": "node tools/public-release/verify-public-release.mjs && pnpm --filter @dream-invoice/demo check:safety && pnpm --filter @dream-invoice/landing-page check:safety"
   },
   "devDependencies": {
     "@types/node": "^20",

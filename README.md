@@ -105,6 +105,7 @@ pnpm db:deploy           # Run deployment migrations
 pnpm db:studio           # Open Prisma Studio
 pnpm worker:server       # Run the server worker locally
 pnpm worker:server:smoke # Run the worker smoke test
+pnpm release:check       # Run public release safety checks
 ```
 
 ## Docker
