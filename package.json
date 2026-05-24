@@ -33,7 +33,11 @@
     "docker:build:all": "pnpm build && docker compose -f docker/docker-compose.yml --profile worker build",
     "pretypecheck": "pnpm --filter @dream-invoice/database db:generate",
     "test:flows": "node --test tests/flows/**/*.spec.mjs",
-    "test:flows:live": "DREAM_INVOICE_FLOW_LIVE=1 node --test tests/flows/**/*.spec.mjs"
+    "test:flows:live": "DREAM_INVOICE_FLOW_LIVE=1 node --test tests/flows/**/*.spec.mjs",
+    "docker:dev:up": "docker compose -f docker/development/docker-compose.yml up -d",
+    "docker:dev:down": "docker compose -f docker/development/docker-compose.yml down",
+    "docker:dev:logs": "docker compose -f docker/development/docker-compose.yml logs -f",
+    "docker:dev:ps": "docker compose -f docker/development/docker-compose.yml ps"
   },
   "devDependencies": {
     "@types/node": "^20",

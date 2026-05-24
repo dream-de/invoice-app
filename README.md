@@ -109,7 +109,7 @@ pnpm worker:server:smoke # Run the worker smoke test
 
 ## Docker
 
-Start the Docker stack:
+Start the production-style Docker stack:
 
 ```bash
 docker compose -f docker/docker-compose.yml up -d
@@ -140,6 +140,29 @@ Build or run the worker profile:
 ```bash
 pnpm docker:build:worker
 pnpm docker:worker
+```
+
+## Development Docker Helpers
+
+Start local development services only:
+
+```bash
+pnpm docker:dev:up
+```
+
+This starts PostgreSQL, Mailpit, and Adminer for local development without sending real emails.
+
+- PostgreSQL: `127.0.0.1:55433`
+- Mailpit SMTP: `127.0.0.1:1025`
+- Mailpit inbox: `http://localhost:8025`
+- Adminer: `http://localhost:8081`
+
+Use `docker/development/.env.example` as the template for custom local ports or credentials.
+
+```bash
+pnpm docker:dev:ps
+pnpm docker:dev:logs
+pnpm docker:dev:down
 ```
 
 ## Backup
