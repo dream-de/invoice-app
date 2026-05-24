@@ -22,3 +22,10 @@ export async function assertReachableHtml(url) {
   assert(contentType.includes('text/html'), 'Expected HTML response, got ' + contentType)
   return response.text()
 }
+
+export async function assertReachableHtmlPath(baseUrl, path, expectedPattern) {
+  const url = new URL(path, baseUrl)
+  const html = await assertReachableHtml(url)
+  assert.match(html, expectedPattern)
+  return html
+}

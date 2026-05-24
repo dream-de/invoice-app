@@ -311,10 +311,10 @@ function ReportsPanel({ title, description, total, paid, open, quote, t }: { tit
   )
 }
 
-function QuickActions({ actions }: { actions: readonly QuickAction[] }) {
+function QuickActions({ actions, title, description }: { actions: readonly QuickAction[]; title: string; description: string }) {
   return (
     <>
-      <ContentCard title="Schnellaktionen" description="" className="dashboard-quick-actions-card">
+      <ContentCard title={title} description={description} className="dashboard-quick-actions-card">
         <div className="flex flex-col items-center rounded-[2.5rem] border border-[#e2e8f0] bg-[#f8fafc] p-6 shadow-md">
           <div className="flex w-full flex-col items-center space-y-4">
             {actions.map((action) => (
@@ -381,7 +381,7 @@ export default function DashboardPage() {
 
         <div className="grid gap-6 xl:grid-cols-[1.35fr_0.9fr]">
           <ReportsPanel title={t("dashboard.reports.title")} description={t("dashboard.reports.description")} total={totalRevenue} paid={paidAmount} open={openAmount} quote={quoteAmount} t={t} />
-          <QuickActions actions={quickActions} />
+          <QuickActions actions={quickActions} title={t("dashboard.quick.title")} description={t("dashboard.quick.description")} />
         </div>
       </div>
     </PageShell>

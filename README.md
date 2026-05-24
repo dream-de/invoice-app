@@ -2,6 +2,11 @@
 
 ## Dream Invoice
 
+[![CI](https://github.com/dream-de/invoice-app/actions/workflows/ci.yml/badge.svg)](https://github.com/dream-de/invoice-app/actions/workflows/ci.yml)
+![TypeScript](https://img.shields.io/badge/TypeScript-ready-3178c6)
+![License](https://img.shields.io/badge/license-source--available-111827)
+![Status](https://img.shields.io/badge/status-public--foundation-72a4df)
+
 ---
 
 Dream Invoice is a modern invoicing platform for invoices, offers, customers, articles, finance workflows, document templates, public demo flows, and future desktop editions.
@@ -106,6 +111,8 @@ pnpm db:studio           # Open Prisma Studio
 pnpm worker:server       # Run the server worker locally
 pnpm worker:server:smoke # Run the worker smoke test
 pnpm release:check       # Run public release safety checks
+pnpm release:quality     # Run full local release quality gates
+pnpm security:audit      # Run dependency audit from pnpm
 ```
 
 ## Docker
@@ -182,6 +189,7 @@ cat backup.sql | docker compose -f docker/docker-compose.yml exec -T postgres ps
 
 ## Documentation
 
+- [Releasing](./docs/releasing.md)
 - [App Structure](./docs/architecture/app-structure.md)
 - [Domains](./docs/architecture/domains.md)
 - [PDF Tools](./docs/pdf-tools.md)
