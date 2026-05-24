@@ -125,6 +125,23 @@ export default function EmailSettingsPage() {
     setTesting(false)
   }
 
+  function applyMailpitPreset() {
+    setForm((current) => ({
+      ...current,
+      provider: "smtp",
+      fromName: current.fromName || "Dream Invoice",
+      fromEmail: current.fromEmail || "no-reply@dream-invoice.local",
+      replyTo: current.replyTo || "dev@dream-invoice.local",
+      smtpHost: "127.0.0.1",
+      smtpPort: 1025,
+      smtpSecure: false,
+      smtpUser: "",
+      smtpPassword: ""
+    }))
+    setTestRecipient((current) => current || "dev@dream-invoice.local")
+    setStatus(t("settings.email.mailpit.applied"))
+  }
+
   async function save() {
     setStatus(t("settings.email.status.saving"))
 
@@ -209,6 +226,23 @@ export default function EmailSettingsPage() {
             <span className="flex items-center gap-2 font-extrabold text-[#111827]"><Mail className="h-4 w-4" /> {t("settings.email.statusLabel")}</span>
             <span className="mt-1 block">{t("settings.email.activeProvider").replace("{provider}", providerOptions.find((option) => option.value === form.provider)?.title ?? "")}</span>
           </div>
+        </div>
+      </SettingCard>
+
+      <SettingCard title={t("settings.email.mailpit.title")} description={t("settings.email.mailpit.description")}>
+        <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
+          <div className="rounded-[22px] bg-[#f7f9fc] px-5 py-4 text-sm font-semibold leading-6 text-[#64748b]">
+            <span className="block font-extrabold text-[#111827]">{t("settings.email.mailpit.valuesTitle")}</span>
+            <span className="mt-1 block">SMTP: 127.0.0.1:1025</span>
+            <span className="block">Inbox: http://localhost:8025</span>
+          </div>
+          <button
+            type="button"
+            onClick={applyMailpitPreset}
+            className="inline-flex items-center justify-center rounded-full bg-[#e8eeff] px-5 py-3 text-sm font-extrabold text-[#1e3a8a] shadow-[0_10px_22px_rgba(30,58,138,0.12)] transition hover:bg-[#dbeafe]"
+          >
+            {t("settings.email.mailpit.apply")}
+          </button>
         </div>
       </SettingCard>
 
