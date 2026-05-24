@@ -44,10 +44,18 @@
     "@typescript-eslint/eslint-plugin": "^8",
     "@typescript-eslint/parser": "^8",
     "eslint": "^9",
-    "eslint-config-next": "16.2.5",
+    "eslint-config-next": "16.2.6",
     "eslint-plugin-import": "^2",
     "eslint-plugin-unused-imports": "^4",
     "turbo": "latest",
     "typescript": "latest"
+  },
+  "pnpm": {
+    "overrides": {
+      "next": "16.2.6",
+      "eslint-config-next": "16.2.6",
+      "postcss": "8.5.10",
+      "effect": "3.20.0"
+    }
   }
 }
