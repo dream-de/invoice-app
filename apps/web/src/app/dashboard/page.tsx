@@ -151,7 +151,7 @@ function RevenueOverview({ title, description, series }: { title: string; descri
   )
 }
 
-function StatusOverview({ title, paid, open, overdue, draft }: { title: string; paid: number; open: number; overdue: number; draft: number }) {
+function StatusOverview({ title, paid, open, overdue, draft, labels }: { title: string; paid: number; open: number; overdue: number; draft: number; labels: { paid: string; open: string; overdue: string; draft: string } }) {
   const total = paid + open + overdue + draft
   const paidPercent = toPercent(paid, total)
   const openPercent = toPercent(open, total)
@@ -171,10 +171,10 @@ function StatusOverview({ title, paid, open, overdue, draft }: { title: string; 
 
           <div className="space-y-3 self-center">
             {[
-              ["#72a4df", "Paid", paid],
-              ["#d5dce6", "Pending", open],
-              ["#dc7185", "Overdue", overdue],
-              ["#c4cbd6", "Draft", draft]
+              ["#72a4df", labels.paid, paid],
+              ["#d5dce6", labels.open, open],
+              ["#dc7185", labels.overdue, overdue],
+              ["#c4cbd6", labels.draft, draft]
             ].map(([color, label, value]) => (
               <div key={label} className="flex items-center justify-between gap-4 rounded-[16px] bg-white px-4 py-2.5 shadow-[0_6px_16px_rgba(15,23,42,0.06)]">
                 <span className="flex items-center gap-3 text-sm font-bold text-[#47556c]">
@@ -370,7 +370,7 @@ export default function DashboardPage() {
 
         <div className="grid gap-6 xl:grid-cols-[1.2fr_0.9fr]">
           <RevenueOverview title={t("dashboard.revenue.title")} description={t("dashboard.revenue.description")} series={revenueSeries} />
-          <StatusOverview title={t("dashboard.status.overview")} paid={paidDocuments.length} open={openDocuments.length} overdue={overdueDocuments.length} draft={draftDocuments.length} />
+          <StatusOverview title={t("dashboard.status.overview")} paid={paidDocuments.length} open={openDocuments.length} overdue={overdueDocuments.length} draft={draftDocuments.length} labels={{ paid: t("status.paid"), open: t("status.open"), overdue: t("status.overdue"), draft: t("status.draft") }} />
         </div>
 
         <div className="grid gap-6 xl:grid-cols-[1.35fr_0.9fr]">
