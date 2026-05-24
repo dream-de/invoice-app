@@ -192,6 +192,7 @@ cat backup.sql | docker compose -f docker/docker-compose.yml exec -T postgres ps
 - [Contributing](./CONTRIBUTING.md)
 - [Production Deployment](./docs/deployment/production.md)
 - [Secrets Rotation](./docs/security/secrets-rotation.md)
+- [Testing](./docs/testing.md)
 - [Releasing](./docs/releasing.md)
 - [App Structure](./docs/architecture/app-structure.md)
 - [Domains](./docs/architecture/domains.md)
