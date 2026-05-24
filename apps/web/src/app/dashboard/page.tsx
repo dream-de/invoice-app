@@ -315,12 +315,12 @@ function QuickActions({ actions }: { actions: readonly QuickAction[] }) {
   return (
     <>
       <ContentCard title="Schnellaktionen" description="" className="dashboard-quick-actions-card">
-        <div className="flex flex-col items-center rounded-[24px] border border-[#e4eaf1] bg-[#f9fbfe] p-4">
-          <div className="flex w-full flex-col items-center space-y-3">
+        <div className="flex flex-col items-center rounded-[2.5rem] border border-[#e2e8f0] bg-[#f8fafc] p-6 shadow-md">
+          <div className="flex w-full flex-col items-center space-y-4">
             {actions.map((action) => (
-              <Link key={action.href} href={action.href} className="flex w-[75%] flex-col items-center rounded-[15px] border border-[#d8e2f0] bg-[#e8eeff] px-4 py-2.5 text-center no-underline shadow-[0_8px_18px_rgba(30,58,138,0.08)] transition hover:-translate-y-0.5 hover:bg-[#dbeafe] hover:shadow-[0_12px_22px_rgba(30,58,138,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-lime)]">
-                <span className="font-semibold leading-tight text-[#1e3a8a]">{action.title}</span>
-                <span className="mt-1 text-xs font-bold leading-tight text-[#64748b]">{action.meta}</span>
+              <Link key={action.href} href={action.href} className="flex w-[82%] flex-col items-center rounded-[2.5rem] border border-[#cbd5e1] bg-[#e8eeff] px-5 py-4 text-center no-underline shadow-sm transition hover:-translate-y-0.5 hover:bg-[#dbeafe] hover:shadow-[0_12px_22px_rgba(30,58,138,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-lime)]">
+                <span className="text-base font-semibold leading-tight text-black">{action.title}</span>
+                <span className="mt-1 text-sm font-bold leading-tight text-[#64748b]">{action.meta}</span>
               </Link>
             ))}
           </div>
@@ -331,6 +331,7 @@ function QuickActions({ actions }: { actions: readonly QuickAction[] }) {
         .dashboard-quick-actions-card h2 {
           margin-bottom: 1.5rem;
           text-align: center;
+          color: #000;
         }
       `}</style>
     </>

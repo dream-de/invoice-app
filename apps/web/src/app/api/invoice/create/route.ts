@@ -19,19 +19,20 @@ export async function POST(req: Request) {
     const taxRate = toNumber(data.taxRate ?? 0.19)
     const tip = toNumber(data.tip)
 
-    const range = await prisma.numberRange.findUnique({
-      where: { type: "invoice" }
+    const range = await prisma.numberRange.upsert({
+      where: { type: "invoice" },
+      create: {
+        type: "invoice",
+        prefix: "RE-%Y-",
+        nextValue: 104,
+        padding: 3
+      },
+      update: {}
     })
 
-    if (!range) {
-      return NextResponse.json(
-        { error: "NumberRange 'invoice' not found" },
-        { status: 500 }
-      )
-    }
-
     const padded = String(range.nextValue).padStart(range.padding, "0")
-    const invoiceNumber = range.prefix + padded
+    const prefix = range.prefix.replace("%Y", String(new Date().getFullYear()))
+    const invoiceNumber = prefix + padded
 
     const netTotal = items.reduce(
       (sum, item) => sum + toNumber(item.price) * toNumber(item.quantity),
