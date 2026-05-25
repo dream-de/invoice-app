@@ -3,13 +3,30 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@dream-invoice/ui": ["../../packages/ui/src"],
-      "@dream-invoice/database": ["../../packages/database/src"],
-      "@dream-invoice/utils": ["../../packages/utils/src"],
-      "@dream-invoice/tax": ["../../packages/tax/src"],
-      "@dream-invoice/pdf": ["../../packages/pdf/src"],
-      "@dream-invoice/invoice-core": ["../../packages/invoice-core/src"]
+      "@/*": [
+        "./src/*"
+      ],
+      "@dream-invoice/ui": [
+        "../../packages/ui/src"
+      ],
+      "@dream-invoice/database": [
+        "../../packages/database/src"
+      ],
+      "@dream-invoice/utils": [
+        "../../packages/utils/src"
+      ],
+      "@dream-invoice/tax": [
+        "../../packages/tax/src"
+      ],
+      "@dream-invoice/pdf": [
+        "../../packages/pdf/src"
+      ],
+      "@dream-invoice/invoice-core": [
+        "../../packages/invoice-core/src"
+      ],
+      "@dream-invoice/auth": [
+        "../../packages/auth/src"
+      ]
     }
   },
   "include": [
@@ -18,5 +35,7 @@
     "src/**/*.tsx",
     ".next/types/**/*.ts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules"
+  ]
 }

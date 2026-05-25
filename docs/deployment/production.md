@@ -22,6 +22,26 @@ DATABASE_URL=postgresql://dream_invoice:<generated-secret>@postgres:5432/dream_i
 
 Keep production `.env` files outside Git.
 
+## Deployment Authentication
+
+Dream Invoice is designed for self-hosted installations, but any instance exposed beyond a trusted local network should have an access gate. The web app supports deployment-level Basic Auth through environment variables:
+
+```env
+DREAM_INVOICE_AUTH_USER=admin
+DREAM_INVOICE_AUTH_PASSWORD=<generated-secret>
+DREAM_INVOICE_AUTH_REQUIRED=true
+```
+
+When enabled, the browser UI and API routes require the configured credentials. Mutating API requests also have a Same-Origin guard by default, which blocks cross-site write attempts before they reach individual route handlers.
+
+The admin foundation is stricter: in production it fails closed unless an admin password is configured. Do not expose `apps/admin` publicly without:
+
+```env
+DREAM_INVOICE_ADMIN_USER=admin
+DREAM_INVOICE_ADMIN_PASSWORD=<generated-secret>
+DREAM_INVOICE_ADMIN_AUTH_REQUIRED=true
+```
+
 ## HTTPS and Reverse Proxy
 
 Production traffic must use HTTPS. Recommended options:
@@ -82,6 +102,7 @@ Use the detailed [Production Checklist](./production-checklist.md) before exposi
 Minimum launch gates:
 
 - [ ] Replace all development passwords and secrets
+- [ ] Configure deployment authentication for any public or shared-network instance
 - [ ] Configure HTTPS and HTTP-to-HTTPS redirects
 - [ ] Confirm `DATABASE_URL` points to the intended production database
 - [ ] Run `pnpm release:quality`

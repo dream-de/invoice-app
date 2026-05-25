@@ -260,6 +260,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@dream-invoice/auth':
+        specifier: workspace:*
+        version: link:../../packages/auth
       '@dream-invoice/invoice-core':
         specifier: workspace:*
         version: link:../../packages/invoice-core
