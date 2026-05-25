@@ -2,7 +2,7 @@
 
 import { useEffect } from "react"
 import { usePathname } from "next/navigation"
-import { useLanguage } from "@/lib/i18n"
+import { useLanguage, type AppLanguage } from "@/lib/i18n"
 import { legacyDomTranslations } from "@/i18n/dictionary"
 
 const exactTranslations: Record<string, string> = legacyDomTranslations.en.exact
@@ -80,6 +80,10 @@ function translateAttributeValue(value: string, language: "de" | "en") {
   return dictionary[trimmed] ?? exactDictionary[trimmed] ?? value
 }
 
+function legacyBridgeLanguage(language: AppLanguage): "de" | "en" {
+  return language === "de" ? "de" : "en"
+}
+
 function translatePage(language: "de" | "en") {
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
   const textNodes: Text[] = []
@@ -117,7 +121,7 @@ export function PageTranslationBridge() {
 
     function scheduleTranslate() {
       window.cancelAnimationFrame(frame)
-      frame = window.requestAnimationFrame(() => translatePage(language))
+      frame = window.requestAnimationFrame(() => translatePage(legacyBridgeLanguage(language)))
     }
 
     scheduleTranslate()
