@@ -238,5 +238,10 @@
   "settings.users.permissions.admin.system": "Sistema",
   "settings.users.permissions.admin.userRights": "Derechos de usuario",
   "settings.language.fr.description": "Textos de interfaz en frances para usuarios internacionales.",
-  "settings.language.es.description": "Textos de interfaz en espanol para usuarios internacionales."
+  "settings.language.es.description": "Textos de interfaz en espanol para usuarios internacionales.",
+  "settings.language.it.description": "Textos de interfaz en italiano para usuarios internacionales.",
+  "settings.language.nl.description": "Textos de interfaz en neerlandes para usuarios internacionales.",
+  "settings.language.pl.description": "Textos de interfaz en polaco para usuarios internacionales.",
+  "settings.language.pt.description": "Textos de interfaz en portugues para usuarios internacionales.",
+  "settings.language.tr.description": "Textos de interfaz en turco para usuarios internacionales."
 }

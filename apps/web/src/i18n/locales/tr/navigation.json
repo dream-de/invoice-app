@@ -1,0 +1,11 @@
+{
+  "nav.dashboard": "Panel",
+  "nav.customers": "Musteriler",
+  "nav.projects": "Projeler",
+  "nav.documents": "Belgeler",
+  "nav.finance": "Finans",
+  "nav.articles": "Urunler",
+  "nav.search": "Ara",
+  "nav.settings": "Ayarlar",
+  "nav.notifications": "Bildirimler"
+}

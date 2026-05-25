@@ -21,7 +21,12 @@ export function LanguageSettings() {
     { value: "de", label: "Deutsch", description: t("settings.language.de.description") },
     { value: "en", label: "English", description: t("settings.language.en.description") },
     { value: "fr", label: "Francais", description: t("settings.language.fr.description") },
-    { value: "es", label: "Espanol", description: t("settings.language.es.description") }
+    { value: "es", label: "Espanol", description: t("settings.language.es.description") },
+    { value: "it", label: "Italiano", description: t("settings.language.it.description") },
+    { value: "nl", label: "Nederlands", description: t("settings.language.nl.description") },
+    { value: "pl", label: "Polski", description: t("settings.language.pl.description") },
+    { value: "pt", label: "Portugues", description: t("settings.language.pt.description") },
+    { value: "tr", label: "Turkce", description: t("settings.language.tr.description") }
   ]
 
   const activeLanguage = languages.find((item) => item.value === language) ?? languages[0]

@@ -238,5 +238,10 @@
   "settings.users.permissions.admin.system": "System",
   "settings.users.permissions.admin.userRights": "Benutzerrechte",
   "settings.language.fr.description": "Franzoesische Oberflaeche und Standardtexte.",
-  "settings.language.es.description": "Spanische Oberflaeche und Standardtexte."
+  "settings.language.es.description": "Spanische Oberflaeche und Standardtexte.",
+  "settings.language.it.description": "Italienische Oberflaeche und Standardtexte.",
+  "settings.language.nl.description": "Niederlaendische Oberflaeche und Standardtexte.",
+  "settings.language.pl.description": "Polnische Oberflaeche und Standardtexte.",
+  "settings.language.pt.description": "Portugiesische Oberflaeche und Standardtexte.",
+  "settings.language.tr.description": "Tuerkische Oberflaeche und Standardtexte."
 }
