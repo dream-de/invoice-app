@@ -30,4 +30,5 @@ test('core web routes respond when live flow tests are enabled', async (t) => {
   await assertReachableHtmlPath(url, '/dashboard', /Dashboard|Schnellaktionen|Quick Actions/i)
   await assertReachableHtmlPath(url, '/documents/new', /Rechnung|Invoice|Dokument/i)
   await assertReachableHtmlPath(url, '/settings/system', /Sprache|Language|Deutsch|English/i)
+  await assertReachableHtmlPath(url, '/settings/users', /Benutzer|Users|Rechte|Permissions/i)
 })
