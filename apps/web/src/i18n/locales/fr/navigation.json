@@ -1,11 +1,11 @@
 {
-  "nav.dashboard": "Dashboard",
-  "nav.customers": "Customers",
-  "nav.projects": "Projects",
+  "nav.dashboard": "Tableau de bord",
+  "nav.customers": "Clients",
+  "nav.projects": "Projets",
   "nav.documents": "Documents",
-  "nav.finance": "Finance",
+  "nav.finance": "Finances",
   "nav.articles": "Articles",
-  "nav.search": "Search…",
-  "nav.settings": "Settings",
+  "nav.search": "Rechercher...",
+  "nav.settings": "Parametres",
   "nav.notifications": "Notifications"
 }
