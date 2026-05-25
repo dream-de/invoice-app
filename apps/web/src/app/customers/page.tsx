@@ -4,7 +4,7 @@ import Link from "next/link"
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react"
 import { AlertCircle, CheckCircle2 } from "lucide-react"
 import { PageShell } from "@dream-invoice/ui"
-import { customers } from "@/data/invoice-data"
+import { customers, projects } from "@/data/invoice-data"
 import { useLanguage } from "@/lib/i18n"
 
 export default function CustomersPage() {
@@ -22,6 +22,8 @@ export default function CustomersPage() {
     if (!response.ok) return
 
     const data = await response.json() as typeof customers
+    if (data.length === 0) return
+
     setCustomerItems(data.map((customer) => ({
       ...customer,
       contact: customer.contact || "",
@@ -83,6 +85,9 @@ export default function CustomersPage() {
     return status
   }
 
+  const projectCount = (customerName: string) =>
+    projects.filter((project) => project.customer === customerName).length
+
   return (
     <PageShell title={t("customers.overview.title")} description={t("customers.overview.description")}>
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
@@ -133,15 +138,16 @@ export default function CustomersPage() {
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {filtered.map((c) => (
             <Link key={c.id} href={`/customers/${c.id}`} className="no-underline">
-              <div className="rounded-[24px] border border-[#e5eaf0] bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-                <div className="mb-4 flex items-center justify-between">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#edf2f7] text-lg font-extrabold text-[#334155]">{c.name.slice(0, 2).toUpperCase()}</div>
-                  <span className="rounded-full bg-[#f3f6fa] px-2 py-1 text-xs text-[#64748b]">↗</span>
+              <div className="group rounded-[30px] border border-[#e5eaf0] bg-white p-6 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-[var(--brand-lime)] hover:bg-[var(--brand-lime)] hover:shadow-lg">
+                <div className="mb-8 flex items-center justify-between">
+                  <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#edf2f7] text-lg font-extrabold text-[#334155] shadow-sm transition group-hover:bg-white group-hover:text-[#0f172a]">{c.name.slice(0, 2).toUpperCase()}</div>
+                  <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f3f6fa] text-sm font-black text-[#64748b] transition group-hover:bg-black group-hover:text-white">↗</span>
                 </div>
                 <h3 className="text-2xl font-extrabold text-[#0f172a]">{c.name}</h3>
-                <p className="mt-1 text-sm text-[#64748b]">{c.contact}</p>
-                <div className="mt-4">
-                  <span className={`rounded-full px-3 py-1 text-xs font-extrabold ${c.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{statusLabel(c.status)}</span>
+                <p className="mt-1 text-sm font-semibold text-[#64748b] transition group-hover:text-[#334155]">{c.contact}</p>
+                <div className="mt-6 flex flex-wrap gap-2">
+                  <span className="rounded-full bg-white px-3 py-1 text-xs font-extrabold text-[#0f172a] shadow-sm">{projectCount(c.name)} {projectCount(c.name) === 1 ? "Projekt" : "Projekte"}</span>
+                  <span className={`rounded-full px-3 py-1 text-xs font-extrabold shadow-sm ${c.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{statusLabel(c.status)}</span>
                 </div>
               </div>
             </Link>
@@ -151,12 +157,12 @@ export default function CustomersPage() {
         <div className="space-y-3">
           {filtered.map((c) => (
             <Link key={c.id} href={`/customers/${c.id}`} className="block no-underline">
-              <div className="grid grid-cols-[1.3fr_1fr_0.7fr_0.3fr] items-center rounded-full border border-[#e5eaf0] bg-white px-6 py-4 shadow-sm transition hover:border-[#cfd8e5] hover:shadow">
+              <div className="group grid grid-cols-[1.3fr_1fr_0.7fr_0.3fr] items-center rounded-full border border-[#e5eaf0] bg-white px-6 py-4 shadow-sm transition-all hover:border-[var(--brand-lime)] hover:bg-[var(--brand-lime)] hover:shadow">
                 <div>
                   <p className="font-extrabold text-[#111827]">{c.name}</p>
-                  <p className="text-sm text-[#64748b]">{c.contact}</p>
+                  <p className="text-sm text-[#64748b] transition group-hover:text-[#334155]">{c.contact} · {projectCount(c.name)} {projectCount(c.name) === 1 ? "Projekt" : "Projekte"}</p>
                 </div>
-                <div className="text-sm text-[#64748b]">{c.email}</div>
+                <div className="text-sm text-[#64748b] transition group-hover:text-[#334155]">{c.email}</div>
                 <div><span className={`rounded-full px-3 py-1 text-xs font-extrabold ${c.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>{statusLabel(c.status)}</span></div>
                 <div className="text-right text-sm font-extrabold text-[#64748b]">↗</div>
               </div>

@@ -4,21 +4,56 @@ export const customers = [
     name: "Aurora Labs GmbH",
     contact: "Lea Novak",
     email: "billing@aurora-labs.example",
-    status: "Aktiv"
+    status: "active"
   },
   {
     id: "2",
     name: "Urban Commerce AG",
     contact: "Mira Klein",
     email: "office@urban-commerce.example",
-    status: "Offen"
+    status: "open"
   },
   {
     id: "3",
     name: "Polar Digital GmbH",
     contact: "Noah Richter",
     email: "hello@polar-digital.example",
-    status: "Aktiv"
+    status: "active"
+  },
+  {
+    id: "4",
+    name: "Meridian Studio GmbH",
+    contact: "Sofia Brandt",
+    email: "team@meridian-studio.example",
+    status: "active"
+  },
+  {
+    id: "5",
+    name: "Rheinwerk Consulting",
+    contact: "Jonas Weber",
+    email: "office@rheinwerk-consulting.example",
+    status: "active"
+  },
+  {
+    id: "6",
+    name: "Linden Logistics GmbH",
+    contact: "Amira Seidel",
+    email: "billing@linden-logistics.example",
+    status: "open"
+  },
+  {
+    id: "7",
+    name: "Atlas Kreativagentur",
+    contact: "Timo Berger",
+    email: "kontakt@atlas-kreativ.example",
+    status: "inactive"
+  },
+  {
+    id: "8",
+    name: "Greenbyte Systems AG",
+    contact: "Nora Falk",
+    email: "finance@greenbyte-systems.example",
+    status: "active"
   }
 ]
 
