@@ -243,5 +243,7 @@
   "settings.language.nl.description": "Dutch interface texts for international users.",
   "settings.language.pl.description": "Polish interface texts for international users.",
   "settings.language.pt.description": "Portuguese interface texts for international users.",
-  "settings.language.tr.description": "Turkish interface texts for international users."
+  "settings.language.tr.description": "Turkish interface texts for international users.",
+  "settings.users.plans.pro.billing": "Monthly / Annual",
+  "settings.users.plans.pro.note": "License key"
 }

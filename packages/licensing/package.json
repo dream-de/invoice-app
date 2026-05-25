@@ -5,13 +5,17 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "pnpm typecheck"
+    "build": "pnpm typecheck",
+    "test": "tsx --test src/**/*.test.ts"
   },
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./signed-license": "./src/signed-license.ts"
   },
   "dependencies": {},
   "devDependencies": {
-    "typescript": "latest"
+    "typescript": "latest",
+    "@types/node": "^20",
+    "tsx": "latest"
   }
 }

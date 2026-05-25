@@ -1,6 +1,7 @@
 export type LicensePlanKey =
   | "free"
   | "starter"
+  | "pro"
   | "team"
   | "business"
   | "enterprise"
@@ -28,6 +29,13 @@ export const licensePlans: LicensePlan[] = [
     key: "starter",
     name: "Starter",
     maxUsers: 10,
+    billing: "Monatlich / Jaehrlich",
+    note: "Lizenzschluessel"
+  },
+  {
+    key: "pro",
+    name: "Pro",
+    maxUsers: 15,
     billing: "Monatlich / Jaehrlich",
     note: "Lizenzschluessel"
   },

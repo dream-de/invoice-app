@@ -1,3 +1,4 @@
+import { enforceUserLimit } from "@dream-invoice/licensing/signed-license"
 import { prisma } from "@dream-invoice/database"
 import { FREE_USER_LIMIT } from "./plans"
 
@@ -46,11 +47,7 @@ export async function getUserLimitStatus(): Promise<UserLimitStatus> {
 export async function assertCanCreateUser() {
   const status = await getUserLimitStatus()
 
-  if (status.limitReached) {
-    throw new Error(
-      `Benutzerlimit erreicht (${status.activeUsers}/${status.maxUsers}). Bitte Lizenz erweitern.`
-    )
-  }
+  enforceUserLimit(status.activeUsers, status.maxUsers)
 
   return status
 }

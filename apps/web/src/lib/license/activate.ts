@@ -31,12 +31,18 @@ function toLicenseData(licenseKey: string) {
       keyHash: hashLicenseKey(licenseKey),
       plan: payload.plan,
       billingCycle: payload.billingCycle,
-      maxUsers: payload.maxUsers ?? undefined,
+      maxUsers: payload.maxUsers,
       status: "active",
       company: payload.customerName ?? null,
       validUntil: payload.validUntil ? new Date(payload.validUntil) : null,
       activatedAt: new Date(),
-      features: {}
+      features: {
+        signed: check.signedPayload.features ?? {},
+        limits: check.signedPayload.limits ?? {},
+        licenseId: check.signedPayload.licenseId,
+        edition: check.signedPayload.edition ?? "self-hosted",
+        issuedAt: check.signedPayload.issuedAt
+      }
     }
   }
 }
@@ -49,6 +55,20 @@ export async function activateLicenseKey(licenseKey: string) {
   }
 
   const { keyHash, ...licenseData } = prepared.data
+
+  if (!process.env.DATABASE_URL) {
+    return {
+      ok: true as const,
+      license: {
+        id: "demo-license",
+        keyHash,
+        ...licenseData,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      },
+      mode: "demo" as const
+    }
+  }
 
   const license = await prisma.$transaction(async (tx: LicenseTransaction) => {
     await tx.license.updateMany({

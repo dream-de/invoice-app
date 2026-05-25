@@ -78,6 +78,10 @@ export function UsersAndPermissionsClient({ licenseSummary }: { licenseSummary: 
       billing: t("settings.users.plans.starter.billing"),
       note: t("settings.users.plans.starter.note")
     },
+    pro: {
+      billing: t("settings.users.plans.pro.billing"),
+      note: t("settings.users.plans.pro.note")
+    },
     team: {
       billing: t("settings.users.plans.team.billing"),
       note: t("settings.users.plans.team.note")

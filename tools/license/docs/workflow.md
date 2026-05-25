@@ -8,7 +8,7 @@ gesetzt. Er wird niemals in Git gespeichert.
 Beispiel:
 
 ```sh
-LICENSE_PRIVATE_KEY="..." node tools/license/generate-license-key.mjs --plan=starter --billing=monthly --customer="Demo Kunde"
+LICENSE_PRIVATE_KEY="..." node tools/license/generate-license-key.mjs --plan=pro --billing=yearly --days=365 --customer="Demo Kunde"
 ```
 
 ## 2. Lizenz aktivieren

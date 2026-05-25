@@ -24,11 +24,11 @@ aktiviert wurde.
 | `version` | Lizenzformat-Version |
 | `licenseId` | Eindeutige Lizenz-ID |
 | `plan` | Aktiver Plan |
-| `maxUsers` | Nutzerlimit |
+| `maxUsers` | Nutzerlimit fuer bestehende App-Kompatibilitaet |\n| `limits.users` | Signiertes Nutzerlimit fuer neue Lizenzlogik |
 | `billingCycle` | `monthly`, `yearly` oder `custom` |
 | `issuedAt` | Ausstellungsdatum |
-| `validUntil` | Ablaufdatum oder leer bei unbegrenzt |
-| `customerName` | Anzeigename des Kunden |
+| `expiresAt` / `validUntil` | Ablaufdatum oder leer bei unbegrenzt |
+| `customer.name` / `customerName` | Anzeigename des Kunden |\n| `features` | Optionale Feature-Freigaben zusaetzlich zum Plan |
 
 ## Grundregel
 

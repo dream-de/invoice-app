@@ -243,5 +243,7 @@
   "settings.language.nl.description": "Textos de interfaz en neerlandes para usuarios internacionales.",
   "settings.language.pl.description": "Textos de interfaz en polaco para usuarios internacionales.",
   "settings.language.pt.description": "Textos de interfaz en portugues para usuarios internacionales.",
-  "settings.language.tr.description": "Textos de interfaz en turco para usuarios internacionales."
+  "settings.language.tr.description": "Textos de interfaz en turco para usuarios internacionales.",
+  "settings.users.plans.pro.billing": "Mensual / Anual",
+  "settings.users.plans.pro.note": "Clave de licencia"
 }

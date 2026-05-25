@@ -25,7 +25,8 @@
     "react-hook-form": "^7.75.0",
     "swr": "^2.4.1",
     "zod": "^4.4.3",
-    "@dream-invoice/pdf": "workspace:*"
+    "@dream-invoice/pdf": "workspace:*",
+    "@dream-invoice/licensing": "workspace:*"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

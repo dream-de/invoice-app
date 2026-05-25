@@ -34,15 +34,15 @@ Beispiel:
 
 ```bash
 LICENSE_PRIVATE_KEY="$(cat private-license-key.pem)" node tools/license/generate-license-key.mjs \
-  --plan=starter \
-  --billing=monthly \
-  --days=30 \
+  --plan=pro \
+  --billing=yearly \
+  --days=365 \
   --customer="Demo Kunde"
 ```
 
 Unterstuetzte Plaene:
 
-`free`, `starter`, `team`, `business`, `enterprise`, `unlimited`
+`free`, `starter`, `pro`, `team`, `business`, `enterprise`, `unlimited`
 
 ## Sicherheitsregeln
 

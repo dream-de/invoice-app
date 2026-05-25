@@ -243,5 +243,7 @@
   "settings.language.nl.description": "Niederlaendische Oberflaeche und Standardtexte.",
   "settings.language.pl.description": "Polnische Oberflaeche und Standardtexte.",
   "settings.language.pt.description": "Portugiesische Oberflaeche und Standardtexte.",
-  "settings.language.tr.description": "Tuerkische Oberflaeche und Standardtexte."
+  "settings.language.tr.description": "Tuerkische Oberflaeche und Standardtexte.",
+  "settings.users.plans.pro.billing": "Monatlich / Jaehrlich",
+  "settings.users.plans.pro.note": "Lizenzschluessel"
 }
