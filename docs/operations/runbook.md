@@ -1,6 +1,6 @@
 # Operations Runbook
 
-This runbook lists practical steps for common Dream Invoice operational incidents. It assumes a Docker-based deployment using the production-style Compose stack.
+This runbook lists practical steps for common Dream Invoice operational incidents. It assumes a Docker-based product deployment using `docker/docker-compose.yml`. The public demo and landing page use `docker/public-site.compose.yml` only when intentionally hosted.
 
 ## First Checks
 

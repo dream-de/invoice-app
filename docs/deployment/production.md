@@ -36,11 +36,19 @@ Use HTTP-to-HTTPS redirects and enable HSTS only after the HTTPS setup is verifi
 
 ## Public Exposure
 
-Expose only the services needed by users:
+The default product Compose stack is intentionally limited to the customer application:
 
 - `apps/web`: main application
-- `apps/demo`: public demo, if enabled
-- `apps/landing-page`: public product page, if enabled
+- PostgreSQL
+- Nginx app proxy
+- `apps/server-worker`: optional private worker profile
+
+The product Docker image removes `apps/demo` and `apps/landing-page` after the web build so those public-only apps are not packaged into the runtime container.
+
+The public demo and marketing page are separate from a customer/LXC installation. Deploy them only when intentionally hosting the public website stack:
+
+- `apps/demo`: public demo, via `docker/public-site.compose.yml`
+- `apps/landing-page`: public product page, via `docker/public-site.compose.yml`
 
 Keep internal foundations private unless deliberately deployed:
 
@@ -80,4 +88,5 @@ Minimum launch gates:
 - [ ] Confirm GitHub Actions is green
 - [ ] Configure and test backups
 - [ ] Verify no internal-only apps are publicly exposed
-- [ ] Verify `dream-invoice.com`, `demo.dream-invoice.com`, and `app.dream-invoice.com` route to the intended services
+- [ ] Verify customer/LXC installs do not start `demo-app` or `landing-page`
+- [ ] If the public website stack is enabled, verify `dream-invoice.com` and `demo.dream-invoice.com` route to the intended services

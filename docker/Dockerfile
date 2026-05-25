@@ -21,11 +21,18 @@ RUN apt-get update \
 
 RUN corepack enable
 
-COPY . .
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.json eslint.config.js ./
+COPY apps ./apps
+COPY packages ./packages
+COPY database ./database
+COPY docker/scripts ./docker/scripts
+COPY assets ./assets
+COPY logos ./logos
 
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @dream-invoice/database db:generate
 RUN pnpm --filter @dream-invoice/web build
+RUN rm -rf apps/demo apps/landing-page docker/Demo.Dockerfile docker/LandingPage.Dockerfile docker/public-site.compose.yml docker/nginx/public-site.conf
 
 EXPOSE 3000
 

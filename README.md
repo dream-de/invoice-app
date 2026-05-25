@@ -5,51 +5,45 @@
 [![CI](https://github.com/dream-de/invoice-app/actions/workflows/ci.yml/badge.svg)](https://github.com/dream-de/invoice-app/actions/workflows/ci.yml)
 ![TypeScript](https://img.shields.io/badge/TypeScript-ready-3178c6)
 ![License](https://img.shields.io/badge/license-source--available-111827)
-![Status](https://img.shields.io/badge/status-public--foundation-72a4df)
+![Status](https://img.shields.io/badge/status-active--development-72a4df)
 
 ---
 
-Dream Invoice is a modern invoicing platform for invoices, offers, customers, articles, finance workflows, document templates, public demo flows, and future desktop editions.
+Dream Invoice is a modern invoicing platform for invoices, offers, customers, articles, finance workflows, document templates, and safe public testing. Public demo: https://demo.dream-invoice.com
 
 ## Features
 
 - Invoice and offer management with DIN A4 preview, PDF download, and editing workflows
-- Visual template editor with canvas, layers, properties, reusable document templates, and SEPA QR foundations
+- Visual template editor with canvas, layers, properties, reusable document templates, and SEPA QR preparation
 - Documents dashboard with search, status filters, bulk selection, and safe export flows
 - Customer management with contacts, addresses, projects, and fictional demo data for public testing
 - Article and service catalog with CSV/TXT import and export workflows
-- Finance area with accounts, transactions, statistics, import checks, and EUR reporting foundations
-- German and English i18n structure with namespaces for future languages
+- Finance area with accounts, transactions, statistics, import checks, and EUR reporting preparation
+- German and English i18n structure with room for additional languages
 - Public demo app with fixed sample data and no real customer data
 - Landing page for product positioning, screenshots, features, and demo links
-- Desktop foundation for future Electron builds, IPC contracts, native services, and a separate Pro edition path
-- Docker Compose setup with PostgreSQL, web app, demo app, landing page, worker profile, and health checks
+- Desktop, Pro, admin, accounting, API, and worker workspaces kept separate from the product web app
+- Product Docker Compose setup with PostgreSQL, web app, app proxy, optional worker profile, and health checks
 
 ## Compliance Note
 
-Dream Invoice includes technical foundations for traceable and safe business workflows, including structured data storage, export flows, license rules, and prepared worker jobs.
+Dream Invoice includes technical building blocks for traceable and safe business workflows, including structured data storage, export flows, license rules, and prepared worker jobs.
 
 Important: legal, tax, and accounting compliance always depends on setup, processes, roles, retention, documentation, and the country where the software is used. Dream Invoice does not claim an official certification by any tax authority.
 
 ## Workspace
 
-- `apps/web`: main web app for dashboard, documents, customers, articles, finance, and settings
-- `apps/demo`: public demo app with safe sample data
-- `apps/landing-page`: product landing page for Dream Invoice, demo links, and features
-- `apps/desktop`: desktop foundation for the future Electron app
-- `apps/pro-desktop`: prepared Pro desktop structure for future Pro features
-- `apps/server-api`: server API foundation for separated backend flows
-- `apps/server-worker`: worker foundation for scheduled jobs, reminders, and automations
-- `apps/admin`: admin app foundation
-- `apps/accounting`: accounting app foundation
-- `packages/accounting-core`: accounting domain and journal foundations
-- `assets/accounting/`: accounting data manifests and future verified chart-of-accounts assets
+- `apps/web`: main product web app for dashboard, documents, customers, articles, finance, and settings
+- `apps/demo`: optional public demo with safe sample data
+- `apps/landing-page`: optional public product website
+- `apps/server-worker`: optional private worker for scheduled jobs, reminders, and automations
+- `apps/server-api`, `apps/admin`, `apps/accounting`: separated backend/admin/accounting workspaces
+- `apps/desktop`, `apps/pro-desktop`, `packages/desktop-*`: separated desktop and Pro workspaces
 - `packages/database`: Prisma schema, client, and database workflows
-- `packages/ui`: shared UI building blocks
-- `packages/licensing`: licensing and edition foundations
-- `packages/desktop-*`: separated desktop contracts, services, state, renderer, and utilities
-- `docker/`: Dockerfiles, Compose stack, and Nginx configuration
-- `docs/`: architecture, domain structure, and PDF tooling notes
+- `packages/ui`, `packages/licensing`, `packages/accounting-core`: shared UI, licensing, and accounting logic
+- `assets/accounting/`: accounting manifests and chart-of-accounts assets
+- `docker/`: product and optional public-site Docker stacks
+- `docs/`: deployment, operations, architecture, domain, and PDF notes
 - `tools/license/`: license key and security tooling
 
 ## Prerequisites
@@ -117,7 +111,7 @@ pnpm security:audit      # Run dependency audit from pnpm
 
 ## Docker
 
-Start the production-style Docker stack:
+Start the product Docker stack. This installs Dream Invoice, PostgreSQL, and the app proxy only. The public demo and marketing landing page are not part of this customer/LXC stack and are removed from the product runtime image:
 
 ```bash
 docker compose -f docker/docker-compose.yml up -d
@@ -149,6 +143,15 @@ Build or run the worker profile:
 pnpm docker:build:worker
 pnpm docker:worker
 ```
+
+Run the optional public website stack separately when you intentionally host the marketing site and demo:
+
+```bash
+pnpm docker:public:up
+pnpm docker:public:logs
+```
+
+The public stack uses `docker/public-site.compose.yml` and exposes `PUBLIC_HTTP_PORT` instead of joining the product installation.
 
 ## Development Docker Helpers
 
