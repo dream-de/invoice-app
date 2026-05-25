@@ -47,7 +47,7 @@
   "customers.new.afterSave.projects.title": "Projecten",
   "customers.new.afterSave.projects.copy": "Projecten kunnen daarna met klanten worden verbonden.",
   "customers.overview.title": "Klanten",
-  "customers.overview.description": "Klantenoverzicht, contacten en status in een oogopslag.",
+  "customers.overview.description": "Klanten",
   "customers.overview.actions.gridView": "Rasterweergave",
   "customers.overview.actions.listView": "Lijstweergave",
   "customers.overview.actions.add": "Klant toevoegen",

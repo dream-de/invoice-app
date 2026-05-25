@@ -1,5 +1,5 @@
 {
-  "articles.overview.title": "Productos y servicios",
+  "articles.overview.title": "Articulos",
   "articles.overview.loading": "Cargando articulos...",
   "articles.overview.entries": "{count} entradas",
   "articles.actions.import": "Importar",
@@ -102,5 +102,6 @@
   "articles.import.reading": "Leyendo archivo...",
   "articles.import.saving": "Guardando...",
   "articles.actions.template": "Plantilla",
-  "articles.actions.export": "Exportar"
+  "articles.actions.export": "Exportar",
+  "articles.overview.description": "Productos y servicios"
 }

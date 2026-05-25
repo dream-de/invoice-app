@@ -1,5 +1,5 @@
 {
-  "documents.list.title": "Faktury",
+  "documents.list.title": "Dokumenty",
   "documents.list.filters.all": "Wszystkie",
   "documents.list.filters.draft": "Szkic",
   "documents.list.actions.templates": "Szablony",
@@ -208,5 +208,6 @@
   "documents.new.defaultNote": "Dziekujemy za zamowienie. Naliczamy nastepujace uslugi:",
   "documents.new.defaultItem": "Nowa pozycja",
   "documents.new.errors.createDraft": "Draft could not be created.",
-  "documents.new.errors.unknown": "Unknown error"
+  "documents.new.errors.unknown": "Unknown error",
+  "documents.list.description": "Faktury"
 }

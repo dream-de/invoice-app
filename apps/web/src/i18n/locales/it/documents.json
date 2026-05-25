@@ -1,5 +1,5 @@
 {
-  "documents.list.title": "Fatture",
+  "documents.list.title": "Documenti",
   "documents.list.filters.all": "Tutti",
   "documents.list.filters.draft": "Bozza",
   "documents.list.actions.templates": "Modelli",
@@ -208,5 +208,6 @@
   "documents.new.defaultNote": "Grazie per il suo ordine. Le addebitiamo i seguenti servizi:",
   "documents.new.defaultItem": "Nuova voce",
   "documents.new.errors.createDraft": "Impossibile creare la bozza.",
-  "documents.new.errors.unknown": "Errore sconosciuto"
+  "documents.new.errors.unknown": "Errore sconosciuto",
+  "documents.list.description": "Fatture"
 }

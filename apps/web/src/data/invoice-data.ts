@@ -88,23 +88,57 @@ export const articles = [
   {
     id: "1",
     name: "Beratung",
+    code: "AR-1001",
     category: "Dienstleistung",
-    status: "Aktiv",
+    description: "Strategische Beratung und Prozessanalyse.",
+    unit: "Std",
+    tax: 19,
+    status: "active",
     price: 120
   },
   {
     id: "2",
     name: "Wartung",
+    code: "AR-1002",
     category: "Service",
-    status: "Aktiv",
+    description: "Technische Pflege und kleinere Anpassungen.",
+    unit: "Std",
+    tax: 19,
+    status: "active",
     price: 80
   },
   {
     id: "3",
-    name: "Design",
+    name: "Design Paket",
+    code: "AR-1003",
     category: "Projektarbeit",
-    status: "Aktiv",
-    price: 85
+    description: "UI-Konzept, Layout und visuelle Abstimmung.",
+    unit: "Pauschal",
+    tax: 19,
+    status: "active",
+    price: 850
+  },
+  {
+    id: "4",
+    name: "Hosting Betreuung",
+    code: "AR-1004",
+    category: "Service",
+    description: "Serverpflege, Monitoring und Updates.",
+    unit: "Monat",
+    tax: 19,
+    status: "active",
+    price: 140
+  },
+  {
+    id: "5",
+    name: "Dokumentenvorlage",
+    code: "AR-1005",
+    category: "Produkt",
+    description: "Individuelle Rechnungsvorlage mit DIN A4 Layout.",
+    unit: "Stk.",
+    tax: 19,
+    status: "active",
+    price: 260
   }
 ]
 

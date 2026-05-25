@@ -1,5 +1,5 @@
 {
-  "documents.list.title": "Factures",
+  "documents.list.title": "Documents",
   "documents.list.filters.all": "Tous",
   "documents.list.filters.draft": "Brouillon",
   "documents.list.actions.templates": "Modeles",
@@ -208,5 +208,6 @@
   "documents.new.defaultNote": "Merci pour votre commande. Nous vous facturons les prestations suivantes :",
   "documents.new.defaultItem": "Nouvelle ligne",
   "documents.new.errors.createDraft": "Le brouillon n'a pas pu etre cree.",
-  "documents.new.errors.unknown": "Erreur inconnue"
+  "documents.new.errors.unknown": "Erreur inconnue",
+  "documents.list.description": "Factures"
 }

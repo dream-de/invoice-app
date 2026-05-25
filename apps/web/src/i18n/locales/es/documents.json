@@ -1,5 +1,5 @@
 {
-  "documents.list.title": "Facturas",
+  "documents.list.title": "Documentos",
   "documents.list.filters.all": "Todos",
   "documents.list.filters.draft": "Borrador",
   "documents.list.actions.templates": "Plantillas",
@@ -208,5 +208,6 @@
   "documents.new.defaultNote": "Gracias por su pedido. Le facturamos los siguientes servicios:",
   "documents.new.defaultItem": "Nueva partida",
   "documents.new.errors.createDraft": "No se pudo crear el borrador.",
-  "documents.new.errors.unknown": "Error desconocido"
+  "documents.new.errors.unknown": "Error desconocido",
+  "documents.list.description": "Facturas"
 }

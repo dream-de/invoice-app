@@ -309,7 +309,7 @@ export default function DocumentsPage() {
   }
 
   return (
-    <PageShell title={t("documents.list.title")} description="">
+    <PageShell title={t("documents.list.title")} description={t("documents.list.description")}>
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex items-center gap-2">
           {filterItems.map((item) => (

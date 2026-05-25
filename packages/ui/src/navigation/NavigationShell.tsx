@@ -261,7 +261,8 @@ export function NavigationShell({
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[var(--bg-app)] text-slate-950">
-      <header className="invoice-top-header bg-[var(--bg-surface)]">
+      <div className="invoice-app-zoom">
+        <header className="invoice-top-header bg-[var(--bg-surface)]">
         <div className="invoice-top-header-inner mx-auto max-w-[1820px]">
           <Link
             href="/dashboard"
@@ -429,9 +430,10 @@ export function NavigationShell({
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1820px] px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-7">
-        {children}
-      </main>
+        <main className="mx-auto max-w-[1820px] px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-7">
+          {children}
+        </main>
+      </div>
     </div>
   )
 }

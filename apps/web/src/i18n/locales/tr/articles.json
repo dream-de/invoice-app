@@ -1,5 +1,5 @@
 {
-  "articles.overview.title": "Urunler ve hizmetler",
+  "articles.overview.title": "Kalemler",
   "articles.overview.loading": "Urunler yukleniyor...",
   "articles.overview.entries": "{count} kayit",
   "articles.actions.import": "Ice aktar",
@@ -102,5 +102,6 @@
   "articles.import.reading": "Dosya okunuyor...",
   "articles.import.saving": "Kaydediliyor...",
   "articles.actions.template": "Sablon",
-  "articles.actions.export": "Disa aktar"
+  "articles.actions.export": "Disa aktar",
+  "articles.overview.description": "Urunler ve hizmetler"
 }

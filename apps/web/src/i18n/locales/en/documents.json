@@ -1,5 +1,5 @@
 {
-  "documents.list.title": "Invoices",
+  "documents.list.title": "Documents",
   "documents.list.filters.all": "All",
   "documents.list.filters.draft": "Draft",
   "documents.list.actions.templates": "Templates",
@@ -208,5 +208,6 @@
   "documents.new.defaultNote": "Thank you for your order. We charge you for the following services:",
   "documents.new.defaultItem": "New item",
   "documents.new.errors.createDraft": "Draft could not be created.",
-  "documents.new.errors.unknown": "Unknown error"
+  "documents.new.errors.unknown": "Unknown error",
+  "documents.list.description": "Invoices"
 }

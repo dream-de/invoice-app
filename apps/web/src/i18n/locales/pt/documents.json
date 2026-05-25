@@ -1,5 +1,5 @@
 {
-  "documents.list.title": "Faturas",
+  "documents.list.title": "Documentos",
   "documents.list.filters.all": "Todas",
   "documents.list.filters.draft": "Rascunho",
   "documents.list.actions.templates": "Modelos",
@@ -208,5 +208,6 @@
   "documents.new.defaultNote": "Obrigado pelo seu pedido. Cobramos os seguintes servicos:",
   "documents.new.defaultItem": "Novo item",
   "documents.new.errors.createDraft": "Draft could not be created.",
-  "documents.new.errors.unknown": "Unknown error"
+  "documents.new.errors.unknown": "Unknown error",
+  "documents.list.description": "Faturas"
 }

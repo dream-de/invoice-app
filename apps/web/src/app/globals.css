@@ -1119,3 +1119,15 @@ main button {
     width: 188px !important;
   }
 }
+
+/* Desktop app scale
+   Gives the product UI a slightly pulled-back feel without changing browser zoom. */
+@media (min-width: 1180px) {
+  .invoice-app-zoom {
+    width: 108.695%;
+    min-height: 108.695vh;
+    margin-left: -4.3475%;
+    transform: scale(0.92);
+    transform-origin: top center;
+  }
+}

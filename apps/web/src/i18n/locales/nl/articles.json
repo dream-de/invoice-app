@@ -1,5 +1,5 @@
 {
-  "articles.overview.title": "Producten en diensten",
+  "articles.overview.title": "Artikelen",
   "articles.overview.loading": "Artikelen laden...",
   "articles.overview.entries": "{count} items",
   "articles.actions.import": "Importeren",
@@ -102,5 +102,6 @@
   "articles.import.reading": "Bestand lezen...",
   "articles.import.saving": "Opslaan...",
   "articles.actions.template": "Sjabloon",
-  "articles.actions.export": "Exporteren"
+  "articles.actions.export": "Exporteren",
+  "articles.overview.description": "Producten en diensten"
 }

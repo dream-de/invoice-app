@@ -47,7 +47,7 @@
   "customers.new.afterSave.projects.title": "Projeler",
   "customers.new.afterSave.projects.copy": "Projeler daha sonra musterilerle baglanabilir.",
   "customers.overview.title": "Musteriler",
-  "customers.overview.description": "Musteri ozeti, iletisimler ve durum tek bakista.",
+  "customers.overview.description": "Musteriler",
   "customers.overview.actions.gridView": "Izgara gorunumu",
   "customers.overview.actions.listView": "Liste gorunumu",
   "customers.overview.actions.add": "Musteri ekle",

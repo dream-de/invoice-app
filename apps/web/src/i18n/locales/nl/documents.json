@@ -1,5 +1,5 @@
 {
-  "documents.list.title": "Facturen",
+  "documents.list.title": "Documenten",
   "documents.list.filters.all": "Alle",
   "documents.list.filters.draft": "Concept",
   "documents.list.actions.templates": "Sjablonen",
@@ -208,5 +208,6 @@
   "documents.new.defaultNote": "Bedankt voor uw opdracht. Wij brengen de volgende diensten in rekening:",
   "documents.new.defaultItem": "Nieuwe positie",
   "documents.new.errors.createDraft": "Concept kon niet worden aangemaakt.",
-  "documents.new.errors.unknown": "Onbekende fout"
+  "documents.new.errors.unknown": "Onbekende fout",
+  "documents.list.description": "Facturen"
 }

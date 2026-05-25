@@ -15,12 +15,12 @@ export function PageShell({
     <div className="invoice-shell-3d rounded-[36px] border border-[#e3e9f1] bg-[#f8f9fb] p-5 sm:p-7 lg:p-9">
       <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-end lg:mb-8">
         <div>
-          <h1 className="text-[32px] font-semibold leading-tight text-[#1d2433] sm:text-[34px] lg:text-[38px]">
+          <h1 className="text-[32px] font-extrabold leading-[1.1] tracking-tight text-[#111827] sm:text-[34px] lg:text-[34px]">
             {title}
           </h1>
 
           {description && (
-            <p className="mt-3 max-w-3xl text-base font-medium leading-[1.45] text-[#5f6f88] sm:text-lg lg:text-[20px]">
+            <p className="mt-3 max-w-3xl text-base font-semibold leading-[1.45] text-[#64748b] sm:text-[17px] lg:text-lg">
               {description}
             </p>
           )}

@@ -47,7 +47,7 @@
   "customers.new.afterSave.projects.title": "Projetos",
   "customers.new.afterSave.projects.copy": "Os projetos poderao entao ser ligados a clientes.",
   "customers.overview.title": "Clientes",
-  "customers.overview.description": "Resumo de clientes, contatos e status.",
+  "customers.overview.description": "Clientes",
   "customers.overview.actions.gridView": "Visualizacao em grade",
   "customers.overview.actions.listView": "Visualizacao em lista",
   "customers.overview.actions.add": "Adicionar cliente",

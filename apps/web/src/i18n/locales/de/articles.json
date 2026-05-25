@@ -1,5 +1,5 @@
 {
-  "articles.overview.title": "Produkte & Leistungen",
+  "articles.overview.title": "Artikel",
   "articles.overview.loading": "Lade Artikel...",
   "articles.overview.entries": "{count} Einträge",
   "articles.actions.import": "Import",
@@ -102,5 +102,6 @@
   "articles.import.reading": "Datei wird gelesen...",
   "articles.import.saving": "Speichert...",
   "articles.actions.template": "Vorlage",
-  "articles.actions.export": "Export"
+  "articles.actions.export": "Export",
+  "articles.overview.description": "Produkte & Leistungen"
 }

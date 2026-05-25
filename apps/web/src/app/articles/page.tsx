@@ -15,6 +15,7 @@ import {
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { Input } from "@dream-invoice/ui"
+import { articles as fallbackArticles } from "@/data/invoice-data"
 import { useLanguage } from "@/lib/i18n"
 
 type ViewMode = "grid" | "list"
@@ -138,8 +139,8 @@ function TaxRateControl({
 
 export default function ArticlesPage() {
   const { language, t } = useLanguage()
-  const [items, setItems] = useState<ArticleItem[]>([])
-  const [loading, setLoading] = useState(true)
+  const [items, setItems] = useState<ArticleItem[]>(fallbackArticles)
+  const [loading, setLoading] = useState(false)
   const [view, setView] = useState<ViewMode>("grid")
   const [query, setQuery] = useState("")
   const [taxMode, setTaxMode] = useState<"net" | "gross">("net")
@@ -158,14 +159,21 @@ export default function ArticlesPage() {
 
   async function loadArticles() {
     setLoading(true)
-    const response = await fetch("/api/articles/list", { cache: "no-store" })
-    const result = await response.json()
 
-    if (result.ok) {
-      setItems(result.articles)
+    try {
+      const response = await fetch("/api/articles/list", { cache: "no-store" })
+      if (!response.ok) return
+
+      const result = await response.json()
+
+      if (result.ok && Array.isArray(result.articles) && result.articles.length > 0) {
+        setItems(result.articles)
+      }
+    } catch (error) {
+      console.warn("Article list unavailable, using fallback articles.", error)
+    } finally {
+      setLoading(false)
     }
-
-    setLoading(false)
   }
 
   useEffect(() => {
@@ -378,10 +386,13 @@ export default function ArticlesPage() {
       <section className="rounded-[34px] border border-[#e3e9f1] bg-[#f8f9fb] p-7 shadow-[0_8px_26px_rgba(15,23,42,0.05)]">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
           <div>
-            <h1 className="max-w-[520px] text-[34px] font-semibold leading-[1.12] tracking-tight text-[#111827]">
+            <h1 className="max-w-[520px] text-[32px] font-extrabold leading-[1.1] tracking-tight text-[#111827] sm:text-[34px] lg:text-[34px]">
               {t("articles.overview.title")}
             </h1>
-            <p className="mt-3 text-base font-medium text-[#64748b]">
+            <p className="mt-3 text-base font-semibold text-[#64748b] sm:text-lg">
+              {t("articles.overview.description")}
+            </p>
+            <p className="mt-2 text-sm font-extrabold text-[#94a3b8]">
               {loading ? t("articles.overview.loading") : t("articles.overview.entries").replace("{count}", String(items.length))}
             </p>
           </div>

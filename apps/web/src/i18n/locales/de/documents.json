@@ -1,5 +1,5 @@
 {
-  "documents.list.title": "Rechnungen",
+  "documents.list.title": "Dokumente",
   "documents.list.filters.all": "Alle",
   "documents.list.filters.draft": "Entwurf",
   "documents.list.actions.templates": "Vorlagen",
@@ -208,5 +208,6 @@
   "documents.new.defaultNote": "vielen Dank für Ihren Auftrag. Wir berechnen Ihnen für unsere Leistungen wie folgt:",
   "documents.new.defaultItem": "Neue Position",
   "documents.new.errors.createDraft": "Entwurf konnte nicht erstellt werden.",
-  "documents.new.errors.unknown": "Unbekannter Fehler"
+  "documents.new.errors.unknown": "Unbekannter Fehler",
+  "documents.list.description": "Rechnungen"
 }

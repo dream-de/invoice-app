@@ -1,5 +1,5 @@
 {
-  "documents.list.title": "Faturalar",
+  "documents.list.title": "Belgeler",
   "documents.list.filters.all": "Tumu",
   "documents.list.filters.draft": "Taslak",
   "documents.list.actions.templates": "Sablonlar",
@@ -208,5 +208,6 @@
   "documents.new.defaultNote": "Siparisiniz icin tesekkur ederiz. Asagidaki hizmetleri faturalandiriyoruz:",
   "documents.new.defaultItem": "Yeni kalem",
   "documents.new.errors.createDraft": "Draft could not be created.",
-  "documents.new.errors.unknown": "Unknown error"
+  "documents.new.errors.unknown": "Unknown error",
+  "documents.list.description": "Faturalar"
 }
