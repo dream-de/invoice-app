@@ -47,3 +47,8 @@ pnpm --filter @dream-invoice/web lint
 - Explain what changed and how it was tested.
 - Include screenshots for visible UI changes.
 - Prefer existing app patterns over new abstractions.
+
+
+## Community Standards
+
+Please follow the [Code of Conduct](./CODE_OF_CONDUCT.md) and use [Support](./SUPPORT.md) for help requests.
