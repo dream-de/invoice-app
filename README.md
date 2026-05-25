@@ -55,15 +55,6 @@ Install first:
 - Git
 - Docker and the Docker Compose plugin for container-based setups
 
-Check your tools:
-
-```bash
-node --version
-pnpm --version
-git --version
-docker --version
-docker compose version
-```
 
 ## Getting Started
 

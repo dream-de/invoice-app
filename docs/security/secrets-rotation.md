@@ -35,7 +35,7 @@ Changing `AUTH_SECRET` may invalidate existing sessions depending on the auth im
 - When replacing a signing key, deploy the matching public key before issuing newly signed licenses.
 - Keep an operational record of when a key was introduced and retired.
 
-## Never Commit
+## Keep Out of the Repository
 
 - Production `.env` files
 - Private license keys
