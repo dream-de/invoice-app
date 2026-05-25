@@ -12,6 +12,10 @@ export async function DELETE(
 try {
     const invoiceId = id
 
+    if (!process.env.DATABASE_URL) {
+      return NextResponse.json({ success: true, mode: "demo" })
+    }
+
     // Prüfen ob Rechnung existiert
     const exists = await prisma.invoice.findUnique({
       where: { id: invoiceId }

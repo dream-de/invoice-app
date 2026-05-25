@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma, type Prisma } from "@dream-invoice/database"
+import { documents } from "@/data/invoice-data"
 
 type InvoiceItemPayload = {
   name?: string
@@ -41,6 +42,46 @@ export async function PUT(
     const items = Array.isArray(data.items) ? data.items as InvoiceItemPayload[] : []
     const taxRate = toNumber(data.taxRate ?? 0.19)
     const tip = toNumber(data.tip)
+
+    if (!process.env.DATABASE_URL) {
+      const existingDemoDocument = documents.find((item) => item.id === id) ?? documents[0]
+      const netTotal = items.reduce(
+        (sum, item) => sum + toNumber(item.price) * toNumber(item.quantity),
+        0
+      )
+      const vatTotal = netTotal * taxRate
+      const grossTotal = netTotal + vatTotal + tip
+
+      return NextResponse.json({
+        success: true,
+        invoice: {
+          id,
+          number: typeof data.number === "string" && data.number.trim()
+            ? data.number.trim()
+            : existingDemoDocument?.number ?? "DI-DEMO-DRAFT",
+          status: "draft",
+          netTotal,
+          vatTotal,
+          grossTotal,
+          customer: {
+            name: typeof data.customerName === "string" && data.customerName.trim()
+              ? data.customerName.trim()
+              : existingDemoDocument?.customer ?? null,
+            email: typeof data.customerEmail === "string" ? data.customerEmail : null
+          },
+          positions: items.map((item, index) => ({
+            id: String(index + 1),
+            title: item.name || item.label || "Position",
+            description: item.category || null,
+            quantity: toNumber(item.quantity) || 1,
+            netPrice: toNumber(item.price),
+            vatRate: taxRate * 100,
+            sortOrder: index
+          }))
+        },
+        mode: "demo"
+      })
+    }
 
     const existing = await prisma.invoice.findUnique({
       where: { id },

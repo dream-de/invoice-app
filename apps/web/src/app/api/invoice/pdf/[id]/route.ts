@@ -9,6 +9,7 @@ import { pdfLayout } from "@/lib/pdf/layout"
 import type { DocumentTemplate } from "@/lib/document-templates/types"
 import { DEFAULT_INVOICE_TEMPLATE } from "@/lib/document-templates/constants"
 import { createSepaQrPayload } from "@/lib/payment/sepa-qr"
+import { documents } from "@/data/invoice-data"
 
 const APP_ROOT = process.cwd()
 const LEGACY_TEMPLATE_PATH = path.join(APP_ROOT, "data", "default-template.json")
@@ -20,6 +21,39 @@ type TemplateRecord = {
   type: "invoice" | "offer"
   active?: boolean
   data?: DocumentTemplate
+}
+
+type PdfInvoicePosition = {
+  title: string
+  quantity: unknown
+  netPrice: unknown
+}
+
+type PdfInvoice = {
+  number: string
+  issueDate: Date
+  customer: {
+    name?: string | null
+    street?: string | null
+    zip?: string | null
+    city?: string | null
+    country?: string | null
+  } | null
+  positions: PdfInvoicePosition[]
+}
+
+type PdfCompany = {
+  company: string
+  street: string | null
+  zip: string | null
+  city: string | null
+  country: string | null
+  vatId?: string | null
+  taxNumber?: string | null
+  owner?: string | null
+  iban?: string | null
+  bic?: string | null
+  bankName?: string | null
 }
 
 function normalizeTemplate(data: Partial<DocumentTemplate> | undefined): DocumentTemplate {
@@ -62,12 +96,55 @@ function replacePaymentPlaceholders(content: string | undefined, invoiceNumber: 
   return String(content || "Rechnung {{number}}").replaceAll("{{number}}", invoiceNumber)
 }
 
-export async function GET(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  const { id } = await params
-  const { searchParams } = new URL(req.url)
+function fallbackCompany(): PdfCompany {
+  return {
+    company: "Dream Invoice",
+    street: "Lindenallee 42",
+    zip: "50667",
+    city: "Koeln",
+    country: "Deutschland",
+    vatId: null,
+    taxNumber: null,
+    owner: null,
+    iban: null,
+    bic: null,
+    bankName: null
+  }
+}
+
+function fallbackInvoice(id: string): PdfInvoice | null {
+  const document = documents.find((item) => item.id === id)
+
+  if (!document) return null
+
+  const grossTotal = Number(document.amount ?? 0)
+  const netTotal = grossTotal / 1.19
+
+  return {
+    number: document.number,
+    issueDate: new Date("2026-05-14T00:00:00.000Z"),
+    customer: {
+      name: document.customer,
+      street: "Lindenallee 42",
+      zip: "50667",
+      city: "Koeln",
+      country: "Deutschland"
+    },
+    positions: [
+      {
+        title: document.type === "Angebot" ? "Projektpaket" : "Digitale Dienstleistung",
+        quantity: 1,
+        netPrice: netTotal
+      }
+    ]
+  }
+}
+
+async function loadPdfSource(id: string): Promise<{ invoice: PdfInvoice; company: PdfCompany } | null> {
+  if (!process.env.DATABASE_URL) {
+    const invoice = fallbackInvoice(id)
+    return invoice ? { invoice, company: fallbackCompany() } : null
+  }
 
   try {
     const invoice = await prisma.invoice.findUnique({
@@ -78,28 +155,39 @@ export async function GET(
       }
     })
 
-    if (!invoice) {
+    if (!invoice) return null
+
+    const companySettings = await prisma.companySettings.findFirst()
+
+    return {
+      invoice,
+      company: companySettings ?? fallbackCompany()
+    }
+  } catch (error) {
+    console.error(error)
+    const invoice = fallbackInvoice(id)
+    return invoice ? { invoice, company: fallbackCompany() } : null
+  }
+}
+
+export async function GET(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { id } = await params
+  const { searchParams } = new URL(req.url)
+
+  try {
+    const source = await loadPdfSource(id)
+
+    if (!source) {
       return NextResponse.json(
         { error: "Rechnung nicht gefunden" },
         { status: 404 }
       )
     }
 
-    const companySettings = await prisma.companySettings.findFirst()
-
-    const company = companySettings ?? {
-      company: "Dream Invoice",
-      street: null,
-      zip: null,
-      city: null,
-      country: "Deutschland",
-      vatId: null,
-      taxNumber: null,
-      owner: null,
-      iban: null,
-      bic: null,
-      bankName: null
-    }
+    const { invoice, company } = source
 
     const subtotal = invoice.positions.reduce(
       (sum: number, p: any) => sum + Number(p.netPrice) * Number(p.quantity),

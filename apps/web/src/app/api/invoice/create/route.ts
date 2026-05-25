@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
+import { documents } from "@/data/invoice-data"
 
 type InvoiceItemPayload = {
   name?: string
@@ -18,6 +19,26 @@ export async function POST(req: Request) {
     const items = Array.isArray(data.items) ? data.items as InvoiceItemPayload[] : []
     const taxRate = toNumber(data.taxRate ?? 0.19)
     const tip = toNumber(data.tip)
+
+    if (!process.env.DATABASE_URL) {
+      const firstDemoDocument = documents[0]
+
+      return NextResponse.json({
+        success: true,
+        invoice: {
+          id: firstDemoDocument?.id ?? "demo-draft",
+          number: "DI-DEMO-DRAFT",
+          status: "draft",
+          issueDate: data.date ?? new Date().toISOString(),
+          dueDate: data.dueDate ?? null,
+          notes: typeof data.note === "string" ? data.note : null,
+          netTotal: 0,
+          vatTotal: 0,
+          grossTotal: 0
+        },
+        mode: "demo"
+      })
+    }
 
     const range = await prisma.numberRange.upsert({
       where: { type: "invoice" },
@@ -79,6 +100,19 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, invoice })
   } catch (err) {
     console.error(err)
+
+    if (!process.env.DATABASE_URL) {
+      return NextResponse.json({
+        success: true,
+        invoice: {
+          id: "1",
+          number: "DI-DEMO-DRAFT",
+          status: "draft"
+        },
+        mode: "demo"
+      })
+    }
+
     return NextResponse.json({ error: "Server error" }, { status: 500 })
   }
 }

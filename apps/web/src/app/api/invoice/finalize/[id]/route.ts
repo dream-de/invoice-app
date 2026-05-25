@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
 import { writeAuditLog } from "@/lib/audit/log"
+import { documents } from "@/data/invoice-data"
 
 export async function POST(
   req: Request,
@@ -10,6 +11,21 @@ export async function POST(
 
 
 try {
+    if (!process.env.DATABASE_URL) {
+      const document = documents.find((item) => item.id === id)
+
+      return NextResponse.json({
+        success: true,
+        invoice: {
+          id,
+          number: document?.number ?? "DI-DEMO-DRAFT",
+          status: "final",
+          type: document?.type === "Angebot" ? "offer" : "invoice"
+        },
+        mode: "demo"
+      })
+    }
+
     const invoice = await prisma.invoice.update({
       where: { id: id },
       data: { status: "final" }

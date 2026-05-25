@@ -321,7 +321,7 @@ export default function DocumentsPage() {
 
         <div className="flex flex-wrap items-center gap-3">
           <Link href="/documents/templates" className="no-underline"><Button variant="secondary">{t("documents.list.actions.templates")}</Button></Link>
-          <Button variant="secondary">{t("documents.list.actions.subscriptions")}</Button>
+          <Link href="/settings/reminders" className="no-underline"><Button variant="secondary">{t("documents.list.actions.subscriptions")}</Button></Link>
           <button
             type="button"
             onClick={createDraftInvoice}
