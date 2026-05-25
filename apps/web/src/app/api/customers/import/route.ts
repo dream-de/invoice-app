@@ -132,6 +132,65 @@ function generatedCustomerNumber(count: number, offset: number) {
   return "KD-" + String(count + offset).padStart(4, "0")
 }
 
+function buildPreview(rows: CustomerImportRow[], startCount: number) {
+  const warnings: string[] = []
+  const preview: CustomerImportData[] = []
+  let numberOffset = 1
+  let skipped = 0
+
+  for (const [index, row] of rows.entries()) {
+    const fallbackNumber = generatedCustomerNumber(startCount, numberOffset)
+    const data = customerDataFromRow(row, fallbackNumber)
+
+    if (!valueFor(row, "number")) numberOffset += 1
+
+    if (!data.name) {
+      skipped += 1
+      warnings.push("Zeile " + (index + 2) + ": Kunde ohne Namen wurde uebersprungen.")
+      continue
+    }
+
+    preview.push(data)
+  }
+
+  return { preview, skipped, warnings }
+}
+
+function importResponse({
+  save,
+  file,
+  preview,
+  created,
+  updated,
+  skipped,
+  warnings,
+  mode
+}: {
+  save: boolean
+  file: File
+  preview: CustomerImportData[]
+  created: number
+  updated: number
+  skipped: number
+  warnings: string[]
+  mode?: string
+}) {
+  return NextResponse.json({
+    ok: true,
+    mode: mode || (save ? "saved" : "preview"),
+    fileName: file.name,
+    fileType: file.type,
+    fileSize: file.size,
+    imported: preview.length,
+    created,
+    updated,
+    skipped,
+    customers: preview,
+    warnings,
+    message: save ? "Kunden wurden importiert." : "Kunden wurden ausgelesen."
+  })
+}
+
 export async function POST(request: Request) {
   const formData = await request.formData()
   const file = formData.get("file")
@@ -154,82 +213,90 @@ export async function POST(request: Request) {
     )
   }
 
-  const warnings: string[] = []
-  const preview: CustomerImportData[] = []
-  const count = await prisma.customer.count()
-  let numberOffset = 1
-  let created = 0
-  let updated = 0
-  let skipped = 0
-
-  for (const [index, row] of rows.entries()) {
-    const fallbackNumber = generatedCustomerNumber(count, numberOffset)
-    const data = customerDataFromRow(row, fallbackNumber)
-
-    if (!valueFor(row, "number")) numberOffset += 1
-
-    if (!data.name) {
-      skipped += 1
-      warnings.push("Zeile " + (index + 2) + ": Kunde ohne Namen wurde uebersprungen.")
-      continue
-    }
-
-    preview.push(data)
-
-    if (!save) continue
-
-    const existing = await prisma.customer.findFirst({
-      where: {
-        OR: [
-          { number: data.number },
-          ...(data.email ? [{ email: data.email }] : []),
-          { name: data.name }
-        ]
-      }
+  if (!process.env.DATABASE_URL) {
+    const { preview, skipped, warnings } = buildPreview(rows, 0)
+    return importResponse({
+      save,
+      file,
+      preview,
+      created: save ? preview.length : 0,
+      updated: 0,
+      skipped,
+      warnings,
+      mode: save ? "demo" : "preview"
     })
-
-    const payload = {
-      name: data.name,
-      contact: data.contact || null,
-      email: data.email || null,
-      phone: data.phone || null,
-      street: data.street || null,
-      zip: data.zip || null,
-      city: data.city || null,
-      country: data.country,
-      notes: data.notes || null,
-      status: data.status
-    }
-
-    if (existing) {
-      await prisma.customer.update({
-        where: { id: existing.id },
-        data: payload
-      })
-      updated += 1
-    } else {
-      await prisma.customer.create({
-        data: {
-          number: data.number,
-          ...payload
-        }
-      })
-      created += 1
-    }
   }
 
-  return NextResponse.json({
-    ok: true,
-    mode: save ? "saved" : "preview",
-    fileName: file.name,
-    fileType: file.type,
-    fileSize: file.size,
-    imported: preview.length,
-    created,
-    updated,
-    skipped,
-    customers: preview,
-    warnings,
-    message: save ? "Kunden wurden importiert." : "Kunden wurden ausgelesen."
-  })
+  try {
+    const count = await prisma.customer.count()
+    const { preview, skipped, warnings } = buildPreview(rows, count)
+    let created = 0
+    let updated = 0
+
+    if (save) {
+      for (const data of preview) {
+        const existing = await prisma.customer.findFirst({
+          where: {
+            OR: [
+              { number: data.number },
+              ...(data.email ? [{ email: data.email }] : []),
+              { name: data.name }
+            ]
+          }
+        })
+
+        const payload = {
+          name: data.name,
+          contact: data.contact || null,
+          email: data.email || null,
+          phone: data.phone || null,
+          street: data.street || null,
+          zip: data.zip || null,
+          city: data.city || null,
+          country: data.country,
+          notes: data.notes || null,
+          status: data.status
+        }
+
+        if (existing) {
+          await prisma.customer.update({
+            where: { id: existing.id },
+            data: payload
+          })
+          updated += 1
+        } else {
+          await prisma.customer.create({
+            data: {
+              number: data.number,
+              ...payload
+            }
+          })
+          created += 1
+        }
+      }
+    }
+
+    return importResponse({
+      save,
+      file,
+      preview,
+      created,
+      updated,
+      skipped,
+      warnings
+    })
+  } catch (error) {
+    console.error(error)
+    const { preview, skipped, warnings } = buildPreview(rows, 0)
+    return importResponse({
+      save,
+      file,
+      preview,
+      created: save ? preview.length : 0,
+      updated: 0,
+      skipped,
+      warnings,
+      mode: save ? "demo" : "preview"
+    })
+  }
 }

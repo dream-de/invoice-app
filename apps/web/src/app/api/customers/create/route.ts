@@ -1,6 +1,24 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
 
+function demoCustomerFromData(data: Record<string, unknown>) {
+  const number = String(data.number || "").trim() || "KD-DEMO-0001"
+
+  return {
+    id: "demo-" + Date.now(),
+    number,
+    name: String(data.name || "").trim(),
+    contact: data.contact ? String(data.contact).trim() : null,
+    email: data.email ? String(data.email).trim() : null,
+    phone: data.phone ? String(data.phone).trim() : null,
+    street: data.street ? String(data.street).trim() : null,
+    zip: data.zip ? String(data.zip).trim() : null,
+    city: data.city ? String(data.city).trim() : null,
+    country: data.country ? String(data.country).trim() : "Deutschland",
+    status: data.status ? String(data.status).trim() : "active"
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const data = await req.json()
@@ -10,6 +28,14 @@ export async function POST(req: Request) {
         { error: "Kundenname fehlt." },
         { status: 400 }
       )
+    }
+
+    if (!process.env.DATABASE_URL) {
+      return NextResponse.json({
+        ok: true,
+        customer: demoCustomerFromData(data),
+        mode: "demo"
+      })
     }
 
     const count = await prisma.customer.count()
@@ -32,14 +58,14 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true, customer })
   } catch (error: any) {
-    console.error(error)
-
     if (error?.code === "P2002") {
       return NextResponse.json(
         { error: "Kundennummer existiert bereits." },
         { status: 409 }
       )
     }
+
+    console.error(error)
 
     return NextResponse.json(
       { error: "Kunde konnte nicht erstellt werden." },
