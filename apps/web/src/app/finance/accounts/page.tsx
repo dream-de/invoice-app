@@ -1,5 +1,6 @@
 "use client"
 
+import { useRouter } from "next/navigation"
 import { useState } from "react"
 import {
   AlertCircle,
@@ -47,19 +48,23 @@ export default function FinanceAccountsPage() {
   const [accountName, setAccountName] = useState("")
   const [iban, setIban] = useState("")
   const [balance, setBalance] = useState("0")
+  const [selectedAccountName, setSelectedAccountName] = useState(initialAccounts[0]?.name ?? "")
   const { t } = useLanguage()
+  const router = useRouter()
+
+  const selectedAccount = accounts.find((account) => account.name === selectedAccountName) ?? accounts[0]
 
   function addAccount() {
     if (!accountName.trim()) return
 
-    setAccounts((items) => [
-      ...items,
-      {
-        name: accountName.trim(),
-        iban: iban.trim() || t("finance.accounts.missingIban"),
-        balance: Number(balance) || 0
-      }
-    ])
+    const nextAccount = {
+      name: accountName.trim(),
+      iban: iban.trim() || t("finance.accounts.missingIban"),
+      balance: Number(balance) || 0
+    }
+
+    setAccounts((items) => [...items, nextAccount])
+    setSelectedAccountName(nextAccount.name)
 
     setAccountName("")
     setIban("")
@@ -68,7 +73,13 @@ export default function FinanceAccountsPage() {
   }
 
   function deleteAccount(name: string) {
-    setAccounts((items) => items.filter((item) => item.name !== name))
+    setAccounts((items) => {
+      const next = items.filter((item) => item.name !== name)
+      if (selectedAccountName === name) {
+        setSelectedAccountName(next[0]?.name ?? "")
+      }
+      return next
+    })
   }
 
   const actionCards = [
@@ -77,29 +88,34 @@ export default function FinanceAccountsPage() {
       description: t("finance.accounts.cards.assign.description"),
       value: "6",
       icon: ArrowRight,
+      href: "/finance/accounts/assign",
       active: true
     },
     {
       title: t("finance.accounts.cards.eur.title"),
       description: t("finance.accounts.cards.eur.description"),
       value: "8",
-      icon: Landmark
+      icon: Landmark,
+      href: "/finance/accounts/eur"
     },
     {
       title: t("finance.accounts.cards.csv.title"),
       description: t("finance.accounts.cards.csv.description"),
-      icon: Download
+      icon: Download,
+      href: "/finance/accounts/import"
     },
     {
       title: t("finance.accounts.cards.history.title"),
       description: t("finance.accounts.cards.history.description"),
       icon: Upload,
+      href: "/finance/accounts/history",
       onClick: () => setShowImportHistory(true)
     },
     {
       title: t("finance.accounts.cards.manage.title"),
       description: t("finance.accounts.cards.manage.description"),
       icon: Plus,
+      href: "/finance/accounts/manage",
       onClick: () => setShowAccountModal(true)
     }
   ]
@@ -127,14 +143,18 @@ export default function FinanceAccountsPage() {
           </p>
 
           <div className="mt-3 grid gap-3 md:grid-cols-[1fr_auto]">
-            <select className="h-12 rounded-full bg-white px-5 text-sm font-bold text-slate-700 outline-none ring-1 ring-gray-200">
+            <select
+              value={selectedAccountName}
+              onChange={(event) => setSelectedAccountName(event.target.value)}
+              className="h-12 rounded-full bg-white px-5 text-sm font-bold text-slate-700 outline-none ring-1 ring-gray-200"
+            >
               {accounts.map((account) => (
-                <option key={account.name}>{account.name}</option>
+                <option key={account.name} value={account.name}>{account.name}</option>
               ))}
             </select>
 
             <div className="flex h-12 items-center rounded-full bg-white px-5 text-sm font-semibold text-slate-500 ring-1 ring-gray-200">
-              {t("finance.accounts.balance")}: <span className="ml-2 font-extrabold text-slate-950"><Currency value={accounts[0]?.balance ?? 0} /></span>
+              {t("finance.accounts.balance")}: <span className="ml-2 font-extrabold text-slate-950"><Currency value={selectedAccount?.balance ?? 0} /></span>
             </div>
           </div>
         </div>
@@ -147,7 +167,13 @@ export default function FinanceAccountsPage() {
               <button
                 key={item.title}
                 type="button"
-                onClick={item.onClick}
+                onClick={() => {
+                  if (item.href) {
+                    router.push(item.href)
+                    return
+                  }
+                  item.onClick?.()
+                }}
                 className={`relative min-h-[220px] overflow-hidden rounded-3xl border p-6 text-left transition-all hover:bg-gray-100 ${
                   item.active
                     ? "border-blue-300 bg-blue-50 ring-2 ring-blue-200"
@@ -228,7 +254,11 @@ export default function FinanceAccountsPage() {
                     <Currency value={account.balance} />
                   </p>
 
-                  <button className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-600 ring-1 ring-gray-200">
+                  <button
+                    type="button"
+                    onClick={() => router.push("/finance/accounts/import")}
+                    className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-600 ring-1 ring-gray-200"
+                  >
                     {t("finance.accounts.forImport")}
                   </button>
 

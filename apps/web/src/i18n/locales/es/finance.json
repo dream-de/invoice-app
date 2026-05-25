@@ -110,8 +110,8 @@
   "finance.statistics.metrics.openClaims": "Cuentas por cobrar abiertas",
   "finance.statistics.metrics.averageInvoice": "Valor medio de factura",
   "finance.statistics.metrics.paymentRate": "Tasa de pago",
-  "finance.statistics.revenue.title": "Tendencia de ingresos",
-  "finance.statistics.revenue.description": "Facturas pagadas",
+  "finance.statistics.revenue.title": "Resumen de ingresos",
+  "finance.statistics.revenue.description": "Facturas pagadas por periodo",
   "finance.statistics.topCustomers.title": "Mejores clientes",
   "finance.statistics.topCustomers.description": "Mejores clientes en este periodo",
   "finance.statistics.empty": "Sin datos para este periodo",
@@ -154,5 +154,7 @@
   "finance.accounts.modal.newAccount.ibanOptional": "IBAN (opcional)",
   "finance.accounts.modal.history.rollbackDescription": "Resumen de todas las importaciones CSV con opcion de reversion",
   "finance.accounts.modal.history.emptyTitle": "Aun no hay importaciones",
-  "finance.accounts.modal.history.pickImport": "Elija una importacion de la lista"
+  "finance.accounts.modal.history.pickImport": "Elija una importacion de la lista",
+  "finance.statistics.revenue.openDocuments": "Abrir facturas",
+  "finance.statistics.topCustomers.openCustomers": "Abrir clientes"
 }

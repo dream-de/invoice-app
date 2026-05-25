@@ -110,8 +110,8 @@
   "finance.statistics.metrics.openClaims": "Open receivables",
   "finance.statistics.metrics.averageInvoice": "Avg. invoice value",
   "finance.statistics.metrics.paymentRate": "Payment rate",
-  "finance.statistics.revenue.title": "Revenue trend",
-  "finance.statistics.revenue.description": "Paid invoices",
+  "finance.statistics.revenue.title": "Przeglad przychodow",
+  "finance.statistics.revenue.description": "Oplacone faktury wedlug okresu",
   "finance.statistics.topCustomers.title": "Top customers",
   "finance.statistics.topCustomers.description": "Best customers in this period",
   "finance.statistics.empty": "Brak danych dla tego okresu",
@@ -154,5 +154,7 @@
   "finance.accounts.modal.newAccount.ibanOptional": "IBAN (optional)",
   "finance.accounts.modal.history.rollbackDescription": "Overview of all CSV imports with rollback option",
   "finance.accounts.modal.history.emptyTitle": "Brak importow",
-  "finance.accounts.modal.history.pickImport": "Choose an import from the list"
+  "finance.accounts.modal.history.pickImport": "Choose an import from the list",
+  "finance.statistics.revenue.openDocuments": "Otworz faktury",
+  "finance.statistics.topCustomers.openCustomers": "Otworz klientow"
 }

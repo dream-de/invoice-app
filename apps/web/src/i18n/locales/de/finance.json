@@ -110,8 +110,8 @@
   "finance.statistics.metrics.openClaims": "Offene Forderungen",
   "finance.statistics.metrics.averageInvoice": "Ø Rechnungswert",
   "finance.statistics.metrics.paymentRate": "Zahlungsquote",
-  "finance.statistics.revenue.title": "Umsatzentwicklung",
-  "finance.statistics.revenue.description": "Bezahlte Rechnungen",
+  "finance.statistics.revenue.title": "Umsatzuebersicht",
+  "finance.statistics.revenue.description": "Bezahlte Rechnungen nach Zeitraum",
   "finance.statistics.topCustomers.title": "Top Kunden",
   "finance.statistics.topCustomers.description": "Beste Kunden im Zeitraum",
   "finance.statistics.empty": "Keine Daten für diesen Zeitraum",
@@ -154,5 +154,7 @@
   "finance.accounts.modal.newAccount.ibanOptional": "IBAN (optional)",
   "finance.accounts.modal.history.rollbackDescription": "Übersicht aller CSV-Importe mit Rollback-Möglichkeit",
   "finance.accounts.modal.history.emptyTitle": "Keine Importe vorhanden",
-  "finance.accounts.modal.history.pickImport": "Wähle einen Import aus der Liste"
+  "finance.accounts.modal.history.pickImport": "Wähle einen Import aus der Liste",
+  "finance.statistics.revenue.openDocuments": "Rechnungen oeffnen",
+  "finance.statistics.topCustomers.openCustomers": "Kunden oeffnen"
 }

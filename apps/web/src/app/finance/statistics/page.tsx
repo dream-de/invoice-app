@@ -102,9 +102,14 @@ export default function FinanceStatisticsPage() {
                 </p>
               </div>
 
-              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-black text-[var(--brand-lime)]">
+              <Link
+                href="/documents"
+                aria-label={t("finance.statistics.revenue.openDocuments")}
+                title={t("finance.statistics.revenue.openDocuments")}
+                className="flex h-11 w-11 items-center justify-center rounded-full bg-black text-[var(--brand-lime)] no-underline transition hover:scale-105 hover:brightness-110"
+              >
                 <TrendingUp className="h-5 w-5" />
-              </span>
+              </Link>
             </div>
 
             <div className="mt-8 grid grid-cols-6 gap-3 max-lg:grid-cols-4 max-sm:grid-cols-2">
@@ -135,9 +140,14 @@ export default function FinanceStatisticsPage() {
                 </p>
               </div>
 
-              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-slate-600 ring-1 ring-gray-200">
+              <Link
+                href="/customers"
+                aria-label={t("finance.statistics.topCustomers.openCustomers")}
+                title={t("finance.statistics.topCustomers.openCustomers")}
+                className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-slate-600 no-underline ring-1 ring-gray-200 transition hover:scale-105 hover:bg-slate-50 hover:text-slate-950"
+              >
                 <BarChart3 className="h-5 w-5" />
-              </span>
+              </Link>
             </div>
 
             <div className="mt-8 rounded-2xl border border-dashed border-gray-200 bg-white p-8 text-center">

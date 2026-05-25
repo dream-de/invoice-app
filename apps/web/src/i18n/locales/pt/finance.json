@@ -110,8 +110,8 @@
   "finance.statistics.metrics.openClaims": "Open receivables",
   "finance.statistics.metrics.averageInvoice": "Avg. invoice value",
   "finance.statistics.metrics.paymentRate": "Payment rate",
-  "finance.statistics.revenue.title": "Revenue trend",
-  "finance.statistics.revenue.description": "Paid invoices",
+  "finance.statistics.revenue.title": "Visao geral da receita",
+  "finance.statistics.revenue.description": "Faturas pagas por periodo",
   "finance.statistics.topCustomers.title": "Top customers",
   "finance.statistics.topCustomers.description": "Best customers in this period",
   "finance.statistics.empty": "Sem dados para este periodo",
@@ -154,5 +154,7 @@
   "finance.accounts.modal.newAccount.ibanOptional": "IBAN (optional)",
   "finance.accounts.modal.history.rollbackDescription": "Overview of all CSV imports with rollback option",
   "finance.accounts.modal.history.emptyTitle": "Ainda nao ha importacoes",
-  "finance.accounts.modal.history.pickImport": "Choose an import from the list"
+  "finance.accounts.modal.history.pickImport": "Choose an import from the list",
+  "finance.statistics.revenue.openDocuments": "Abrir faturas",
+  "finance.statistics.topCustomers.openCustomers": "Abrir clientes"
 }

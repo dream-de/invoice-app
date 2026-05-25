@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useMemo, useState } from "react"
 import { ArrowLeft, Search } from "lucide-react"
 import { Currency, PageShell } from "@dream-invoice/ui"
 import { useLanguage } from "@/lib/i18n"
@@ -16,6 +17,19 @@ const transactions = [
 
 export default function AssignTransactionsPage() {
   const { t } = useLanguage()
+  const [query, setQuery] = useState("")
+  const [selectedKey, setSelectedKey] = useState("")
+
+  const filteredTransactions = useMemo(() => {
+    const needle = query.trim().toLowerCase()
+    if (!needle) return transactions
+
+    return transactions.filter(([name, text, amount, date]) =>
+      [name, text, String(amount), date].join(" ").toLowerCase().includes(needle)
+    )
+  }, [query])
+
+  const selectedTransaction = filteredTransactions.find(([name, , , date]) => `${name}-${date}` === selectedKey) ?? null
 
   return (
     <PageShell title={t("finance.accounts.assign.title")} description={t("finance.accounts.assign.description")}>
@@ -36,14 +50,36 @@ export default function AssignTransactionsPage() {
           <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-gray-200">
             <label className="flex h-11 items-center gap-2 rounded-full bg-[#f3f6fa] px-4 text-sm font-semibold text-slate-500">
               <Search className="h-4 w-4" />
-              <input placeholder={t("finance.accounts.assign.search")} className="min-w-0 flex-1 bg-transparent outline-none" />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={t("finance.accounts.assign.search")}
+                className="min-w-0 flex-1 bg-transparent outline-none"
+              />
             </label>
 
-            <button className="mt-4 rounded-full bg-[#eef2f7] px-4 py-2 text-sm font-semibold text-slate-600">{t("finance.accounts.assign.showAll")}</button>
+            <button
+              type="button"
+              onClick={() => {
+                setQuery("")
+                setSelectedKey("")
+              }}
+              className="mt-4 rounded-full bg-[#eef2f7] px-4 py-2 text-sm font-semibold text-slate-600"
+            >
+              {t("finance.accounts.assign.showAll")}
+            </button>
 
             <div className="mt-5 space-y-3">
-              {transactions.map(([name, text, amount, date]) => (
-                <button key={name + "-" + date} className="w-full rounded-2xl border border-gray-200 bg-gray-50 p-4 text-left transition hover:bg-white">
+              {filteredTransactions.map(([name, text, amount, date]) => {
+                const key = `${name}-${date}`
+
+                return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setSelectedKey(key)}
+                  className={`w-full rounded-2xl border p-4 text-left transition hover:bg-white ${selectedKey === key ? "border-blue-300 bg-blue-50 ring-2 ring-blue-100" : "border-gray-200 bg-gray-50"}`}
+                >
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <p className="font-extrabold text-slate-950">{name}</p>
@@ -55,15 +91,42 @@ export default function AssignTransactionsPage() {
                     </div>
                   </div>
                 </button>
-              ))}
+                )
+              })}
             </div>
           </section>
 
           <section className="flex min-h-[560px] items-center justify-center rounded-3xl bg-white p-8 text-center shadow-sm ring-1 ring-gray-200">
-            <div>
-              <p className="text-xl font-extrabold text-slate-950">{t("finance.accounts.assign.empty.title")}</p>
-              <p className="mt-2 max-w-sm text-sm leading-6 text-slate-500">{t("finance.accounts.assign.empty.description")}</p>
-            </div>
+            {selectedTransaction ? (
+              <div className="w-full max-w-lg text-left">
+                <p className="text-xs font-black uppercase tracking-widest text-slate-400">Transaktion</p>
+                <h2 className="mt-3 text-2xl font-extrabold text-slate-950">{selectedTransaction[0]}</h2>
+                <p className="mt-2 text-sm font-semibold text-slate-500">{selectedTransaction[1]}</p>
+                <div className="mt-6 grid gap-3 rounded-3xl bg-[#f7f9fc] p-5">
+                  <div className="flex justify-between text-sm">
+                    <span className="font-semibold text-slate-500">Datum</span>
+                    <span className="font-extrabold text-slate-950">{selectedTransaction[3]}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="font-semibold text-slate-500">Betrag</span>
+                    <span className="font-extrabold text-emerald-600"><Currency value={selectedTransaction[2]} /></span>
+                  </div>
+                </div>
+                <div className="mt-6 grid gap-3">
+                  {["DI-2026-1001 · Aurora Labs GmbH", "DI-2026-1002 · Urban Commerce AG"].map((match) => (
+                    <button key={match} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-left text-sm font-extrabold text-slate-800 hover:border-blue-300 hover:bg-blue-50">
+                      {match}
+                    </button>
+                  ))}
+                </div>
+                <button className="mt-5 rounded-full bg-black px-5 py-2.5 text-sm font-bold text-white">{t("finance.accounts.assign.matchInvoices")}</button>
+              </div>
+            ) : (
+              <div>
+                <p className="text-xl font-extrabold text-slate-950">{t("finance.accounts.assign.empty.title")}</p>
+                <p className="mt-2 max-w-sm text-sm leading-6 text-slate-500">{t("finance.accounts.assign.empty.description")}</p>
+              </div>
+            )}
           </section>
         </div>
       </div>
