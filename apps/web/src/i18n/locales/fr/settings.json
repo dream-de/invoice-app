@@ -237,5 +237,6 @@
   "settings.users.permissions.admin.templates": "Modeles",
   "settings.users.permissions.admin.system": "Systeme",
   "settings.users.permissions.admin.userRights": "Droits utilisateurs",
-  "settings.language.fr.description": "Textes d'interface en francais pour les utilisateurs internationaux."
+  "settings.language.fr.description": "Textes d'interface en francais pour les utilisateurs internationaux.",
+  "settings.language.es.description": "Textes d'interface en espagnol pour les utilisateurs internationaux."
 }

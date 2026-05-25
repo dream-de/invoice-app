@@ -20,7 +20,8 @@ export function LanguageSettings() {
   const languages: Array<{ value: AppLanguage; label: string; description: string }> = [
     { value: "de", label: "Deutsch", description: t("settings.language.de.description") },
     { value: "en", label: "English", description: t("settings.language.en.description") },
-    { value: "fr", label: "Francais", description: t("settings.language.fr.description") }
+    { value: "fr", label: "Francais", description: t("settings.language.fr.description") },
+    { value: "es", label: "Espanol", description: t("settings.language.es.description") }
   ]
 
   const activeLanguage = languages.find((item) => item.value === language) ?? languages[0]

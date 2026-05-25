@@ -30,6 +30,7 @@ describe("i18n dictionary", () => {
     assert.equal(isAppLanguage("de"), true)
     assert.equal(isAppLanguage("en"), true)
     assert.equal(isAppLanguage("fr"), true)
+    assert.equal(isAppLanguage("es"), true)
   })
 
   it("keeps legacy DOM translations isolated to English", () => {

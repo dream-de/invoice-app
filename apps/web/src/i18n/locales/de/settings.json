@@ -237,5 +237,6 @@
   "settings.users.permissions.admin.templates": "Templates",
   "settings.users.permissions.admin.system": "System",
   "settings.users.permissions.admin.userRights": "Benutzerrechte",
-  "settings.language.fr.description": "Franzoesische Oberflaeche und Standardtexte."
+  "settings.language.fr.description": "Franzoesische Oberflaeche und Standardtexte.",
+  "settings.language.es.description": "Spanische Oberflaeche und Standardtexte."
 }

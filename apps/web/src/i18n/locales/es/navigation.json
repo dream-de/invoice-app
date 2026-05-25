@@ -1,0 +1,11 @@
+{
+  "nav.dashboard": "Panel",
+  "nav.customers": "Clientes",
+  "nav.projects": "Proyectos",
+  "nav.documents": "Documentos",
+  "nav.finance": "Finanzas",
+  "nav.articles": "Articulos",
+  "nav.search": "Search…",
+  "nav.settings": "Configuracion",
+  "nav.notifications": "Notificaciones"
+}
