@@ -29,4 +29,5 @@ test('core web routes respond when live flow tests are enabled', async (t) => {
   const url = assertAbsoluteHttpUrl(flowTestConfig.webBaseUrl, 'webBaseUrl')
   await assertReachableHtmlPath(url, '/dashboard', /Dashboard|Schnellaktionen|Quick Actions/i)
   await assertReachableHtmlPath(url, '/documents/new', /Rechnung|Invoice|Dokument/i)
+  await assertReachableHtmlPath(url, '/settings/system', /Sprache|Language|Deutsch|English/i)
 })
