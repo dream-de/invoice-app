@@ -8,6 +8,10 @@ export async function DELETE(
   try {
     const { id } = await params
 
+    if (!process.env.DATABASE_URL) {
+      return NextResponse.json({ ok: true, mode: "demo" })
+    }
+
     await prisma.article.delete({
       where: { id }
     })

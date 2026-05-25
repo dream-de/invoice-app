@@ -16,6 +16,29 @@ export async function POST(request: Request) {
       )
     }
 
+    if (!process.env.DATABASE_URL) {
+      const number = String(data.code || data.number || "").trim() || "AR-DEMO-0001"
+
+      return NextResponse.json({
+        ok: true,
+        article: {
+          id: "demo-" + Date.now(),
+          number,
+          code: number,
+          name: String(data.name).trim(),
+          category: data.category ? String(data.category).trim() : null,
+          description: data.description ? String(data.description).trim() : null,
+          unit: data.unit ? String(data.unit).trim() : "Stk",
+          netPrice: toNumber(data.price ?? data.netPrice),
+          price: toNumber(data.price ?? data.netPrice),
+          vatRate: toNumber(data.tax ?? data.vatRate ?? 19),
+          tax: toNumber(data.tax ?? data.vatRate ?? 19),
+          active: true
+        },
+        mode: "demo"
+      })
+    }
+
     const count = await prisma.article.count()
     const number =
       String(data.code || data.number || "").trim() ||
@@ -34,8 +57,8 @@ export async function POST(request: Request) {
     })
 
     return NextResponse.json({ ok: true, article })
-  } catch (error: any) {
-    if (error?.code === "P2002") {
+  } catch (error: unknown) {
+    if (typeof error === "object" && error && "code" in error && error.code === "P2002") {
       return NextResponse.json(
         { ok: false, error: "Artikelnummer existiert bereits." },
         { status: 409 }

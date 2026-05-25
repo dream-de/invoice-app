@@ -1,5 +1,6 @@
 import { prisma } from "@dream-invoice/database"
 import { createCsvResponse } from "@/lib/export/csv-response"
+import { articles as fallbackArticles } from "@/data/invoice-data"
 
 export const dynamic = "force-dynamic"
 
@@ -13,14 +14,39 @@ type ExportArticle = {
   active: boolean
 }
 
-export async function GET() {
-  const articles = await prisma.article.findMany({
-    orderBy: { createdAt: "desc" }
-  })
+function rowsFromFallbackArticles() {
+  return fallbackArticles.map((article) => [
+    article.code,
+    article.name,
+    article.category ?? "",
+    Number(article.price).toFixed(2).replace(".", ","),
+    article.unit,
+    Number(article.tax).toFixed(2).replace(".", ","),
+    article.status === "inactive" ? "Nein" : "Ja"
+  ])
+}
 
-  const rows = [
-    ["Artikelnummer", "Artikel", "Kategorie", "Nettopreis", "Einheit", "MwSt", "Aktiv"],
-    ...(articles as ExportArticle[]).map((article) => [
+function createArticleCsv(rows: string[][]) {
+  return createCsvResponse(
+    [
+      ["Artikelnummer", "Artikel", "Kategorie", "Nettopreis", "Einheit", "MwSt", "Aktiv"],
+      ...rows
+    ],
+    "preisliste-export.csv"
+  )
+}
+
+export async function GET() {
+  if (!process.env.DATABASE_URL) {
+    return createArticleCsv(rowsFromFallbackArticles())
+  }
+
+  try {
+    const articles = await prisma.article.findMany({
+      orderBy: { createdAt: "desc" }
+    })
+
+    return createArticleCsv((articles as ExportArticle[]).map((article) => [
       article.number,
       article.name,
       article.category ?? "",
@@ -28,9 +54,9 @@ export async function GET() {
       article.unit,
       Number(article.vatRate).toFixed(2).replace(".", ","),
       article.active ? "Ja" : "Nein"
-    ])
-  ]
-
-
-  return createCsvResponse(rows, "preisliste-export.csv")
+    ]))
+  } catch (error) {
+    console.error(error)
+    return createArticleCsv(rowsFromFallbackArticles())
+  }
 }
