@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
+import { writeAuditLog } from "@/lib/audit/log"
 
 export const dynamic = "force-dynamic"
 
@@ -52,6 +53,16 @@ export async function PUT(request: Request) {
 
       saved.push(range)
     }
+
+    await writeAuditLog({
+      action: "settings.number_ranges.update",
+      entity: "numberRange",
+      reason: "Number ranges updated",
+      data: {
+        count: saved.length,
+        types: saved.map((range) => range.type)
+      }
+    })
 
     return NextResponse.json({ ok: true, ranges: saved })
   } catch (error) {

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
+import { writeAuditLog } from "@/lib/audit/log"
 
 export const dynamic = "force-dynamic"
 
@@ -53,6 +54,18 @@ export async function PUT(request: Request) {
       : await prisma.companySettings.create({
           data: payload
         })
+
+    await writeAuditLog({
+      action: "settings.company.update",
+      entity: "companySettings",
+      entityId: settings.id,
+      reason: existing ? "Company settings updated" : "Company settings created",
+      data: {
+        mode: existing ? "update" : "create",
+        changedFields: Object.keys(payload),
+        hasLogo: Boolean(payload.logoUrl)
+      }
+    })
 
     return NextResponse.json({ ok: true, settings })
   } catch (error) {

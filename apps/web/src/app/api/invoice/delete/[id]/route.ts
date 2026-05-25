@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
+import { writeAuditLog } from "@/lib/audit/log"
 
 export async function DELETE(
   req: Request,
@@ -26,6 +27,18 @@ try {
     // Rechnung löschen (Positionen werden automatisch gelöscht)
     await prisma.invoice.delete({
       where: { id: invoiceId }
+    })
+
+    await writeAuditLog({
+      action: "invoice.delete",
+      entity: "invoice",
+      entityId: exists.id,
+      reason: "Invoice deleted",
+      data: {
+        number: exists.number,
+        status: exists.status,
+        type: exists.type
+      }
     })
 
     return NextResponse.json({ success: true })

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { writeAuditLog } from "@/lib/audit/log"
 import { activateLicenseKey } from "@/lib/license/activate"
 
 export const runtime = "nodejs"
@@ -35,6 +36,20 @@ export async function POST(req: Request) {
       { status: 400 }
     )
   }
+
+  await writeAuditLog({
+    action: "license.activate",
+    entity: "license",
+    entityId: result.license.id,
+    reason: "License key activated",
+    data: {
+      plan: result.license.plan,
+      billingCycle: result.license.billingCycle,
+      maxUsers: result.license.maxUsers,
+      status: result.license.status,
+      validUntil: result.license.validUntil?.toISOString() ?? null
+    }
+  })
 
   return NextResponse.json({
     ok: true,
