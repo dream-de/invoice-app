@@ -61,7 +61,7 @@ export function LanguageSettings() {
             </button>
 
             {open ? (
-              <div className="absolute right-0 z-20 mt-2 w-full overflow-hidden rounded-[18px] border border-[#dbe4ee] bg-white p-1.5 shadow-[0_20px_48px_rgba(15,23,42,0.16)]" role="listbox">
+              <div className="mt-2 max-h-[360px] w-full overflow-y-auto rounded-[18px] border border-[#dbe4ee] bg-white p-1.5 shadow-[0_20px_48px_rgba(15,23,42,0.16)]" role="listbox">
                 {languages.map((item) => {
                   const active = item.value === language
 
