@@ -20,6 +20,8 @@ model User {
   permissions  UserPermission[]
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
+
+  @@index([status])
 }
 
 model CompanySettings {
@@ -75,6 +77,8 @@ model Project {
   invoices    Invoice[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
+  @@index([customerId])
 }
 
 model Article {
@@ -110,6 +114,9 @@ model Invoice {
   notes       String?
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
+
+  @@index([customerId])
+  @@index([projectId])
 }
 
 model InvoicePosition {
@@ -184,4 +191,6 @@ model License {
   activatedAt  DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  @@index([status, validUntil, updatedAt])
 }

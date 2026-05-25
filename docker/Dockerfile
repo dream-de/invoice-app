@@ -20,6 +20,7 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 
 RUN corepack enable
+RUN groupadd --system dreaminvoice && useradd --system --gid dreaminvoice --home /app dreaminvoice
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.json eslint.config.js ./
 COPY apps ./apps
@@ -35,6 +36,10 @@ RUN pnpm --filter @dream-invoice/web build
 RUN rm -rf apps/demo apps/landing-page docker/Demo.Dockerfile docker/LandingPage.Dockerfile docker/public-site.compose.yml docker/nginx/public-site.conf
 
 EXPOSE 3000
+
+RUN mkdir -p data && chown dreaminvoice:dreaminvoice data
+
+USER dreaminvoice
 
 ENTRYPOINT ["sh", "docker/scripts/docker-entrypoint.sh"]
 CMD ["pnpm", "--filter", "@dream-invoice/web", "exec", "next", "start", "-H", "0.0.0.0", "-p", "3000"]
