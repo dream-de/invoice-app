@@ -192,6 +192,7 @@ cat backup.sql | docker compose -f docker/docker-compose.yml exec -T postgres ps
 - [Roadmap](./ROADMAP.md)
 - [Contributing](./CONTRIBUTING.md)
 - [Production Deployment](./docs/deployment/production.md)
+- [Production Checklist](./docs/deployment/production-checklist.md)
 - [Operations Runbook](./docs/operations/runbook.md)
 - [Audit Log](./docs/security/audit-log.md)
 - [Secrets Rotation](./docs/security/secrets-rotation.md)

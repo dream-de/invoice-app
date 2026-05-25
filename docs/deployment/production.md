@@ -69,10 +69,15 @@ cat backup.sql | docker compose -f docker/docker-compose.yml exec -T postgres ps
 
 ## Production Checklist
 
+Use the detailed [Production Checklist](./production-checklist.md) before exposing Dream Invoice to public traffic.
+
+Minimum launch gates:
+
 - [ ] Replace all development passwords and secrets
-- [ ] Configure HTTPS and redirects
-- [ ] Confirm `DATABASE_URL` points to the intended database
+- [ ] Configure HTTPS and HTTP-to-HTTPS redirects
+- [ ] Confirm `DATABASE_URL` points to the intended production database
 - [ ] Run `pnpm release:quality`
 - [ ] Confirm GitHub Actions is green
-- [ ] Configure backups
+- [ ] Configure and test backups
 - [ ] Verify no internal-only apps are publicly exposed
+- [ ] Verify `dream-invoice.com`, `demo.dream-invoice.com`, and `app.dream-invoice.com` route to the intended services
