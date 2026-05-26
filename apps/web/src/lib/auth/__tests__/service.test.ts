@@ -94,6 +94,15 @@ describe("auth service", () => {
     )
   })
 
+  it("rejects reserved Dream Invoice emails during setup", async () => {
+    const { store } = createStore()
+
+    await assert.rejects(
+      createInitialOwner({ name: "Owner", email: "admin@dream-invoice.com", password: "SecurePass123" }, { store }),
+      /lokale Benutzer nicht erlaubt/
+    )
+  })
+
   it("authenticates active users and creates a reusable session", async () => {
     const passwordHash = await hashPassword("SecurePass123")
     const now = new Date("2026-05-26T10:00:00.000Z")

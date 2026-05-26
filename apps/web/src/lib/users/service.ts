@@ -72,6 +72,11 @@ export class UserServiceError extends Error {
 }
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const RESERVED_EMAIL_DOMAIN = "dream-invoice.com"
+
+function isReservedEmailDomain(domain: string) {
+  return domain === RESERVED_EMAIL_DOMAIN || domain.endsWith("." + RESERVED_EMAIL_DOMAIN)
+}
 
 function getStore(context?: UserServiceContext): UserStore {
   return (context?.store ?? prisma) as UserStore
@@ -81,6 +86,14 @@ function normalizeEmail(value: unknown) {
   const email = String(value ?? "").trim().toLowerCase()
   if (!EMAIL_PATTERN.test(email)) {
     throw new UserServiceError("invalid_email", "Bitte eine gueltige E-Mail-Adresse eintragen.")
+  }
+
+  const domain = email.split("@").at(1) ?? ""
+  if (isReservedEmailDomain(domain)) {
+    throw new UserServiceError(
+      "reserved_email_domain",
+      "Diese E-Mail-Domain ist fuer lokale Benutzer nicht erlaubt."
+    )
   }
 
   return email

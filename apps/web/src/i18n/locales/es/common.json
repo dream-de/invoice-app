@@ -17,5 +17,8 @@
   "login.success.setup": "Registro completado.",
   "login.success.login": "Sesion iniciada correctamente.",
   "login.error.generic": "No se pudo procesar el inicio de sesion.",
-  "login.placeholder.email": "admin@example.com"
+  "login.placeholder.email": "admin@example.com",
+  "login.password.hint": "La contrasena necesita mayusculas, minusculas y numeros.",
+  "login.password.show": "Mostrar contrasena",
+  "login.password.hide": "Ocultar contrasena"
 }

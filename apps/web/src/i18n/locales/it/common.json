@@ -17,5 +17,8 @@
   "login.success.setup": "Registrazione completata.",
   "login.success.login": "Accesso riuscito.",
   "login.error.generic": "Accesso non elaborato.",
-  "login.placeholder.email": "admin@example.com"
+  "login.placeholder.email": "admin@example.com",
+  "login.password.hint": "La password deve contenere maiuscole, minuscole e numeri.",
+  "login.password.show": "Mostra password",
+  "login.password.hide": "Nascondi password"
 }

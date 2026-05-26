@@ -17,5 +17,8 @@
   "login.success.setup": "Enregistrement termine.",
   "login.success.login": "Connexion reussie.",
   "login.error.generic": "La connexion n'a pas pu etre traitee.",
-  "login.placeholder.email": "admin@example.com"
+  "login.placeholder.email": "admin@example.com",
+  "login.password.hint": "Le mot de passe doit contenir des majuscules, des minuscules et des chiffres.",
+  "login.password.show": "Afficher le mot de passe",
+  "login.password.hide": "Masquer le mot de passe"
 }

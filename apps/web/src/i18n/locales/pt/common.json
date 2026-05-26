@@ -17,5 +17,8 @@
   "login.success.setup": "Registro concluido.",
   "login.success.login": "Login realizado com sucesso.",
   "login.error.generic": "Nao foi possivel processar o login.",
-  "login.placeholder.email": "admin@example.com"
+  "login.placeholder.email": "admin@example.com",
+  "login.password.hint": "A senha precisa de letras maiusculas, minusculas e numeros.",
+  "login.password.show": "Mostrar senha",
+  "login.password.hide": "Ocultar senha"
 }

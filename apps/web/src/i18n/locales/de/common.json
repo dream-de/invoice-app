@@ -17,5 +17,8 @@
   "login.success.setup": "Registrierung abgeschlossen.",
   "login.success.login": "Anmeldung erfolgreich.",
   "login.error.generic": "Anmeldung konnte nicht verarbeitet werden.",
-  "login.placeholder.email": "admin@example.com"
+  "login.placeholder.email": "admin@example.com",
+  "login.password.hint": "Das Passwort braucht Grossbuchstaben, Kleinbuchstaben und Zahlen.",
+  "login.password.show": "Passwort anzeigen",
+  "login.password.hide": "Passwort ausblenden"
 }

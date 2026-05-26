@@ -17,5 +17,8 @@
   "login.success.setup": "Registration completed.",
   "login.success.login": "Signed in successfully.",
   "login.error.generic": "Sign-in could not be processed.",
-  "login.placeholder.email": "admin@example.com"
+  "login.placeholder.email": "admin@example.com",
+  "login.password.hint": "The password needs uppercase letters, lowercase letters, and numbers.",
+  "login.password.show": "Show password",
+  "login.password.hide": "Hide password"
 }

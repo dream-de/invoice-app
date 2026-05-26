@@ -1,5 +1,6 @@
 "use client"
 
+import { Eye, EyeOff } from "lucide-react"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useLanguage } from "@/lib/i18n"
@@ -26,6 +27,7 @@ export function LoginClient({ setupAvailable }: { setupAvailable: boolean }) {
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
   const [state, setState] = useState<SubmitState>({ type: "idle", message: "" })
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -117,14 +119,28 @@ export function LoginClient({ setupAvailable }: { setupAvailable: boolean }) {
 
           <label className="block text-sm font-semibold text-[#111827]">
             {t("login.field.password")}
-            <input
-              required
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className="mt-2 min-h-12 w-full rounded-[16px] border border-[#dbe3ec] bg-[#f8fafc] px-4 text-sm font-medium outline-none focus:border-[#94a3b8] focus:bg-white"
-              placeholder={t("login.placeholder.password")}
-            />
+            <span className="relative mt-2 block">
+              <input
+                required
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                className="min-h-12 w-full rounded-[16px] border border-[#dbe3ec] bg-[#f8fafc] px-4 pr-12 text-sm font-medium outline-none focus:border-[#94a3b8] focus:bg-white"
+                placeholder={t("login.placeholder.password")}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((value) => !value)}
+                className="absolute right-3 top-1/2 inline-flex size-8 -translate-y-1/2 items-center justify-center rounded-full text-[#64748b] transition hover:bg-[#e2e8f0] hover:text-[#111827]"
+                aria-label={showPassword ? t("login.password.hide") : t("login.password.show")}
+                title={showPassword ? t("login.password.hide") : t("login.password.show")}
+              >
+                {showPassword ? <EyeOff size={17} aria-hidden="true" /> : <Eye size={17} aria-hidden="true" />}
+              </button>
+            </span>
+            <span className="mt-2 block text-xs font-medium leading-5 text-[#64748b]">
+              {t("login.password.hint")}
+            </span>
           </label>
 
           <button

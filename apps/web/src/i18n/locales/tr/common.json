@@ -17,5 +17,8 @@
   "login.success.setup": "Kayit tamamlandi.",
   "login.success.login": "Giris basarili.",
   "login.error.generic": "Giris islenemedi.",
-  "login.placeholder.email": "admin@example.com"
+  "login.placeholder.email": "admin@example.com",
+  "login.password.hint": "Sifre buyuk harf, kucuk harf ve rakam icermelidir.",
+  "login.password.show": "Sifreyi goster",
+  "login.password.hide": "Sifreyi gizle"
 }

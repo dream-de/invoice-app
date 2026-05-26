@@ -17,5 +17,8 @@
   "login.success.setup": "Rejestracja zakonczona.",
   "login.success.login": "Logowanie udane.",
   "login.error.generic": "Nie mozna przetworzyc logowania.",
-  "login.placeholder.email": "admin@example.com"
+  "login.placeholder.email": "admin@example.com",
+  "login.password.hint": "Haslo musi zawierac wielkie litery, male litery i cyfry.",
+  "login.password.show": "Pokaz haslo",
+  "login.password.hide": "Ukryj haslo"
 }

@@ -51,7 +51,7 @@ Dream Invoice provides technical building blocks for traceable business workflow
 
 ## Live Demo
 
-Demo: https://demo.dream-invoice.com
+Demo: [↗ Demo](https://demo.dream-invoice.com)
 
 ## Quick Install
 

@@ -159,6 +159,37 @@ describe("app user service", () => {
     )
   })
 
+  it("blocks local users with the reserved Dream Invoice domain", async () => {
+    const { store } = createStore([owner])
+
+    await assert.rejects(
+      createAppUser(
+        { email: "owner@dream-invoice.com" },
+        {
+          store,
+          getLimitStatus: async () => ({
+            activeUsers: 1,
+            maxUsers: 5,
+            remainingUsers: 4,
+            limitReached: false,
+            plan: "free",
+            billingCycle: "free",
+            status: "active",
+            validUntil: null
+          })
+        }
+      ),
+      (error: unknown) =>
+        error instanceof UserServiceError && error.code === "reserved_email_domain"
+    )
+
+    await assert.rejects(
+      createAppUser({ email: "owner@mail.dream-invoice.com", status: "inactive" }, { store }),
+      (error: unknown) =>
+        error instanceof UserServiceError && error.code === "reserved_email_domain"
+    )
+  })
+
   it("allows inactive invites without consuming an active user slot", async () => {
     const { store } = createStore([owner])
     const user = await createAppUser(

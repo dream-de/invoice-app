@@ -17,5 +17,8 @@
   "login.success.setup": "Registratie voltooid.",
   "login.success.login": "Succesvol aangemeld.",
   "login.error.generic": "Aanmelden kon niet worden verwerkt.",
-  "login.placeholder.email": "admin@example.com"
+  "login.placeholder.email": "admin@example.com",
+  "login.password.hint": "Het wachtwoord heeft hoofdletters, kleine letters en cijfers nodig.",
+  "login.password.show": "Wachtwoord tonen",
+  "login.password.hide": "Wachtwoord verbergen"
 }
