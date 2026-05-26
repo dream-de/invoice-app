@@ -1,6 +1,8 @@
 import { Prisma, prisma } from "@dream-invoice/database"
 
 export type AuditAction =
+  | "auth.login"
+  | "auth.setup"
   | "license.activate"
   | "settings.company.update"
   | "settings.number_ranges.update"
