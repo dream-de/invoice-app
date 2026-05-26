@@ -13,11 +13,21 @@ Dream Invoice is a modern invoicing platform for invoices, offers, customers, ar
 
 ## Documentation
 
-- [Production Deployment](./docs/deployment/production.md) and [Production Checklist](./docs/deployment/production-checklist.md)
-- [Operations Runbook](./docs/operations/runbook.md), [Testing](./docs/testing.md), and [Releasing](./docs/releasing.md)
-- [Security Policy](./SECURITY.md), [Secrets Rotation](./docs/security/secrets-rotation.md), and [Audit Log](./docs/security/audit-log.md)
-- [Roadmap](./ROADMAP.md), [App Structure](./docs/architecture/app-structure.md), [Domains](./docs/architecture/domains.md), and [PDF Tools](./docs/pdf-tools.md)
-- [Contributing](./CONTRIBUTING.md), [Support](./SUPPORT.md), and [Code of Conduct](./CODE_OF_CONDUCT.md)
+- [Production Deployment](./docs/deployment/production.md)
+- [Production Checklist](./docs/deployment/production-checklist.md)
+- [Operations Runbook](./docs/operations/runbook.md)
+- [Testing](./docs/testing.md)
+- [Releasing](./docs/releasing.md)
+- [Security Policy](./SECURITY.md)
+- [Secrets Rotation](./docs/security/secrets-rotation.md)
+- [Audit Log](./docs/security/audit-log.md)
+- [Roadmap](./ROADMAP.md)
+- [App Structure](./docs/architecture/app-structure.md)
+- [Domains](./docs/architecture/domains.md)
+- [PDF Tools](./docs/pdf-tools.md)
+- [Contributing](./CONTRIBUTING.md)
+- [Support](./SUPPORT.md)
+- [Code of Conduct](./CODE_OF_CONDUCT.md)
 
 ## Features
 
