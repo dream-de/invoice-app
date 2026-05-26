@@ -102,9 +102,6 @@ export function SettingsLayout({
             })}
           </div>
 
-          <div className="mt-8 rounded-[26px] border border-[#dce6b0] bg-[#edf4cf] p-4 text-sm font-semibold leading-6 text-[#2f3a20]">
-            {t("settings.instantNote")}
-          </div>
         </aside>
 
         <main className="p-8">
