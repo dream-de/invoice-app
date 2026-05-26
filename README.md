@@ -11,40 +11,34 @@
 
 Dream Invoice is a modern invoicing platform for invoices, offers, customers, articles, finance workflows, document templates, and safe public testing.
 
+## Documentation
+
+- [Production Deployment](./docs/deployment/production.md) and [Production Checklist](./docs/deployment/production-checklist.md)
+- [Operations Runbook](./docs/operations/runbook.md), [Testing](./docs/testing.md), and [Releasing](./docs/releasing.md)
+- [Security Policy](./SECURITY.md), [Secrets Rotation](./docs/security/secrets-rotation.md), and [Audit Log](./docs/security/audit-log.md)
+- [Roadmap](./ROADMAP.md), [App Structure](./docs/architecture/app-structure.md), [Domains](./docs/architecture/domains.md), and [PDF Tools](./docs/pdf-tools.md)
+- [Contributing](./CONTRIBUTING.md), [Support](./SUPPORT.md), and [Code of Conduct](./CODE_OF_CONDUCT.md)
+
 ## Features
 
-- Invoice and offer management with DIN A4 preview, PDF download, and editing workflows
-- Visual template editor with canvas, layers, properties, reusable document templates, and SEPA QR preparation
-- Documents dashboard with search, status filters, bulk selection, and safe export flows
-- Customer management with contacts, addresses, projects, and fictional demo data for public testing
-- Article and service catalog with CSV/TXT import and export workflows
-- Finance area with accounts, transactions, statistics, import checks, and EUR reporting preparation
-- German and English i18n structure with room for additional languages
-- Public demo app with fixed sample data and no real customer data
-- Landing page for product positioning, screenshots, features, and demo links
-- Desktop, Pro, admin, accounting, API, and worker workspaces kept separate from the product web app
-- Product Docker Compose setup with PostgreSQL, web app, app proxy, optional worker profile, and health checks
+- Invoices, offers, documents, DIN A4 preview, PDF export, and visual templates
+- Customers, articles, projects, finance workflows, import/export, and reporting foundations
+- Multi-language app shell, login/session protection, licensing, and user-limit enforcement
+- Product Docker stack with PostgreSQL, web app, app proxy, health checks, and optional worker
+- Optional public demo and landing page kept separate from customer/LXC installs
 
 ## Compliance Note
 
-Dream Invoice includes technical building blocks for traceable and safe business workflows, including structured data storage, export flows, license rules, and prepared worker jobs.
-
-Important: legal, tax, and accounting compliance always depends on setup, processes, roles, retention, documentation, and the country where the software is used. Dream Invoice does not claim an official certification by any tax authority.
+Dream Invoice provides technical building blocks for traceable business workflows. Legal, tax, and accounting compliance still depends on each deployment, process, role setup, retention policy, and country. Dream Invoice does not claim official tax-authority certification.
 
 ## Workspace
 
-- `apps/web`: main product web app for dashboard, documents, customers, articles, finance, and settings
-- `apps/demo`: optional public demo with safe sample data
-- `apps/landing-page`: optional public product website
-- `apps/server-worker`: optional private worker for scheduled jobs, reminders, and automations
-- `apps/server-api`, `apps/admin`, `apps/accounting`: separated backend/admin/accounting workspaces
-- `apps/desktop`, `apps/pro-desktop`, `packages/desktop-*`: separated desktop and Pro workspaces
-- `packages/database`: Prisma schema, client, and database workflows
-- `packages/ui`, `packages/licensing`, `packages/accounting-core`: shared UI, licensing, and accounting logic
-- `assets/accounting/`: accounting manifests and chart-of-accounts assets
-- `docker/`: product and optional public-site Docker stacks
-- `docs/`: deployment, operations, architecture, domain, and PDF notes
-- `tools/license/`: license key and security tooling
+- `apps/web`: main product web app
+- `apps/demo`, `apps/landing-page`: optional public demo and product website
+- `apps/server-worker`, `apps/server-api`, `apps/admin`, `apps/accounting`: private service and foundation apps
+- `apps/desktop`, `apps/pro-desktop`, `packages/desktop-*`: separated desktop and Pro foundations
+- `packages/database`, `packages/ui`, `packages/licensing`, `packages/accounting-core`: shared data, UI, licensing, and domain logic
+- `docker/`, `docs/`, `tools/license/`: deployment, documentation, and license tooling
 
 ## Live Demo
 
@@ -233,23 +227,6 @@ Restore a database backup:
 ```bash
 cat backup.sql | docker compose exec -T postgres psql -U dream_invoice dream_invoice
 ```
-
-## Documentation
-
-- [Roadmap](./ROADMAP.md)
-- [Contributing](./CONTRIBUTING.md)
-- [Support](./SUPPORT.md)
-- [Code of Conduct](./CODE_OF_CONDUCT.md)
-- [Production Deployment](./docs/deployment/production.md)
-- [Production Checklist](./docs/deployment/production-checklist.md)
-- [Operations Runbook](./docs/operations/runbook.md)
-- [Audit Log](./docs/security/audit-log.md)
-- [Secrets Rotation](./docs/security/secrets-rotation.md)
-- [Testing](./docs/testing.md)
-- [Releasing](./docs/releasing.md)
-- [App Structure](./docs/architecture/app-structure.md)
-- [Domains](./docs/architecture/domains.md)
-- [PDF Tools](./docs/pdf-tools.md)
 
 ## License
 
