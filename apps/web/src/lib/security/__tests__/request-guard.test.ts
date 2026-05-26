@@ -93,6 +93,31 @@ describe("request guard", () => {
     assert.equal(decision.allowed, true)
   })
 
+  it("allows local setup requests through loopback aliases", () => {
+    const decision = evaluateRequestGuard({
+      method: "POST",
+      url: "http://localhost:3000/api/auth/setup",
+      headers: headers({ origin: "http://127.0.0.1:3000" }),
+      env: {}
+    })
+
+    assert.equal(decision.allowed, true)
+  })
+
+  it("allows setup requests when the proxy host is the LXC address", () => {
+    const decision = evaluateRequestGuard({
+      method: "POST",
+      url: "http://localhost:3000/api/auth/setup",
+      headers: headers({
+        host: "192.168.20.25:3000",
+        origin: "http://192.168.20.25:3000"
+      }),
+      env: {}
+    })
+
+    assert.equal(decision.allowed, true)
+  })
+
   it("allows public login and auth endpoints without an app session", async () => {
     const login = await evaluateAppRequestGuard({
       method: "GET",

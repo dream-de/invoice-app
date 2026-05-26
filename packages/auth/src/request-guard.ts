@@ -109,12 +109,38 @@ function basicAuthDecision(input: RequestGuardInput): RequestGuardDecision {
   }
 }
 
-function isSameOrigin(requestUrl: URL, value: string): boolean {
+function isLoopbackHostname(hostname: string): boolean {
+  return ["localhost", "127.0.0.1", "::1", "[::1]"].includes(hostname.toLowerCase())
+}
+
+function externalRequestOrigins(requestUrl: URL, headers: HeaderReader): URL[] {
+  const origins = [new URL(requestUrl.origin)]
+  const forwardedProto = headers.get("x-forwarded-proto")?.split(",")[0]?.trim()
+  const forwardedHost = headers.get("x-forwarded-host")?.split(",")[0]?.trim()
+  const host = forwardedHost || headers.get("host")?.trim()
+
+  if (host) {
+    const protocol = forwardedProto || requestUrl.protocol.replace(":", "")
+    try {
+      origins.push(new URL(protocol + "://" + host))
+    } catch {
+      // Ignore malformed proxy headers and keep checking the request URL origin.
+    }
+  }
+
+  return origins
+}
+
+function isSameOrigin(requestUrl: URL, headers: HeaderReader, value: string): boolean {
   if (value === "null") return false
 
   try {
     const parsed = new URL(value)
-    return parsed.protocol === requestUrl.protocol && parsed.host === requestUrl.host
+    return externalRequestOrigins(requestUrl, headers).some((allowed) => {
+      if (parsed.protocol !== allowed.protocol) return false
+      if (parsed.host === allowed.host) return true
+      return parsed.port === allowed.port && isLoopbackHostname(parsed.hostname) && isLoopbackHostname(allowed.hostname)
+    })
   } catch {
     return false
   }
@@ -136,7 +162,7 @@ function sameOriginDecision(input: RequestGuardInput): RequestGuardDecision {
   }
 
   const origin = input.headers.get("origin")
-  if (origin && !isSameOrigin(requestUrl, origin)) {
+  if (origin && !isSameOrigin(requestUrl, input.headers, origin)) {
     return {
       allowed: false,
       status: 403,
@@ -145,7 +171,7 @@ function sameOriginDecision(input: RequestGuardInput): RequestGuardDecision {
   }
 
   const referer = input.headers.get("referer")
-  if (!origin && referer && !isSameOrigin(requestUrl, referer)) {
+  if (!origin && referer && !isSameOrigin(requestUrl, input.headers, referer)) {
     return {
       allowed: false,
       status: 403,
