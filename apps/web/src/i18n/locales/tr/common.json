@@ -1,3 +1,20 @@
 {
-  "status.sent": "Gonderildi"
+  "status.sent": "Gonderildi",
+  "login.title.setup": "Kayit ol",
+  "login.title.login": "Giris yap",
+  "login.description.setup": "Ilk kullaniciyi olusturun. Sonra kurulum otomatik olarak kapanir.",
+  "login.description.login": "Aktif bir uygulama kullanicisiyle giris yapin.",
+  "login.mode.setup": "Kayit ol",
+  "login.mode.login": "Login",
+  "login.field.name": "Ad",
+  "login.field.email": "E-posta",
+  "login.field.password": "Sifre",
+  "login.placeholder.name": "Ilk kullanici",
+  "login.placeholder.password": "En az 12 karakter",
+  "login.submitting": "Lutfen bekleyin...",
+  "login.submit.setup": "Ilk kullaniciyi olustur",
+  "login.submit.login": "Giris yap",
+  "login.success.setup": "Ilk kullanici olusturuldu.",
+  "login.success.login": "Giris basarili.",
+  "login.error.generic": "Giris islenemedi."
 }

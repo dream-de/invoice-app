@@ -1,3 +1,20 @@
 {
-  "status.sent": "Wyslane"
+  "status.sent": "Wyslane",
+  "login.title.setup": "Rejestracja",
+  "login.title.login": "Logowanie",
+  "login.description.setup": "Utworz pierwszego uzytkownika. Potem konfiguracja zamknie sie automatycznie.",
+  "login.description.login": "Zaloguj sie aktywnym uzytkownikiem aplikacji.",
+  "login.mode.setup": "Rejestracja",
+  "login.mode.login": "Login",
+  "login.field.name": "Nazwa",
+  "login.field.email": "E-mail",
+  "login.field.password": "Haslo",
+  "login.placeholder.name": "Pierwszy uzytkownik",
+  "login.placeholder.password": "Co najmniej 12 znakow",
+  "login.submitting": "Prosze czekac...",
+  "login.submit.setup": "Utworz pierwszego uzytkownika",
+  "login.submit.login": "Zaloguj",
+  "login.success.setup": "Pierwszy uzytkownik zostal utworzony.",
+  "login.success.login": "Logowanie udane.",
+  "login.error.generic": "Nie mozna przetworzyc logowania."
 }

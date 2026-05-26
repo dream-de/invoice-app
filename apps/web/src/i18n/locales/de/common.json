@@ -1,3 +1,20 @@
 {
-  "status.sent": "Gesendet"
+  "status.sent": "Gesendet",
+  "login.title.setup": "Registrieren",
+  "login.title.login": "Anmelden",
+  "login.description.setup": "Lege den ersten User an. Danach wird das Setup automatisch geschlossen.",
+  "login.description.login": "Melde dich mit einem aktiven App-Benutzer an.",
+  "login.mode.setup": "Registrieren",
+  "login.mode.login": "Login",
+  "login.field.name": "Name",
+  "login.field.email": "E-Mail",
+  "login.field.password": "Passwort",
+  "login.placeholder.name": "Erster User",
+  "login.placeholder.password": "Mindestens 12 Zeichen",
+  "login.submitting": "Bitte warten...",
+  "login.submit.setup": "Ersten User anlegen",
+  "login.submit.login": "Anmelden",
+  "login.success.setup": "Erster User wurde angelegt.",
+  "login.success.login": "Anmeldung erfolgreich.",
+  "login.error.generic": "Anmeldung konnte nicht verarbeitet werden."
 }

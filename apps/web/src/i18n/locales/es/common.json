@@ -1,3 +1,20 @@
 {
-  "status.sent": "Enviado"
+  "status.sent": "Enviado",
+  "login.title.setup": "Registrarse",
+  "login.title.login": "Iniciar sesion",
+  "login.description.setup": "Crea el primer usuario. Despues, la configuracion se cerrara automaticamente.",
+  "login.description.login": "Inicia sesion con un usuario activo de la app.",
+  "login.mode.setup": "Registrarse",
+  "login.mode.login": "Login",
+  "login.field.name": "Nombre",
+  "login.field.email": "Email",
+  "login.field.password": "Contrasena",
+  "login.placeholder.name": "Primer usuario",
+  "login.placeholder.password": "Minimo 12 caracteres",
+  "login.submitting": "Espera...",
+  "login.submit.setup": "Crear primer usuario",
+  "login.submit.login": "Iniciar sesion",
+  "login.success.setup": "Primer usuario creado.",
+  "login.success.login": "Sesion iniciada correctamente.",
+  "login.error.generic": "No se pudo procesar el inicio de sesion."
 }

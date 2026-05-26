@@ -1,3 +1,20 @@
 {
-  "status.sent": "Sent"
+  "status.sent": "Sent",
+  "login.title.setup": "Register",
+  "login.title.login": "Sign in",
+  "login.description.setup": "Create the first user. After that, setup will close automatically.",
+  "login.description.login": "Sign in with an active app user.",
+  "login.mode.setup": "Register",
+  "login.mode.login": "Login",
+  "login.field.name": "Name",
+  "login.field.email": "Email",
+  "login.field.password": "Password",
+  "login.placeholder.name": "First user",
+  "login.placeholder.password": "At least 12 characters",
+  "login.submitting": "Please wait...",
+  "login.submit.setup": "Create first user",
+  "login.submit.login": "Sign in",
+  "login.success.setup": "First user has been created.",
+  "login.success.login": "Signed in successfully.",
+  "login.error.generic": "Sign-in could not be processed."
 }

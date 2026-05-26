@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { useLanguage } from "@/lib/i18n"
 
 type Mode = "login" | "setup"
 
@@ -20,6 +21,7 @@ function getError(result: unknown, fallback: string) {
 
 export function LoginClient({ setupAvailable }: { setupAvailable: boolean }) {
   const router = useRouter()
+  const { t } = useLanguage()
   const [mode, setMode] = useState<Mode>(setupAvailable ? "setup" : "login")
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
@@ -41,18 +43,18 @@ export function LoginClient({ setupAvailable }: { setupAvailable: boolean }) {
       const result = await response.json()
 
       if (!response.ok || !result.ok) {
-        setState({ type: "error", message: getError(result, "Anmeldung konnte nicht verarbeitet werden.") })
+        setState({ type: "error", message: getError(result, t("login.error.generic")) })
         return
       }
 
       const nextPath = new URL(window.location.href).searchParams.get("next")
       const safeNextPath = nextPath?.startsWith("/") && !nextPath.startsWith("//") ? nextPath : "/dashboard"
 
-      setState({ type: "success", message: mode === "setup" ? "Owner wurde angelegt." : "Anmeldung erfolgreich." })
+      setState({ type: "success", message: mode === "setup" ? t("login.success.setup") : t("login.success.login") })
       router.push(safeNextPath)
       router.refresh()
     } catch {
-      setState({ type: "error", message: "Anmeldung konnte nicht verarbeitet werden." })
+      setState({ type: "error", message: t("login.error.generic") })
     } finally {
       setIsSubmitting(false)
     }
@@ -63,12 +65,10 @@ export function LoginClient({ setupAvailable }: { setupAvailable: boolean }) {
       <section className="mx-auto max-w-md rounded-[32px] border border-[#e5eaf0] bg-white p-8 shadow-[0_24px_70px_rgba(15,23,42,0.12)]">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#94a3b8]">Dream Invoice</p>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight text-[#111827]">
-          {mode === "setup" ? "Initialen Owner anlegen" : "Anmelden"}
+          {mode === "setup" ? t("login.title.setup") : t("login.title.login")}
         </h1>
         <p className="mt-3 text-sm font-medium leading-6 text-[#64748b]">
-          {mode === "setup"
-            ? "Lege den ersten lokalen Owner an. Danach wird das Setup automatisch geschlossen."
-            : "Melde dich mit einem aktiven App-Benutzer an."}
+          {mode === "setup" ? t("login.description.setup") : t("login.description.login")}
         </p>
 
         {setupAvailable ? (
@@ -78,14 +78,14 @@ export function LoginClient({ setupAvailable }: { setupAvailable: boolean }) {
               onClick={() => setMode("setup")}
               className={`rounded-full px-4 py-2 ${mode === "setup" ? "bg-white text-[#111827] shadow-sm" : "text-[#64748b]"}`}
             >
-              Setup
+              {t("login.mode.setup")}
             </button>
             <button
               type="button"
               onClick={() => setMode("login")}
               className={`rounded-full px-4 py-2 ${mode === "login" ? "bg-white text-[#111827] shadow-sm" : "text-[#64748b]"}`}
             >
-              Login
+              {t("login.mode.login")}
             </button>
           </div>
         ) : null}
@@ -93,18 +93,18 @@ export function LoginClient({ setupAvailable }: { setupAvailable: boolean }) {
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           {mode === "setup" ? (
             <label className="block text-sm font-semibold text-[#111827]">
-              Name
+              {t("login.field.name")}
               <input
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 className="mt-2 min-h-12 w-full rounded-[16px] border border-[#dbe3ec] bg-[#f8fafc] px-4 text-sm font-medium outline-none focus:border-[#94a3b8] focus:bg-white"
-                placeholder="Owner Name"
+                placeholder={t("login.placeholder.name")}
               />
             </label>
           ) : null}
 
           <label className="block text-sm font-semibold text-[#111827]">
-            E-Mail
+            {t("login.field.email")}
             <input
               required
               type="email"
@@ -116,14 +116,14 @@ export function LoginClient({ setupAvailable }: { setupAvailable: boolean }) {
           </label>
 
           <label className="block text-sm font-semibold text-[#111827]">
-            Passwort
+            {t("login.field.password")}
             <input
               required
               type="password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               className="mt-2 min-h-12 w-full rounded-[16px] border border-[#dbe3ec] bg-[#f8fafc] px-4 text-sm font-medium outline-none focus:border-[#94a3b8] focus:bg-white"
-              placeholder="Mindestens 12 Zeichen"
+              placeholder={t("login.placeholder.password")}
             />
           </label>
 
@@ -132,7 +132,7 @@ export function LoginClient({ setupAvailable }: { setupAvailable: boolean }) {
             disabled={isSubmitting}
             className="min-h-12 w-full rounded-full bg-[#111827] px-5 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(15,23,42,0.18)] transition hover:bg-[#020617] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isSubmitting ? "Bitte warten..." : mode === "setup" ? "Owner anlegen" : "Anmelden"}
+            {isSubmitting ? t("login.submitting") : mode === "setup" ? t("login.submit.setup") : t("login.submit.login")}
           </button>
         </form>
 

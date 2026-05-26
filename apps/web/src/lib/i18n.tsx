@@ -10,7 +10,18 @@ function readLanguage(): AppLanguage {
   if (typeof window === "undefined") return DEFAULT_LANGUAGE
 
   const stored = window.localStorage.getItem(LANGUAGE_STORAGE_KEY)
-  return isAppLanguage(stored) ? stored : DEFAULT_LANGUAGE
+  if (isAppLanguage(stored)) return stored
+
+  const browserLanguages = window.navigator.languages.length > 0 ? window.navigator.languages : [window.navigator.language]
+  for (const browserLanguage of browserLanguages) {
+    const normalizedLanguage = browserLanguage.toLowerCase()
+    const primaryLanguage = normalizedLanguage.split("-")[0] ?? normalizedLanguage
+
+    if (isAppLanguage(normalizedLanguage)) return normalizedLanguage
+    if (isAppLanguage(primaryLanguage)) return primaryLanguage
+  }
+
+  return DEFAULT_LANGUAGE
 }
 
 export function setStoredLanguage(language: AppLanguage) {

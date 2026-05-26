@@ -1,3 +1,20 @@
 {
-  "status.sent": "Verzonden"
+  "status.sent": "Verzonden",
+  "login.title.setup": "Registreren",
+  "login.title.login": "Aanmelden",
+  "login.description.setup": "Maak de eerste gebruiker aan. Daarna wordt de setup automatisch gesloten.",
+  "login.description.login": "Meld je aan met een actieve app-gebruiker.",
+  "login.mode.setup": "Registreren",
+  "login.mode.login": "Login",
+  "login.field.name": "Naam",
+  "login.field.email": "E-mail",
+  "login.field.password": "Wachtwoord",
+  "login.placeholder.name": "Eerste gebruiker",
+  "login.placeholder.password": "Minimaal 12 tekens",
+  "login.submitting": "Even wachten...",
+  "login.submit.setup": "Eerste gebruiker maken",
+  "login.submit.login": "Aanmelden",
+  "login.success.setup": "Eerste gebruiker is aangemaakt.",
+  "login.success.login": "Succesvol aangemeld.",
+  "login.error.generic": "Aanmelden kon niet worden verwerkt."
 }

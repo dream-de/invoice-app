@@ -1,3 +1,20 @@
 {
-  "status.sent": "Enviado"
+  "status.sent": "Enviado",
+  "login.title.setup": "Registrar",
+  "login.title.login": "Entrar",
+  "login.description.setup": "Crie o primeiro usuario. Depois, a configuracao sera fechada automaticamente.",
+  "login.description.login": "Entre com um usuario ativo do app.",
+  "login.mode.setup": "Registrar",
+  "login.mode.login": "Login",
+  "login.field.name": "Nome",
+  "login.field.email": "Email",
+  "login.field.password": "Senha",
+  "login.placeholder.name": "Primeiro usuario",
+  "login.placeholder.password": "Pelo menos 12 caracteres",
+  "login.submitting": "Aguarde...",
+  "login.submit.setup": "Criar primeiro usuario",
+  "login.submit.login": "Entrar",
+  "login.success.setup": "Primeiro usuario criado.",
+  "login.success.login": "Login realizado com sucesso.",
+  "login.error.generic": "Nao foi possivel processar o login."
 }

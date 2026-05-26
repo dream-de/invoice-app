@@ -1,3 +1,20 @@
 {
-  "status.sent": "Envoye"
+  "status.sent": "Envoye",
+  "login.title.setup": "S'inscrire",
+  "login.title.login": "Connexion",
+  "login.description.setup": "Creez le premier utilisateur. Ensuite, la configuration se ferme automatiquement.",
+  "login.description.login": "Connectez-vous avec un utilisateur actif de l'application.",
+  "login.mode.setup": "S'inscrire",
+  "login.mode.login": "Login",
+  "login.field.name": "Nom",
+  "login.field.email": "E-mail",
+  "login.field.password": "Mot de passe",
+  "login.placeholder.name": "Premier utilisateur",
+  "login.placeholder.password": "Au moins 12 caracteres",
+  "login.submitting": "Veuillez patienter...",
+  "login.submit.setup": "Creer le premier utilisateur",
+  "login.submit.login": "Se connecter",
+  "login.success.setup": "Le premier utilisateur a ete cree.",
+  "login.success.login": "Connexion reussie.",
+  "login.error.generic": "La connexion n'a pas pu etre traitee."
 }
