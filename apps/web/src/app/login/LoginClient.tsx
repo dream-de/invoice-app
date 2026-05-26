@@ -45,8 +45,11 @@ export function LoginClient({ setupAvailable }: { setupAvailable: boolean }) {
         return
       }
 
+      const nextPath = new URL(window.location.href).searchParams.get("next")
+      const safeNextPath = nextPath?.startsWith("/") && !nextPath.startsWith("//") ? nextPath : "/dashboard"
+
       setState({ type: "success", message: mode === "setup" ? "Owner wurde angelegt." : "Anmeldung erfolgreich." })
-      router.push("/dashboard")
+      router.push(safeNextPath)
       router.refresh()
     } catch {
       setState({ type: "error", message: "Anmeldung konnte nicht verarbeitet werden." })

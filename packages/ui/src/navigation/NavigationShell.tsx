@@ -11,6 +11,12 @@ type NavigationItem = {
   icon?: string
 }
 
+type NavigationShellUser = {
+  name?: string | null
+  email?: string | null
+  role?: string | null
+}
+
 type NavigationShellProps = {
   title: string
   items: NavigationItem[]
@@ -19,6 +25,10 @@ type NavigationShellProps = {
   searchLabel?: string
   settingsLabel?: string
   notificationsLabel?: string
+  currentUser?: NavigationShellUser | null
+  profileLabel?: string
+  logoutLabel?: string
+  onLogout?: () => void | Promise<void>
 }
 
 type EmailLogEntry = {
@@ -74,6 +84,16 @@ function SearchIcon() {
   )
 }
 
+function getUserInitials(user: NavigationShellUser) {
+  const source = user.name || user.email || "User"
+  const parts = source
+    .split(/[\s@._-]+/)
+    .map((part) => part.trim())
+    .filter(Boolean)
+
+  return (parts[0]?.[0] ?? "U").concat(parts[1]?.[0] ?? "").toUpperCase()
+}
+
 function BellIcon() {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24" className="h-[17px] w-[17px]" fill="none">
@@ -106,11 +126,17 @@ export function NavigationShell({
   children,
   searchLabel = "Suchen…",
   settingsLabel = "Einstellungen",
-  notificationsLabel = "Benachrichtigungen"
+  notificationsLabel = "Benachrichtigungen",
+  currentUser = null,
+  profileLabel = "Profil",
+  logoutLabel = "Abmelden",
+  onLogout
 }: NavigationShellProps) {
   const pathname = usePathname()
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [emailConfigured, setEmailConfigured] = useState<boolean | null>(null)
   const [emailLog, setEmailLog] = useState<EmailLogEntry[]>([])
@@ -154,6 +180,7 @@ export function NavigationShell({
   useEffect(() => {
     setNotificationsOpen(false)
     setSearchOpen(false)
+    setUserMenuOpen(false)
     setSearchQuery("")
   }, [pathname])
 
@@ -168,6 +195,7 @@ export function NavigationShell({
       if (event.key === "Escape") {
         setSearchOpen(false)
         setNotificationsOpen(false)
+        setUserMenuOpen(false)
       }
     }
 
@@ -258,6 +286,19 @@ export function NavigationShell({
   }, [emailConfigured, emailLog, isEnglish])
 
   const notificationCount = notifications.filter((item) => item.id !== "all-good").length
+  const userInitials = currentUser ? getUserInitials(currentUser) : ""
+
+  async function handleLogout() {
+    if (!onLogout || isLoggingOut) return
+
+    setIsLoggingOut(true)
+    try {
+      await onLogout()
+    } finally {
+      setIsLoggingOut(false)
+      setUserMenuOpen(false)
+    }
+  }
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[var(--bg-app)] text-slate-950">
@@ -304,6 +345,7 @@ export function NavigationShell({
                 onClick={() => {
                   setSearchOpen((open) => !open)
                   setNotificationsOpen(false)
+                  setUserMenuOpen(false)
                 }}
                 aria-label={searchLabel}
                 aria-expanded={searchOpen}
@@ -364,7 +406,11 @@ export function NavigationShell({
                 type="button"
                 aria-label={notificationsLabel}
                 aria-expanded={notificationsOpen}
-                onClick={() => setNotificationsOpen((open) => !open)}
+                onClick={() => {
+                  setNotificationsOpen((open) => !open)
+                  setUserMenuOpen(false)
+                  setSearchOpen(false)
+                }}
                 className={`invoice-header-icon invoice-header-bell ${notificationsOpen ? "invoice-header-icon-active" : ""} ${focusRing}`}
               >
                 <BellIcon />
@@ -426,6 +472,45 @@ export function NavigationShell({
                 </div>
               ) : null}
             </div>
+
+            {currentUser ? (
+              <div className="invoice-user-wrap">
+                <button
+                  type="button"
+                  aria-label={profileLabel}
+                  aria-expanded={userMenuOpen}
+                  onClick={() => {
+                    setUserMenuOpen((open) => !open)
+                    setNotificationsOpen(false)
+                    setSearchOpen(false)
+                  }}
+                  className={`invoice-user-button ${userMenuOpen ? "invoice-header-icon-active" : ""} ${focusRing}`}
+                >
+                  {userInitials}
+                </button>
+
+                {userMenuOpen ? (
+                  <div className="invoice-user-panel" role="dialog" aria-label={profileLabel}>
+                    <div className="invoice-user-panel-head">
+                      <span className="invoice-user-avatar">{userInitials}</span>
+                      <span className="min-w-0">
+                        <span className="invoice-user-name">{currentUser.name || currentUser.email}</span>
+                        <span className="invoice-user-email">{currentUser.email}</span>
+                      </span>
+                    </div>
+                    {currentUser.role ? <p className="invoice-user-role">{currentUser.role}</p> : null}
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      disabled={isLoggingOut}
+                      className={`invoice-user-logout ${focusRing}`}
+                    >
+                      {isLoggingOut ? "..." : logoutLabel}
+                    </button>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         </div>
       </header>
