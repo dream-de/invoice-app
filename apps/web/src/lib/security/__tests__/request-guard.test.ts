@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import { describe, it } from "node:test"
-import { evaluateRequestGuard } from "@dream-invoice/auth"
+import { evaluateAppRequestGuard, evaluateRequestGuard } from "@dream-invoice/auth"
+import { createSessionToken, SESSION_COOKIE_NAME } from "@/lib/auth/session"
 
 function headers(values: Record<string, string> = {}) {
   const normalized = new Map(
@@ -87,6 +88,68 @@ describe("request guard", () => {
       url: "https://invoice.test/api/articles/create",
       headers: headers({ origin: "https://invoice.test" }),
       env: {}
+    })
+
+    assert.equal(decision.allowed, true)
+  })
+
+  it("allows public login and auth endpoints without an app session", async () => {
+    const login = await evaluateAppRequestGuard({
+      method: "GET",
+      url: "https://invoice.test/login",
+      headers: headers(),
+      env: { AUTH_SECRET: "test-secret" },
+      protectAppSession: true
+    })
+
+    const auth = await evaluateAppRequestGuard({
+      method: "POST",
+      url: "https://invoice.test/api/auth/login",
+      headers: headers({ origin: "https://invoice.test" }),
+      env: { AUTH_SECRET: "test-secret" },
+      protectAppSession: true
+    })
+
+    assert.equal(login.allowed, true)
+    assert.equal(auth.allowed, true)
+  })
+
+  it("requires a valid app session for protected pages and APIs", async () => {
+    const page = await evaluateAppRequestGuard({
+      method: "GET",
+      url: "https://invoice.test/dashboard",
+      headers: headers(),
+      env: { AUTH_SECRET: "test-secret" },
+      protectAppSession: true
+    })
+
+    const api = await evaluateAppRequestGuard({
+      method: "GET",
+      url: "https://invoice.test/api/invoice/list",
+      headers: headers(),
+      env: { AUTH_SECRET: "test-secret" },
+      protectAppSession: true
+    })
+
+    assert.equal(page.allowed, false)
+    assert.equal(page.status, 401)
+    assert.equal(page.redirectTo, "/login")
+    assert.equal(api.allowed, false)
+    assert.equal(api.status, 401)
+  })
+
+  it("accepts a signed non-expired app session", async () => {
+    const token = createSessionToken("user_1", {
+      secret: "test-secret",
+      now: new Date("2026-05-26T10:00:00.000Z")
+    })
+
+    const decision = await evaluateAppRequestGuard({
+      method: "GET",
+      url: "https://invoice.test/dashboard",
+      headers: headers({ cookie: `${SESSION_COOKIE_NAME}=${token}` }),
+      env: { AUTH_SECRET: "test-secret" },
+      protectAppSession: true
     })
 
     assert.equal(decision.allowed, true)

@@ -1,19 +1,29 @@
 import type { NextRequest } from "next/server"
 import { NextResponse } from "next/server"
-import { evaluateRequestGuard } from "@dream-invoice/auth"
+import { evaluateAppRequestGuard } from "@dream-invoice/auth"
 
-export function proxy(request: NextRequest) {
-  const decision = evaluateRequestGuard({
+export async function proxy(request: NextRequest) {
+  const decision = await evaluateAppRequestGuard({
     method: request.method,
     url: request.url,
     headers: request.headers,
     env: process.env,
     basicAuthUserEnv: "DREAM_INVOICE_AUTH_USER",
     basicAuthPasswordEnv: "DREAM_INVOICE_AUTH_PASSWORD",
-    basicAuthRequiredEnv: "DREAM_INVOICE_AUTH_REQUIRED"
+    basicAuthRequiredEnv: "DREAM_INVOICE_AUTH_REQUIRED",
+    protectAppSession: true,
+    sessionSecretEnv: "AUTH_SECRET",
+    publicPaths: ["/login", "/api/auth"]
   })
 
   if (decision.allowed) return NextResponse.next()
+
+  if (decision.redirectTo && !request.nextUrl.pathname.startsWith("/api/")) {
+    const loginUrl = request.nextUrl.clone()
+    loginUrl.pathname = decision.redirectTo
+    loginUrl.searchParams.set("next", request.nextUrl.pathname + request.nextUrl.search)
+    return NextResponse.redirect(loginUrl)
+  }
 
   const headers = new Headers(decision.headers)
   headers.set("content-type", "application/json; charset=utf-8")
