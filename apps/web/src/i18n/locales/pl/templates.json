@@ -140,5 +140,15 @@
   "templates.editor.layers.name.footerCompany": "footer_company",
   "templates.editor.layers.name.footerContact": "footer_contact",
   "templates.editor.layers.name.footerBank": "footer_bank",
-  "templates.editor.layers.name.line": "LINE"
+  "templates.editor.layers.name.line": "LINE",
+  "templates.editor.legalCheck.ok": "Wszystko w porzadku. DIN i wymagane dane sa w szablonie.",
+  "templates.editor.legalCheck.missingIntro": "Sprawdz:",
+  "templates.editor.legalCheck.missing.a4": "Strona A4",
+  "templates.editor.legalCheck.missing.customer": "Adres klienta",
+  "templates.editor.legalCheck.missing.number": "Numer dokumentu",
+  "templates.editor.legalCheck.missing.date": "Data",
+  "templates.editor.legalCheck.missing.company": "Nadawca/firma",
+  "templates.editor.legalCheck.missing.items": "Tabela uslug lub artykulow",
+  "templates.editor.legalCheck.missing.total": "Kwota laczna",
+  "templates.editor.legalCheck.missing.payment": "Dane platnosci"
 }

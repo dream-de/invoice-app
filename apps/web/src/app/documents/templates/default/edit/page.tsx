@@ -6,6 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Input } from "@dream-invoice/ui";
 import { DocumentCanvas } from "@/components/document-editor/DocumentCanvas";
 import { DEFAULT_INVOICE_TEMPLATE } from "@/lib/document-templates/constants";
+import { checkTemplateLegalBasics } from "@/lib/document-templates/legal-check";
 import { FONT_OPTIONS, INVOICE_LAYER_NAMES, INVOICE_LAYER_Z, LAYER_TYPE_ICON, createDynamicTokenGroups, getElementTypeLabel, getInvoiceLayerName } from "@/lib/document-templates/editor-options";
 import { createTemplatePreviewInvoice } from "@/lib/document-templates/preview";
 import { DEFAULT_TABLE_CONFIG, calculateTemplateAutoScale, decreaseTemplateScale, deepClone, increaseTemplateScale, cloneTemplateElement, createTemplateElement, duplicateTemplateElements, moveTemplateLayer, moveTemplateLayerTo, removeTemplateElement, removeTemplateElements, getTemplateElementForClipboard, isEditableShortcutTarget, moveTemplateElementWithKeyboard, createTemplateSavePayload } from "@/lib/document-templates/editor-utils";
@@ -66,6 +67,17 @@ export default function DefaultTemplateEditPage() {
   };
 
   const preview = createTemplatePreviewInvoice(t);
+
+  function runLegalCheck() {
+    const result = checkTemplateLegalBasics(template);
+    if (result.ok) {
+      setStatusMsg(t("templates.editor.legalCheck.ok"));
+      return;
+    }
+
+    const labels = result.missing.map((key) => t(`templates.editor.legalCheck.missing.${key}`));
+    setStatusMsg(`${t("templates.editor.legalCheck.missingIntro")} ${labels.join(", ")}`);
+  }
 
   useEffect(() => {
     const updateScale = () => {
@@ -642,6 +654,11 @@ export default function DefaultTemplateEditPage() {
 
   return (
     <div className="dark-template-editor fixed inset-0 z-[140] overflow-hidden bg-white text-slate-950">
+      {statusMsg && (
+        <div role="status" className="pointer-events-none fixed left-1/2 top-5 z-[180] max-w-[min(560px,calc(100vw-32px))] -translate-x-1/2 rounded-full border border-emerald-400/25 bg-[#111111]/95 px-5 py-3 text-center text-xs font-black text-[var(--brand-lime)] shadow-[0_18px_45px_rgba(0,0,0,0.35)]">
+          {statusMsg}
+        </div>
+      )}
       <div className="flex h-10 items-center justify-between border-b border-slate-200 bg-white px-4">
         <div className="flex items-center gap-2 font-black">
           <span className="text-[var(--brand-lime)]">B</span>
@@ -669,7 +686,6 @@ export default function DefaultTemplateEditPage() {
               <button type="button" onClick={() => saveTemplate()} disabled={isSaving} className="min-h-10 rounded-full bg-[var(--brand-lime)] px-3 text-xs font-black text-black shadow-[0_14px_34px_rgba(217,249,68,0.14)]">{isSaving ? t("templates.editor.left.saving") : t("templates.editor.left.save")}</button>
               <button type="button" onClick={() => saveTemplate(`${templateName} ${t("templates.editor.left.copySuffix")}`, true)} disabled={isSaving} className="min-h-10 rounded-full border border-white/10 bg-white/[0.045] px-3 text-xs font-black text-white/78 hover:bg-white/8 hover:text-white">{t("templates.editor.left.saveCopy")}</button>
             </div>
-            {statusMsg && <p className="mt-3 text-xs font-bold text-[var(--brand-lime)]">{statusMsg}</p>}
 
             <div className="mt-8">
               <p className="text-[22px] font-black leading-none text-white">{t("templates.editor.left.title")}</p>
@@ -687,15 +703,15 @@ export default function DefaultTemplateEditPage() {
             </div>
 
             <div className="mt-6 border-t border-white/8 pt-5">
-              <div className="rounded-[22px] border border-white/10 bg-white/[0.045] px-3 py-2.5">
+              <button type="button" onClick={runLegalCheck} className="w-full rounded-[22px] border border-white/10 bg-white/[0.045] px-3 py-2.5 text-left transition hover:border-emerald-400/35 hover:bg-emerald-400/8">
                 <div className="flex items-center gap-4">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/16 text-emerald-400">♧</span>
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/16 text-emerald-400">✓</span>
                   <div>
                     <p className="text-sm font-black text-white">{t("templates.editor.left.legalCheck.title")}</p>
                     <p className="text-xs font-semibold text-white/34">{t("templates.editor.left.legalCheck.subtitle")}</p>
                   </div>
                 </div>
-              </div>
+              </button>
             </div>
           </div>
           <div className="shrink-0 border-t border-white/8 bg-[#0f0f0f] pt-5">

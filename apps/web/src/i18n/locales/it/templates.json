@@ -140,5 +140,15 @@
   "templates.editor.layers.name.footerCompany": "footer_company",
   "templates.editor.layers.name.footerContact": "footer_contact",
   "templates.editor.layers.name.footerBank": "footer_bank",
-  "templates.editor.layers.name.line": "LINE"
+  "templates.editor.layers.name.line": "LINE",
+  "templates.editor.legalCheck.ok": "Tutto a posto. DIN e dati obbligatori sono presenti nel modello.",
+  "templates.editor.legalCheck.missingIntro": "Controllare:",
+  "templates.editor.legalCheck.missing.a4": "Pagina A4",
+  "templates.editor.legalCheck.missing.customer": "Indirizzo cliente",
+  "templates.editor.legalCheck.missing.number": "Numero documento",
+  "templates.editor.legalCheck.missing.date": "Data",
+  "templates.editor.legalCheck.missing.company": "Mittente/azienda",
+  "templates.editor.legalCheck.missing.items": "Tabella servizi o articoli",
+  "templates.editor.legalCheck.missing.total": "Importo totale",
+  "templates.editor.legalCheck.missing.payment": "Dati di pagamento"
 }
