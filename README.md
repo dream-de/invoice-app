@@ -60,8 +60,11 @@ git clone https://github.com/dream-de/invoice-app.git
 cd invoice-app
 cp .env.example .env
 nano .env
+```
 
-# ------------------------------------------------------------
+Start the stack:
+
+```bash
 
 docker compose up -d
 ```
