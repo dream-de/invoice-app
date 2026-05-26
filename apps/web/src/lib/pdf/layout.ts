@@ -111,6 +111,24 @@ function elementStyle(element: DocumentElement) {
   ].join(";")
 }
 
+function getTableHeaders(element: DocumentElement) {
+  const variant = String(element.content ?? "").trim().toLowerCase()
+  const headersByVariant: Record<string, [string, string, string, string]> = {
+    default: ["Position", "Menge", "Einzel", "Gesamt"],
+    service: ["Leistung", "Menge", "Einzel", "Betrag"],
+    vehicle: ["Leistung / Teil", "Anzahl", "Einzel", "Betrag"],
+    workshop: ["Arbeit / Teil", "Menge", "Einzel", "Betrag"],
+    it: ["Service / Zeitraum", "Menge", "Einzel", "Betrag"],
+    gastronomy: ["Speisen / Service", "Menge", "Einzel", "Betrag"],
+    retail: ["Artikel", "Menge", "Einzel", "Summe"],
+    wholesale: ["Warenposition", "Menge", "Einzel", "Summe"],
+    beverage: ["Getraenke / Pfand", "Menge", "Einzel", "Summe"],
+    offer: ["Leistung / Umfang", "Menge", "Einzel", "Angebot"]
+  }
+
+  return headersByVariant[variant] ?? headersByVariant.default
+}
+
 function renderTemplateElement(element: DocumentElement, props: PdfLayoutProps) {
   if (element.type === "paymentQr") {
     if (!props.paymentQrDataUrl) return ""
@@ -134,6 +152,7 @@ function renderTemplateElement(element: DocumentElement, props: PdfLayoutProps) 
   }
 
   if (element.type === "table") {
+    const [descriptionHeader, quantityHeader, unitHeader, totalHeader] = getTableHeaders(element)
     const rows = props.positions
       .map(
         (item) => `
@@ -152,10 +171,10 @@ function renderTemplateElement(element: DocumentElement, props: PdfLayoutProps) 
         <table>
           <thead>
             <tr>
-              <th>Position</th>
-              <th class="right">Menge</th>
-              <th class="right">Einzel</th>
-              <th class="right">Gesamt</th>
+              <th>${escapeHtml(descriptionHeader)}</th>
+              <th class="right">${escapeHtml(quantityHeader)}</th>
+              <th class="right">${escapeHtml(unitHeader)}</th>
+              <th class="right">${escapeHtml(totalHeader)}</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
