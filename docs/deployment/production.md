@@ -1,122 +1,105 @@
 # Production Deployment
 
-Dream Invoice can run behind Docker and a reverse proxy. The repository includes a production-style Compose stack, but a real production deployment still needs secure secrets, HTTPS, backups, and operational monitoring.
+This guide describes a Docker-based Dream Invoice installation for a self-hosted server or LXC.
 
-## Required Production Secrets
+## 1. Environment
 
-Never use development defaults in production. Generate strong values with:
+Create `.env` from `.env.example` and review every value before starting the stack.
+
+Recommended secret generator:
 
 ```bash
 openssl rand -base64 32
 ```
 
-Set at least:
+Important values:
 
-```env
-AUTH_SECRET=<generated-secret>
-POSTGRES_PASSWORD=<generated-secret>
-POSTGRES_USER=dream_invoice
-POSTGRES_DB=dream_invoice
-DATABASE_URL=postgresql://dream_invoice:<generated-secret>@postgres:5432/dream_invoice
+- `AUTH_SECRET`
+- `POSTGRES_PASSWORD`
+- `DREAM_INVOICE_AUTH_PASSWORD`
+- `DREAM_INVOICE_ADMIN_PASSWORD`
+- `DATABASE_URL`
+- `LICENSE_PUBLIC_KEY`
+- SMTP settings, when email delivery is enabled
+
+`LICENSE_PUBLIC_KEY` is the verification key used by the app. License signing keys stay in the license tooling environment.
+
+## 2. Product Stack
+
+Start the product stack from the repository root:
+
+```bash
+docker compose up -d
 ```
 
-Keep production `.env` files outside Git.
+The stack starts:
 
-## Deployment Authentication
+- PostgreSQL
+- Dream Invoice web app
+- Nginx app proxy
+- Optional worker profile, when enabled
 
-Dream Invoice is designed for self-hosted installations, but any instance exposed beyond a trusted local network should have an access gate. The web app supports deployment-level Basic Auth through environment variables:
+Demo and landing-page services are handled by `docker/public-site.compose.yml` and are separate from the product installation.
+
+## 3. Access
+
+The product app supports deployment-level authentication through:
 
 ```env
 DREAM_INVOICE_AUTH_USER=admin
-DREAM_INVOICE_AUTH_PASSWORD=<generated-secret>
-DREAM_INVOICE_AUTH_REQUIRED=true
-```
-
-When enabled, the browser UI and API routes require the configured credentials. Mutating API requests also have a Same-Origin guard by default, which blocks cross-site write attempts before they reach individual route handlers.
-
-The admin foundation is stricter: in production it fails closed unless an admin password is configured. Do not expose `apps/admin` publicly without:
-
-```env
+DREAM_INVOICE_AUTH_PASSWORD=your-generated-password
 DREAM_INVOICE_ADMIN_USER=admin
-DREAM_INVOICE_ADMIN_PASSWORD=<generated-secret>
-DREAM_INVOICE_ADMIN_AUTH_REQUIRED=true
+DREAM_INVOICE_ADMIN_PASSWORD=your-generated-admin-password
 ```
 
-## HTTPS and Reverse Proxy
+After first setup, app users and roles are managed inside Dream Invoice.
 
-Production traffic must use HTTPS. Recommended options:
+## 4. Reverse Proxy And TLS
 
-- Nginx Proxy Manager
-- Caddy
-- Traefik
-- Cloudflare Tunnel or Cloudflare reverse proxy
-- A managed platform with TLS termination
+Use a reverse proxy or hosting layer for HTTPS. The included Nginx container routes app traffic inside the Docker stack.
 
-Use HTTP-to-HTTPS redirects and enable HSTS only after the HTTPS setup is verified.
+Typical setup:
 
-## Public Exposure
+```text
+Internet -> HTTPS reverse proxy -> Docker Nginx -> Dream Invoice web app
+```
 
-The default product Compose stack is intentionally limited to the customer application:
+Set the app URL in `.env` when the deployment uses a domain.
 
-- `apps/web`: main application
-- PostgreSQL
-- Nginx app proxy
-- `apps/server-worker`: optional private worker profile
+## 5. Network Binding
 
-The product Docker image removes `apps/demo` and `apps/landing-page` after the web build so those public-only apps are not packaged into the runtime container.
+For a single-server install, bind PostgreSQL to localhost or leave it reachable only inside Docker. If the database is hosted elsewhere, use firewall rules or a restricted network between the app and database.
 
-The public demo and marketing page are separate from a customer/LXC installation. Deploy them only when intentionally hosting the public website stack:
+## 6. Database
 
-- `apps/demo`: public demo, via `docker/public-site.compose.yml`
-- `apps/landing-page`: public product page, via `docker/public-site.compose.yml`
-
-Keep internal foundations private unless deliberately deployed:
-
-- `apps/admin`
-- `apps/accounting`
-- `apps/server-api`
-- `apps/server-worker`
-- `apps/desktop`
-- `apps/pro-desktop`
-
-The worker should run as a scheduled or profile-based background process, not as a public HTTP service.
-
-Keep database and development tools private:
-
-- Bind `POSTGRES_PORT` to `127.0.0.1` unless you intentionally run PostgreSQL behind a separate private firewall or VPN.
-- Do not expose the development Docker stack publicly. It is only for local PostgreSQL, Mailpit, and Adminer testing.
-
-## System Time
-
-Keep the host clock synchronized with NTP or the time service provided by the hoster. License expiry checks and audit timestamps depend on correct system time.
-
-## Database Backups
-
-Create backups regularly:
+Run migrations during deployment:
 
 ```bash
-docker compose exec postgres pg_dump -U dream_invoice dream_invoice > backup.sql
+pnpm db:deploy
 ```
 
-Restore only into an environment where the target database is intended to be replaced:
+In Docker, migrations are applied through the app startup flow. Keep regular PostgreSQL backups and test restore steps before relying on them.
+
+## 7. Worker
+
+The worker processes scheduled jobs and background tasks. Start it only when the installation needs those jobs:
 
 ```bash
-cat backup.sql | docker compose exec -T postgres psql -U dream_invoice dream_invoice
+pnpm docker:worker
 ```
 
-## Production Checklist
+## 8. System Time
 
-Use the detailed [Production Checklist](./production-checklist.md) before exposing Dream Invoice to public traffic.
+Keep the server clock synchronized with NTP. License expiry, audit timestamps, sessions, invoices, reminders, and email logs depend on correct time.
 
-Minimum launch gates:
+## 9. Checks
 
-- [ ] Replace all development passwords and secrets
-- [ ] Configure deployment authentication for any public or shared-network instance
-- [ ] Configure HTTPS and HTTP-to-HTTPS redirects
-- [ ] Confirm `DATABASE_URL` points to the intended production database
-- [ ] Run `pnpm release:quality`
-- [ ] Confirm GitHub Actions is green
-- [ ] Configure and test backups
-- [ ] Verify no internal-only apps are publicly exposed
-- [ ] Verify customer/LXC installs do not start `demo-app` or `landing-page`
-- [ ] If the public website stack is enabled, verify `dream-invoice.com` and `demo.dream-invoice.com` route to the intended services
+Before handover:
+
+- `docker compose ps` shows healthy services
+- The app opens through the configured URL
+- Login and setup flow work
+- Migrations are applied
+- Backups are configured
+- `.env` contains deployment-specific secrets
+- `LICENSE_PUBLIC_KEY` is configured when license activation is used

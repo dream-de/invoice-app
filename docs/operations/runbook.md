@@ -1,190 +1,124 @@
 # Operations Runbook
 
-This runbook lists practical steps for common Dream Invoice operational incidents. It assumes a Docker-based product deployment using `docker-compose.yml`. The public demo and landing page use `docker/public-site.compose.yml` only when intentionally hosted.
+This runbook lists practical steps for common Dream Invoice operational tasks in Docker-based installations.
 
-## First Checks
-
-Run these commands before changing anything:
-
-```bash
-docker compose ps
-docker compose logs --tail=200
-pnpm release:check
-pnpm security:audit
-```
-
-Check Git state:
-
-```bash
-git status --short --branch
-git log --oneline -5
-```
-
-## Web App Is Down
-
-Symptoms:
-
-- Browser shows a 502, timeout, or blank response
-- Nginx is running but the web app is unhealthy
-
-Checks:
+## Check Stack Health
 
 ```bash
 docker compose ps
 docker compose logs --tail=200 web-app
 docker compose logs --tail=200 nginx
-```
-
-Recovery:
-
-```bash
-docker compose restart web-app
-docker compose ps
-```
-
-If the app still fails, verify environment variables and database connectivity before rebuilding.
-
-## Database Is Unhealthy
-
-Symptoms:
-
-- PostgreSQL health check fails
-- Prisma cannot connect
-- Login, settings, or document pages return server errors
-
-Checks:
-
-```bash
-docker compose ps postgres
 docker compose logs --tail=200 postgres
-docker compose exec postgres pg_isready -U dream_invoice -d dream_invoice
 ```
 
-Recovery:
+Expected:
 
-- Confirm that `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, and `DATABASE_URL` are consistent.
-- Confirm the database volume exists and was not replaced accidentally.
-- Restore from backup if the data volume is damaged.
+- PostgreSQL is healthy
+- Web app is healthy
+- Nginx proxy is healthy
+- App URL responds with HTTP 200 or redirects to login
 
-## Migration Fails
-
-Symptoms:
-
-- The app starts but exits during `db:deploy`
-- Logs mention Prisma migration errors
-
-Checks:
+## Restart The Product Stack
 
 ```bash
-docker compose logs --tail=300 web-app
-pnpm --filter @dream-invoice/database db:deploy
+docker compose restart
 ```
 
-Recovery:
-
-- Do not delete migration files.
-- Do not edit an already-applied migration in production.
-- Take a database backup before retrying.
-- If a migration partially applied, inspect the Prisma migration table and restore from backup when needed.
-
-## Worker Job Fails
-
-Symptoms:
-
-- Scheduled jobs do not run
-- Worker exits with an error
-
-Checks:
-
-```bash
-docker compose --profile worker ps
-docker compose --profile worker logs --tail=200 server-worker
-pnpm worker:server:smoke
-```
-
-Recovery:
-
-- Verify `SERVER_WORKER_MODE`, `SERVER_WORKER_SCHEDULE_FILE`, and `SERVER_WORKER_LIMIT`.
-- Run the worker manually once before enabling scheduled execution.
-- Keep the worker private; it should not be exposed as a public HTTP service.
-
-## Rollback Procedure
-
-Use this when a deployment causes a regression.
-
-1. Stop write-heavy operations if possible.
-2. Create a fresh database backup.
-3. Revert the application image or Git commit.
-4. Restart the affected services.
-5. Verify health checks, login, dashboard, document editing, and export flows.
-
-Suggested commands:
-
-```bash
-docker compose ps
-docker compose restart web-app nginx
-docker compose logs --tail=200 web-app
-```
-
-Database rollbacks require extra care. Prefer forward-fix migrations unless a backup restore is clearly safer.
-
-## Backup And Restore
-
-Create a backup:
-
-```bash
-docker compose exec postgres pg_dump -U dream_invoice dream_invoice > backup.sql
-```
-
-Restore a backup:
-
-```bash
-cat backup.sql | docker compose exec -T postgres psql -U dream_invoice dream_invoice
-```
-
-After restore:
+Restart one service:
 
 ```bash
 docker compose restart web-app
+```
+
+## Update Deployment
+
+```bash
+git pull
+pnpm db:deploy
+docker compose build
+docker compose up -d
+```
+
+Then run:
+
+```bash
 docker compose ps
 ```
 
-## Security Incident
+## Database Backup
 
-Examples:
-
-- A secret was committed
-- A production `.env` file leaked
-- A license signing key was exposed
-- Suspicious admin or database activity was detected
-
-Immediate actions:
-
-1. Rotate the affected secret.
-2. Revoke or replace affected credentials.
-3. Check Git history and remove exposed data where possible.
-4. Review application logs, database access, and recent deployments.
-5. Document the incident, impact, and recovery steps.
-
-See also:
-
-- [Secrets Rotation](../security/secrets-rotation.md)
-- [Production Deployment](../deployment/production.md)
-
-## Release Checklist
-
-Before a release:
+Example backup command:
 
 ```bash
-pnpm release:quality
-git status --short --branch
+docker compose exec postgres pg_dump -U dream_invoice dream_invoice > dream-invoice-backup.sql
 ```
 
-After deployment:
+Store backups outside the container volume and test restore steps regularly.
 
-- Confirm health checks are green.
-- Open the dashboard.
-- Create or edit a test document.
-- Verify PDF generation.
-- Verify settings pages.
-- Review logs for errors.
+## Database Restore
+
+Stop the app services, restore into PostgreSQL, then start the stack again.
+
+```bash
+docker compose stop web-app nginx
+docker compose exec -T postgres psql -U dream_invoice dream_invoice < dream-invoice-backup.sql
+docker compose up -d
+```
+
+## Migrations
+
+Apply migrations:
+
+```bash
+pnpm db:deploy
+```
+
+Check migration status:
+
+```bash
+pnpm --filter @dream-invoice/database prisma migrate status --schema ./prisma/schema.prisma
+```
+
+## Worker
+
+Start the optional worker profile:
+
+```bash
+pnpm docker:worker
+```
+
+Check worker logs:
+
+```bash
+docker compose logs -f server-worker
+```
+
+## Email
+
+For email issues:
+
+- Verify SMTP host, port, username, password, and sender address in `.env`
+- Test the email settings route in the app
+- Check app logs for SMTP connection errors
+- Confirm the mail provider accepts the configured sender
+
+## License
+
+For license activation issues:
+
+- Confirm `LICENSE_PUBLIC_KEY` is configured
+- Confirm server time is synchronized
+- Verify the license key belongs to the current signing key
+- Check user count against the license limit
+- Review app logs around activation time
+
+## Incident Notes
+
+For operational incidents, record:
+
+- Time of detection
+- Affected service
+- User-visible impact
+- Commands run
+- Backup or restore actions
+- Follow-up item

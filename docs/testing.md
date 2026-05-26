@@ -1,83 +1,75 @@
 # Testing
 
-Dream Invoice uses layered checks so small changes can be verified quickly while release candidates still run the complete quality gate.
+This page lists the checks used for Dream Invoice development, release candidates, and deployment verification.
 
-## Main Quality Gate
+## Full Quality Gate
 
-Run the full release quality gate before important commits, release candidates, or public pushes:
+Run the full local gate before important commits or release candidates:
 
 ```bash
 pnpm release:quality
 ```
 
-This runs linting, type checking, tests, builds, public release safety checks, and the security audit.
+This runs linting, type checking, tests, builds, release checks, and the dependency audit.
 
-## Public Release Checks
+## Release Checks
 
-Use this when changing demo data, landing-page content, README/docs, release files, or public repository metadata:
+Run this after changing demo content, landing-page content, README, docs, release files, or repository metadata:
 
 ```bash
 pnpm release:check
 ```
 
-It verifies that public demo and landing assets do not contain real customer data, private keys, legacy names, or unsafe reference material.
+## Package Checks
 
-## Security Audit
-
-Run this after dependency changes:
+Run targeted checks while working on a package or app:
 
 ```bash
-pnpm security:audit
-```
-
-The command fails on moderate or higher known vulnerabilities reported by pnpm.
-
-## Web App Checks
-
-For changes limited to the main web app:
-
-```bash
-pnpm --filter @dream-invoice/web typecheck
 pnpm --filter @dream-invoice/web lint
+pnpm --filter @dream-invoice/web typecheck
+pnpm --filter @dream-invoice/web test
 pnpm --filter @dream-invoice/web build
 ```
 
-Use these during fast UI or API work, then run `pnpm release:quality` before pushing larger changes.
-
-## Flow Smoke Tests
-
-Dream Invoice keeps browser-level flow tests under `tests/flows`.
+Database client generation:
 
 ```bash
-pnpm test:flows
+pnpm --filter @dream-invoice/database db:generate
 ```
 
-Use flow tests for user-facing workflows such as dashboard navigation, document flows, imports, exports, and public demo behavior.
-
-## Docker Development Checks
-
-For local infrastructure:
+Database migrations:
 
 ```bash
-pnpm docker:dev:up
-pnpm docker:dev:ps
-pnpm docker:dev:down
+pnpm --filter @dream-invoice/database db:deploy
 ```
 
-The development Docker stack is for local PostgreSQL, Mailpit, and Adminer only. It is not a production deployment.
+## Smoke Tests
 
-## When to Run What
+Use HTTP smoke tests after starting the app:
 
-- Documentation-only change: `pnpm release:check`
-- Dependency change: `pnpm security:audit` and `pnpm release:quality`
-- Web UI/API change: web typecheck, lint, build
-- Demo or landing change: `pnpm release:check`
-- Release candidate: `pnpm release:quality`
-- Before public push: confirm GitHub Actions passes
+```bash
+curl -s -o /dev/null -w "%{http_code} /\n" http://127.0.0.1:3000/
+curl -s -o /dev/null -w "%{http_code} /dashboard\n" http://127.0.0.1:3000/dashboard
+curl -s -o /dev/null -w "%{http_code} /documents\n" http://127.0.0.1:3000/documents
+curl -s -o /dev/null -w "%{http_code} /settings\n" http://127.0.0.1:3000/settings
+```
 
-## Test Data Rules
+Expected protected routes may redirect to login when no session exists.
 
-- Use fictional customers, addresses, IBANs, emails, phone numbers, and invoice numbers.
-- Do not use screenshots or PDFs from real customers.
-- Keep demo and screenshot data separate from production data.
-- Keep language strings in i18n namespace files when a namespace already exists.
+## Workflow Tests
+
+Use focused workflow tests for:
+
+- Login and logout
+- First owner setup
+- Customer creation
+- Article creation
+- Document creation and PDF export
+- Import and export endpoints
+- Settings pages
+- License activation
+- User limit enforcement
+
+## Test Data
+
+Use fictional data in examples, fixtures, screenshots, PDFs, and demo flows. Keep generated artifacts out of source control unless they are intentional fixtures.

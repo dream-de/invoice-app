@@ -1,30 +1,49 @@
 # Security Policy
 
+Dream Invoice accepts security-sensitive reports through the repository owner or maintainer contact path.
+
+## Reporting
+
+For security-sensitive findings, include:
+
+- A short summary
+- Affected version, commit, or deployment type
+- Steps to reproduce when they can be shared responsibly
+- Impact and suggested mitigation, if known
+
+Security-sensitive reports should not include credentials, license signing keys, production `.env` files, database dumps, customer records, or access tokens.
+
 ## Supported Versions
 
-Dream Invoice is currently in active early development. Security fixes are handled on the main branch until the first public stable release is defined.
-
-## Reporting a Vulnerability
-
-Please do not open public issues that contain secrets, exploit details, real customer data, private license keys, or production credentials.
-
-Report security-sensitive findings privately to the repository owner. Include:
-
-- A short summary of the issue
-- Affected area or route
-- Steps to reproduce, if safe to share
-- Expected impact
-- Suggested mitigation, if known
+Until a stable versioning policy is available, security fixes are handled on the main branch.
 
 ## Secret Handling
 
-Never commit:
+Keep operational secrets in deployment environments and local `.env` files. Source-controlled examples should use example values only.
+
+Sensitive values include:
 
 - Production `.env` files
-- Private license keys
-- Customer license keys
-- Real SMTP credentials
-- Real database dumps
-- Real customer invoices or screenshots
+- Database credentials
+- SMTP credentials
+- Auth secrets
+- License signing keys
+- API keys and access tokens
 
-Use the local development Docker setup and Mailpit for safe email testing.
+## Development Email
+
+Use the local development Docker setup and Mailpit for email testing.
+
+## Dependency Audit
+
+Run:
+
+```bash
+pnpm security:audit
+```
+
+The full release quality gate also includes the dependency audit:
+
+```bash
+pnpm release:quality
+```

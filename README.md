@@ -9,7 +9,7 @@
 
 ---
 
-Dream Invoice is a modern invoicing platform for invoices, offers, customers, articles, finance workflows, document templates, and safe public testing.
+Dream Invoice is a modern invoicing platform for invoices, offers, customers, articles, finance workflows, document templates, and self-hosted business operations.
 
 ## Documentation
 
@@ -23,7 +23,6 @@ Dream Invoice is a modern invoicing platform for invoices, offers, customers, ar
 - [Audit Log](./docs/security/audit-log.md)
 - [Roadmap](./ROADMAP.md)
 - [App Structure](./docs/architecture/app-structure.md)
-- [Domains](./docs/architecture/domains.md)
 - [PDF Tools](./docs/pdf-tools.md)
 - [Contributing](./CONTRIBUTING.md)
 - [Support](./SUPPORT.md)
@@ -32,10 +31,10 @@ Dream Invoice is a modern invoicing platform for invoices, offers, customers, ar
 ## Features
 
 - Invoices, offers, documents, DIN A4 preview, PDF export, and visual templates
-- Customers, articles, projects, finance workflows, import/export, and reporting foundations
+- Customers, articles, projects, finance workflows, import/export, and reporting
 - Multi-language app shell, login/session protection, licensing, and user-limit enforcement
 - Product Docker stack with PostgreSQL, web app, app proxy, health checks, and optional worker
-- Optional public demo and landing page kept separate from customer/LXC installs
+- Optional demo and landing page kept separate from product/LXC installs
 
 ## Compliance Note
 
@@ -44,22 +43,21 @@ Dream Invoice provides technical building blocks for traceable business workflow
 ## Workspace
 
 - `apps/web`: main product web app
-- `apps/demo`, `apps/landing-page`: optional public demo and product website
-- `apps/server-worker`, `apps/server-api`, `apps/admin`, `apps/accounting`: private service and foundation apps
-- `apps/desktop`, `apps/pro-desktop`, `packages/desktop-*`: separated desktop and Pro foundations
+- `apps/demo`, `apps/landing-page`: optional demo and product website
+- `apps/server-worker`, `apps/server-api`, `apps/admin`, `apps/accounting`: service and companion apps
+- `apps/desktop`, `apps/pro-desktop`, `packages/desktop-*`: separated desktop and Pro workspaces
 - `packages/database`, `packages/ui`, `packages/licensing`, `packages/accounting-core`: shared data, UI, licensing, and domain logic
 - `docker/`, `docs/`, `tools/license/`: deployment, documentation, and license tooling
 
 ## Live Demo
 
-Public demo: https://demo.dream-invoice.com
+Demo: https://demo.dream-invoice.com
 
 ## Quick Install
 
 For a fresh self-hosted LXC or server, install Docker first, then run:
 
 ```bash
-
 git clone https://github.com/dream-de/invoice-app.git
 cd invoice-app
 cp .env.example .env
@@ -69,11 +67,10 @@ nano .env
 Start the stack:
 
 ```bash
-
 docker compose up -d
 ```
 
-The product stack starts PostgreSQL, the Dream Invoice web app, and the app proxy. The public demo and landing page are not installed in this customer stack.
+The product stack starts PostgreSQL, the Dream Invoice web app, and the app proxy. Demo and landing-page services stay in a separate stack.
 
 ---
 
@@ -98,14 +95,13 @@ Before real production use, change all default passwords and secrets in `.env`, 
 If you want the installer to create random secrets automatically, use:
 
 ```bash
-
 git clone https://github.com/dream-de/invoice-app.git
 cd invoice-app
 chmod +x scripts/install.sh scripts/status.sh
 ./scripts/install.sh
 ```
 
-The installer creates a private `.env` file with generated secrets, starts the same product Docker stack, and prints the generated deployment password.
+The installer creates a local `.env` file with generated secrets, starts the same product Docker stack, and prints the generated deployment password.
 
 After installation, check the stack:
 
@@ -152,14 +148,14 @@ pnpm db:deploy           # Run deployment migrations
 pnpm db:studio           # Open Prisma Studio
 pnpm worker:server       # Run the server worker locally
 pnpm worker:server:smoke # Run the worker smoke test
-pnpm release:check       # Run public release safety checks
+pnpm release:check       # Run release checks
 pnpm release:quality     # Run full local release quality gates
 pnpm security:audit      # Run dependency audit from pnpm
 ```
 
 ## Docker
 
-Start the product Docker stack manually. Use `--build` when you want to force a fresh image build. This installs Dream Invoice, PostgreSQL, and the app proxy only. The public demo and marketing landing page are not part of this customer/LXC stack and are removed from the product runtime image:
+Start the product Docker stack manually. Use `--build` when you want to force a fresh image build. This installs Dream Invoice, PostgreSQL, and the app proxy only. Demo and landing-page services are handled by their own stack:
 
 ```bash
 docker compose up -d
@@ -192,14 +188,14 @@ pnpm docker:build:worker
 pnpm docker:worker
 ```
 
-Run the optional public website stack separately when you intentionally host the marketing site and demo:
+Run the optional website stack separately when you host the marketing site and demo:
 
 ```bash
 pnpm docker:public:up
 pnpm docker:public:logs
 ```
 
-The public stack uses `docker/public-site.compose.yml` and exposes `PUBLIC_HTTP_PORT` instead of joining the product installation.
+The website stack uses `docker/public-site.compose.yml` and uses `PUBLIC_HTTP_PORT` instead of joining the product installation.
 
 ## Development Docker Helpers
 
@@ -216,7 +212,7 @@ This starts PostgreSQL, Mailpit, and Adminer for local development without sendi
 - Mailpit inbox: `http://localhost:8025`
 - Adminer: `http://localhost:8081`
 
-Use `docker/development/.env.example` as the template for custom local ports or credentials. For production, replace all development defaults and follow [Production Deployment](./docs/deployment/production.md).
+Use `docker/development/.env.example` as the template for custom local ports or credentials. For deployment, adjust the environment values and follow [Production Deployment](./docs/deployment/production.md).
 
 ```bash
 pnpm docker:dev:ps

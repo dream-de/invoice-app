@@ -1,161 +1,67 @@
 # Production Checklist
 
-Use this checklist before exposing Dream Invoice to public traffic. It is intentionally deployment-provider neutral and assumes a Docker-based deployment behind a reverse proxy.
+Use this checklist before handing over a Dream Invoice installation.
 
-## 1. Domain And DNS
+## 1. Environment
 
-Recommended public domains:
+- [ ] `.env` was created from `.env.example`
+- [ ] `AUTH_SECRET` was changed
+- [ ] `POSTGRES_PASSWORD` was changed
+- [ ] `DREAM_INVOICE_AUTH_PASSWORD` was changed
+- [ ] `DREAM_INVOICE_ADMIN_PASSWORD` was changed
+- [ ] `DATABASE_URL` points to the intended database
+- [ ] `LICENSE_PUBLIC_KEY` is configured when licensing is used
+- [ ] SMTP settings are configured when email sending is enabled
 
-- `dream-invoice.com` for the landing page
-- `www.dream-invoice.com` for the landing page
-- `demo.dream-invoice.com` for the public demo
-- `app.dream-invoice.com` for the main web app
+## 2. Docker Stack
 
-Before launch:
+- [ ] `docker compose up -d` starts successfully
+- [ ] `docker compose ps` shows healthy services
+- [ ] App proxy reaches the web app
+- [ ] PostgreSQL volume is persistent
+- [ ] Optional worker profile is enabled only when needed
 
-- [ ] Point the required DNS records to the production server or reverse proxy
-- [ ] Keep DNS TTL low during the first deployment window
-- [ ] Verify each hostname resolves to the intended target
-- [ ] Decide whether `www.dream-invoice.com` redirects to `dream-invoice.com`
+## 3. Network And TLS
 
-## 2. Secrets And Environment
+- [ ] HTTPS is configured at the reverse proxy or hosting layer
+- [ ] App URL points to the intended domain or host
+- [ ] PostgreSQL is reachable only from the intended network
+- [ ] Firewall rules match the deployment plan
 
-Never use development defaults in production.
+## 4. App Setup
 
-Generate secrets:
+- [ ] First owner account was created
+- [ ] Setup route is closed after owner creation
+- [ ] Login works
+- [ ] Logout works
+- [ ] Protected app routes require a valid session
+- [ ] Mutating API routes use the request guard
 
-```bash
-openssl rand -base64 32
-```
+## 5. Data And Backups
 
-Required checks:
+- [ ] Database migrations are applied
+- [ ] Backup schedule exists
+- [ ] Restore procedure was tested
+- [ ] Upload and export directories are included where relevant
+- [ ] Log retention is defined
 
-- [ ] Set a strong `AUTH_SECRET`
-- [ ] Set a strong `POSTGRES_PASSWORD`
-- [ ] Keep production `.env` files outside Git
-- [ ] Verify `DATABASE_URL` matches the production database
-- [ ] Verify `LICENSE_PUBLIC_KEY` is the public verification key only
-- [ ] Confirm private license signing keys are never deployed to customer/runtime systems
+## 6. License
 
-## 3. HTTPS And Reverse Proxy
+- [ ] License activation succeeds with a valid license key
+- [ ] Invalid license keys are rejected
+- [ ] User limits are displayed correctly
+- [ ] User creation respects the active license limit
+- [ ] Server time is synchronized
 
-The included Nginx config is an internal HTTP router. Public TLS should be handled by a dedicated reverse proxy or hosting layer.
+## 7. Final Smoke Test
 
-Recommended options:
-
-- Nginx Proxy Manager
-- Caddy
-- Traefik
-- Cloudflare proxy or Cloudflare Tunnel
-- Managed platform TLS termination
-
-Before launch:
-
-- [ ] Enable HTTPS for every public hostname
-- [ ] Redirect HTTP to HTTPS
-- [ ] Verify certificate renewal
-- [ ] Enable HSTS only after HTTPS is stable
-- [ ] Forward `X-Forwarded-Proto`, `X-Forwarded-For`, and `Host` headers correctly
-
-## 4. Public Exposure
-
-Public:
-
-- [ ] Landing page
-- [ ] Demo app, if enabled
-- [ ] Main web app
-
-Private/internal:
-
-- [ ] Admin app
-- [ ] Accounting app
-- [ ] Server API foundation
-- [ ] Server worker
-- [ ] Desktop/pro desktop foundations
-- [ ] PostgreSQL
-
-Do not expose PostgreSQL, server worker, or internal foundations directly to the internet.
-
-## 5. Database And Backups
-
-Before launch:
-
-- [ ] Run migrations against the intended production database
-- [ ] Create an initial backup
-- [ ] Test restore in a non-production environment
-- [ ] Document backup retention
-- [ ] Store backups outside the application server when possible
-
-Backup command:
-
-```bash
-docker compose exec postgres pg_dump -U dream_invoice dream_invoice > backup.sql
-```
-
-Restore command:
-
-```bash
-cat backup.sql | docker compose exec -T postgres psql -U dream_invoice dream_invoice
-```
-
-## 6. Worker Strategy
-
-The worker should run as a background process, not as a public HTTP service.
-
-- [ ] Decide whether the worker runs by Docker profile, cron, systemd, or another scheduler
-- [ ] Verify `SERVER_WORKER_MODE`
-- [ ] Verify `SERVER_WORKER_SCHEDULE_FILE`
-- [ ] Verify `SERVER_WORKER_LIMIT`
-- [ ] Run the worker smoke test before enabling recurring execution
-
-## 7. Quality Gates
-
-Run before deployment:
-
-```bash
-pnpm release:quality
-pnpm security:audit
-git status --short --branch
-```
-
-Verify on GitHub:
-
-- [ ] CI is green
-- [ ] Dependabot alerts are reviewed
-- [ ] Branch protection is configured when the repository is public or team-managed
-- [ ] No production secrets are present in commits, issues, screenshots, or logs
-
-## 8. Post-Deployment Smoke Test
-
-After deployment:
-
-- [ ] Open the landing page
-- [ ] Open the demo app
-- [ ] Open the main app
-- [ ] Open the dashboard
-- [ ] Create or edit a test document
-- [ ] Generate a PDF
-- [ ] Open settings pages
-- [ ] Check container health checks
-- [ ] Review logs for errors
-
-## 9. Rollback Readiness
-
-Before launch:
-
-- [ ] Know the last stable Git commit or container image
-- [ ] Have a fresh database backup
-- [ ] Keep migration rollback risk documented
-- [ ] Prefer forward-fix migrations unless restoring a backup is clearly safer
-
-## 10. Launch Decision
-
-Launch only when:
-
-- [ ] HTTPS works
-- [ ] Production secrets are set
-- [ ] Backups exist
-- [ ] CI is green
-- [ ] Public apps work
-- [ ] Internal services remain private
-- [ ] Logs are clean after smoke testing
+- [ ] Dashboard opens
+- [ ] Customer list opens
+- [ ] Customer creation opens
+- [ ] Article list opens
+- [ ] Document list opens
+- [ ] Document PDF route works
+- [ ] Settings pages open
+- [ ] Finance overview opens
+- [ ] Import template endpoints respond
+- [ ] Export endpoints respond

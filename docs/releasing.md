@@ -1,38 +1,46 @@
-# Releasing Dream Invoice
+# Releasing
 
-Dream Invoice is still in a public foundation phase. A release should only be published when the repository is clean, the quality gates are green, and no private data or legacy reference names are present.
+Use this guide when preparing a Dream Invoice release candidate.
 
-## Release Checklist
+## Release Quality Gate
 
-1. Pull the latest `main` branch.
-2. Run the full local quality gate:
+Run:
 
 ```bash
 pnpm release:quality
 ```
 
-3. Confirm the repository is clean:
+The release candidate should pass linting, type checks, tests, builds, release checks, and dependency audit.
+
+## Release Steps
+
+1. Confirm the working tree is clean.
+2. Pull the latest `main`.
+3. Run `pnpm release:quality`.
+4. Review README, docs, Docker files, and `.env.example`.
+5. Confirm demo and landing-page stacks remain separate from the product stack.
+6. Confirm migrations are included and Prisma client generation works.
+7. Confirm GitHub Actions is green.
+8. Create the tag or release only after checks are green.
+
+## Documentation Review
+
+Before a release, verify:
+
+- Quick install instructions work
+- Docker instructions match the current compose files
+- Production deployment instructions match the current environment variables
+- Security policy is current
+- License text is unchanged unless intentionally updated
+- Roadmap reflects the current product direction
+
+## Deployment Smoke Test
+
+After deployment:
 
 ```bash
-git status --short --branch
+docker compose ps
+curl -s -o /dev/null -w "%{http_code} /\n" http://127.0.0.1:3000/
 ```
 
-4. Check GitHub Actions for a green CI run.
-5. Review `CHANGELOG.md` and update release notes.
-6. Tag only after the app, demo, landing page, Docker stack, and public release checks are green.
-
-## Public Release Rules
-
-- Do not publish real customer, supplier, payment, IBAN, email, or phone data.
-- Do not publish private license keys or production environment files.
-- Keep demo data fictional.
-- Keep old product names and external reference-template names out of tracked source files.
-- Prefer small release commits over large mixed commits.
-
-## Recommended Commands
-
-```bash
-pnpm release:check
-pnpm security:audit
-pnpm release:quality
-```
+Then verify login, dashboard, documents, settings, and one PDF export.

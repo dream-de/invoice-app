@@ -1,51 +1,41 @@
 # Audit Log
 
-Dream Invoice includes an `AuditLog` database model for traceability of sensitive business and administrative actions.
+Dream Invoice uses audit records for security-relevant and operational events.
 
-## Current Scope
+## Current Events
 
-The current implementation records metadata for:
+Tracked events include:
 
+- User creation
+- User updates
+- User deactivation
 - License activation
-- Company settings changes
-- Number range changes
-- Invoice finalization
-- Invoice deletion
+- License verification results where applicable
+- Security-sensitive settings changes where applicable
 
-## Data Rules
+## Recommended Fields
 
-Audit entries must be useful for review without becoming a second copy of sensitive business data.
+Audit records should include:
 
-Do record:
-
+- Actor user id or system actor
 - Action name
-- Entity name
+- Entity type
 - Entity id when available
-- Short reason
-- Safe metadata such as plan, status, affected field names, document number, or range type
+- Timestamp
+- Result
+- Reason or context
+- Relevant metadata
 
-Do not record:
+## Data Boundaries
 
-- Raw license keys
-- Passwords or auth secrets
-- Private signing keys
-- Full customer records
-- Full bank details
-- Production environment values
+Audit records should keep enough context for troubleshooting while avoiding sensitive payloads. Store references and summaries instead of raw credentials, tokens, license signing keys, full SMTP passwords, or large document contents.
 
-## Failure Policy
+## Review
 
-Audit logging should not break the primary user action. If an audit write fails, the app logs a warning and continues.
+Review audit logs during:
 
-This keeps the application usable during non-critical audit storage issues while still surfacing the problem in logs.
-
-## Future Scope
-
-Planned future audit coverage:
-
-- User and permission changes
-- Email sending configuration changes
-- Document send actions
-- Payment status changes
-- Import and export actions
-- Admin-only actions when admin surfaces become production-ready
+- Account changes
+- License changes
+- Settings changes
+- Security investigations
+- Deployment handover

@@ -1,45 +1,53 @@
 # Secrets Rotation
 
-Secrets must be replaceable without changing source code. Production secrets should live in deployment configuration, not in the repository.
+This guide explains how to rotate common Dream Invoice deployment secrets.
 
-## Generate Strong Secrets
+## Auth Secret
+
+1. Generate a new value:
 
 ```bash
 openssl rand -base64 32
 ```
 
-Use different values for different purposes.
+2. Update `AUTH_SECRET` in `.env`.
+3. Restart the app stack.
+4. Existing sessions may need to sign in again.
 
-## Rotate AUTH_SECRET
+## Deployment Passwords
 
-1. Generate a new value.
-2. Update the production environment variable.
-3. Restart the web app.
-4. Confirm login/session-sensitive flows still work as expected.
+Rotate these values when access changes:
 
-Changing `AUTH_SECRET` may invalidate existing sessions depending on the auth implementation.
+- `DREAM_INVOICE_AUTH_PASSWORD`
+- `DREAM_INVOICE_ADMIN_PASSWORD`
+- `POSTGRES_PASSWORD`
+- SMTP password
 
-## Rotate PostgreSQL Password
+After changing `.env`, restart the stack:
 
-1. Put the app into maintenance mode if needed.
-2. Generate a new password.
-3. Change the database user password.
-4. Update `POSTGRES_PASSWORD` and `DATABASE_URL`.
-5. Restart app services.
-6. Confirm migrations and a basic app request succeed.
+```bash
+docker compose up -d
+```
 
-## Rotate License Keys
+## Database Password
 
-- Private signing keys must stay outside the repository.
-- Public verification keys may be deployed through `LICENSE_PUBLIC_KEY`.
-- When replacing a signing key, deploy the matching public key before issuing newly signed licenses.
-- Keep an operational record of when a key was introduced and retired.
+When changing `POSTGRES_PASSWORD`, update both PostgreSQL and `DATABASE_URL`. Plan this during a maintenance window and verify the app can reconnect.
 
-## Keep Out of the Repository
+## License Keys
 
-- Production `.env` files
-- Private license keys
-- Customer license keys
-- Database dumps
-- Real customer invoices or screenshots
-- Real SMTP or payment credentials
+`LICENSE_PUBLIC_KEY` is the runtime verification key. License signing keys belong in the license tooling environment, not in source files.
+
+When replacing a signing key:
+
+1. Generate the new signing key pair in the license tooling environment.
+2. Deploy the matching `LICENSE_PUBLIC_KEY`.
+3. Issue new licenses with the matching signing key.
+4. Keep the previous key available until existing licenses are migrated, if needed.
+
+## After Rotation
+
+- Check `docker compose ps`
+- Verify login
+- Verify license activation when licensing is used
+- Verify email sending when SMTP changed
+- Record the rotation date in operational notes

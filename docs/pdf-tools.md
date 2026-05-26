@@ -1,43 +1,29 @@
-# Optional PDF Tools
+# PDF Tools
 
-The invoice app does not require system PDF analysis tools for normal local development or production use.
+Dream Invoice renders invoice PDFs from app data and document templates. The current production path uses Puppeteer inside the web app.
 
-The built-in document and invoice workflows should stay independent from machine-specific utilities. Optional tools are useful only for development tasks such as inspecting external PDFs, comparing generated output, debugging print rendering, or preparing CI checks.
+## Current Flow
 
-## Optional Packages
-
-On Debian or Ubuntu systems, these packages are useful:
-
-```bash
-sudo apt-get update
-sudo apt-get install -y poppler-utils ghostscript qpdf fonts-dejavu fonts-liberation fonts-noto
+```text
+Invoice data -> Template -> HTML -> Puppeteer -> PDF response
 ```
 
-They provide tools such as:
+Important files:
 
-- `pdfinfo` for PDF metadata
-- `pdftotext` for text extraction
-- `pdftoppm` for rendering PDF pages to images
-- `ghostscript` for PDF rendering and conversion
-- `qpdf` for PDF validation and repair
+- `apps/web/src/app/api/invoice/pdf/[id]/route.ts`
+- `apps/web/src/lib/pdf/layout.ts`
+- `apps/web/src/lib/pdf/invoice-totals.ts`
+- `packages/pdf/src/models/pdf-invoice.ts`
 
-## Project Policy
+## Checks
 
-These tools are optional. Do not make them required unless the project adds one of these features:
-
-- PDF import from external invoices
-- visual PDF regression tests
-- automated PDF validation in CI
-- server-side PDF repair or conversion
-
-For normal invoice creation, editing, and export, prefer the app's own Node/Next rendering pipeline and project-managed dependencies.
-
-## Quick Check
-
-Run:
+Run PDF-related tests with:
 
 ```bash
-scripts/check-pdf-tools.sh
+pnpm --filter @dream-invoice/web test
+pnpm --filter @dream-invoice/pdf test
 ```
 
-The script reports available tools but exits successfully even when optional tools are missing.
+## Optional Tools
+
+Additional PDF tooling can be added when it supports a product workflow, such as visual regression tests, PDF/A validation, or template migration checks. Keep extra tooling optional unless the workflow depends on it.
