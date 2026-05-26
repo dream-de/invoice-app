@@ -454,5 +454,1283 @@
       ],
       "updatedAt": "2026-05-18T23:22:41.923Z"
     }
+  },
+  {
+    "id": "autohaus-invoice",
+    "name": "Autohaus Rechnung",
+    "type": "invoice",
+    "active": false,
+    "updatedAt": "2026-05-26T00:00:00.000Z",
+    "data": {
+      "id": "autohaus-invoice",
+      "name": "Autohaus Rechnung",
+      "type": "invoice",
+      "page": {
+        "width": 794,
+        "height": 1123
+      },
+      "elements": [
+        {
+          "id": "topBand",
+          "type": "box",
+          "x": 0,
+          "y": 0,
+          "width": 794,
+          "height": 132,
+          "backgroundColor": "#0f172a",
+          "borderColor": "#0f172a",
+          "borderWidth": 1
+        },
+        {
+          "id": "brand",
+          "type": "text",
+          "x": 70,
+          "y": 48,
+          "width": 320,
+          "height": 38,
+          "content": "{{company.name}}",
+          "fontSize": 24,
+          "fontWeight": "black",
+          "color": "#ffffff"
+        },
+        {
+          "id": "title",
+          "type": "text",
+          "x": 520,
+          "y": 42,
+          "width": 190,
+          "height": 48,
+          "content": "RECHNUNG\n{{invoice.number}}",
+          "fontSize": 17,
+          "fontWeight": "bold",
+          "color": "#ffffff",
+          "align": "right"
+        },
+        {
+          "id": "meta",
+          "type": "text",
+          "x": 520,
+          "y": 92,
+          "width": 190,
+          "height": 34,
+          "content": "Datum: {{invoice.date}}\nKunden-Nr: {{client.number}}",
+          "fontSize": 9,
+          "fontWeight": "normal",
+          "color": "#cbd5e1",
+          "align": "right"
+        },
+        {
+          "id": "sender",
+          "type": "text",
+          "x": 70,
+          "y": 168,
+          "width": 330,
+          "height": 14,
+          "content": "{{company.name}} | {{company.street}} | {{company.city}}",
+          "fontSize": 8,
+          "fontWeight": "normal",
+          "color": "#64748b"
+        },
+        {
+          "id": "customer",
+          "type": "text",
+          "x": 70,
+          "y": 194,
+          "width": 300,
+          "height": 92,
+          "content": "{{client.name}}\n{{client.address}}",
+          "fontSize": 11,
+          "fontWeight": "bold",
+          "color": "#111827"
+        },
+        {
+          "id": "vehicleBox",
+          "type": "box",
+          "x": 440,
+          "y": 170,
+          "width": 280,
+          "height": 130,
+          "backgroundColor": "#f8fafc",
+          "borderColor": "#cbd5e1",
+          "borderWidth": 1
+        },
+        {
+          "id": "vehicleTitle",
+          "type": "text",
+          "x": 462,
+          "y": 190,
+          "width": 230,
+          "height": 18,
+          "content": "FAHRZEUGINFORMATIONEN",
+          "fontSize": 10,
+          "fontWeight": "black",
+          "color": "#0f172a"
+        },
+        {
+          "id": "vehicleInfo",
+          "type": "text",
+          "x": 462,
+          "y": 218,
+          "width": 230,
+          "height": 70,
+          "content": "VIN: ____________________\nKennzeichen: _____________\nLaufleistung: ____________\nMotor / Modell: __________",
+          "fontSize": 9,
+          "fontWeight": "normal",
+          "color": "#334155"
+        },
+        {
+          "id": "section",
+          "type": "text",
+          "x": 70,
+          "y": 350,
+          "width": 420,
+          "height": 28,
+          "content": "Erbrachte Leistungen und Teile",
+          "fontSize": 18,
+          "fontWeight": "black",
+          "color": "#111827"
+        },
+        {
+          "id": "itemsTable",
+          "type": "table",
+          "x": 70,
+          "y": 405,
+          "width": 650,
+          "height": 170
+        },
+        {
+          "id": "totals",
+          "type": "text",
+          "x": 520,
+          "y": 610,
+          "width": 200,
+          "height": 70,
+          "content": "Netto: {{totals.net}}\nUSt (19%): {{totals.vat}}\nGesamt: {{totals.gross}}",
+          "fontSize": 11,
+          "fontWeight": "bold",
+          "color": "#111827",
+          "align": "right"
+        },
+        {
+          "id": "note",
+          "type": "text",
+          "x": 70,
+          "y": 735,
+          "width": 420,
+          "height": 64,
+          "content": "Garantiehinweis: 12 Monate auf erbrachte Arbeiten, sofern nicht anders vereinbart.\nBitte geben Sie bei Zahlung die Rechnungsnummer an.",
+          "fontSize": 9,
+          "fontWeight": "normal",
+          "color": "#475569"
+        },
+        {
+          "id": "paymentQr",
+          "type": "paymentQr",
+          "x": 610,
+          "y": 730,
+          "width": 92,
+          "height": 92
+        },
+        {
+          "id": "footerLine",
+          "type": "line",
+          "x": 70,
+          "y": 1010,
+          "width": 650,
+          "height": 1,
+          "color": "#cbd5e1"
+        },
+        {
+          "id": "footer",
+          "type": "text",
+          "x": 70,
+          "y": 1030,
+          "width": 650,
+          "height": 52,
+          "content": "{{company.name}} | {{company.street}} | {{company.city}}\nIBAN: {{finance.iban}} | BIC: {{finance.bic}} | USt-IdNr.: {{company.vatId}}",
+          "fontSize": 8,
+          "fontWeight": "normal",
+          "color": "#64748b",
+          "align": "center"
+        }
+      ]
+    }
+  },
+  {
+    "id": "werkstatt-invoice",
+    "name": "Werkstatt Rechnung",
+    "type": "invoice",
+    "active": false,
+    "updatedAt": "2026-05-26T00:00:00.000Z",
+    "data": {
+      "id": "werkstatt-invoice",
+      "name": "Werkstatt Rechnung",
+      "type": "invoice",
+      "page": {
+        "width": 794,
+        "height": 1123
+      },
+      "elements": [
+        {
+          "id": "brand",
+          "type": "text",
+          "x": 68,
+          "y": 62,
+          "width": 300,
+          "height": 34,
+          "content": "{{company.name}}",
+          "fontSize": 22,
+          "fontWeight": "black",
+          "color": "#111827"
+        },
+        {
+          "id": "title",
+          "type": "text",
+          "x": 510,
+          "y": 60,
+          "width": 210,
+          "height": 52,
+          "content": "WERKSTATT\nRECHNUNG",
+          "fontSize": 20,
+          "fontWeight": "black",
+          "color": "#111827",
+          "align": "right"
+        },
+        {
+          "id": "topLine",
+          "type": "line",
+          "x": 68,
+          "y": 126,
+          "width": 652,
+          "height": 1,
+          "color": "#111827"
+        },
+        {
+          "id": "customer",
+          "type": "text",
+          "x": 68,
+          "y": 166,
+          "width": 290,
+          "height": 94,
+          "content": "{{client.name}}\n{{client.address}}",
+          "fontSize": 11,
+          "fontWeight": "bold",
+          "color": "#111827"
+        },
+        {
+          "id": "jobBox",
+          "type": "box",
+          "x": 420,
+          "y": 158,
+          "width": 300,
+          "height": 126,
+          "backgroundColor": "#fff7ed",
+          "borderColor": "#fed7aa",
+          "borderWidth": 1
+        },
+        {
+          "id": "jobTitle",
+          "type": "text",
+          "x": 440,
+          "y": 178,
+          "width": 230,
+          "height": 18,
+          "content": "AUFTRAG / SERVICE",
+          "fontSize": 10,
+          "fontWeight": "black",
+          "color": "#9a3412"
+        },
+        {
+          "id": "jobInfo",
+          "type": "text",
+          "x": 440,
+          "y": 206,
+          "width": 250,
+          "height": 60,
+          "content": "Auftrags-Nr.: ____________\nTechniker: _______________\nBeginn: ____ / Abschluss: ____",
+          "fontSize": 9,
+          "fontWeight": "normal",
+          "color": "#7c2d12"
+        },
+        {
+          "id": "section",
+          "type": "text",
+          "x": 68,
+          "y": 340,
+          "width": 520,
+          "height": 28,
+          "content": "Arbeitszeit, Ersatzteile und Leistungen",
+          "fontSize": 18,
+          "fontWeight": "black",
+          "color": "#111827"
+        },
+        {
+          "id": "itemsTable",
+          "type": "table",
+          "x": 68,
+          "y": 390,
+          "width": 652,
+          "height": 180
+        },
+        {
+          "id": "warranty",
+          "type": "text",
+          "x": 68,
+          "y": 620,
+          "width": 320,
+          "height": 62,
+          "content": "Service-Gewaehrleistung\nDokumentieren Sie Seriennummern, verwendete Ersatzteile und besondere Hinweise im Positionstext.",
+          "fontSize": 9,
+          "fontWeight": "normal",
+          "color": "#475569"
+        },
+        {
+          "id": "totals",
+          "type": "text",
+          "x": 510,
+          "y": 620,
+          "width": 210,
+          "height": 74,
+          "content": "Netto: {{totals.net}}\nUSt: {{totals.vat}}\nRechnungsbetrag: {{totals.gross}}",
+          "fontSize": 11,
+          "fontWeight": "bold",
+          "color": "#111827",
+          "align": "right"
+        },
+        {
+          "id": "paymentBox",
+          "type": "box",
+          "x": 68,
+          "y": 760,
+          "width": 652,
+          "height": 112,
+          "backgroundColor": "#f8fafc",
+          "borderColor": "#e2e8f0",
+          "borderWidth": 1
+        },
+        {
+          "id": "payment",
+          "type": "text",
+          "x": 92,
+          "y": 786,
+          "width": 430,
+          "height": 52,
+          "content": "Zahlbar innerhalb von 14 Tagen ohne Abzug.\nVerwendungszweck: {{invoice.number}}",
+          "fontSize": 10,
+          "fontWeight": "normal",
+          "color": "#334155"
+        },
+        {
+          "id": "paymentQr",
+          "type": "paymentQr",
+          "x": 600,
+          "y": 778,
+          "width": 72,
+          "height": 72
+        },
+        {
+          "id": "footerLine",
+          "type": "line",
+          "x": 68,
+          "y": 1012,
+          "width": 652,
+          "height": 1,
+          "color": "#e2e8f0"
+        },
+        {
+          "id": "footer",
+          "type": "text",
+          "x": 68,
+          "y": 1032,
+          "width": 652,
+          "height": 48,
+          "content": "{{company.name}} | {{company.street}} | {{company.city}} | IBAN {{finance.iban}} | BIC {{finance.bic}}",
+          "fontSize": 8,
+          "fontWeight": "normal",
+          "color": "#64748b",
+          "align": "center"
+        }
+      ]
+    }
+  },
+  {
+    "id": "it-services-invoice",
+    "name": "IT-Dienstleister Rechnung",
+    "type": "invoice",
+    "active": false,
+    "updatedAt": "2026-05-26T00:00:00.000Z",
+    "data": {
+      "id": "it-services-invoice",
+      "name": "IT-Dienstleister Rechnung",
+      "type": "invoice",
+      "page": {
+        "width": 794,
+        "height": 1123
+      },
+      "elements": [
+        {
+          "id": "leftBand",
+          "type": "box",
+          "x": 0,
+          "y": 0,
+          "width": 190,
+          "height": 1123,
+          "backgroundColor": "#111827",
+          "borderColor": "#111827",
+          "borderWidth": 1
+        },
+        {
+          "id": "brand",
+          "type": "text",
+          "x": 36,
+          "y": 62,
+          "width": 120,
+          "height": 72,
+          "content": "{{company.name}}",
+          "fontSize": 17,
+          "fontWeight": "black",
+          "color": "#ffffff"
+        },
+        {
+          "id": "sidebar",
+          "type": "text",
+          "x": 36,
+          "y": 180,
+          "width": 120,
+          "height": 220,
+          "content": "Service-ID\n__________\n\nSLA\n99,9%\n\nSupport\nBusiness\n\nZeitraum\n{{invoice.servicePeriod}}",
+          "fontSize": 9,
+          "fontWeight": "normal",
+          "color": "#cbd5e1"
+        },
+        {
+          "id": "title",
+          "type": "text",
+          "x": 240,
+          "y": 70,
+          "width": 290,
+          "height": 42,
+          "content": "Rechnung IT-Services",
+          "fontSize": 24,
+          "fontWeight": "black",
+          "color": "#111827"
+        },
+        {
+          "id": "meta",
+          "type": "text",
+          "x": 560,
+          "y": 70,
+          "width": 160,
+          "height": 60,
+          "content": "Nr: {{invoice.number}}\nDatum: {{invoice.date}}\nFaellig: {{invoice.dueDate}}",
+          "fontSize": 10,
+          "fontWeight": "normal",
+          "color": "#111827",
+          "align": "right"
+        },
+        {
+          "id": "customerLabel",
+          "type": "text",
+          "x": 240,
+          "y": 170,
+          "width": 120,
+          "height": 16,
+          "content": "Kunde",
+          "fontSize": 9,
+          "fontWeight": "black",
+          "color": "#2563eb"
+        },
+        {
+          "id": "customer",
+          "type": "text",
+          "x": 240,
+          "y": 194,
+          "width": 260,
+          "height": 80,
+          "content": "{{client.name}}\n{{client.address}}",
+          "fontSize": 11,
+          "fontWeight": "bold",
+          "color": "#111827"
+        },
+        {
+          "id": "usageBox",
+          "type": "box",
+          "x": 525,
+          "y": 170,
+          "width": 195,
+          "height": 96,
+          "backgroundColor": "#eff6ff",
+          "borderColor": "#bfdbfe",
+          "borderWidth": 1
+        },
+        {
+          "id": "usage",
+          "type": "text",
+          "x": 545,
+          "y": 192,
+          "width": 150,
+          "height": 52,
+          "content": "Leistung\nHosting / Cloud / Support\nTraffic und Storage nach Vertrag",
+          "fontSize": 9,
+          "fontWeight": "normal",
+          "color": "#1e3a8a"
+        },
+        {
+          "id": "itemsTable",
+          "type": "table",
+          "x": 240,
+          "y": 340,
+          "width": 480,
+          "height": 190
+        },
+        {
+          "id": "note",
+          "type": "text",
+          "x": 240,
+          "y": 580,
+          "width": 270,
+          "height": 78,
+          "content": "Hinweis: Domains, Server, Wartung und Support koennen als wiederkehrende Leistungen im Positionstext ausgewiesen werden.",
+          "fontSize": 9,
+          "fontWeight": "normal",
+          "color": "#475569"
+        },
+        {
+          "id": "totals",
+          "type": "text",
+          "x": 540,
+          "y": 580,
+          "width": 180,
+          "height": 80,
+          "content": "Netto {{totals.net}}\nUSt {{totals.vat}}\nGesamt {{totals.gross}}",
+          "fontSize": 12,
+          "fontWeight": "bold",
+          "color": "#111827",
+          "align": "right"
+        },
+        {
+          "id": "paymentQr",
+          "type": "paymentQr",
+          "x": 620,
+          "y": 728,
+          "width": 78,
+          "height": 78
+        },
+        {
+          "id": "footerLine",
+          "type": "line",
+          "x": 240,
+          "y": 1008,
+          "width": 480,
+          "height": 1,
+          "color": "#e2e8f0"
+        },
+        {
+          "id": "footer",
+          "type": "text",
+          "x": 240,
+          "y": 1028,
+          "width": 480,
+          "height": 54,
+          "content": "{{company.name}} | {{company.street}} | {{company.city}}\nIBAN {{finance.iban}} | BIC {{finance.bic}}",
+          "fontSize": 8,
+          "fontWeight": "normal",
+          "color": "#64748b"
+        }
+      ]
+    }
+  },
+  {
+    "id": "gastronomie-invoice",
+    "name": "Gastronomie Rechnung",
+    "type": "invoice",
+    "active": false,
+    "updatedAt": "2026-05-26T00:00:00.000Z",
+    "data": {
+      "id": "gastronomie-invoice",
+      "name": "Gastronomie Rechnung",
+      "type": "invoice",
+      "page": {
+        "width": 794,
+        "height": 1123
+      },
+      "elements": [
+        {
+          "id": "topBand",
+          "type": "box",
+          "x": 54,
+          "y": 54,
+          "width": 686,
+          "height": 96,
+          "backgroundColor": "#1f2937",
+          "borderColor": "#1f2937",
+          "borderWidth": 1
+        },
+        {
+          "id": "brand",
+          "type": "text",
+          "x": 84,
+          "y": 84,
+          "width": 280,
+          "height": 30,
+          "content": "{{company.name}}",
+          "fontSize": 22,
+          "fontWeight": "black",
+          "color": "#ffffff"
+        },
+        {
+          "id": "title",
+          "type": "text",
+          "x": 540,
+          "y": 76,
+          "width": 170,
+          "height": 42,
+          "content": "CATERING\nRECHNUNG",
+          "fontSize": 16,
+          "fontWeight": "bold",
+          "color": "#ffffff",
+          "align": "right"
+        },
+        {
+          "id": "meta",
+          "type": "text",
+          "x": 540,
+          "y": 120,
+          "width": 170,
+          "height": 18,
+          "content": "{{invoice.number}} | {{invoice.date}}",
+          "fontSize": 8,
+          "fontWeight": "normal",
+          "color": "#d1d5db",
+          "align": "right"
+        },
+        {
+          "id": "customer",
+          "type": "text",
+          "x": 70,
+          "y": 198,
+          "width": 280,
+          "height": 88,
+          "content": "{{client.name}}\n{{client.address}}",
+          "fontSize": 11,
+          "fontWeight": "bold",
+          "color": "#111827"
+        },
+        {
+          "id": "eventBox",
+          "type": "box",
+          "x": 420,
+          "y": 188,
+          "width": 300,
+          "height": 118,
+          "backgroundColor": "#fef3c7",
+          "borderColor": "#fde68a",
+          "borderWidth": 1
+        },
+        {
+          "id": "event",
+          "type": "text",
+          "x": 442,
+          "y": 212,
+          "width": 240,
+          "height": 70,
+          "content": "EVENTDETAILS\nDatum / Uhrzeit: __________\nGaeste: ______  Location: ______\nMenue / Buffet: __________",
+          "fontSize": 9,
+          "fontWeight": "bold",
+          "color": "#92400e"
+        },
+        {
+          "id": "section",
+          "type": "text",
+          "x": 70,
+          "y": 354,
+          "width": 520,
+          "height": 28,
+          "content": "Speisen, Getraenke und Service",
+          "fontSize": 18,
+          "fontWeight": "black",
+          "color": "#111827"
+        },
+        {
+          "id": "itemsTable",
+          "type": "table",
+          "x": 70,
+          "y": 405,
+          "width": 650,
+          "height": 170
+        },
+        {
+          "id": "totals",
+          "type": "text",
+          "x": 510,
+          "y": 620,
+          "width": 210,
+          "height": 76,
+          "content": "Netto: {{totals.net}}\nUSt: {{totals.vat}}\nGesamt: {{totals.gross}}",
+          "fontSize": 12,
+          "fontWeight": "bold",
+          "color": "#111827",
+          "align": "right"
+        },
+        {
+          "id": "note",
+          "type": "text",
+          "x": 70,
+          "y": 632,
+          "width": 330,
+          "height": 58,
+          "content": "Servicepauschalen, Pfand, Lieferkosten und Trinkgeld koennen als eigene Positionen ausgewiesen werden.",
+          "fontSize": 9,
+          "fontWeight": "normal",
+          "color": "#475569"
+        },
+        {
+          "id": "paymentQr",
+          "type": "paymentQr",
+          "x": 620,
+          "y": 752,
+          "width": 78,
+          "height": 78
+        },
+        {
+          "id": "footerLine",
+          "type": "line",
+          "x": 70,
+          "y": 1010,
+          "width": 650,
+          "height": 1,
+          "color": "#e5e7eb"
+        },
+        {
+          "id": "footer",
+          "type": "text",
+          "x": 70,
+          "y": 1030,
+          "width": 650,
+          "height": 50,
+          "content": "{{company.name}} | {{company.street}} | {{company.city}}\nKontakt und Bank: {{finance.iban}} | {{finance.bic}}",
+          "fontSize": 8,
+          "fontWeight": "normal",
+          "color": "#64748b",
+          "align": "center"
+        }
+      ]
+    }
+  },
+  {
+    "id": "retail-food-invoice",
+    "name": "Einzelhandel Rechnung",
+    "type": "invoice",
+    "active": false,
+    "updatedAt": "2026-05-26T00:00:00.000Z",
+    "data": {
+      "id": "retail-food-invoice",
+      "name": "Einzelhandel Rechnung",
+      "type": "invoice",
+      "page": {
+        "width": 794,
+        "height": 1123
+      },
+      "elements": [
+        {
+          "id": "brand",
+          "type": "text",
+          "x": 70,
+          "y": 62,
+          "width": 300,
+          "height": 32,
+          "content": "{{company.name}}",
+          "fontSize": 22,
+          "fontWeight": "black",
+          "color": "#111827"
+        },
+        {
+          "id": "title",
+          "type": "text",
+          "x": 540,
+          "y": 62,
+          "width": 180,
+          "height": 48,
+          "content": "RECHNUNG\n{{invoice.number}}",
+          "fontSize": 18,
+          "fontWeight": "black",
+          "color": "#111827",
+          "align": "right"
+        },
+        {
+          "id": "topLine",
+          "type": "line",
+          "x": 70,
+          "y": 126,
+          "width": 650,
+          "height": 1,
+          "color": "#d1d5db"
+        },
+        {
+          "id": "customerBox",
+          "type": "box",
+          "x": 70,
+          "y": 170,
+          "width": 300,
+          "height": 112,
+          "backgroundColor": "#f9fafb",
+          "borderColor": "#e5e7eb",
+          "borderWidth": 1
+        },
+        {
+          "id": "customer",
+          "type": "text",
+          "x": 92,
+          "y": 196,
+          "width": 250,
+          "height": 64,
+          "content": "{{client.name}}\n{{client.address}}",
+          "fontSize": 10,
+          "fontWeight": "bold",
+          "color": "#111827"
+        },
+        {
+          "id": "retailBox",
+          "type": "box",
+          "x": 420,
+          "y": 170,
+          "width": 300,
+          "height": 112,
+          "backgroundColor": "#ecfdf5",
+          "borderColor": "#bbf7d0",
+          "borderWidth": 1
+        },
+        {
+          "id": "retail",
+          "type": "text",
+          "x": 442,
+          "y": 194,
+          "width": 240,
+          "height": 64,
+          "content": "ARTIKELDATEN\nSKU / Charge / MHD im Positionstext\nRabatt und Pfand als eigene Zeilen",
+          "fontSize": 9,
+          "fontWeight": "bold",
+          "color": "#166534"
+        },
+        {
+          "id": "itemsTable",
+          "type": "table",
+          "x": 70,
+          "y": 350,
+          "width": 650,
+          "height": 230
+        },
+        {
+          "id": "totals",
+          "type": "text",
+          "x": 510,
+          "y": 625,
+          "width": 210,
+          "height": 74,
+          "content": "Netto: {{totals.net}}\nUSt: {{totals.vat}}\nGesamt: {{totals.gross}}",
+          "fontSize": 12,
+          "fontWeight": "bold",
+          "color": "#111827",
+          "align": "right"
+        },
+        {
+          "id": "note",
+          "type": "text",
+          "x": 70,
+          "y": 635,
+          "width": 320,
+          "height": 62,
+          "content": "Hinweis: Aktionen, Treuekartenrabatte, MHD und Chargen koennen direkt in den Positionsbeschreibungen gepflegt werden.",
+          "fontSize": 9,
+          "fontWeight": "normal",
+          "color": "#475569"
+        },
+        {
+          "id": "paymentQr",
+          "type": "paymentQr",
+          "x": 626,
+          "y": 760,
+          "width": 74,
+          "height": 74
+        },
+        {
+          "id": "footerLine",
+          "type": "line",
+          "x": 70,
+          "y": 1010,
+          "width": 650,
+          "height": 1,
+          "color": "#e5e7eb"
+        },
+        {
+          "id": "footer",
+          "type": "text",
+          "x": 70,
+          "y": 1030,
+          "width": 650,
+          "height": 50,
+          "content": "{{company.name}} | {{company.street}} | {{company.city}} | USt-IdNr. {{company.vatId}}\nIBAN {{finance.iban}} | BIC {{finance.bic}}",
+          "fontSize": 8,
+          "fontWeight": "normal",
+          "color": "#64748b",
+          "align": "center"
+        }
+      ]
+    }
+  },
+  {
+    "id": "wholesale-invoice",
+    "name": "Grosshandel Rechnung",
+    "type": "invoice",
+    "active": false,
+    "updatedAt": "2026-05-26T00:00:00.000Z",
+    "data": {
+      "id": "wholesale-invoice",
+      "name": "Grosshandel Rechnung",
+      "type": "invoice",
+      "page": {
+        "width": 794,
+        "height": 1123
+      },
+      "elements": [
+        {
+          "id": "headerBox",
+          "type": "box",
+          "x": 58,
+          "y": 48,
+          "width": 678,
+          "height": 116,
+          "backgroundColor": "#f8fafc",
+          "borderColor": "#cbd5e1",
+          "borderWidth": 1
+        },
+        {
+          "id": "brand",
+          "type": "text",
+          "x": 82,
+          "y": 78,
+          "width": 280,
+          "height": 32,
+          "content": "{{company.name}}",
+          "fontSize": 22,
+          "fontWeight": "black",
+          "color": "#111827"
+        },
+        {
+          "id": "title",
+          "type": "text",
+          "x": 520,
+          "y": 72,
+          "width": 190,
+          "height": 54,
+          "content": "GROSSHANDEL\n{{invoice.number}}",
+          "fontSize": 17,
+          "fontWeight": "black",
+          "color": "#111827",
+          "align": "right"
+        },
+        {
+          "id": "meta",
+          "type": "text",
+          "x": 520,
+          "y": 128,
+          "width": 190,
+          "height": 18,
+          "content": "Datum: {{invoice.date}}",
+          "fontSize": 9,
+          "fontWeight": "normal",
+          "color": "#64748b",
+          "align": "right"
+        },
+        {
+          "id": "customer",
+          "type": "text",
+          "x": 70,
+          "y": 208,
+          "width": 280,
+          "height": 88,
+          "content": "{{client.name}}\n{{client.address}}",
+          "fontSize": 11,
+          "fontWeight": "bold",
+          "color": "#111827"
+        },
+        {
+          "id": "logisticsBox",
+          "type": "box",
+          "x": 420,
+          "y": 198,
+          "width": 300,
+          "height": 118,
+          "backgroundColor": "#eef2ff",
+          "borderColor": "#c7d2fe",
+          "borderWidth": 1
+        },
+        {
+          "id": "logistics",
+          "type": "text",
+          "x": 442,
+          "y": 222,
+          "width": 245,
+          "height": 70,
+          "content": "LOGISTIK / BESTELLUNG\nPO-Nr.: ____________\nPalette / Container: ______\nLieferort: _______________",
+          "fontSize": 9,
+          "fontWeight": "bold",
+          "color": "#3730a3"
+        },
+        {
+          "id": "section",
+          "type": "text",
+          "x": 70,
+          "y": 368,
+          "width": 520,
+          "height": 26,
+          "content": "Warenpositionen und Staffelpreise",
+          "fontSize": 18,
+          "fontWeight": "black",
+          "color": "#111827"
+        },
+        {
+          "id": "itemsTable",
+          "type": "table",
+          "x": 70,
+          "y": 420,
+          "width": 650,
+          "height": 178
+        },
+        {
+          "id": "note",
+          "type": "text",
+          "x": 70,
+          "y": 650,
+          "width": 330,
+          "height": 70,
+          "content": "MOQ, Staffelpreise, Lieferbedingungen und Speditionsreferenzen koennen in Positionen oder Notizen dokumentiert werden.",
+          "fontSize": 9,
+          "fontWeight": "normal",
+          "color": "#475569"
+        },
+        {
+          "id": "totals",
+          "type": "text",
+          "x": 510,
+          "y": 650,
+          "width": 210,
+          "height": 76,
+          "content": "Netto: {{totals.net}}\nUSt: {{totals.vat}}\nGesamt: {{totals.gross}}",
+          "fontSize": 12,
+          "fontWeight": "bold",
+          "color": "#111827",
+          "align": "right"
+        },
+        {
+          "id": "paymentQr",
+          "type": "paymentQr",
+          "x": 626,
+          "y": 782,
+          "width": 74,
+          "height": 74
+        },
+        {
+          "id": "footerLine",
+          "type": "line",
+          "x": 70,
+          "y": 1010,
+          "width": 650,
+          "height": 1,
+          "color": "#cbd5e1"
+        },
+        {
+          "id": "footer",
+          "type": "text",
+          "x": 70,
+          "y": 1030,
+          "width": 650,
+          "height": 50,
+          "content": "{{company.name}} | {{company.street}} | {{company.city}}\nIBAN {{finance.iban}} | BIC {{finance.bic}} | USt-IdNr. {{company.vatId}}",
+          "fontSize": 8,
+          "fontWeight": "normal",
+          "color": "#64748b",
+          "align": "center"
+        }
+      ]
+    }
+  },
+  {
+    "id": "beverage-supplier-invoice",
+    "name": "Getraenke Lieferant Rechnung",
+    "type": "invoice",
+    "active": false,
+    "updatedAt": "2026-05-26T00:00:00.000Z",
+    "data": {
+      "id": "beverage-supplier-invoice",
+      "name": "Getraenke Lieferant Rechnung",
+      "type": "invoice",
+      "page": {
+        "width": 794,
+        "height": 1123
+      },
+      "elements": [
+        {
+          "id": "sideBand",
+          "type": "box",
+          "x": 0,
+          "y": 0,
+          "width": 154,
+          "height": 1123,
+          "backgroundColor": "#064e3b",
+          "borderColor": "#064e3b",
+          "borderWidth": 1
+        },
+        {
+          "id": "sideTitle",
+          "type": "text",
+          "x": 32,
+          "y": 70,
+          "width": 88,
+          "height": 130,
+          "content": "GETRAENKE\nLIEFERUNG",
+          "fontSize": 16,
+          "fontWeight": "black",
+          "color": "#ffffff",
+          "align": "center"
+        },
+        {
+          "id": "sideInfo",
+          "type": "text",
+          "x": 30,
+          "y": 240,
+          "width": 94,
+          "height": 180,
+          "content": "Route\n_____\n\nPfand\nseparat\n\nKisten\nim Text\n\nVolumen\nLiter",
+          "fontSize": 9,
+          "fontWeight": "normal",
+          "color": "#d1fae5",
+          "align": "center"
+        },
+        {
+          "id": "brand",
+          "type": "text",
+          "x": 206,
+          "y": 64,
+          "width": 290,
+          "height": 34,
+          "content": "{{company.name}}",
+          "fontSize": 22,
+          "fontWeight": "black",
+          "color": "#111827"
+        },
+        {
+          "id": "title",
+          "type": "text",
+          "x": 540,
+          "y": 64,
+          "width": 190,
+          "height": 48,
+          "content": "RECHNUNG\n{{invoice.number}}",
+          "fontSize": 18,
+          "fontWeight": "black",
+          "color": "#111827",
+          "align": "right"
+        },
+        {
+          "id": "customer",
+          "type": "text",
+          "x": 206,
+          "y": 170,
+          "width": 280,
+          "height": 88,
+          "content": "{{client.name}}\n{{client.address}}",
+          "fontSize": 11,
+          "fontWeight": "bold",
+          "color": "#111827"
+        },
+        {
+          "id": "deliveryBox",
+          "type": "box",
+          "x": 510,
+          "y": 160,
+          "width": 220,
+          "height": 118,
+          "backgroundColor": "#ecfdf5",
+          "borderColor": "#a7f3d0",
+          "borderWidth": 1
+        },
+        {
+          "id": "delivery",
+          "type": "text",
+          "x": 530,
+          "y": 184,
+          "width": 160,
+          "height": 66,
+          "content": "LIEFERDETAILS\nRoute: ________\nTemperatur: ________\nLagerhinweis: ______",
+          "fontSize": 9,
+          "fontWeight": "bold",
+          "color": "#065f46"
+        },
+        {
+          "id": "itemsTable",
+          "type": "table",
+          "x": 206,
+          "y": 348,
+          "width": 524,
+          "height": 190
+        },
+        {
+          "id": "deposit",
+          "type": "text",
+          "x": 206,
+          "y": 590,
+          "width": 275,
+          "height": 70,
+          "content": "Pfandhinweis\nKisten, Flaschenpfand, Rueckgabe und Volumenrabatte koennen als eigene Positionen erfasst werden.",
+          "fontSize": 9,
+          "fontWeight": "normal",
+          "color": "#475569"
+        },
+        {
+          "id": "totals",
+          "type": "text",
+          "x": 520,
+          "y": 590,
+          "width": 210,
+          "height": 76,
+          "content": "Netto: {{totals.net}}\nUSt: {{totals.vat}}\nGesamt: {{totals.gross}}",
+          "fontSize": 12,
+          "fontWeight": "bold",
+          "color": "#111827",
+          "align": "right"
+        },
+        {
+          "id": "paymentQr",
+          "type": "paymentQr",
+          "x": 640,
+          "y": 750,
+          "width": 74,
+          "height": 74
+        },
+        {
+          "id": "footerLine",
+          "type": "line",
+          "x": 206,
+          "y": 1010,
+          "width": 524,
+          "height": 1,
+          "color": "#d1d5db"
+        },
+        {
+          "id": "footer",
+          "type": "text",
+          "x": 206,
+          "y": 1030,
+          "width": 524,
+          "height": 50,
+          "content": "{{company.name}} | {{company.street}} | {{company.city}}\nIBAN {{finance.iban}} | BIC {{finance.bic}}",
+          "fontSize": 8,
+          "fontWeight": "normal",
+          "color": "#64748b",
+          "align": "center"
+        }
+      ]
+    }
   }
 ]
