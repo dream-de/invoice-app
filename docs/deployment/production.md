@@ -15,6 +15,7 @@ openssl rand -base64 32
 Important values:
 
 - `AUTH_SECRET`
+- `AUTH_COOKIE_SECURE` (use `true` for HTTPS deployments, `false` for local HTTP testing)
 - `POSTGRES_PASSWORD`
 - `DREAM_INVOICE_AUTH_PASSWORD`
 - `DREAM_INVOICE_ADMIN_PASSWORD`

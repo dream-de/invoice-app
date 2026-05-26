@@ -84,6 +84,7 @@ Default access for the first test start:
 Before real production use, change all default passwords and secrets in `.env`, especially the values below, or generate strong passwords with `openssl rand -base64 32`
 
 - `AUTH_SECRET`
+- `AUTH_COOKIE_SECURE` (set to `true` when the public app URL uses HTTPS)
 - `POSTGRES_PASSWORD`
 - `DREAM_INVOICE_AUTH_PASSWORD`
 - `DREAM_INVOICE_ADMIN_PASSWORD`

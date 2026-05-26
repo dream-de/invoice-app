@@ -6,6 +6,7 @@ Use this checklist before handing over a Dream Invoice installation.
 
 - [ ] `.env` was created from `.env.example`
 - [ ] `AUTH_SECRET` was changed
+- [ ] `AUTH_COOKIE_SECURE` matches the public URL scheme
 - [ ] `POSTGRES_PASSWORD` was changed
 - [ ] `DREAM_INVOICE_AUTH_PASSWORD` was changed
 - [ ] `DREAM_INVOICE_ADMIN_PASSWORD` was changed

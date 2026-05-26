@@ -92,11 +92,26 @@ export function verifySessionToken(token: string | null | undefined, options: Se
   return payload
 }
 
+function envFlag(value: string | undefined) {
+  const normalized = String(value ?? "").trim().toLowerCase()
+  if (["1", "true", "yes", "on"].includes(normalized)) return true
+  if (["0", "false", "no", "off"].includes(normalized)) return false
+  return null
+}
+
+function shouldUseSecureSessionCookie() {
+  const configured = envFlag(process.env.AUTH_COOKIE_SECURE)
+  if (configured !== null) return configured
+
+  const appUrl = String(process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL ?? process.env.ORIGIN ?? "").trim()
+  return appUrl.startsWith("https://")
+}
+
 export function getSessionCookieOptions() {
   return {
     httpOnly: true,
     sameSite: "lax" as const,
-    secure: process.env.NODE_ENV === "production",
+    secure: shouldUseSecureSessionCookie(),
     path: "/",
     maxAge: SESSION_DURATION_SECONDS
   }
