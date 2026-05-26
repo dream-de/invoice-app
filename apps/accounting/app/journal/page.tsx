@@ -1,5 +1,4 @@
-import { Table, TableCell, TableRow } from "@dream-invoice/ui"
-import { PageHeader } from "@dream-invoice/ui"
+import { designTokens, PageHeader, Table, TableCell, TableRow } from "@dream-invoice/ui"
 import { AccountingButton } from "../../components/AccountingButton"
 import { AccountingStatusBadge } from "../../components/AccountingStatusBadge"
 
@@ -16,9 +15,9 @@ const entries = [
 
 export default function JournalPage() {
   return (
-    <main className="p-10">
-      <div className="mx-auto max-w-6xl">
-        <div className="flex items-start justify-between gap-4">
+    <main className={designTokens.utility.ua4d0f420b7}>
+      <div className={designTokens.utility.uadc5ca2753}>
+        <div className={designTokens.utility.u9c7f2a2b70}>
           <PageHeader
             title="Journal"
             description="Buchungen und Journaleinträge"

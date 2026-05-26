@@ -1,5 +1,7 @@
 "use client"
 
+import { designTokens } from "@dream-invoice/ui"
+
 export default function ErrorPage({
   error,
   reset
@@ -8,19 +10,19 @@ export default function ErrorPage({
   reset: () => void
 }) {
   return (
-    <main className="flex min-h-screen items-center justify-center p-10">
-      <div className="max-w-md rounded-xl border border-red-200 bg-white p-8 shadow-sm">
-        <h1 className="text-2xl font-bold text-red-600">
+    <main className={designTokens.admin.centeredPage}>
+      <div className={designTokens.admin.errorCard}>
+        <h1 className={designTokens.admin.errorTitle}>
           Fehler
         </h1>
 
-        <p className="mt-4 text-sm text-neutral-600">
+        <p className={designTokens.admin.errorText}>
           {error.message}
         </p>
 
         <button
           onClick={() => reset()}
-          className="mt-6 rounded-lg bg-black px-4 py-2 text-sm font-medium text-white"
+          className={designTokens.admin.errorButton}
         >
           Neu laden
         </button>

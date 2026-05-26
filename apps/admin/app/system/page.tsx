@@ -1,18 +1,16 @@
-import { StatCard } from "@dream-invoice/ui"
-import { Table, TableCell, TableRow } from "@dream-invoice/ui"
+import { designTokens, PageHeader, StatCard } from "@dream-invoice/ui"
 import { AdminContentCard } from "../../components/AdminContentCard"
-import { PageHeader } from "@dream-invoice/ui"
 
 export default function SystemPage() {
   return (
-    <main className="p-10">
-      <div className="mx-auto max-w-6xl space-y-8">
+    <main className={designTokens.utility.ua4d0f420b7}>
+      <div className={designTokens.utility.u9cb760d000}>
         <PageHeader
           title="Systemstatus"
           description="Überwachung der Plattform"
         />
 
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div className={designTokens.utility.u0b45bc1db1}>
           <StatCard
             label="API"
             value="Online"
@@ -33,7 +31,7 @@ export default function SystemPage() {
         </div>
 
         <AdminContentCard title="Systeminformationen">
-          <div className="space-y-2 text-sm text-neutral-700">
+          <div className={designTokens.utility.u7db266bed9}>
             <p>Node.js Runtime aktiv</p>
             <p>Turbo Repository stabil</p>
             <p>TypeScript Validierung erfolgreich</p>

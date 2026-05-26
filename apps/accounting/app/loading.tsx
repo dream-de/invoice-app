@@ -1,15 +1,16 @@
+import { designTokens } from "@dream-invoice/ui"
 export default function LoadingPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center">
-      <div className="space-y-4 text-center">
-        <div className="mx-auto h-12 w-12 animate-spin rounded-full border-4 border-slate-700 border-t-blue-500" />
+    <main className={designTokens.utility.u59ee6928dd}>
+      <div className={designTokens.utility.ufffcd17f89}>
+        <div className={designTokens.utility.u9ed334d095} />
 
         <div>
-          <h2 className="text-lg font-semibold text-white">
+          <h2 className={designTokens.utility.ufade624428}>
             Accounting lädt
           </h2>
 
-          <p className="text-sm text-slate-400">
+          <p className={designTokens.utility.u92a525a0c6}>
             Daten werden vorbereitet
           </p>
         </div>

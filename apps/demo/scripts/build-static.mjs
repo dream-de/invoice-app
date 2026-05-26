@@ -1,4 +1,4 @@
-import { copyFileSync, cpSync, mkdirSync } from "node:fs";
+import { copyFileSync, mkdirSync } from "node:fs";
 
 mkdirSync("dist/src", { recursive: true });
 copyFileSync("index.html", "dist/index.html");

@@ -1,61 +1,61 @@
-import { PageHeader } from "@dream-invoice/ui"
+import { designTokens, PageHeader } from "@dream-invoice/ui"
 export default function AdminSettingsPage() {
   return (
-    <main className="p-10">
-      <div className="mx-auto max-w-4xl">
+    <main className={designTokens.utility.ua4d0f420b7}>
+      <div className={designTokens.utility.u623e052301}>
         <PageHeader
           title="Einstellungen"
           description="Plattformweite Konfigurationen verwalten"
         />
 
-        <div className="mt-10 space-y-6">
-          <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold">
+        <div className={designTokens.utility.u15a5615a4b}>
+          <div className={designTokens.utility.u0cf3524e8a}>
+            <h2 className={designTokens.utility.u8588407212}>
               Allgemein
             </h2>
 
-            <div className="mt-4 space-y-4">
+            <div className={designTokens.utility.uc52b72f5ca}>
               <div>
-                <label className="block text-sm font-medium">
+                <label className={designTokens.utility.uf556221233}>
                   Plattform Name
                 </label>
 
                 <input
                   defaultValue="Dream Invoice"
-                  className="mt-2 w-full rounded-lg border border-neutral-300 px-4 py-2"
+                  className={designTokens.utility.ue75104fa5d}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium">
+                <label className={designTokens.utility.uf556221233}>
                   Support E-Mail
                 </label>
 
                 <input
                   defaultValue="support@example.com"
-                  className="mt-2 w-full rounded-lg border border-neutral-300 px-4 py-2"
+                  className={designTokens.utility.ue75104fa5d}
                 />
               </div>
             </div>
           </div>
 
-          <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold">
+          <div className={designTokens.utility.u0cf3524e8a}>
+            <h2 className={designTokens.utility.u8588407212}>
               Sicherheit
             </h2>
 
-            <div className="mt-4 flex items-center justify-between">
+            <div className={designTokens.utility.uedb2e65dce}>
               <div>
-                <p className="font-medium">
+                <p className={designTokens.utility.u2689f39580}>
                   Zwei Faktor Authentifizierung
                 </p>
 
-                <p className="text-sm text-neutral-500">
+                <p className={designTokens.utility.u3554eb81da}>
                   Zusätzliche Sicherheit aktivieren
                 </p>
               </div>
 
-              <button className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white">
+              <button className={designTokens.utility.ucc70d0093a}>
                 Aktivieren
               </button>
             </div>

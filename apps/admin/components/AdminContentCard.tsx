@@ -1,3 +1,4 @@
+import { designTokens } from "@dream-invoice/ui"
 import type { ReactNode } from "react"
 
 type AdminContentCardProps = {
@@ -12,18 +13,18 @@ export function AdminContentCard({
   children
 }: AdminContentCardProps) {
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white shadow-sm">
-      <div className="border-b border-neutral-200 px-6 py-4">
-        <h2 className="text-lg font-semibold">{title}</h2>
+    <div className={designTokens.utility.ua6f5030e4b}>
+      <div className={designTokens.utility.u5b6a20fe28}>
+        <h2 className={designTokens.utility.u8588407212}>{title}</h2>
 
         {description ? (
-          <p className="mt-1 text-sm text-neutral-600">
+          <p className={designTokens.utility.u0203ed6078}>
             {description}
           </p>
         ) : null}
       </div>
 
-      <div className="p-6">
+      <div className={designTokens.utility.u0478c89a15}>
         {children}
       </div>
     </div>

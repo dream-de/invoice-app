@@ -1,20 +1,21 @@
+import { designTokens } from "@dream-invoice/ui"
 import Link from "next/link"
 
 export default function NotFoundPage() {
   return (
-    <main className="flex min-h-screen items-center justify-center p-10">
-      <div className="text-center">
-        <h1 className="text-5xl font-bold text-white">
+    <main className={designTokens.utility.u6b1c3b20f7}>
+      <div className={designTokens.utility.uca6bf63030}>
+        <h1 className={designTokens.utility.u7890688d30}>
           404
         </h1>
 
-        <p className="mt-4 text-slate-400">
+        <p className={designTokens.utility.u0846dfd512}>
           Seite nicht gefunden
         </p>
 
         <Link
           href="/"
-          className="mt-6 inline-flex rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500"
+          className={designTokens.utility.u7793e4b914}
         >
           Zurück zum Dashboard
         </Link>

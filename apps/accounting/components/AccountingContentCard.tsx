@@ -1,3 +1,4 @@
+import { designTokens } from "@dream-invoice/ui"
 import type { ReactNode } from "react"
 
 type AccountingContentCardProps = {
@@ -12,15 +13,15 @@ export function AccountingContentCard({
   children
 }: AccountingContentCardProps) {
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-900/50">
-      <div className="border-b border-slate-800 px-6 py-4">
-        <h2 className="text-lg font-semibold">{title}</h2>
+    <div className={designTokens.utility.u4df3cc14e1}>
+      <div className={designTokens.utility.u0f5f4577d5}>
+        <h2 className={designTokens.utility.u8588407212}>{title}</h2>
         {description ? (
-          <p className="mt-1 text-sm text-slate-400">{description}</p>
+          <p className={designTokens.utility.ufdc10ac346}>{description}</p>
         ) : null}
       </div>
 
-      <div className="p-6">
+      <div className={designTokens.utility.u0478c89a15}>
         {children}
       </div>
     </div>

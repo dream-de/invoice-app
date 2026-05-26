@@ -1,53 +1,54 @@
+import { designTokens } from "@dream-invoice/ui"
 import Link from "next/link"
 
 export default function HomePage() {
   return (
-    <main className="p-10">
-      <div className="max-w-5xl mx-auto">
-        <h1 className="text-4xl font-bold mb-3">
+    <main className={designTokens.utility.ua4d0f420b7}>
+      <div className={designTokens.utility.u32a71e64be}>
+        <h1 className={designTokens.utility.ue4de0bd191}>
           Accounting Platform
         </h1>
 
-        <p className="text-slate-400 mb-10">
+        <p className={designTokens.utility.udfe74d797c}>
           Professionelle Buchhaltung und Finanzverwaltung
         </p>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className={designTokens.utility.uaf6ac64dff}>
           <Link
             href="/dashboard"
-            className="rounded-xl border border-slate-800 p-6 hover:border-blue-500 transition"
+            className={designTokens.utility.u08f466f9c5}
           >
-            <h2 className="text-xl font-semibold mb-2">
+            <h2 className={designTokens.utility.uba964cf8cf}>
               Dashboard
             </h2>
 
-            <p className="text-slate-400 text-sm">
+            <p className={designTokens.utility.u34e85d341c}>
               Finanzübersicht und KPIs
             </p>
           </Link>
 
           <Link
             href="/journal"
-            className="rounded-xl border border-slate-800 p-6 hover:border-blue-500 transition"
+            className={designTokens.utility.u08f466f9c5}
           >
-            <h2 className="text-xl font-semibold mb-2">
+            <h2 className={designTokens.utility.uba964cf8cf}>
               Journal
             </h2>
 
-            <p className="text-slate-400 text-sm">
+            <p className={designTokens.utility.u34e85d341c}>
               Buchungen und Journaleinträge
             </p>
           </Link>
 
           <Link
             href="/accounts"
-            className="rounded-xl border border-slate-800 p-6 hover:border-blue-500 transition"
+            className={designTokens.utility.u08f466f9c5}
           >
-            <h2 className="text-xl font-semibold mb-2">
+            <h2 className={designTokens.utility.uba964cf8cf}>
               Kontenplan
             </h2>
 
-            <p className="text-slate-400 text-sm">
+            <p className={designTokens.utility.u34e85d341c}>
               Verwaltung aller Sachkonten
             </p>
           </Link>

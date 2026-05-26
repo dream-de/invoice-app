@@ -1,7 +1,5 @@
-import { Table, TableCell, TableRow } from "@dream-invoice/ui"
-import { PageHeader } from "@dream-invoice/ui"
+import { designTokens, PageHeader, StatusBadge, Table, TableCell, TableRow } from "@dream-invoice/ui"
 import { AdminContentCard } from "../../components/AdminContentCard"
-import { StatusBadge } from "@dream-invoice/ui"
 
 const users = [
   {
@@ -26,8 +24,8 @@ const users = [
 
 export default function UsersPage() {
   return (
-    <main className="p-10">
-      <div className="mx-auto max-w-6xl space-y-8">
+    <main className={designTokens.utility.ua4d0f420b7}>
+      <div className={designTokens.utility.u9cb760d000}>
         <PageHeader
           title="Benutzerverwaltung"
           description="Alle Benutzer und Rollen verwalten"
