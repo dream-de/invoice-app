@@ -108,6 +108,7 @@ model Invoice {
   projectId   String?
   project     Project?          @relation(fields: [projectId], references: [id])
   positions   InvoicePosition[]
+  payments    Payment[]
   netTotal    Decimal           @default(0) @db.Decimal(12, 2)
   vatTotal    Decimal           @default(0) @db.Decimal(12, 2)
   grossTotal  Decimal           @default(0) @db.Decimal(12, 2)
@@ -135,12 +136,15 @@ model InvoicePosition {
 model Payment {
   id          String   @id @default(cuid())
   invoiceId   String?
+  invoice     Invoice? @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
   amount      Decimal  @db.Decimal(12, 2)
   currency    String   @default("EUR")
   method      String?
   reference   String?
   paidAt      DateTime @default(now())
   createdAt   DateTime @default(now())
+
+  @@index([invoiceId])
 }
 
 model NumberRange {
@@ -161,6 +165,8 @@ model AuditLog {
   reason    String?
   data      Json?
   createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }
 
 

@@ -81,6 +81,15 @@ Keep internal foundations private unless deliberately deployed:
 
 The worker should run as a scheduled or profile-based background process, not as a public HTTP service.
 
+Keep database and development tools private:
+
+- Bind `POSTGRES_PORT` to `127.0.0.1` unless you intentionally run PostgreSQL behind a separate private firewall or VPN.
+- Do not expose the development Docker stack publicly. It is only for local PostgreSQL, Mailpit, and Adminer testing.
+
+## System Time
+
+Keep the host clock synchronized with NTP or the time service provided by the hoster. License expiry checks and audit timestamps depend on correct system time.
+
 ## Database Backups
 
 Create backups regularly:
