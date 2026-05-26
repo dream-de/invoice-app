@@ -46,17 +46,68 @@ Important: legal, tax, and accounting compliance always depends on setup, proces
 - `docs/`: deployment, operations, architecture, domain, and PDF notes
 - `tools/license/`: license key and security tooling
 
-## Prerequisites
+## Quick Install
 
-Install first:
+For a fresh self-hosted LXC or server, install Docker first. The normal Docker path is start-friendly and uses the defaults from `.env.example`:
 
-- Node.js 20+
-- pnpm 10+
-- Git
-- Docker and the Docker Compose plugin for container-based setups
+```bash
+git clone https://github.com/dream-de/invoice-app.git
+cd invoice-app
+cp .env.example .env
+docker compose up -d
+```
 
+The product stack starts PostgreSQL, the Dream Invoice web app, and the app proxy. The public demo and landing page are not installed in this customer stack.
 
-## Getting Started
+Default access for the first test start:
+
+- User: `admin`
+- Password: `dreaminvoice`
+
+Before real production use, change all default passwords and secrets in `.env`, especially:
+
+- `AUTH_SECRET`
+- `POSTGRES_PASSWORD`
+- `DREAM_INVOICE_AUTH_PASSWORD`
+- `DREAM_INVOICE_ADMIN_PASSWORD`
+
+## Install With Generated Secrets
+
+If you want the installer to create strong random secrets automatically, use:
+
+```bash
+git clone https://github.com/dream-de/invoice-app.git
+cd invoice-app
+./scripts/install.sh
+```
+
+The installer creates a private `.env` file with generated secrets, starts the same product Docker stack, and prints the generated deployment password.
+
+After installation, check the stack:
+
+```bash
+./scripts/status.sh
+```
+
+## Manual Configuration
+
+Use this path when you want to review or provide every value yourself:
+
+```bash
+git clone https://github.com/dream-de/invoice-app.git
+cd invoice-app
+cp .env.example .env
+nano .env
+docker compose up -d
+```
+
+Generate strong values with:
+
+```bash
+openssl rand -base64 48
+```
+
+## Development Setup
 
 Install dependencies and generate the Prisma client:
 
@@ -102,30 +153,30 @@ pnpm security:audit      # Run dependency audit from pnpm
 
 ## Docker
 
-Start the product Docker stack. This installs Dream Invoice, PostgreSQL, and the app proxy only. The public demo and marketing landing page are not part of this customer/LXC stack and are removed from the product runtime image:
+Start the product Docker stack manually. Use `--build` when you want to force a fresh image build. This installs Dream Invoice, PostgreSQL, and the app proxy only. The public demo and marketing landing page are not part of this customer/LXC stack and are removed from the product runtime image:
 
 ```bash
-docker compose -f docker/docker-compose.yml up -d
+docker compose up -d
 ```
 
 Check status and logs:
 
 ```bash
-docker compose -f docker/docker-compose.yml ps
-docker compose -f docker/docker-compose.yml logs -f
+docker compose ps
+docker compose logs -f
 ```
 
 Check the database:
 
 ```bash
-docker compose -f docker/docker-compose.yml exec postgres pg_isready -U dream_invoice -d dream_invoice
+docker compose exec postgres pg_isready -U dream_invoice -d dream_invoice
 ```
 
 Rebuild the stack:
 
 ```bash
-docker compose -f docker/docker-compose.yml build --no-cache
-docker compose -f docker/docker-compose.yml up -d
+docker compose build --no-cache
+docker compose up -d
 ```
 
 Build or run the worker profile:
@@ -172,13 +223,13 @@ pnpm docker:dev:down
 Create a database backup:
 
 ```bash
-docker compose -f docker/docker-compose.yml exec postgres pg_dump -U dream_invoice dream_invoice > backup.sql
+docker compose exec postgres pg_dump -U dream_invoice dream_invoice > backup.sql
 ```
 
 Restore a database backup:
 
 ```bash
-cat backup.sql | docker compose -f docker/docker-compose.yml exec -T postgres psql -U dream_invoice dream_invoice
+cat backup.sql | docker compose exec -T postgres psql -U dream_invoice dream_invoice
 ```
 
 ## Documentation

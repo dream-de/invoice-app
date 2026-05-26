@@ -20,7 +20,7 @@ services:
 
   web-app:
     build:
-      context: ..
+      context: .
       dockerfile: docker/Dockerfile
     restart: unless-stopped
     depends_on:
@@ -31,6 +31,10 @@ services:
       PORT: 3000
       NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-Dream Invoice}
       AUTH_SECRET: ${AUTH_SECRET:-change-this-secret-before-production}
+      DREAM_INVOICE_AUTH_USER: ${DREAM_INVOICE_AUTH_USER:-admin}
+      DREAM_INVOICE_AUTH_PASSWORD: ${DREAM_INVOICE_AUTH_PASSWORD:-}
+      DREAM_INVOICE_AUTH_REQUIRED: ${DREAM_INVOICE_AUTH_REQUIRED:-false}
+      LICENSE_PUBLIC_KEY: ${LICENSE_PUBLIC_KEY:-}
       DATABASE_URL: postgresql://${POSTGRES_USER:-dream_invoice}:${POSTGRES_PASSWORD:-dream_invoice_dev_password}@postgres:5432/${POSTGRES_DB:-dream_invoice}
       PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
     expose:
@@ -38,7 +42,7 @@ services:
     ports:
       - "${WEB_PORT:-3000}:3000"
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      test: ["CMD", "node", "-e", "const p=process.env.DREAM_INVOICE_AUTH_PASSWORD; const u=process.env.DREAM_INVOICE_AUTH_USER || 'admin'; const h=p ? { authorization: 'Basic ' + Buffer.from(u + ':' + p).toString('base64') } : {}; fetch('http://127.0.0.1:3000/login', { headers: h }).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 10s
       timeout: 5s
       retries: 6
@@ -47,7 +51,7 @@ services:
     profiles:
       - worker
     build:
-      context: ..
+      context: .
       dockerfile: docker/ServerWorker.Dockerfile
     restart: "no"
     depends_on:
@@ -68,10 +72,13 @@ services:
         condition: service_healthy
     ports:
       - "${HTTP_PORT:-80}:80"
+    environment:
+      DREAM_INVOICE_AUTH_USER: ${DREAM_INVOICE_AUTH_USER:-admin}
+      DREAM_INVOICE_AUTH_PASSWORD: ${DREAM_INVOICE_AUTH_PASSWORD:-}
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./docker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     healthcheck:
-      test: ["CMD-SHELL", "nginx -t && wget -qO- http://127.0.0.1/ >/dev/null"]
+      test: ["CMD-SHELL", "nginx -t && wget --user=\"$$DREAM_INVOICE_AUTH_USER\" --password=\"$$DREAM_INVOICE_AUTH_PASSWORD\" -qO- http://127.0.0.1/login >/dev/null"]
       interval: 10s
       timeout: 5s
       retries: 6

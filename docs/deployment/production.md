@@ -86,13 +86,13 @@ The worker should run as a scheduled or profile-based background process, not as
 Create backups regularly:
 
 ```bash
-docker compose -f docker/docker-compose.yml exec postgres pg_dump -U dream_invoice dream_invoice > backup.sql
+docker compose exec postgres pg_dump -U dream_invoice dream_invoice > backup.sql
 ```
 
 Restore only into an environment where the target database is intended to be replaced:
 
 ```bash
-cat backup.sql | docker compose -f docker/docker-compose.yml exec -T postgres psql -U dream_invoice dream_invoice
+cat backup.sql | docker compose exec -T postgres psql -U dream_invoice dream_invoice
 ```
 
 ## Production Checklist

@@ -1,14 +1,14 @@
 # Operations Runbook
 
-This runbook lists practical steps for common Dream Invoice operational incidents. It assumes a Docker-based product deployment using `docker/docker-compose.yml`. The public demo and landing page use `docker/public-site.compose.yml` only when intentionally hosted.
+This runbook lists practical steps for common Dream Invoice operational incidents. It assumes a Docker-based product deployment using `docker-compose.yml`. The public demo and landing page use `docker/public-site.compose.yml` only when intentionally hosted.
 
 ## First Checks
 
 Run these commands before changing anything:
 
 ```bash
-docker compose -f docker/docker-compose.yml ps
-docker compose -f docker/docker-compose.yml logs --tail=200
+docker compose ps
+docker compose logs --tail=200
 pnpm release:check
 pnpm security:audit
 ```
@@ -30,16 +30,16 @@ Symptoms:
 Checks:
 
 ```bash
-docker compose -f docker/docker-compose.yml ps
-docker compose -f docker/docker-compose.yml logs --tail=200 web-app
-docker compose -f docker/docker-compose.yml logs --tail=200 nginx
+docker compose ps
+docker compose logs --tail=200 web-app
+docker compose logs --tail=200 nginx
 ```
 
 Recovery:
 
 ```bash
-docker compose -f docker/docker-compose.yml restart web-app
-docker compose -f docker/docker-compose.yml ps
+docker compose restart web-app
+docker compose ps
 ```
 
 If the app still fails, verify environment variables and database connectivity before rebuilding.
@@ -55,9 +55,9 @@ Symptoms:
 Checks:
 
 ```bash
-docker compose -f docker/docker-compose.yml ps postgres
-docker compose -f docker/docker-compose.yml logs --tail=200 postgres
-docker compose -f docker/docker-compose.yml exec postgres pg_isready -U dream_invoice -d dream_invoice
+docker compose ps postgres
+docker compose logs --tail=200 postgres
+docker compose exec postgres pg_isready -U dream_invoice -d dream_invoice
 ```
 
 Recovery:
@@ -76,7 +76,7 @@ Symptoms:
 Checks:
 
 ```bash
-docker compose -f docker/docker-compose.yml logs --tail=300 web-app
+docker compose logs --tail=300 web-app
 pnpm --filter @dream-invoice/database db:deploy
 ```
 
@@ -97,8 +97,8 @@ Symptoms:
 Checks:
 
 ```bash
-docker compose -f docker/docker-compose.yml --profile worker ps
-docker compose -f docker/docker-compose.yml --profile worker logs --tail=200 server-worker
+docker compose --profile worker ps
+docker compose --profile worker logs --tail=200 server-worker
 pnpm worker:server:smoke
 ```
 
@@ -121,9 +121,9 @@ Use this when a deployment causes a regression.
 Suggested commands:
 
 ```bash
-docker compose -f docker/docker-compose.yml ps
-docker compose -f docker/docker-compose.yml restart web-app nginx
-docker compose -f docker/docker-compose.yml logs --tail=200 web-app
+docker compose ps
+docker compose restart web-app nginx
+docker compose logs --tail=200 web-app
 ```
 
 Database rollbacks require extra care. Prefer forward-fix migrations unless a backup restore is clearly safer.
@@ -133,20 +133,20 @@ Database rollbacks require extra care. Prefer forward-fix migrations unless a ba
 Create a backup:
 
 ```bash
-docker compose -f docker/docker-compose.yml exec postgres pg_dump -U dream_invoice dream_invoice > backup.sql
+docker compose exec postgres pg_dump -U dream_invoice dream_invoice > backup.sql
 ```
 
 Restore a backup:
 
 ```bash
-cat backup.sql | docker compose -f docker/docker-compose.yml exec -T postgres psql -U dream_invoice dream_invoice
+cat backup.sql | docker compose exec -T postgres psql -U dream_invoice dream_invoice
 ```
 
 After restore:
 
 ```bash
-docker compose -f docker/docker-compose.yml restart web-app
-docker compose -f docker/docker-compose.yml ps
+docker compose restart web-app
+docker compose ps
 ```
 
 ## Security Incident

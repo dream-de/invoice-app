@@ -89,13 +89,13 @@ Before launch:
 Backup command:
 
 ```bash
-docker compose -f docker/docker-compose.yml exec postgres pg_dump -U dream_invoice dream_invoice > backup.sql
+docker compose exec postgres pg_dump -U dream_invoice dream_invoice > backup.sql
 ```
 
 Restore command:
 
 ```bash
-cat backup.sql | docker compose -f docker/docker-compose.yml exec -T postgres psql -U dream_invoice dream_invoice
+cat backup.sql | docker compose exec -T postgres psql -U dream_invoice dream_invoice
 ```
 
 ## 6. Worker Strategy
