@@ -6,6 +6,8 @@ export type AuditAction =
   | "settings.number_ranges.update"
   | "invoice.finalize"
   | "invoice.delete"
+  | "user.create"
+  | "user.update"
 
 type AuditLogInput = {
   action: AuditAction
