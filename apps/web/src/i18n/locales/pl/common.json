@@ -9,12 +9,13 @@
   "login.field.name": "Nazwa",
   "login.field.email": "E-mail",
   "login.field.password": "Haslo",
-  "login.placeholder.name": "Pierwszy uzytkownik",
+  "login.placeholder.name": "admin",
   "login.placeholder.password": "Co najmniej 12 znakow",
   "login.submitting": "Prosze czekac...",
-  "login.submit.setup": "Utworz pierwszego uzytkownika",
+  "login.submit.setup": "Zarejestruj",
   "login.submit.login": "Zaloguj",
-  "login.success.setup": "Pierwszy uzytkownik zostal utworzony.",
+  "login.success.setup": "Rejestracja zakonczona.",
   "login.success.login": "Logowanie udane.",
-  "login.error.generic": "Nie mozna przetworzyc logowania."
+  "login.error.generic": "Nie mozna przetworzyc logowania.",
+  "login.placeholder.email": "admin@example.com"
 }

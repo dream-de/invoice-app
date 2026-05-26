@@ -111,7 +111,7 @@ export function LoginClient({ setupAvailable }: { setupAvailable: boolean }) {
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               className="mt-2 min-h-12 w-full rounded-[16px] border border-[#dbe3ec] bg-[#f8fafc] px-4 text-sm font-medium outline-none focus:border-[#94a3b8] focus:bg-white"
-              placeholder="owner@example.test"
+              placeholder={t("login.placeholder.email")}
             />
           </label>
 
@@ -130,7 +130,7 @@ export function LoginClient({ setupAvailable }: { setupAvailable: boolean }) {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="min-h-12 w-full rounded-full bg-[#111827] px-5 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(15,23,42,0.18)] transition hover:bg-[#020617] disabled:cursor-not-allowed disabled:opacity-60"
+            className="min-h-11 rounded-full bg-[#111827] px-6 text-sm font-semibold text-white shadow-[0_10px_22px_rgba(15,23,42,0.16)] transition hover:bg-[#020617] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {isSubmitting ? t("login.submitting") : mode === "setup" ? t("login.submit.setup") : t("login.submit.login")}
           </button>

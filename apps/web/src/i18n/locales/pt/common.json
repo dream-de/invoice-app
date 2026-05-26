@@ -9,12 +9,13 @@
   "login.field.name": "Nome",
   "login.field.email": "Email",
   "login.field.password": "Senha",
-  "login.placeholder.name": "Primeiro usuario",
+  "login.placeholder.name": "admin",
   "login.placeholder.password": "Pelo menos 12 caracteres",
   "login.submitting": "Aguarde...",
-  "login.submit.setup": "Criar primeiro usuario",
+  "login.submit.setup": "Registrar",
   "login.submit.login": "Entrar",
-  "login.success.setup": "Primeiro usuario criado.",
+  "login.success.setup": "Registro concluido.",
   "login.success.login": "Login realizado com sucesso.",
-  "login.error.generic": "Nao foi possivel processar o login."
+  "login.error.generic": "Nao foi possivel processar o login.",
+  "login.placeholder.email": "admin@example.com"
 }

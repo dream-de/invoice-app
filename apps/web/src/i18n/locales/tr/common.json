@@ -9,12 +9,13 @@
   "login.field.name": "Ad",
   "login.field.email": "E-posta",
   "login.field.password": "Sifre",
-  "login.placeholder.name": "Ilk kullanici",
+  "login.placeholder.name": "admin",
   "login.placeholder.password": "En az 12 karakter",
   "login.submitting": "Lutfen bekleyin...",
-  "login.submit.setup": "Ilk kullaniciyi olustur",
+  "login.submit.setup": "Kaydol",
   "login.submit.login": "Giris yap",
-  "login.success.setup": "Ilk kullanici olusturuldu.",
+  "login.success.setup": "Kayit tamamlandi.",
   "login.success.login": "Giris basarili.",
-  "login.error.generic": "Giris islenemedi."
+  "login.error.generic": "Giris islenemedi.",
+  "login.placeholder.email": "admin@example.com"
 }

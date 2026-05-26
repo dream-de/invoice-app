@@ -81,7 +81,7 @@ Default access for the first test start:
 
 ---
 
-Before real production use, change all default passwords and secrets in `.env`, especially the values below, or generate strong passwords with `openssl rand -base64 32`:
+Before real production use, change all default passwords and secrets in `.env`, especially the values below, or generate strong passwords with `openssl rand -base64 32`
 
 - `AUTH_SECRET`
 - `POSTGRES_PASSWORD`

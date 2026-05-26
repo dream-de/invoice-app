@@ -9,12 +9,13 @@
   "login.field.name": "Naam",
   "login.field.email": "E-mail",
   "login.field.password": "Wachtwoord",
-  "login.placeholder.name": "Eerste gebruiker",
+  "login.placeholder.name": "admin",
   "login.placeholder.password": "Minimaal 12 tekens",
   "login.submitting": "Even wachten...",
-  "login.submit.setup": "Eerste gebruiker maken",
+  "login.submit.setup": "Registreren",
   "login.submit.login": "Aanmelden",
-  "login.success.setup": "Eerste gebruiker is aangemaakt.",
+  "login.success.setup": "Registratie voltooid.",
   "login.success.login": "Succesvol aangemeld.",
-  "login.error.generic": "Aanmelden kon niet worden verwerkt."
+  "login.error.generic": "Aanmelden kon niet worden verwerkt.",
+  "login.placeholder.email": "admin@example.com"
 }

@@ -98,7 +98,7 @@ function createStore(initialUsers: StoredUser[]) {
 const owner: AppUser = {
   id: "owner_1",
   name: "Owner",
-  email: "owner@example.test",
+  email: "admin@example.com",
   role: "owner",
   status: "active",
   lastLoginAt: null,

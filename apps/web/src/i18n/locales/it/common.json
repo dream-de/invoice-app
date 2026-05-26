@@ -9,12 +9,13 @@
   "login.field.name": "Nome",
   "login.field.email": "Email",
   "login.field.password": "Password",
-  "login.placeholder.name": "Primo utente",
+  "login.placeholder.name": "admin",
   "login.placeholder.password": "Almeno 12 caratteri",
   "login.submitting": "Attendere...",
-  "login.submit.setup": "Crea primo utente",
+  "login.submit.setup": "Registrati",
   "login.submit.login": "Accedi",
-  "login.success.setup": "Primo utente creato.",
+  "login.success.setup": "Registrazione completata.",
   "login.success.login": "Accesso riuscito.",
-  "login.error.generic": "Accesso non elaborato."
+  "login.error.generic": "Accesso non elaborato.",
+  "login.placeholder.email": "admin@example.com"
 }

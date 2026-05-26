@@ -9,12 +9,13 @@
   "login.field.name": "Nom",
   "login.field.email": "E-mail",
   "login.field.password": "Mot de passe",
-  "login.placeholder.name": "Premier utilisateur",
+  "login.placeholder.name": "admin",
   "login.placeholder.password": "Au moins 12 caracteres",
   "login.submitting": "Veuillez patienter...",
-  "login.submit.setup": "Creer le premier utilisateur",
+  "login.submit.setup": "Enregistrer",
   "login.submit.login": "Se connecter",
-  "login.success.setup": "Le premier utilisateur a ete cree.",
+  "login.success.setup": "Enregistrement termine.",
   "login.success.login": "Connexion reussie.",
-  "login.error.generic": "La connexion n'a pas pu etre traitee."
+  "login.error.generic": "La connexion n'a pas pu etre traitee.",
+  "login.placeholder.email": "admin@example.com"
 }

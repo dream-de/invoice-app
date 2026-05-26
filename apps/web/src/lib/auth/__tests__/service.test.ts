@@ -80,11 +80,11 @@ describe("auth service", () => {
   it("creates the initial owner only while setup is open", async () => {
     const { store, users } = createStore()
     const owner = await createInitialOwner(
-      { name: "Owner", email: "OWNER@example.test", password: "SecurePass123" },
+      { name: "Owner", email: "ADMIN@example.com", password: "SecurePass123" },
       { store }
     )
 
-    assert.equal(owner.email, "owner@example.test")
+    assert.equal(owner.email, "admin@example.com")
     assert.equal(owner.role, "owner")
     assert.equal(users[0].passwordHash?.startsWith("scrypt:v1"), true)
 
