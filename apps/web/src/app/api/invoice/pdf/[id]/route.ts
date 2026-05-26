@@ -6,6 +6,7 @@ import puppeteer from "puppeteer"
 import * as QRCode from "qrcode"
 import { createPdfContentDisposition, createPdfFileName } from "@dream-invoice/pdf"
 import { pdfLayout } from "@/lib/pdf/layout"
+import { calculatePdfInvoiceTotals } from "@/lib/pdf/invoice-totals"
 import type { DocumentTemplate } from "@/lib/document-templates/types"
 import { DEFAULT_INVOICE_TEMPLATE } from "@/lib/document-templates/constants"
 import { createSepaQrPayload } from "@/lib/payment/sepa-qr"
@@ -27,6 +28,7 @@ type PdfInvoicePosition = {
   title: string
   quantity: unknown
   netPrice: unknown
+  vatRate?: unknown
 }
 
 type PdfInvoice = {
@@ -134,7 +136,8 @@ function fallbackInvoice(id: string): PdfInvoice | null {
       {
         title: document.type === "Angebot" ? "Projektpaket" : "Digitale Dienstleistung",
         quantity: 1,
-        netPrice: netTotal
+        netPrice: netTotal,
+        vatRate: 19
       }
     ]
   }
@@ -189,27 +192,7 @@ export async function GET(
 
     const { invoice, company } = source
 
-    const subtotal = invoice.positions.reduce(
-      (sum: number, p: any) => sum + Number(p.netPrice) * Number(p.quantity),
-      0
-    )
-
-    const taxTotal = invoice.positions.reduce(
-      (sum: number, p: any) =>
-        sum +
-        Number(p.netPrice) *
-          Number(p.quantity) *
-          (Number(p.vatRate) / 100),
-      0
-    )
-
-    const total = subtotal + taxTotal
-
-    const positions = invoice.positions.map((p: any) => ({
-      title: p.title,
-      quantity: Number(p.quantity),
-      unitPrice: Number(p.netPrice)
-    }))
+    const { subtotal, taxTotal, total, positions } = calculatePdfInvoiceTotals(invoice.positions)
 
     const template = await loadInvoiceTemplate(searchParams.get("templateId"))
     const qrElement = template.elements.find((element) => element.type === "paymentQr")
