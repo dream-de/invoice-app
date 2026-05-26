@@ -76,6 +76,15 @@ const permissionGroups = [
     ] as const
   },
   {
+    titleKey: "settings.users.permissions.portal.title",
+    descriptionKey: "settings.users.permissions.portal.description",
+    itemKeys: [
+      "settings.users.permissions.portal.offerPortal",
+      "settings.users.permissions.portal.archiveUse",
+      "settings.users.permissions.portal.archiveConfigure"
+    ] as const
+  },
+  {
     titleKey: "settings.users.permissions.admin.title",
     descriptionKey: "settings.users.permissions.admin.description",
     itemKeys: [
