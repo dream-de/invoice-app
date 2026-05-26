@@ -55,9 +55,14 @@ Public demo: https://demo.dream-invoice.com
 For a fresh self-hosted LXC or server, install Docker first, then run:
 
 ```bash
+
 git clone https://github.com/dream-de/invoice-app.git
 cd invoice-app
 cp .env.example .env
+nano .env
+
+# ------------------------------------------------------------
+
 docker compose up -d
 ```
 
@@ -81,11 +86,12 @@ Before real production use, change all default passwords and secrets in `.env`, 
 
 ---
 
-## Install With Generated Secrets
+## Install With Auto-Generated Secrets
 
 If you want the installer to create random secrets automatically, use:
 
 ```bash
+
 git clone https://github.com/dream-de/invoice-app.git
 cd invoice-app
 chmod +x scripts/install.sh scripts/status.sh
@@ -99,19 +105,6 @@ After installation, check the stack:
 ```bash
 ./scripts/status.sh
 ```
-
-## Manual Configuration
-
-Use this path when you want to review or provide every value yourself:
-
-```bash
-git clone https://github.com/dream-de/invoice-app.git
-cd invoice-app
-cp .env.example .env
-nano .env
-docker compose up -d
-```
-
 
 ## Development Setup
 
