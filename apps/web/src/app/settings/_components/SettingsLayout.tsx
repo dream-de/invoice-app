@@ -72,17 +72,17 @@ export function SettingsLayout({
               return (
                 <Link key={item.href} href={item.href} className="block no-underline">
                   <div
-                    className={`group flex items-center gap-4 rounded-[28px] px-4 py-3.5 transition ${
+                    className={`group flex items-center gap-4 rounded-[28px] px-4 py-3.5 transition-all duration-200 ${
                       active
-                        ? "translate-x-1 bg-white text-[#111827] shadow-[0_16px_34px_rgba(15,23,42,0.14)] ring-1 ring-[#e3e9f1]"
-                        : "text-[#64748b] hover:bg-white/70 hover:text-[#111827] hover:shadow-sm"
+                        ? "translate-x-1 bg-white text-[#111827] shadow-[0_16px_34px_rgba(15,23,42,0.12)] active:ring-2 active:ring-[#2563eb] focus-within:ring-2 focus-within:ring-[#2563eb]"
+                        : "text-[#64748b] hover:-translate-y-0.5 hover:bg-white hover:text-[#111827] hover:shadow-[0_12px_28px_rgba(15,23,42,0.10)] active:ring-2 active:ring-[#2563eb] focus-within:ring-2 focus-within:ring-[#2563eb]"
                     }`}
                   >
                     <div
                       className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full transition ${
                         active
                           ? "bg-black text-[var(--brand-lime)] shadow-[0_8px_18px_rgba(0,0,0,0.18)]"
-                          : "bg-[#e9eef5] text-[#64748b] group-hover:bg-white"
+                          : "bg-[#e9eef5] text-[#64748b] group-hover:bg-black group-hover:text-[var(--brand-lime)] group-hover:shadow-[0_8px_18px_rgba(0,0,0,0.14)]"
                       }`}
                     >
                       <Icon className="h-5 w-5 stroke-[2.3]" />
@@ -92,7 +92,9 @@ export function SettingsLayout({
                       <p className="truncate text-base font-extrabold">
                         {t(item.labelKey)}
                       </p>
-                      <p className="mt-0.5 line-clamp-2 text-xs font-semibold text-[#94a3b8]">
+                      <p className={`mt-0.5 line-clamp-2 text-xs font-semibold transition ${
+                        active ? "text-[#94a3b8]" : "text-[#94a3b8] group-hover:text-[#64748b]"
+                      }`}>
                         {t(item.subKey)}
                       </p>
                     </div>
@@ -122,14 +124,14 @@ export function SettingsLayout({
         </main>
       </div>
 
-      <div className="flex justify-end border-t border-[#e6ebf1] bg-white/50 p-6">
+      <div className="sticky bottom-0 z-20 flex justify-end border-t border-[#e6ebf1] bg-white/85 p-6 backdrop-blur">
         {status ? (
           <span className="mr-4 self-center text-sm font-bold text-[#64748b]">{status}</span>
         ) : null}
         <button
           type="button"
           onClick={action}
-          className="inline-flex items-center gap-2 rounded-full bg-black px-8 py-3 font-extrabold text-[var(--brand-lime)] shadow-sm"
+          className="inline-flex items-center gap-2 rounded-full bg-black px-8 py-3 font-extrabold text-[var(--brand-lime)] shadow-[0_16px_34px_rgba(15,23,42,0.18)] transition hover:-translate-y-0.5 hover:shadow-[0_20px_40px_rgba(15,23,42,0.24)]"
         >
           <Settings className="h-4 w-4" />
           {t("settings.save")}
