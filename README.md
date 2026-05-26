@@ -66,6 +66,13 @@ nano .env
 docker compose up -d
 ```
 
+Start command only:
+
+```bash
+
+docker compose up -d
+```
+
 The product stack starts PostgreSQL, the Dream Invoice web app, and the app proxy. The public demo and landing page are not installed in this customer stack.
 
 ---
