@@ -9,7 +9,7 @@
 
 ---
 
-Dream Invoice is a modern invoicing platform for invoices, offers, customers, articles, finance workflows, document templates, and safe public testing. Public demo: https://demo.dream-invoice.com
+Dream Invoice is a modern invoicing platform for invoices, offers, customers, articles, finance workflows, document templates, and safe public testing.
 
 ## Features
 
@@ -46,9 +46,13 @@ Important: legal, tax, and accounting compliance always depends on setup, proces
 - `docs/`: deployment, operations, architecture, domain, and PDF notes
 - `tools/license/`: license key and security tooling
 
+## Live Demo
+
+Public demo: https://demo.dream-invoice.com
+
 ## Quick Install
 
-For a fresh self-hosted LXC or server, install Docker first. The normal Docker path is start-friendly and uses the defaults from `.env.example`:
+For a fresh self-hosted LXC or server, install Docker first, then run:
 
 ```bash
 git clone https://github.com/dream-de/invoice-app.git
@@ -73,7 +77,7 @@ Before real production use, change all default passwords and secrets in `.env`, 
 
 ## Install With Generated Secrets
 
-If you want the installer to create strong random secrets automatically, use:
+If you want the installer to create random secrets automatically, use:
 
 ```bash
 git clone https://github.com/dream-de/invoice-app.git
@@ -101,10 +105,10 @@ nano .env
 docker compose up -d
 ```
 
-Generate strong values with:
+Generate values with:
 
 ```bash
-openssl rand -base64 48
+openssl rand -base64 32
 ```
 
 ## Development Setup

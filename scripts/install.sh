@@ -30,7 +30,7 @@ fi
 
 if [ ! -f "$ENV_FILE" ]; then
   POSTGRES_PASSWORD="$(random_secret 32)"
-  AUTH_SECRET="$(random_secret 48)"
+  AUTH_SECRET="$(random_secret 32)"
   DEPLOYMENT_PASSWORD="$(random_secret 24)"
   ADMIN_PASSWORD="$(random_secret 24)"
 
