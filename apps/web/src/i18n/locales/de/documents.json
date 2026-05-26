@@ -209,5 +209,9 @@
   "documents.new.defaultItem": "Neue Position",
   "documents.new.errors.createDraft": "Entwurf konnte nicht erstellt werden.",
   "documents.new.errors.unknown": "Unbekannter Fehler",
-  "documents.list.description": "Rechnungen"
+  "documents.list.description": "Rechnungen",
+  "documents.list.typeFilter.invoices": "Rechnungen",
+  "documents.list.typeFilter.offers": "Angebote",
+  "documents.list.empty.title": "Keine Dokumente gefunden",
+  "documents.list.empty.description": "Für diese Auswahl gibt es noch keine Dokumente."
 }

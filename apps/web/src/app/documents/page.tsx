@@ -10,6 +10,7 @@ import type { TranslationKey } from "@/i18n/dictionary"
 
 type DocumentStatus = "draft" | "open" | "paid" | "overdue"
 type StatusFilter = "all" | DocumentStatus
+type DocumentTypeFilter = "invoice" | "offer"
 
 const statusClass: Record<DocumentStatus, string> = {
   paid: "border-emerald-300 text-emerald-700",
@@ -130,11 +131,19 @@ function normalizeApiDocument(item: ApiInvoiceListItem, t: (key: TranslationKey)
 export default function DocumentsPage() {
   const router = useRouter()
   const [status, setStatus] = useState<StatusFilter>("all")
+  const [documentType, setDocumentType] = useState<DocumentTypeFilter>("invoice")
+  const [typeMenuOpen, setTypeMenuOpen] = useState(false)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [creatingInvoice, setCreatingInvoice] = useState(false)
   const [documentItems, setDocumentItems] = useState<DocumentListItem[]>(() => documents.map(normalizeStaticDocument))
   const [bulkNotice, setBulkNotice] = useState<BulkNotice | null>(null)
   const { language, t } = useLanguage()
+
+  const documentTypeOptions: Array<{ value: DocumentTypeFilter; label: string }> = [
+    { value: "invoice", label: t("documents.list.typeFilter.invoices") },
+    { value: "offer", label: t("documents.list.typeFilter.offers") }
+  ]
+  const activeDocumentType = documentTypeOptions.find((item) => item.value === documentType) ?? documentTypeOptions[0]
 
   const filterItems: Array<{ value: StatusFilter; label: string }> = [
     { value: "all", label: t("documents.list.filters.all") },
@@ -171,8 +180,16 @@ export default function DocumentsPage() {
   }, [language, t])
 
   const filteredDocuments = useMemo(() => {
-    return documentItems.filter((doc) => status === "all" || doc.status === status)
-  }, [documentItems, status])
+    return documentItems.filter((doc) => doc.type === documentType && (status === "all" || doc.status === status))
+  }, [documentItems, documentType, status])
+
+  const changeDocumentType = (nextType: DocumentTypeFilter) => {
+    setDocumentType(nextType)
+    setTypeMenuOpen(false)
+    setStatus("all")
+    setSelectedIds([])
+    setBulkNotice(null)
+  }
 
   const allVisibleIds = filteredDocuments.map((d) => d.id)
   const allVisibleSelected = allVisibleIds.length > 0 && allVisibleIds.every((id) => selectedIds.includes(id))
@@ -309,14 +326,45 @@ export default function DocumentsPage() {
   }
 
   return (
-    <PageShell title={t("documents.list.title")} description={t("documents.list.description")}>
+    <PageShell title={t("documents.list.title")} description={activeDocumentType.label}>
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-        <div className="flex items-center gap-2">
-          {filterItems.map((item) => (
-            <button key={item.value} type="button" onClick={() => setStatus(item.value)} className={`rounded-full px-4 py-2 text-xs font-semibold transition ${status === item.value ? "bg-black text-white shadow" : "bg-[#eceff3] text-[#6b7280] hover:bg-[#e3e8ef]"}`}>
-              {item.label}
+        <div className="flex flex-col gap-3 md:flex-row md:items-center">
+          <div className="relative w-fit">
+            <button
+              type="button"
+              onClick={() => setTypeMenuOpen((open) => !open)}
+              className="inline-flex min-w-[190px] items-center justify-between gap-3 rounded-md border-2 border-transparent bg-white px-1 py-0 text-left text-[34px] font-black leading-none tracking-tight text-[#0f172a] shadow-none outline-none transition focus:border-blue-600 md:text-[36px]"
+              aria-haspopup="menu"
+              aria-expanded={typeMenuOpen}
+            >
+              <span>{activeDocumentType.label}</span>
+              <span className={`text-2xl leading-none transition ${typeMenuOpen ? "rotate-180" : ""}`}>⌃</span>
             </button>
-          ))}
+            {typeMenuOpen && (
+              <div className="absolute left-0 top-[calc(100%+10px)] z-30 w-[220px] overflow-hidden rounded-[24px] border border-[#e6ebf1] bg-white p-2 shadow-[0_18px_48px_rgba(15,23,42,0.16)]" role="menu">
+                {documentTypeOptions.map((item) => (
+                  <button
+                    key={item.value}
+                    type="button"
+                    onClick={() => changeDocumentType(item.value)}
+                    className={`flex min-h-12 w-full items-center justify-between rounded-[18px] px-4 text-left text-sm font-black transition ${documentType === item.value ? "bg-black text-white" : "text-[#374151] hover:bg-[#f3f6fa]"}`}
+                    role="menuitem"
+                  >
+                    <span>{item.label}</span>
+                    {documentType === item.value && <span>✓</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {filterItems.map((item) => (
+              <button key={item.value} type="button" onClick={() => setStatus(item.value)} className={`rounded-full px-4 py-2 text-xs font-semibold transition ${status === item.value ? "bg-black text-white shadow" : "bg-[#eceff3] text-[#6b7280] hover:bg-[#e3e8ef]"}`}>
+                {item.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -355,6 +403,12 @@ export default function DocumentsPage() {
       )}
 
       <div className="mt-4 space-y-3">
+        {filteredDocuments.length === 0 && (
+          <div className="rounded-[28px] border border-dashed border-[#d5dde8] bg-white px-6 py-10 text-center shadow-sm">
+            <p className="text-lg font-black text-[#0f172a]">{t("documents.list.empty.title")}</p>
+            <p className="mt-2 text-sm font-semibold text-[#64748b]">{t("documents.list.empty.description")}</p>
+          </div>
+        )}
         {filteredDocuments.map((doc) => {
           const selected = selectedIds.includes(doc.id)
           return (

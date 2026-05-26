@@ -209,5 +209,9 @@
   "documents.new.defaultItem": "Nouvelle ligne",
   "documents.new.errors.createDraft": "Le brouillon n'a pas pu etre cree.",
   "documents.new.errors.unknown": "Erreur inconnue",
-  "documents.list.description": "Factures"
+  "documents.list.description": "Factures",
+  "documents.list.typeFilter.invoices": "Factures",
+  "documents.list.typeFilter.offers": "Offres",
+  "documents.list.empty.title": "Aucun document trouve",
+  "documents.list.empty.description": "Aucun document ne correspond a cette selection."
 }

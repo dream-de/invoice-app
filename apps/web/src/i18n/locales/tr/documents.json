@@ -209,5 +209,9 @@
   "documents.new.defaultItem": "Yeni kalem",
   "documents.new.errors.createDraft": "Draft could not be created.",
   "documents.new.errors.unknown": "Unknown error",
-  "documents.list.description": "Faturalar"
+  "documents.list.description": "Faturalar",
+  "documents.list.typeFilter.invoices": "Faturalar",
+  "documents.list.typeFilter.offers": "Teklifler",
+  "documents.list.empty.title": "Belge bulunamadi",
+  "documents.list.empty.description": "Bu secim icin henuz belge yok."
 }

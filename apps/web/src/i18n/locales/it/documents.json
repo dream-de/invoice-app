@@ -209,5 +209,9 @@
   "documents.new.defaultItem": "Nuova voce",
   "documents.new.errors.createDraft": "Impossibile creare la bozza.",
   "documents.new.errors.unknown": "Errore sconosciuto",
-  "documents.list.description": "Fatture"
+  "documents.list.description": "Fatture",
+  "documents.list.typeFilter.invoices": "Fatture",
+  "documents.list.typeFilter.offers": "Offerte",
+  "documents.list.empty.title": "Nessun documento trovato",
+  "documents.list.empty.description": "Non ci sono ancora documenti per questa selezione."
 }

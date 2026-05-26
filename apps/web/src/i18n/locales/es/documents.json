@@ -209,5 +209,9 @@
   "documents.new.defaultItem": "Nueva partida",
   "documents.new.errors.createDraft": "No se pudo crear el borrador.",
   "documents.new.errors.unknown": "Error desconocido",
-  "documents.list.description": "Facturas"
+  "documents.list.description": "Facturas",
+  "documents.list.typeFilter.invoices": "Facturas",
+  "documents.list.typeFilter.offers": "Ofertas",
+  "documents.list.empty.title": "No se encontraron documentos",
+  "documents.list.empty.description": "Todavia no hay documentos para esta seleccion."
 }

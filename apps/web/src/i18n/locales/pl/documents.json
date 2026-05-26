@@ -209,5 +209,9 @@
   "documents.new.defaultItem": "Nowa pozycja",
   "documents.new.errors.createDraft": "Draft could not be created.",
   "documents.new.errors.unknown": "Unknown error",
-  "documents.list.description": "Faktury"
+  "documents.list.description": "Faktury",
+  "documents.list.typeFilter.invoices": "Faktury",
+  "documents.list.typeFilter.offers": "Oferty",
+  "documents.list.empty.title": "Nie znaleziono dokumentow",
+  "documents.list.empty.description": "Dla tego wyboru nie ma jeszcze dokumentow."
 }

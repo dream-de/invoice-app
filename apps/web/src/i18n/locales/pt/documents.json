@@ -209,5 +209,9 @@
   "documents.new.defaultItem": "Novo item",
   "documents.new.errors.createDraft": "Draft could not be created.",
   "documents.new.errors.unknown": "Unknown error",
-  "documents.list.description": "Faturas"
+  "documents.list.description": "Faturas",
+  "documents.list.typeFilter.invoices": "Faturas",
+  "documents.list.typeFilter.offers": "Propostas",
+  "documents.list.empty.title": "Nenhum documento encontrado",
+  "documents.list.empty.description": "Ainda nao ha documentos para esta selecao."
 }
