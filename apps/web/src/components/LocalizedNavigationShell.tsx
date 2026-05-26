@@ -23,11 +23,19 @@ function isShellUser(value: unknown): value is ShellUser {
 export function LocalizedNavigationShell({ children }: { children: ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
+  const currentPathname = pathname ?? ""
   const { language, t } = useLanguage()
   const isEnglish = language === "en"
   const [currentUser, setCurrentUser] = useState<ShellUser | null>(null)
 
+  const isLoginPage = currentPathname === "/login" || currentPathname.startsWith("/login/")
+
   useEffect(() => {
+    if (isLoginPage) {
+      setCurrentUser(null)
+      return
+    }
+
     let cancelled = false
 
     async function loadCurrentUser() {
@@ -45,7 +53,7 @@ export function LocalizedNavigationShell({ children }: { children: ReactNode }) 
     return () => {
       cancelled = true
     }
-  }, [pathname])
+  }, [currentPathname, isLoginPage])
 
   const handleLogout = useCallback(async () => {
     await fetch("/api/auth/logout", { method: "POST" })
@@ -62,6 +70,8 @@ export function LocalizedNavigationShell({ children }: { children: ReactNode }) 
     { href: "/finance", label: t("nav.finance"), icon: "⌁" },
     { href: "/articles", label: t("nav.articles"), icon: "▣" }
   ]
+
+  if (isLoginPage) return <>{children}</>
 
   return (
     <NavigationShell

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { writeAuditLog } from "@/lib/audit/log"
+import { mapAuthError, requireCurrentUserRole } from "@/lib/auth/service"
 import { activateLicenseKey } from "@/lib/license/activate"
 
 export const runtime = "nodejs"
@@ -10,6 +11,18 @@ type ActivateLicenseBody = {
 }
 
 export async function POST(req: Request) {
+  let actor
+
+  try {
+    actor = await requireCurrentUserRole(["owner", "admin"])
+  } catch (error) {
+    const mapped = mapAuthError(error)
+    return NextResponse.json(
+      { ok: false, error: mapped.error, code: mapped.code },
+      { status: mapped.status }
+    )
+  }
+
   let body: ActivateLicenseBody
 
   try {
@@ -43,6 +56,7 @@ export async function POST(req: Request) {
     entityId: result.license.id,
     reason: "License key activated",
     data: {
+      actorUserId: actor.id,
       plan: result.license.plan,
       billingCycle: result.license.billingCycle,
       maxUsers: result.license.maxUsers,

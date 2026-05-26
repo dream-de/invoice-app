@@ -196,6 +196,24 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
   return getSessionUserFromToken(cookieStore.get(SESSION_COOKIE_NAME)?.value)
 }
 
+export async function requireCurrentUser(): Promise<SessionUser> {
+  const user = await getCurrentUser()
+  if (!user) {
+    throw new AuthServiceError("session_required", "Anmeldung erforderlich.", 401)
+  }
+
+  return user
+}
+
+export async function requireCurrentUserRole(roles: UserRole[]): Promise<SessionUser> {
+  const user = await requireCurrentUser()
+  if (!roles.includes(user.role)) {
+    throw new AuthServiceError("forbidden", "Diese Aktion ist nur fuer Owner oder Admins erlaubt.", 403)
+  }
+
+  return user
+}
+
 export function mapAuthError(error: unknown): { error: string; code: string; status: number } {
   if (error instanceof AuthServiceError || error instanceof UserServiceError) {
     return { error: error.message, code: error.code, status: error.status }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { writeAuditLog } from "@/lib/audit/log"
+import { AuthServiceError, requireCurrentUserRole } from "@/lib/auth/service"
 import { getUserLimitStatus } from "@/lib/license/limits"
 import {
   createAppUser,
@@ -13,7 +14,7 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 function mapUserError(error: unknown) {
-  if (error instanceof UserServiceError) {
+  if (error instanceof AuthServiceError || error instanceof UserServiceError) {
     return NextResponse.json(
       { ok: false, error: error.message, code: error.code },
       { status: error.status }
@@ -49,6 +50,7 @@ async function parseBody(request: Request) {
 
 export async function GET() {
   try {
+    await requireCurrentUserRole(["owner", "admin"])
     const [users, limit] = await Promise.all([listAppUsers(), getUserLimitStatus()])
     return NextResponse.json({
       ok: true,
@@ -65,13 +67,14 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const actor = await requireCurrentUserRole(["owner", "admin"])
     const user = await createAppUser(await parseBody(request))
 
     await writeAuditLog({
       action: "user.create",
       entity: "user",
       entityId: user.id,
-      data: { role: user.role, status: user.status, email: user.email }
+      data: { actorUserId: actor.id, role: user.role, status: user.status, email: user.email }
     })
 
     return NextResponse.json({ ok: true, user: serializeAppUser(user) }, { status: 201 })
@@ -82,13 +85,14 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
+    const actor = await requireCurrentUserRole(["owner", "admin"])
     const user = await updateAppUser(await parseBody(request))
 
     await writeAuditLog({
       action: "user.update",
       entity: "user",
       entityId: user.id,
-      data: { role: user.role, status: user.status, email: user.email }
+      data: { actorUserId: actor.id, role: user.role, status: user.status, email: user.email }
     })
 
     return NextResponse.json({ ok: true, user: serializeAppUser(user) })
