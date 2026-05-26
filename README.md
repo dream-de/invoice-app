@@ -63,17 +63,23 @@ docker compose up -d
 
 The product stack starts PostgreSQL, the Dream Invoice web app, and the app proxy. The public demo and landing page are not installed in this customer stack.
 
+---
+
 Default access for the first test start:
 
 - User: `admin`
 - Password: `dreaminvoice`
 
-Before real production use, change all default passwords and secrets in `.env`, especially:
+---
+
+Before real production use, change all default passwords and secrets in `.env`, especially the values below, or generate strong passwords with `openssl rand -base64 32`:
 
 - `AUTH_SECRET`
 - `POSTGRES_PASSWORD`
 - `DREAM_INVOICE_AUTH_PASSWORD`
 - `DREAM_INVOICE_ADMIN_PASSWORD`
+
+---
 
 ## Install With Generated Secrets
 
@@ -82,6 +88,7 @@ If you want the installer to create random secrets automatically, use:
 ```bash
 git clone https://github.com/dream-de/invoice-app.git
 cd invoice-app
+chmod +x scripts/install.sh scripts/status.sh
 ./scripts/install.sh
 ```
 
@@ -105,11 +112,6 @@ nano .env
 docker compose up -d
 ```
 
-Generate values with:
-
-```bash
-openssl rand -base64 32
-```
 
 ## Development Setup
 
