@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
+import { FileText } from "lucide-react"
 import { Button, Currency, PageShell } from "@dream-invoice/ui"
 import { documents } from "@/data/invoice-data"
 import { translateStatus, useLanguage } from "@/lib/i18n"
@@ -412,8 +413,11 @@ export default function DocumentsPage() {
         {filteredDocuments.map((doc) => {
           const selected = selectedIds.includes(doc.id)
           return (
-            <div key={doc.id} className={`grid grid-cols-[56px_1.1fr_0.8fr_0.7fr_0.9fr_0.8fr] items-center rounded-[28px] border bg-white px-5 py-3 shadow-sm transition ${selected ? "border-black ring-1 ring-black" : "border-[#e6ebf1] hover:border-[#cfd8e5]"}`}>
-              <div><button type="button" onClick={() => toggleOne(doc.id)} className={`h-8 w-8 rounded-md border text-sm font-semibold ${selected ? "border-black bg-black text-[var(--brand-lime)]" : "border-slate-300 bg-white text-transparent"}`}>✓</button></div>
+            <div key={doc.id} className={`group grid grid-cols-[40px_56px_1.1fr_0.7fr_0.7fr_0.9fr_0.8fr] items-center rounded-[28px] border bg-white px-5 py-3 shadow-sm transition-all duration-200 ${selected ? "translate-y-[-1px] border-black shadow-[0_14px_34px_rgba(15,23,42,0.12)] ring-1 ring-black" : "border-[#edf1f6] hover:-translate-y-0.5 hover:border-black hover:shadow-[0_14px_34px_rgba(15,23,42,0.10)]"}`}>
+              <div><button type="button" onClick={() => toggleOne(doc.id)} className={`h-8 w-8 rounded-md border text-sm font-semibold transition ${selected ? "border-black bg-black text-[var(--brand-lime)]" : "border-slate-300 bg-white text-transparent hover:border-black"}`}>✓</button></div>
+              <div className={`flex h-11 w-11 items-center justify-center rounded-full transition ${selected ? "bg-black text-[var(--brand-lime)]" : "bg-[#f3f6fa] text-[#94a3b8] group-hover:bg-black group-hover:text-[var(--brand-lime)]"}`}>
+                <FileText className="h-5 w-5 stroke-[2.3]" />
+              </div>
               <Link href={`/documents/${doc.id}`} className="no-underline"><div><p className="text-[18px] font-semibold text-[#0f172a]">{doc.number}</p><p className="mt-1 text-sm text-[#64748b]">{doc.customer}</p></div></Link>
               <div className="text-sm font-semibold text-[#64748b]">{translateDocumentType(doc.type, t)}</div>
               <div><span className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${statusClass[doc.status] ?? "border-slate-300 text-slate-700"}`}>{translateStatus(doc.status, t)}</span></div>
