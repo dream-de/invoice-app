@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useParams } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 import {
+  AlertTriangle,
   CheckCircle2,
   CircleDollarSign,
   Download,
@@ -688,16 +689,36 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
 
           <div className="space-y-6">
             <ContentCard title={t("documents.detail.cards.status.title")} description={t("documents.detail.cards.status.description")}>
-              <div className="flex items-center gap-3">
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--brand-lime)] text-black">
-                  <CheckCircle2 className="h-4 w-4" />
-                </span>
-                <div>
-                  <span className={`inline-flex rounded-full px-3 py-1.5 text-xs font-black ring-1 ${statusBadgeClass(doc.status)}`}>
-                    {translateStatus(doc.status ?? "draft", t)}
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--brand-lime)] text-black">
+                    <CheckCircle2 className="h-4 w-4" />
                   </span>
-                  <p className="mt-2 text-sm font-semibold text-slate-500">{statusDetail}</p>
+                  <div>
+                    <span className={`inline-flex rounded-full px-3 py-1.5 text-xs font-black ring-1 ${statusBadgeClass(doc.status)}`}>
+                      {translateStatus(doc.status ?? "draft", t)}
+                    </span>
+                    <p className="mt-2 text-sm font-semibold text-slate-500">{statusDetail}</p>
+                  </div>
                 </div>
+
+                {currentStatusKey === "overdue" ? (
+                  <div className="rounded-[26px] border border-red-200 bg-red-50 px-4 py-4 text-red-700">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-black">Zahlung überfällig</p>
+                        <button
+                          type="button"
+                          onClick={() => window.open(`/api/reminder/pdf/${doc.id}`, "_blank", "noopener,noreferrer")}
+                          className="mt-3 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-black text-red-700 transition hover:bg-red-100"
+                        >
+                          Mahnung erstellen
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </ContentCard>
 
