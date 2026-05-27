@@ -7,16 +7,16 @@ import {
   Building2,
   CheckCircle2,
   CircleDollarSign,
-  Clock3,
   Download,
-  ExternalLink,
   Mail,
+  Paperclip,
   Pencil,
   Plus,
   Printer,
   Send,
   Share2,
-  Trash2
+  Trash2,
+  X
 } from "lucide-react"
 import { ContentCard, Currency, PageShell } from "@dream-invoice/ui"
 
@@ -74,11 +74,6 @@ type EmailLogEntry = {
   error?: string
 }
 
-type EmailSettingsState = {
-  provider: "disabled" | "smtp" | "resend"
-  fromEmail: string
-}
-
 type ApiInvoicePosition = {
   id: string
   title: string
@@ -116,19 +111,6 @@ function formatDisplayDate(value: string | Date | null | undefined, locale = "de
   if (Number.isNaN(date.getTime())) return "-"
 
   return new Intl.DateTimeFormat(locale).format(date)
-}
-
-function formatLogDate(value: string, locale = "de-DE") {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return "-"
-
-  return new Intl.DateTimeFormat(locale, {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit"
-  }).format(date)
 }
 
 function statusLabel(status: string) {
@@ -255,10 +237,9 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
   const [message, setMessage] = useState(
     `${t("documents.detail.email.bodyPrefix")}\n\n${t("documents.detail.email.bodyMiddle")} ${fallbackDocument.number}.\n\n${t("documents.detail.email.bodyClosing")}`
   )
-  const [emailLog, setEmailLog] = useState<EmailLogEntry[]>([])
-  const [emailSettings, setEmailSettings] = useState<EmailSettingsState | null>(null)
+  const [, setEmailLog] = useState<EmailLogEntry[]>([])
 
-  const [editingBankId, setEditingBankId] = useState<string | null>("main")
+  const [editingBankId, setEditingBankId] = useState<string | null>(null)
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([
     {
       id: "main",
@@ -271,6 +252,7 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
   const [newBank, setNewBank] = useState("")
   const [newIban, setNewIban] = useState("")
   const [newBic, setNewBic] = useState("")
+  const [showNewBankForm, setShowNewBankForm] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -307,8 +289,6 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
   const amount = doc.grossTotal
   const net = doc.netTotal
   const tax = doc.vatTotal
-  const latestEmailLog = emailLog[0]
-  const emailIsConfigured = Boolean(emailSettings && emailSettings.provider !== "disabled" && emailSettings.fromEmail)
   const currentStatusKey = statusKey(doc.status)
   const statusSteps = [
     {
@@ -358,34 +338,6 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
   useEffect(() => {
     loadEmailLog()
   }, [documentId])
-
-  useEffect(() => {
-    let cancelled = false
-
-    async function loadEmailSettings() {
-      try {
-        const response = await fetch("/api/settings/email", { cache: "no-store" })
-        const result = await response.json()
-
-        if (!cancelled && result.ok && result.settings) {
-          setEmailSettings({
-            provider: result.settings.provider || "disabled",
-            fromEmail: result.settings.fromEmail || ""
-          })
-        }
-      } catch {
-        if (!cancelled) {
-          setEmailSettings({ provider: "disabled", fromEmail: "" })
-        }
-      }
-    }
-
-    loadEmailSettings()
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
 
   async function handleDownload() {
     if (downloadingPdf) return
@@ -490,6 +442,11 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
   }
 
   function addBankAccount() {
+    if (!showNewBankForm) {
+      setShowNewBankForm(true)
+      return
+    }
+
     if (!newBank.trim() && !newIban.trim() && !newBic.trim()) return
 
     const id = `bank-${Date.now()}`
@@ -507,6 +464,7 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
     setNewBank("")
     setNewIban("")
     setNewBic("")
+    setShowNewBankForm(false)
   }
 
   const actionButton =
@@ -542,17 +500,14 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
                 <Pencil className="h-4 w-4" />
                 {t("documents.detail.actions.edit")}
               </Link>
-              {emailIsConfigured ? (
-                <button type="button" onClick={() => setShowSendModal(true)} className="inline-flex min-h-10 items-center gap-2 rounded-full bg-black px-4 py-2 text-sm font-semibold text-white">
-                  <Mail className="h-4 w-4" />
-                  {t("documents.detail.actions.email")}
-                </button>
-              ) : (
-                <Link href="/settings/email" className="inline-flex min-h-10 items-center gap-2 rounded-full bg-black px-4 py-2 text-sm font-semibold text-white no-underline">
-                  <ExternalLink className="h-4 w-4" />
-                  {t("documents.detail.actions.setupEmail")}
-                </Link>
-              )}
+              <button
+                type="button"
+                onClick={() => setShowSendModal(true)}
+                className="inline-flex min-h-10 items-center gap-2 rounded-full bg-[var(--brand-lime)] px-4 py-2 text-sm font-bold text-black shadow-[0_10px_24px_rgba(211,255,49,0.28)] transition hover:scale-[1.01]"
+              >
+                <Mail className="h-4 w-4" />
+                {t("documents.detail.modal.send.submit")}
+              </button>
               <button type="button" onClick={() => window.print()} className={actionButton}>
                 <Printer className="h-4 w-4" />
                 {t("documents.detail.actions.print")}
@@ -599,7 +554,7 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
                   </thead>
                   <tbody>
                     {doc.positions.map((position) => (
-                      <tr key={position.id} className="border-t border-[#edf2f7]">
+                      <tr key={position.id} className="group border-t border-[#edf2f7] transition hover:bg-[#fbfcfe]">
                         <td className="px-5 py-5">
                           <p className="text-base font-bold text-slate-900">{position.title}</p>
                           <p className="mt-1 text-sm text-slate-500">
@@ -675,89 +630,16 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
               </p>
             </ContentCard>
 
-            <ContentCard title={t("documents.detail.cards.nextActions.title")} description={t("documents.detail.cards.nextActions.description")}>
-              <div className="grid gap-3">
-                <Link href={`/documents/${doc.id}/edit`} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#eef2f7] px-4 py-2 text-sm font-extrabold text-slate-800 no-underline hover:bg-[#e5ebf2]">
-                  <Pencil className="h-4 w-4" />
-                {t("documents.detail.actions.edit")}
-              </Link>
-
-                {emailIsConfigured ? (
-                  <button type="button" onClick={() => setShowSendModal(true)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-black px-4 py-2 text-sm font-extrabold text-white">
-                    <Mail className="h-4 w-4" />
-                    {currentStatusKey === "draft" ? t("documents.detail.actions.sendByEmail") : t("documents.detail.actions.resendEmail")}
-                  </button>
-                ) : (
-                  <Link href="/settings/email" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-black px-4 py-2 text-sm font-extrabold text-white no-underline">
-                    <ExternalLink className="h-4 w-4" />
-                    E-Mail einrichten
-                  </Link>
-                )}
-
-                <button type="button" onClick={handleDownload} disabled={downloadingPdf} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[var(--brand-lime)] px-4 py-2 text-sm font-extrabold text-black disabled:cursor-wait disabled:opacity-70">
-                  <Download className="h-4 w-4" />
-                  {downloadingPdf ? t("documents.detail.actions.downloadBusyLong") : t("documents.detail.actions.downloadPdf")}
-                </button>
-
-                {currentStatusKey === "overdue" ? (
-                  <button type="button" className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-red-50 px-4 py-2 text-sm font-extrabold text-red-700 ring-1 ring-red-100">
-                    <Clock3 className="h-4 w-4" />
-                    {t("documents.detail.actions.prepareReminder")}
-                  </button>
-                ) : null}
-              </div>
-            </ContentCard>
-
-            <ContentCard title={t("documents.detail.cards.emailDelivery.title")} description={t("documents.detail.cards.emailDelivery.description")}>
-              {latestEmailLog ? (
-                <div className="space-y-3">
-                  {emailLog.map((entry) => (
-                    <div key={entry.id} className="rounded-2xl border border-[#e5eaf0] bg-white p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-extrabold text-slate-900">
-                            {entry.status === "success" ? t("documents.detail.emailLog.sent") : t("documents.detail.emailLog.failed")}
-                          </p>
-                          <p className="mt-1 text-xs font-semibold text-slate-500">
-                            {formatLogDate(entry.createdAt)} · {entry.to}
-                          </p>
-                          <p className="mt-2 truncate text-xs font-bold text-slate-700">
-                            {entry.subject}
-                          </p>
-                        </div>
-                        <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-black ${entry.status === "success" ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"}`}>
-                          {entry.status === "success" ? "OK" : t("documents.detail.emailLog.error")}
-                        </span>
-                      </div>
-                      {entry.error ? (
-                        <p className="mt-3 rounded-2xl bg-red-50 px-4 py-3 text-xs font-bold leading-5 text-red-700">
-                          {entry.error}
-                        </p>
-                      ) : (
-                        <p className="mt-3 text-xs font-semibold text-slate-400">
-                          Provider: {entry.provider || "unknown"}
-                        </p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="rounded-2xl bg-[#f7f9fc] px-4 py-3 text-sm font-semibold text-slate-500">
-                  {t("documents.detail.emailLog.empty")}
-                </p>
-              )}
-            </ContentCard>
-
             <ContentCard title={t("documents.detail.cards.bank.title")} description={t("documents.detail.cards.bank.description")}>
               <div className="space-y-3">
                 {bankAccounts.map((account) => {
                   const isEditing = editingBankId === account.id
 
                   return (
-                    <div key={account.id} className="rounded-2xl border border-[#e5eaf0] bg-white p-4">
-                      <div className="mb-4 flex items-center justify-between gap-3">
+                    <div key={account.id} className="rounded-[26px] border border-[#e5eaf0] bg-white p-3 shadow-[0_10px_26px_rgba(15,23,42,0.04)]">
+                      <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3">
-                          <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#eef2f7] text-slate-600">
+                          <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#eef2f7] text-slate-600">
                             <Building2 className="h-4 w-4" />
                           </span>
                           <div>
@@ -770,7 +652,7 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
                           <button
                             type="button"
                             onClick={() => setEditingBankId(isEditing ? null : account.id)}
-                            className={`${iconButton} ${isEditing ? "bg-black text-white hover:bg-black hover:text-white" : ""}`}
+                            className={`${iconButton} ${isEditing ? "bg-black text-white hover:bg-black hover:text-white" : "bg-[#f7f9fc]"}`}
                             aria-label={t("documents.detail.bank.edit")}
                             title={t("documents.detail.actions.edit")}
                           >
@@ -789,47 +671,40 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
                         </div>
                       </div>
 
-                      <div className="space-y-3">
-                        <input
-                          value={account.bank}
-                          readOnly={!isEditing}
-                          onChange={(event) => updateBankAccount(account.id, "bank", event.target.value)}
-                          className={`w-full rounded-full px-4 py-2.5 text-sm font-semibold text-slate-800 outline-none transition ${
-                            isEditing
-                              ? "bg-[#f3f6fa] focus:ring-2 focus:ring-slate-900"
-                              : "bg-[#f8fafc] text-slate-500"
-                          }`}
-                          aria-label="Bankname"
-                        />
-                        <input
-                          value={account.iban}
-                          readOnly={!isEditing}
-                          onChange={(event) => updateBankAccount(account.id, "iban", event.target.value)}
-                          className={`w-full rounded-full px-4 py-2.5 text-sm font-semibold text-slate-800 outline-none transition ${
-                            isEditing
-                              ? "bg-[#f3f6fa] focus:ring-2 focus:ring-slate-900"
-                              : "bg-[#f8fafc] text-slate-500"
-                          }`}
-                          aria-label="IBAN"
-                        />
-                        <input
-                          value={account.bic}
-                          readOnly={!isEditing}
-                          onChange={(event) => updateBankAccount(account.id, "bic", event.target.value)}
-                          className={`w-full rounded-full px-4 py-2.5 text-sm font-semibold text-slate-800 outline-none transition ${
-                            isEditing
-                              ? "bg-[#f3f6fa] focus:ring-2 focus:ring-slate-900"
-                              : "bg-[#f8fafc] text-slate-500"
-                          }`}
-                          aria-label="BIC"
-                        />
-                      </div>
+                      {isEditing ? (
+                        <div className="mt-3 space-y-2">
+                          <input
+                            value={account.bank}
+                            onChange={(event) => updateBankAccount(account.id, "bank", event.target.value)}
+                            className="w-full rounded-full bg-[#f3f6fa] px-4 py-2.5 text-sm font-semibold text-slate-800 outline-none transition focus:ring-2 focus:ring-slate-900"
+                            aria-label="Bankname"
+                          />
+                          <input
+                            value={account.iban}
+                            onChange={(event) => updateBankAccount(account.id, "iban", event.target.value)}
+                            className="w-full rounded-full bg-[#f3f6fa] px-4 py-2.5 text-sm font-semibold text-slate-800 outline-none transition focus:ring-2 focus:ring-slate-900"
+                            aria-label="IBAN"
+                          />
+                          <input
+                            value={account.bic}
+                            onChange={(event) => updateBankAccount(account.id, "bic", event.target.value)}
+                            className="w-full rounded-full bg-[#f3f6fa] px-4 py-2.5 text-sm font-semibold text-slate-800 outline-none transition focus:ring-2 focus:ring-slate-900"
+                            aria-label="BIC"
+                          />
+                        </div>
+                      ) : (
+                        <div className="mt-3 space-y-2">
+                          <p className="truncate rounded-full bg-[#f8fafc] px-4 py-2 text-xs font-bold text-slate-600">{account.bank}</p>
+                          <p className="truncate rounded-full bg-[#f8fafc] px-4 py-2 text-xs font-bold text-slate-600">{account.iban}</p>
+                          <p className="truncate rounded-full bg-[#f8fafc] px-4 py-2 text-xs font-bold text-slate-600">{account.bic}</p>
+                        </div>
+                      )}
                     </div>
                   )
                 })}
 
                 <div className="rounded-2xl border border-dashed border-[#d8e0ea] bg-[#f7f9fc] p-4">
-                  <div className="mb-4 flex items-center justify-between">
+                  <div className={`${showNewBankForm ? "mb-4" : ""} flex items-center justify-between`}>
                     <div>
                       <p className="text-sm font-bold text-slate-900">{t("documents.detail.bank.newTitle")}</p>
                       <p className="text-xs font-medium text-slate-400">{t("documents.detail.bank.newDescription")}</p>
@@ -846,11 +721,13 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
                     </button>
                   </div>
 
-                  <div className="space-y-3">
-                    <input value={newBank} onChange={(event) => setNewBank(event.target.value)} placeholder="Bank" className="w-full rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900" />
-                    <input value={newIban} onChange={(event) => setNewIban(event.target.value)} placeholder="IBAN" className="w-full rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900" />
-                    <input value={newBic} onChange={(event) => setNewBic(event.target.value)} placeholder="BIC" className="w-full rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900" />
-                  </div>
+                  {showNewBankForm ? (
+                    <div className="space-y-3">
+                      <input value={newBank} onChange={(event) => setNewBank(event.target.value)} placeholder="Bank" className="w-full rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900" />
+                      <input value={newIban} onChange={(event) => setNewIban(event.target.value)} placeholder="IBAN" className="w-full rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900" />
+                      <input value={newBic} onChange={(event) => setNewBic(event.target.value)} placeholder="BIC" className="w-full rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900" />
+                    </div>
+                  ) : null}
                 </div>
               </div>
             </ContentCard>
@@ -859,33 +736,53 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
       </div>
 
       {showSendModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/30 px-4">
-          <div className="w-full max-w-xl rounded-3xl bg-white p-6 shadow-2xl">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h3 className="text-2xl font-extrabold text-slate-900">{t("documents.detail.modal.send.title")}</h3>
-                <p className="mt-1 text-sm text-slate-500">{t("documents.detail.modal.send.description")}</p>
-              </div>
-              <button onClick={() => setShowSendModal(false)} className="rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-600">
-                {t("documents.detail.modal.send.close")}
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 px-4 backdrop-blur-sm">
+          <div className="w-full max-w-lg overflow-hidden rounded-[32px] bg-white shadow-[0_28px_80px_rgba(15,23,42,0.32)]">
+            <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-6 py-5">
+              <h3 className="inline-flex items-center gap-2 text-xl font-extrabold text-slate-900">
+                <Mail className="h-5 w-5" />
+                {t("documents.detail.modal.send.title")}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowSendModal(false)}
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#f3f6fa] text-slate-600 transition hover:bg-slate-200"
+                aria-label={t("documents.detail.modal.send.close")}
+              >
+                <X className="h-5 w-5" />
               </button>
             </div>
 
-            <div className="mt-6 space-y-3">
-              <input value={sendTo} onChange={(event) => setSendTo(event.target.value)} className="w-full rounded-full border border-slate-200 px-5 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900" placeholder={t("documents.detail.modal.send.toPlaceholder")} />
-              <input value={subject} onChange={(event) => setSubject(event.target.value)} className="w-full rounded-full border border-slate-200 px-5 py-3 text-sm outline-none focus:ring-2 focus:ring-slate-900" placeholder={t("documents.detail.modal.send.subjectPlaceholder")} />
-              <textarea value={message} onChange={(event) => setMessage(event.target.value)} className="min-h-40 w-full rounded-2xl border border-slate-200 px-5 py-4 text-sm outline-none focus:ring-2 focus:ring-slate-900" placeholder={t("documents.detail.modal.send.messagePlaceholder")} />
+            <div className="space-y-4 px-6 py-6">
+              <label className="block">
+                <span className="mb-2 block text-sm font-extrabold text-slate-500">{t("documents.detail.modal.send.toPlaceholder")}</span>
+                <input value={sendTo} onChange={(event) => setSendTo(event.target.value)} className="w-full rounded-full border border-slate-200 bg-[#f8fafc] px-5 py-3 text-sm font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-slate-900" />
+              </label>
+              <label className="block">
+                <span className="mb-2 block text-sm font-extrabold text-slate-500">{t("documents.detail.modal.send.subjectPlaceholder")}</span>
+                <input value={subject} onChange={(event) => setSubject(event.target.value)} className="w-full rounded-full border border-slate-200 bg-[#f8fafc] px-5 py-3 text-sm font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-slate-900" />
+              </label>
+              <label className="block">
+                <span className="mb-2 block text-sm font-extrabold text-slate-500">{t("documents.detail.modal.send.messagePlaceholder")}</span>
+                <textarea value={message} onChange={(event) => setMessage(event.target.value)} className="min-h-36 w-full rounded-[24px] border border-slate-200 bg-[#f8fafc] px-5 py-4 text-sm font-semibold leading-6 text-slate-800 outline-none focus:ring-2 focus:ring-slate-900" />
+              </label>
+              <div className="inline-flex w-full items-center gap-2 rounded-full bg-[#f7f9fc] px-4 py-3 text-xs font-bold text-slate-500">
+                <Paperclip className="h-4 w-4" />
+                <span className="truncate">Angehängt: {doc.number}.pdf</span>
+              </div>
             </div>
 
-            <div className="mt-6 flex justify-end gap-3">
-              <button onClick={() => setShowSendModal(false)} className="rounded-full bg-slate-100 px-5 py-2.5 text-sm font-semibold text-slate-600">
+            <div className="flex justify-end gap-3 bg-[#f8fafc] px-6 py-5">
+              <button type="button" onClick={() => setShowSendModal(false)} className="rounded-full bg-white px-5 py-2.5 text-sm font-extrabold text-slate-600 ring-1 ring-slate-200">
                 {t("documents.detail.modal.send.cancel")}
               </button>
               <button
+                type="button"
                 onClick={handleSendEmail}
                 disabled={sendingEmail}
-                className="rounded-full bg-[var(--brand-lime)] px-6 py-2.5 text-sm font-bold text-black disabled:cursor-wait disabled:opacity-70"
+                className="inline-flex items-center gap-2 rounded-full bg-[var(--brand-lime)] px-6 py-2.5 text-sm font-extrabold text-black shadow-[0_10px_24px_rgba(211,255,49,0.26)] disabled:cursor-wait disabled:opacity-70"
               >
+                <Send className="h-4 w-4" />
                 {sendingEmail ? t("documents.detail.modal.send.sending") : t("documents.detail.modal.send.submit")}
               </button>
             </div>
