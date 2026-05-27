@@ -59,6 +59,7 @@ type DetailDocument = {
   vatTotal: number
   grossTotal: number
   positions: DocumentPosition[]
+  note?: string | null
 }
 
 type EmailLogEntry = {
@@ -93,12 +94,16 @@ type ApiInvoice = {
   netTotal?: unknown
   vatTotal?: unknown
   grossTotal?: unknown
+  notes?: string | null
   customer?: {
     name?: string | null
     email?: string | null
   } | null
   positions?: ApiInvoicePosition[]
 }
+
+const DEFAULT_DOCUMENT_NOTE =
+  "Vielen Dank für Ihren Auftrag. Bitte überweisen Sie den fälligen Betrag innerhalb von 14 Tagen auf das unten angegebene Konto."
 
 function numberValue(value: unknown, fallback = 0) {
   const number = Number(value)
@@ -174,23 +179,40 @@ function statusBadgeClass(status: string) {
 }
 
 function normalizeStaticDocument(item: typeof documents[number], t: ReturnType<typeof useLanguage>["t"]): DetailDocument {
-  const grossTotal = numberValue(item.amount, 0)
-  const netTotal = grossTotal / 1.19
+  const positions = Array.isArray(item.items) && item.items.length
+    ? item.items.map((position, index) => {
+      const quantity = numberValue(position.quantity, 1)
+      const netPrice = numberValue(position.netPrice, 0)
+
+      return {
+        id: `${item.id}-position-${index + 1}`,
+        title: position.title || t("documents.detail.fallback.staticPositionTitle"),
+        description: position.description,
+        quantity,
+        netPrice,
+        total: quantity * netPrice
+      }
+    })
+    : []
+
+  const calculatedNet = positions.reduce((sum, position) => sum + position.total, 0)
+  const grossTotal = numberValue(item.amount, calculatedNet * 1.19)
+  const netTotal = calculatedNet || grossTotal / 1.19
   const vatTotal = grossTotal - netTotal
 
   return {
     id: item.id,
     number: item.number,
     customer: item.customer,
-    customerEmail: "kunde@example.com",
+    customerEmail: item.customerEmail,
     type: item.type ?? "invoice",
     status: statusLabel(item.status ?? "open"),
-    issueDate: "15.10.2023",
-    dueDate: "29.10.2023",
+    issueDate: formatDisplayDate(item.issueDate),
+    dueDate: formatDisplayDate(item.dueDate),
     netTotal,
     vatTotal,
     grossTotal,
-    positions: [
+    positions: positions.length ? positions : [
       {
         id: "static-position",
         title: t("documents.detail.fallback.staticPositionTitle"),
@@ -199,7 +221,8 @@ function normalizeStaticDocument(item: typeof documents[number], t: ReturnType<t
         netPrice: netTotal,
         total: netTotal
       }
-    ]
+    ],
+    note: DEFAULT_DOCUMENT_NOTE
   }
 }
 
@@ -237,8 +260,23 @@ function normalizeApiInvoice(invoice: ApiInvoice, fallback: DetailDocument, t: R
     netTotal,
     vatTotal,
     grossTotal,
-    positions: positions.length ? positions : fallback.positions
+    positions: positions.length ? positions : fallback.positions,
+    note: invoice.notes || fallback.note || DEFAULT_DOCUMENT_NOTE
   }
+}
+
+function initialPaymentsForDocument(document: DetailDocument): PaymentEntry[] {
+  if (statusKey(document.status) !== "paid" || document.grossTotal <= 0) return []
+
+  return [
+    {
+      id: `${document.id}-payment-1`,
+      date: dateInputValue(new Date()),
+      amount: document.grossTotal,
+      method: "Überweisung",
+      reason: "Zahlungseingang Kontoauszug"
+    }
+  ]
 }
 
 export default function DocumentDetailPage({ params }: DocumentDetailPageProps) {
@@ -265,15 +303,7 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
   )
   const [, setEmailLog] = useState<EmailLogEntry[]>([])
 
-  const [payments, setPayments] = useState<PaymentEntry[]>([
-    {
-      id: "payment-1",
-      date: "2023-10-28",
-      amount: fallbackDocument.grossTotal,
-      method: "Überweisung",
-      reason: "Zahlungseingang Kontoauszug"
-    }
-  ])
+  const [payments, setPayments] = useState<PaymentEntry[]>(() => initialPaymentsForDocument(fallbackDocument))
   const [showPaymentModal, setShowPaymentModal] = useState(false)
   const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null)
   const [paymentDate, setPaymentDate] = useState(dateInputValue(new Date()))
@@ -286,6 +316,7 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
 
     async function loadDocument() {
       setDoc(fallbackDocument)
+      setPayments(initialPaymentsForDocument(fallbackDocument))
 
       try {
         const response = await fetch(`/api/invoice/get/${documentId}`)
@@ -298,6 +329,7 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
         if (cancelled) return
 
         setDoc(normalized)
+        setPayments(initialPaymentsForDocument(normalized))
         setSendTo(normalized.customerEmail)
         setSubject(`${t("documents.detail.email.subjectPrefix")} ${normalized.number}`)
         setMessage(`${t("documents.detail.email.bodyPrefix")}\n\n${t("documents.detail.email.bodyMiddle")} ${normalized.number}.\n\n${t("documents.detail.email.bodyClosing")}`)
@@ -312,6 +344,24 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
       cancelled = true
     }
   }, [documentId, fallbackDocument, locale, t])
+
+  useEffect(() => {
+    if (!showSendModal && !showPaymentModal) return
+
+    const previousOverflow = document.body.style.overflow
+    const previousPaddingRight = document.body.style.paddingRight
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth
+
+    document.body.style.overflow = "hidden"
+    if (scrollbarWidth > 0) {
+      document.body.style.paddingRight = `${scrollbarWidth}px`
+    }
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.body.style.paddingRight = previousPaddingRight
+    }
+  }, [showPaymentModal, showSendModal])
 
   const amount = doc.grossTotal
   const net = doc.netTotal
@@ -588,7 +638,13 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
                 </table>
               </div>
 
-              <div className="mt-5 flex justify-end">
+              <div className="mt-5 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                <div className="max-w-md">
+                  <h3 className="text-sm font-extrabold text-slate-950">Hinweis</h3>
+                  <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
+                    {doc.note || DEFAULT_DOCUMENT_NOTE}
+                  </p>
+                </div>
                 <div className="w-full max-w-sm rounded-2xl bg-[#f7f9fc] p-5">
                   <div className="flex justify-between text-sm text-slate-500">
                     <span>{t("documents.detail.totals.net")}</span>
@@ -722,8 +778,8 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
       </div>
 
       {showSendModal && (
-        <div className="fixed inset-0 z-[100] flex items-start justify-center bg-black/45 px-4 py-16 backdrop-blur-sm">
-          <div className="max-h-[calc(100vh-8rem)] w-full max-w-md overflow-hidden rounded-[30px] bg-white shadow-[0_28px_80px_rgba(15,23,42,0.32)]">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden bg-black/45 px-4 py-6 backdrop-blur-sm">
+          <div className="max-h-[calc(100vh-3rem)] w-full max-w-md overflow-hidden rounded-[30px] bg-white shadow-[0_28px_80px_rgba(15,23,42,0.32)]">
             <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-4">
               <h3 className="inline-flex items-center gap-2 text-lg font-extrabold text-slate-900">
                 <Mail className="h-4 w-4" />
@@ -739,7 +795,7 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
               </button>
             </div>
 
-            <div className="max-h-[calc(100vh-18rem)] space-y-3 overflow-y-auto px-5 py-5">
+            <div className="max-h-[calc(100vh-16rem)] space-y-3 overflow-y-auto px-5 py-5">
               <label className="block">
                 <span className="mb-2 block text-xs font-extrabold text-slate-500">{t("documents.detail.modal.send.toPlaceholder")}</span>
                 <input value={sendTo} onChange={(event) => setSendTo(event.target.value)} className="w-full rounded-full border border-slate-200 bg-[#f8fafc] px-4 py-2.5 text-sm font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-slate-900" />
@@ -777,8 +833,8 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
       )}
 
       {showPaymentModal && (
-        <div className="fixed inset-0 z-[100] flex items-start justify-center bg-black/45 px-4 py-16 backdrop-blur-sm">
-          <div className="w-full max-w-md overflow-hidden rounded-[30px] bg-white shadow-[0_28px_80px_rgba(15,23,42,0.32)]">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden bg-black/45 px-4 py-6 backdrop-blur-sm">
+          <div className="max-h-[calc(100vh-3rem)] w-full max-w-md overflow-hidden rounded-[30px] bg-white shadow-[0_28px_80px_rgba(15,23,42,0.32)]">
             <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-4">
               <div>
                 <h3 className="text-lg font-extrabold text-slate-900">
@@ -798,7 +854,7 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
               </button>
             </div>
 
-            <div className="space-y-4 px-5 py-5">
+            <div className="max-h-[calc(100vh-16rem)] space-y-4 overflow-y-auto px-5 py-5">
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block">
                   <span className="mb-2 block text-xs font-extrabold text-slate-500">Datum</span>

@@ -119,27 +119,22 @@ function fallbackInvoice(id: string): PdfInvoice | null {
 
   if (!document) return null
 
-  const grossTotal = Number(document.amount ?? 0)
-  const netTotal = grossTotal / 1.19
-
   return {
     number: document.number,
-    issueDate: new Date("2026-05-14T00:00:00.000Z"),
+    issueDate: new Date(document.issueDate),
     customer: {
       name: document.customer,
-      street: "Lindenallee 42",
-      zip: "50667",
-      city: "Koeln",
+      street: document.customerStreet,
+      zip: document.customerZip,
+      city: document.customerCity,
       country: "Deutschland"
     },
-    positions: [
-      {
-        title: document.type === "Angebot" ? "Projektpaket" : "Digitale Dienstleistung",
-        quantity: 1,
-        netPrice: netTotal,
-        vatRate: 19
-      }
-    ]
+    positions: document.items.map((item) => ({
+      title: item.title,
+      quantity: item.quantity,
+      netPrice: item.netPrice,
+      vatRate: 19
+    }))
   }
 }
 

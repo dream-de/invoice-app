@@ -60,27 +60,127 @@ export const customers = [
 export const documents = [
   {
     id: "1",
-    number: "DI-2026-1001",
+    number: "DI-2026-2101",
     customer: "Aurora Labs GmbH",
+    customerEmail: "billing@aurora-labs.example",
+    customerStreet: "Sonnenallee 18",
+    customerZip: "10179",
+    customerCity: "Berlin",
     type: "Rechnung",
-    status: "Offen",
-    amount: 1160.25
+    status: "Bezahlt",
+    issueDate: "2026-05-06T00:00:00.000Z",
+    dueDate: "2026-05-20T00:00:00.000Z",
+    amount: 1547,
+    items: [
+      {
+        title: "UI-Konzept Dashboard",
+        description: "Struktur, Komponenten und visuelle Abstimmung",
+        quantity: 1,
+        netPrice: 850
+      },
+      {
+        title: "Frontend-Feinschliff",
+        description: "Interaktionen, Abstände und responsive Anpassungen",
+        quantity: 5,
+        netPrice: 90
+      }
+    ]
   },
   {
     id: "2",
-    number: "OF-2026-5001",
+    number: "DI-2026-2102",
     customer: "Urban Commerce AG",
-    type: "Angebot",
-    status: "Entwurf",
-    amount: 2450
+    customerEmail: "office@urban-commerce.example",
+    customerStreet: "Hafenweg 7",
+    customerZip: "20457",
+    customerCity: "Hamburg",
+    type: "Rechnung",
+    status: "Offen",
+    issueDate: "2026-05-10T00:00:00.000Z",
+    dueDate: "2026-05-24T00:00:00.000Z",
+    amount: 2856,
+    items: [
+      {
+        title: "Prozessberatung",
+        description: "Workshop und Ablaufanalyse",
+        quantity: 8,
+        netPrice: 150
+      },
+      {
+        title: "Schnittstellen-Konzept",
+        description: "Technische Dokumentation und Integrationsplan",
+        quantity: 1,
+        netPrice: 900
+      },
+      {
+        title: "Projektabstimmung",
+        description: "Review, Korrekturen und Übergabe",
+        quantity: 3,
+        netPrice: 100
+      }
+    ]
   },
   {
     id: "3",
-    number: "DI-2026-1002",
+    number: "DI-2026-2103",
     customer: "Polar Digital GmbH",
+    customerEmail: "hello@polar-digital.example",
+    customerStreet: "Nordring 24",
+    customerZip: "24103",
+    customerCity: "Kiel",
     type: "Rechnung",
-    status: "Bezahlt",
-    amount: 890
+    status: "Überfällig",
+    issueDate: "2026-04-28T00:00:00.000Z",
+    dueDate: "2026-05-12T00:00:00.000Z",
+    amount: 714,
+    items: [
+      {
+        title: "Serverwartung",
+        description: "Updates, Prüfung und Fehlerbehebung",
+        quantity: 4,
+        netPrice: 120
+      },
+      {
+        title: "Monitoring Einrichtung",
+        description: "Benachrichtigungen und Basis-Monitoring",
+        quantity: 1,
+        netPrice: 120
+      }
+    ]
+  },
+  {
+    id: "4",
+    number: "OF-2026-5001",
+    customer: "Meridian Studio GmbH",
+    customerEmail: "team@meridian-studio.example",
+    customerStreet: "Atelierhof 3",
+    customerZip: "50672",
+    customerCity: "Koeln",
+    type: "Angebot",
+    status: "Entwurf",
+    issueDate: "2026-05-14T00:00:00.000Z",
+    dueDate: "2026-05-28T00:00:00.000Z",
+    amount: 2450,
+    items: [
+      {
+        title: "Corporate Template Set",
+        description: "Rechnung, Angebot und Briefpapier",
+        quantity: 1,
+        netPrice: 1450
+      },
+      {
+        title: "Design-Abstimmung",
+        description: "Zwei Korrekturrunden",
+        quantity: 5,
+        netPrice: 100
+      },
+      {
+        title: "PDF-Testlauf",
+        description: "Export- und Druckprüfung",
+        quantity: 1,
+        netPrice: 500
+      }
+    ]
   }
 ]
 
