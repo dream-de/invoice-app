@@ -226,6 +226,24 @@ function normalizeStaticDocument(item: typeof documents[number], t: ReturnType<t
   }
 }
 
+function emptyFallbackDocument(id: string, t: ReturnType<typeof useLanguage>["t"]): DetailDocument {
+  return {
+    id,
+    number: "Dokument",
+    customer: t("documents.detail.fallback.unknownCustomer"),
+    customerEmail: "",
+    type: t("documents.detail.type.invoice"),
+    status: "open",
+    issueDate: "-",
+    dueDate: "-",
+    netTotal: 0,
+    vatTotal: 0,
+    grossTotal: 0,
+    positions: [],
+    note: DEFAULT_DOCUMENT_NOTE
+  }
+}
+
 function normalizeApiInvoice(invoice: ApiInvoice, fallback: DetailDocument, t: ReturnType<typeof useLanguage>["t"], locale: string): DetailDocument {
   const positions = Array.isArray(invoice.positions)
     ? invoice.positions.map((item, index) => {
@@ -265,16 +283,20 @@ function normalizeApiInvoice(invoice: ApiInvoice, fallback: DetailDocument, t: R
   }
 }
 
-function initialPaymentsForDocument(document: DetailDocument): PaymentEntry[] {
-  if (statusKey(document.status) !== "paid" || document.grossTotal <= 0) return []
+function initialPaymentsForDocument(document: DetailDocument, existingPayments: PaymentEntry[] = []): PaymentEntry[] {
+  const amount = document.grossTotal > 0 ? document.grossTotal : document.netTotal + document.vatTotal
+
+  if (statusKey(document.status) !== "paid" || amount <= 0) return []
+
+  const existingPayment = existingPayments[0]
 
   return [
     {
-      id: `${document.id}-payment-1`,
-      date: dateInputValue(new Date()),
-      amount: document.grossTotal,
-      method: "Banküberweisung",
-      reason: "Zahlungseingang Kontoauszug"
+      id: existingPayment?.id ?? `${document.id}-payment-1`,
+      date: existingPayment?.date ?? dateInputValue(new Date()),
+      amount,
+      method: existingPayment?.method ?? "Banküberweisung",
+      reason: existingPayment?.reason ?? "Zahlungseingang Kontoauszug"
     }
   ]
 }
@@ -287,7 +309,11 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
   const locale = language === "en" ? "en-US" : "de-DE"
 
   const fallbackDocument = useMemo(
-    () => normalizeStaticDocument(documents.find((item) => item.id === documentId) ?? documents[0], t),
+    () => {
+      const staticDocument = documents.find((item) => item.id === documentId)
+
+      return staticDocument ? normalizeStaticDocument(staticDocument, t) : emptyFallbackDocument(documentId, t)
+    },
     [documentId, t]
   )
 
@@ -329,7 +355,7 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
         if (cancelled) return
 
         setDoc(normalized)
-        setPayments(initialPaymentsForDocument(normalized))
+        setPayments((currentPayments) => initialPaymentsForDocument(normalized, currentPayments))
         setSendTo(normalized.customerEmail)
         setSubject(`${t("documents.detail.email.subjectPrefix")} ${normalized.number}`)
         setMessage(`${t("documents.detail.email.bodyPrefix")}\n\n${t("documents.detail.email.bodyMiddle")} ${normalized.number}.\n\n${t("documents.detail.email.bodyClosing")}`)
@@ -537,9 +563,6 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
   const actionButton =
     "inline-flex min-h-10 items-center gap-2 rounded-full bg-[#eef2f7] px-4 py-2 text-sm font-semibold text-[#1f2937] transition hover:bg-[#e5ebf2]"
 
-  const iconButton =
-    "inline-flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-600 shadow-sm ring-1 ring-slate-200 transition hover:bg-white hover:text-slate-950 hover:shadow-md"
-
   return (
     <PageShell title={doc.number} description={`${doc.type ?? t("documents.detail.type.invoice")} · ${doc.customer}`}>
       <div className="space-y-6">
@@ -710,17 +733,17 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
 
               <div className="mt-5 space-y-3">
                 {payments.length ? payments.map((payment) => (
-                  <div key={payment.id} className="flex items-center justify-between gap-3 rounded-[24px] bg-[#f7f9fc] px-4 py-3">
+                  <div key={payment.id} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-[24px] bg-[#f7f9fc] px-4 py-3">
                     <div className="min-w-0">
                       <p className="text-sm font-black text-slate-950">{displayDate(payment.date, locale)}</p>
                       <p className="truncate text-xs font-extrabold uppercase tracking-wider text-slate-500">{payment.method}</p>
                     </div>
-                    <div className="flex shrink-0 items-center gap-2">
+                    <div className="flex min-w-[132px] shrink-0 items-center justify-end gap-2">
                       <span className="text-sm font-black text-slate-950"><Currency value={payment.amount} /></span>
                       <button
                         type="button"
                         onClick={() => openPaymentModal(payment)}
-                        className={iconButton}
+                        className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-slate-700 shadow-sm ring-1 ring-slate-300 transition hover:bg-white hover:text-slate-950 hover:shadow-md"
                         aria-label="Zahlung bearbeiten"
                       >
                         <Pencil className="h-4 w-4" />
@@ -728,7 +751,7 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
                       <button
                         type="button"
                         onClick={() => deletePayment(payment.id)}
-                        className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-200 transition hover:bg-red-50 hover:text-red-600 hover:ring-red-100 hover:shadow-md"
+                        className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white text-slate-700 shadow-sm ring-1 ring-slate-300 transition hover:bg-red-50 hover:text-red-600 hover:ring-red-100 hover:shadow-md"
                         aria-label="Zahlung loeschen"
                       >
                         <Trash2 className="h-4 w-4" />
