@@ -2,6 +2,10 @@ import { enforceUserLimit } from "@dream-invoice/licensing/signed-license"
 import { isUserRole, isUserStatus, type UserRole, type UserStatus } from "@dream-invoice/auth"
 import { prisma } from "@dream-invoice/database"
 import { getUserLimitStatus, type UserLimitStatus } from "@/lib/license/limits"
+import {
+  normalizePermissionSettings,
+  type UserPermissionSetting
+} from "@/lib/users/permissions"
 
 export type AppUser = {
   id: string
@@ -12,8 +16,15 @@ export type AppUser = {
   lastLoginAt: Date | null
   invitedAt: Date | null
   disabledAt: Date | null
+  permissions: UserPermissionSetting[]
   createdAt: Date
   updatedAt: Date
+}
+
+type PermissionRecord = {
+  scope: string
+  action: string
+  allowed: boolean
 }
 
 type UserRecord = {
@@ -25,6 +36,7 @@ type UserRecord = {
   lastLoginAt: Date | null
   invitedAt: Date | null
   disabledAt: Date | null
+  permissions?: PermissionRecord[]
   createdAt: Date
   updatedAt: Date
 }
@@ -50,6 +62,7 @@ export type CreateAppUserInput = {
   email?: unknown
   role?: unknown
   status?: unknown
+  permissions?: unknown
 }
 
 export type UpdateAppUserInput = {
@@ -57,6 +70,7 @@ export type UpdateAppUserInput = {
   name?: unknown
   role?: unknown
   status?: unknown
+  permissions?: unknown
 }
 
 export class UserServiceError extends Error {
@@ -73,6 +87,11 @@ export class UserServiceError extends Error {
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const RESERVED_EMAIL_DOMAIN = "dream-invoice.com"
+const permissionInclude = {
+  permissions: {
+    orderBy: [{ scope: "asc" }, { action: "asc" }]
+  }
+}
 
 function isReservedEmailDomain(domain: string) {
   return domain === RESERVED_EMAIL_DOMAIN || domain.endsWith("." + RESERVED_EMAIL_DOMAIN)
@@ -133,6 +152,7 @@ function toAppUser(user: UserRecord): AppUser {
     lastLoginAt: user.lastLoginAt,
     invitedAt: user.invitedAt,
     disabledAt: user.disabledAt,
+    permissions: normalizePermissionSettings(user.permissions, normalizeRole(user.role, "user")),
     createdAt: user.createdAt,
     updatedAt: user.updatedAt
   }
@@ -188,7 +208,8 @@ async function assertNotLastActiveOwner(
 export async function listAppUsers(context?: UserServiceContext): Promise<AppUser[]> {
   const store = getStore(context)
   const users = await store.user.findMany({
-    orderBy: [{ createdAt: "asc" }]
+    orderBy: [{ createdAt: "asc" }],
+    include: permissionInclude
   })
 
   return users.map(toAppUser)
@@ -203,6 +224,7 @@ export async function createAppUser(
   const name = normalizeName(input.name)
   const role = normalizeRole(input.role, "user")
   const status = normalizeStatus(input.status, "active")
+  const permissions = normalizePermissionSettings(input.permissions, role)
   const now = context?.now?.() ?? new Date()
 
   if (status === "active") {
@@ -215,9 +237,13 @@ export async function createAppUser(
       name,
       role,
       status,
+      permissions: {
+        create: permissions
+      },
       invitedAt: now,
       disabledAt: status === "disabled" ? now : null
-    }
+    },
+    include: permissionInclude
   })
 
   return toAppUser(created)
@@ -233,7 +259,7 @@ export async function updateAppUser(
   }
 
   const store = getStore(context)
-  const existing = await store.user.findUnique({ where: { id } })
+  const existing = await store.user.findUnique({ where: { id }, include: permissionInclude })
   if (!existing) {
     throw new UserServiceError("user_not_found", "Benutzer wurde nicht gefunden.", 404)
   }
@@ -242,6 +268,10 @@ export async function updateAppUser(
   const nextRole = normalizeRole(input.role, current.role)
   const nextStatus = normalizeStatus(input.status, current.status)
   const nextName = input.name === undefined ? current.name : normalizeName(input.name)
+  const nextPermissions = normalizePermissionSettings(
+    input.permissions === undefined ? current.permissions : input.permissions,
+    nextRole
+  )
   const now = context?.now?.() ?? new Date()
 
   await assertNotLastActiveOwner(current, nextRole, nextStatus, context)
@@ -256,8 +286,13 @@ export async function updateAppUser(
       name: nextName,
       role: nextRole,
       status: nextStatus,
+      permissions: {
+        deleteMany: {},
+        create: nextPermissions
+      },
       disabledAt: nextStatus === "disabled" ? (current.disabledAt ?? now) : null
-    }
+    },
+    include: permissionInclude
   })
 
   return toAppUser(updated)

@@ -3,8 +3,10 @@
 import type { ReactNode } from "react"
 import { useCallback, useEffect, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
+import { isUserRole } from "@dream-invoice/auth"
 import { NavigationShell } from "@dream-invoice/ui"
 import { useLanguage } from "@/lib/i18n"
+import { getEffectivePermissionKeys, type UserPermissionSetting } from "@/lib/users/permissions"
 
 type ShellUser = {
   id: string
@@ -12,6 +14,7 @@ type ShellUser = {
   name: string | null
   role: string
   status: string
+  permissions?: UserPermissionSetting[]
 }
 
 function isShellUser(value: unknown): value is ShellUser {
@@ -62,14 +65,19 @@ export function LocalizedNavigationShell({ children }: { children: ReactNode }) 
     router.refresh()
   }, [router])
 
+  const userRole = currentUser && isUserRole(currentUser.role) ? currentUser.role : null
+  const permissionKeys = userRole
+    ? getEffectivePermissionKeys(userRole, currentUser?.permissions ?? [])
+    : new Set<string>()
+  const can = (key: string) => permissionKeys.has(key)
   const navigationItems = [
     { href: "/dashboard", label: t("nav.dashboard"), icon: "⌂" },
-    { href: "/customers", label: t("nav.customers"), icon: "♙" },
-    { href: "/projects", label: t("nav.projects"), icon: "◇" },
-    { href: "/documents", label: t("nav.documents"), icon: "□" },
-    { href: "/finance", label: t("nav.finance"), icon: "⌁" },
-    { href: "/articles", label: t("nav.articles"), icon: "▣" }
-  ]
+    can("customers:view") ? { href: "/customers", label: t("nav.customers"), icon: "♙" } : null,
+    can("projects:view") ? { href: "/projects", label: t("nav.projects"), icon: "◇" } : null,
+    can("documents:view") ? { href: "/documents", label: t("nav.documents"), icon: "□" } : null,
+    can("finance:view") ? { href: "/finance", label: t("nav.finance"), icon: "⌁" } : null,
+    can("articles:view") ? { href: "/articles", label: t("nav.articles"), icon: "▣" } : null
+  ].filter((item): item is { href: string; label: string; icon: string } => Boolean(item))
 
   if (isLoginPage) return <>{children}</>
 
@@ -82,6 +90,7 @@ export function LocalizedNavigationShell({ children }: { children: ReactNode }) 
       settingsLabel={isEnglish ? "Settings" : "Einstellungen"}
       notificationsLabel={isEnglish ? "Notifications" : "Benachrichtigungen"}
       currentUser={currentUser}
+      showSettings={can("settings:manage")}
       profileLabel={isEnglish ? "User menu" : "Benutzermenue"}
       logoutLabel={isEnglish ? "Sign out" : "Abmelden"}
       onLogout={handleLogout}

@@ -3,6 +3,15 @@
 import { useRouter } from "next/navigation"
 import { useMemo, useState } from "react"
 import { getPlanByKey, type LicensePlanKey } from "@/lib/license/plans"
+import {
+  allPermissionDefinitions,
+  canEditRolePermissions,
+  getEffectivePermissionKeys,
+  permissionGroups,
+  permissionKey,
+  splitPermissionKey,
+  type UserPermissionSetting
+} from "@/lib/users/permissions"
 import { useLanguage } from "@/lib/i18n"
 import { SettingsLayout } from "../_components/SettingsLayout"
 import { LicenseActivationForm } from "./LicenseActivationForm"
@@ -27,6 +36,7 @@ type AppUser = {
   lastLoginAt: string | null
   invitedAt: string | null
   disabledAt: string | null
+  permissions: UserPermissionSetting[]
   createdAt: string
   updatedAt: string
 }
@@ -42,59 +52,6 @@ type CreateUserForm = {
   role: AppUser["role"]
   status: AppUser["status"]
 }
-
-const permissionGroups = [
-  {
-    titleKey: "settings.users.permissions.invoices.title",
-    descriptionKey: "settings.users.permissions.invoices.description",
-    itemKeys: [
-      "settings.users.permissions.invoices.view",
-      "settings.users.permissions.invoices.create",
-      "settings.users.permissions.invoices.edit",
-      "settings.users.permissions.invoices.delete",
-      "settings.users.permissions.invoices.finalize",
-      "settings.users.permissions.invoices.pdf"
-    ] as const
-  },
-  {
-    titleKey: "settings.users.permissions.customers.title",
-    descriptionKey: "settings.users.permissions.customers.description",
-    itemKeys: [
-      "settings.users.permissions.customers.viewCustomers",
-      "settings.users.permissions.customers.editCustomers",
-      "settings.users.permissions.customers.viewProjects",
-      "settings.users.permissions.customers.editProjects"
-    ] as const
-  },
-  {
-    titleKey: "settings.users.permissions.finance.title",
-    descriptionKey: "settings.users.permissions.finance.description",
-    itemKeys: [
-      "settings.users.permissions.finance.viewArticles",
-      "settings.users.permissions.finance.editArticles",
-      "settings.users.permissions.finance.viewFinance"
-    ] as const
-  },
-  {
-    titleKey: "settings.users.permissions.portal.title",
-    descriptionKey: "settings.users.permissions.portal.description",
-    itemKeys: [
-      "settings.users.permissions.portal.offerPortal",
-      "settings.users.permissions.portal.archiveUse",
-      "settings.users.permissions.portal.archiveConfigure"
-    ] as const
-  },
-  {
-    titleKey: "settings.users.permissions.admin.title",
-    descriptionKey: "settings.users.permissions.admin.description",
-    itemKeys: [
-      "settings.users.permissions.admin.settings",
-      "settings.users.permissions.admin.templates",
-      "settings.users.permissions.admin.system",
-      "settings.users.permissions.admin.userRights"
-    ] as const
-  }
-] as const
 
 const roleLabels: Record<AppUser["role"], string> = {
   owner: "Owner",
@@ -152,6 +109,7 @@ export function UsersAndPermissionsClient({
   const [state, setState] = useState<SubmitState>({ type: "idle", message: "" })
   const [isCreating, setIsCreating] = useState(false)
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null)
+  const [selectedUserId, setSelectedUserId] = useState(initialUsers[0]?.id ?? "")
 
   const planMeta: Record<LicensePlanKey, { billing: string; note: string }> = {
     free: {
@@ -185,6 +143,11 @@ export function UsersAndPermissionsClient({
   }
 
   const activeUsers = useMemo(() => users.filter((user) => user.status === "active"), [users])
+  const selectedUser = users.find((user) => user.id === selectedUserId) ?? users[0] ?? null
+  const selectedPermissionKeys = selectedUser
+    ? getEffectivePermissionKeys(selectedUser.role, selectedUser.permissions)
+    : new Set<string>()
+  const selectedPermissionsEditable = selectedUser ? canEditRolePermissions(selectedUser.role) : false
   const activePlan = getPlanByKey(limit.plan)
   const licenseStatusLabels: Record<string, string> = {
     active: t("settings.users.license.status.active"),
@@ -210,6 +173,10 @@ export function UsersAndPermissionsClient({
     setUsers(result.users)
     setLimit(result.limit)
     setDraftNames(Object.fromEntries(result.users.map((user: AppUser) => [user.id, user.name ?? ""])))
+    setSelectedUserId((current) => {
+      if (result.users.some((user: AppUser) => user.id === current)) return current
+      return result.users[0]?.id ?? ""
+    })
   }
 
   async function handleCreate(event: React.FormEvent<HTMLFormElement>) {
@@ -241,7 +208,7 @@ export function UsersAndPermissionsClient({
     }
   }
 
-  async function updateUser(user: AppUser, patch: Partial<Pick<AppUser, "name" | "role" | "status">>) {
+  async function updateUser(user: AppUser, patch: Partial<Pick<AppUser, "name" | "role" | "status" | "permissions">>) {
     setUpdatingUserId(user.id)
     setState({ type: "idle", message: "" })
 
@@ -253,7 +220,8 @@ export function UsersAndPermissionsClient({
           id: user.id,
           name: patch.name ?? draftNames[user.id] ?? user.name ?? "",
           role: patch.role ?? user.role,
-          status: patch.status ?? user.status
+          status: patch.status ?? user.status,
+          ...(patch.permissions ? { permissions: patch.permissions } : {})
         })
       })
       const result = await response.json()
@@ -271,6 +239,30 @@ export function UsersAndPermissionsClient({
     } finally {
       setUpdatingUserId(null)
     }
+  }
+
+  async function updatePermission(user: AppUser, key: string, allowed: boolean) {
+    if (!canEditRolePermissions(user.role)) return
+
+    const keys = getEffectivePermissionKeys(user.role, user.permissions)
+    if (allowed) {
+      keys.add(key)
+    } else {
+      keys.delete(key)
+    }
+
+    const permissions = allPermissionDefinitions.map((permission) => {
+      const nextKey = permissionKey(permission)
+      const { scope, action } = splitPermissionKey(nextKey)
+      return {
+        scope,
+        action,
+        allowed: keys.has(nextKey)
+      }
+    })
+
+    await updateUser(user, { permissions })
+    setState({ type: "success", message: "Berechtigung wurde gespeichert." })
   }
 
   return (
@@ -389,18 +381,19 @@ export function UsersAndPermissionsClient({
             </div>
           </div>
 
-          <div className="mt-5 overflow-hidden rounded-[22px] border border-[#e5eaf0] bg-white">
-            <div className="grid grid-cols-[1.1fr_1.4fr_150px_150px_120px_110px] gap-3 border-b border-[#e5eaf0] bg-[#f8fafc] px-4 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-[#94a3b8]">
+          <div className="mt-5 overflow-x-auto rounded-[22px] border border-[#e5eaf0] bg-white">
+            <div className="grid min-w-[980px] grid-cols-[1.1fr_1.4fr_140px_140px_100px_90px_110px] gap-3 border-b border-[#e5eaf0] bg-[#f8fafc] px-4 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-[#94a3b8]">
               <span>Name</span>
               <span>E-Mail</span>
               <span>Rolle</span>
               <span>Status</span>
               <span>Seit</span>
+              <span>Rechte</span>
               <span>Aktion</span>
             </div>
 
             {users.length ? users.map((user) => (
-              <div key={user.id} className="grid grid-cols-[1.1fr_1.4fr_150px_150px_120px_110px] items-center gap-3 border-b border-[#eef2f7] px-4 py-3 last:border-b-0">
+              <div key={user.id} className={`grid min-w-[980px] grid-cols-[1.1fr_1.4fr_140px_140px_100px_90px_110px] items-center gap-3 border-b border-[#eef2f7] px-4 py-3 transition last:border-b-0 ${selectedUser?.id === user.id ? "bg-[#f8fafc]" : "bg-white"}`}>
                 <input
                   value={draftNames[user.id] ?? ""}
                   onChange={(event) => setDraftNames((current) => ({ ...current, [user.id]: event.target.value }))}
@@ -431,6 +424,13 @@ export function UsersAndPermissionsClient({
                 <span className="text-sm font-medium text-[#64748b]">{formatDate(user.createdAt)}</span>
                 <button
                   type="button"
+                  onClick={() => setSelectedUserId(user.id)}
+                  className={`min-h-10 rounded-full px-4 text-sm font-semibold transition ${selectedUser?.id === user.id ? "bg-[#111827] text-white" : "border border-[#dbe3ec] bg-white text-[#111827] hover:bg-[#f8fafc]"}`}
+                >
+                  Rechte
+                </button>
+                <button
+                  type="button"
                   disabled={updatingUserId === user.id}
                   onClick={() => updateUser(user, { name: draftNames[user.id] ?? "" })}
                   className="min-h-10 rounded-full border border-[#dbe3ec] bg-white px-4 text-sm font-semibold text-[#111827] transition hover:bg-[#f8fafc] disabled:cursor-not-allowed disabled:opacity-60"
@@ -445,6 +445,75 @@ export function UsersAndPermissionsClient({
             )}
           </div>
         </section>
+
+        {selectedUser ? (
+          <section className="rounded-[28px] border border-[#e5eaf0] bg-white p-5 shadow-sm">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#94a3b8]">Berechtigungen</p>
+                <h2 className="mt-2 text-lg font-semibold text-[#111827]">
+                  {selectedUser.name || selectedUser.email}
+                </h2>
+                <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-[#64748b]">
+                  {selectedPermissionsEditable
+                    ? "Hier legst du fest, welche Bereiche dieser Benutzer nutzen darf."
+                    : "Owner und Admins haben automatisch Vollzugriff."}
+                </p>
+              </div>
+              <div className="rounded-full border border-[#e5eaf0] bg-[#f8fafc] px-4 py-2 text-sm font-semibold text-[#475569]">
+                {roleLabels[selectedUser.role]} · {statusLabels[selectedUser.status]}
+              </div>
+            </div>
+
+            <div className="mt-5 flex flex-wrap gap-2">
+              {users.map((user) => (
+                <button
+                  key={user.id}
+                  type="button"
+                  onClick={() => setSelectedUserId(user.id)}
+                  className={`rounded-full px-4 py-2 text-sm font-semibold transition ${selectedUser.id === user.id ? "bg-[#111827] text-white shadow-[0_10px_24px_rgba(15,23,42,0.18)]" : "border border-[#e5eaf0] bg-[#f8fafc] text-[#475569] hover:bg-white"}`}
+                >
+                  {user.name || user.email}
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-2">
+              {permissionGroups.map((group) => (
+                <section
+                  key={group.titleKey}
+                  className="rounded-[24px] border border-[#e5eaf0] bg-[#f8fafc] p-5"
+                >
+                  <h3 className="text-base font-semibold text-[#111827]">{t(group.titleKey)}</h3>
+                  <p className="mt-2 text-sm font-medium leading-6 text-[#64748b]">{t(group.descriptionKey)}</p>
+
+                  <div className="mt-5 space-y-3">
+                    {group.permissions.map((permission) => {
+                      const key = permissionKey(permission)
+                      const allowed = selectedPermissionKeys.has(key)
+
+                      return (
+                        <div key={key} className="flex items-center justify-between gap-4 rounded-[18px] border border-[#e5eaf0] bg-white px-4 py-3">
+                          <span className="text-sm font-semibold text-[#111827]">{t(permission.labelKey)}</span>
+                          <button
+                            type="button"
+                            disabled={!selectedPermissionsEditable || updatingUserId === selectedUser.id}
+                            onClick={() => updatePermission(selectedUser, key, !allowed)}
+                            className={`relative h-8 w-14 rounded-full transition disabled:cursor-not-allowed disabled:opacity-60 ${allowed ? "bg-[#111827]" : "bg-[#dbe3ec]"}`}
+                            aria-pressed={allowed}
+                            aria-label={t(permission.labelKey)}
+                          >
+                            <span className={`absolute top-1 h-6 w-6 rounded-full bg-white shadow-sm transition ${allowed ? "left-7" : "left-1"}`} />
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </section>
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         <section className="rounded-[28px] border border-[#e5eaf0] bg-[#f8fafc] p-5 shadow-[0_16px_38px_rgba(15,23,42,0.10)]">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -494,33 +563,6 @@ export function UsersAndPermissionsClient({
           </div>
         </section>
 
-        <details className="rounded-[28px] border border-[#e5eaf0] bg-white p-5 shadow-sm">
-          <summary className="cursor-pointer select-none text-lg font-semibold text-[#111827]">
-            Rollenuebersicht
-          </summary>
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
-            {permissionGroups.map((group) => (
-              <section
-                key={group.titleKey}
-                className="rounded-[24px] border border-[#e5eaf0] bg-[#f8fafc] p-5"
-              >
-                <h2 className="text-base font-semibold text-[#111827]">{t(group.titleKey)}</h2>
-                <p className="mt-2 text-sm font-medium leading-6 text-[#64748b]">{t(group.descriptionKey)}</p>
-
-                <div className="mt-5 flex flex-wrap gap-2">
-                  {group.itemKeys.map((itemKey) => (
-                    <span
-                      key={itemKey}
-                      className="rounded-full border border-[#e5eaf0] bg-white px-3 py-1.5 text-xs font-medium text-[#475569]"
-                    >
-                      {t(itemKey)}
-                    </span>
-                  ))}
-                </div>
-              </section>
-            ))}
-          </div>
-        </details>
       </div>
     </SettingsLayout>
   )

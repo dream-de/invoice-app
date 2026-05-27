@@ -74,7 +74,13 @@ export async function POST(request: Request) {
       action: "user.create",
       entity: "user",
       entityId: user.id,
-      data: { actorUserId: actor.id, role: user.role, status: user.status, email: user.email }
+      data: {
+        actorUserId: actor.id,
+        role: user.role,
+        status: user.status,
+        email: user.email,
+        permissions: user.permissions
+      }
     })
 
     return NextResponse.json({ ok: true, user: serializeAppUser(user) }, { status: 201 })
@@ -92,7 +98,13 @@ export async function PATCH(request: Request) {
       action: "user.update",
       entity: "user",
       entityId: user.id,
-      data: { actorUserId: actor.id, role: user.role, status: user.status, email: user.email }
+      data: {
+        actorUserId: actor.id,
+        role: user.role,
+        status: user.status,
+        email: user.email,
+        permissions: user.permissions
+      }
     })
 
     return NextResponse.json({ ok: true, user: serializeAppUser(user) })

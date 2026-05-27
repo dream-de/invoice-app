@@ -26,6 +26,7 @@ type NavigationShellProps = {
   settingsLabel?: string
   notificationsLabel?: string
   currentUser?: NavigationShellUser | null
+  showSettings?: boolean
   profileLabel?: string
   logoutLabel?: string
   onLogout?: () => void | Promise<void>
@@ -128,6 +129,7 @@ export function NavigationShell({
   settingsLabel = "Einstellungen",
   notificationsLabel = "Benachrichtigungen",
   currentUser = null,
+  showSettings = true,
   profileLabel = "Profil",
   logoutLabel = "Abmelden",
   onLogout
@@ -225,6 +227,12 @@ export function NavigationShell({
       { href: "/settings/system", title: isEnglish ? "System and language" : "System und Sprache", section: isEnglish ? "Settings" : "Einstellungen", keywords: ["system", "sprache", "language", "backup"] }
     ]
 
+    const fixedItemsForAllowedAreas = fixedItems.filter((item) => {
+      if (item.href.startsWith("/settings")) return showSettings
+      if (item.href === "/dashboard") return true
+      return items.some((navItem) => item.href === navItem.href || item.href.startsWith(`${navItem.href}/`))
+    })
+
     const navigationItems = items.map((item) => ({
       href: item.href,
       title: item.label,
@@ -232,13 +240,13 @@ export function NavigationShell({
       keywords: [item.label, item.href]
     }))
 
-    return Array.from(new Map([...navigationItems, ...fixedItems].map((item) => [item.href, item])).values())
-  }, [isEnglish, items])
+    return Array.from(new Map([...navigationItems, ...fixedItemsForAllowedAreas].map((item) => [item.href, item])).values())
+  }, [isEnglish, items, showSettings])
 
   const searchResults = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
 
-    if (!query) return searchItems.slice(0, 7)
+    if (!query) return []
 
     return searchItems
       .filter((item) => [item.title, item.section, item.href, ...item.keywords].join(" ").toLowerCase().includes(query))
@@ -371,7 +379,7 @@ export function NavigationShell({
                   </div>
 
                   <div className="invoice-search-results">
-                    {searchResults.length > 0 ? (
+                    {searchQuery.trim().length === 0 ? null : searchResults.length > 0 ? (
                       searchResults.map((item) => (
                         <Link key={item.href} href={item.href} className={`invoice-search-result no-underline ${focusRing}`}>
                           <span>
@@ -391,15 +399,17 @@ export function NavigationShell({
               ) : null}
             </div>
 
-            <Link
-              href="/settings/company"
-              aria-label={settingsLabel}
-              className={`invoice-header-icon no-underline ${
-                pathname.startsWith("/settings") ? "invoice-header-icon-active" : ""
-              } ${focusRing}`}
-            >
-              ⚙
-            </Link>
+            {showSettings ? (
+              <Link
+                href="/settings/company"
+                aria-label={settingsLabel}
+                className={`invoice-header-icon no-underline ${
+                  pathname.startsWith("/settings") ? "invoice-header-icon-active" : ""
+                } ${focusRing}`}
+              >
+                ⚙
+              </Link>
+            ) : null}
 
             <div className="invoice-notification-wrap">
               <button

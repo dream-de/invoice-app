@@ -51,9 +51,18 @@ function showReadOnlyAction(action) {
   showDemoToast(action + " is preview-only in the public demo.");
 }
 
+function getRouteParts() {
+  const rawRoute = window.location.hash.replace(/^#\/?/, "") || "dashboard";
+  const [routeId, detailId] = rawRoute.split("/");
+  const activeRoute = routes.some((item) => item.id === routeId) ? routeId : "dashboard";
+  return {
+    activeRoute,
+    detailId: activeRoute === "documents" ? detailId : undefined
+  };
+}
+
 function getRouteId() {
-  const route = window.location.hash.replace(/^#\/?/, "") || "dashboard";
-  return routes.some((item) => item.id === route) ? route : "dashboard";
+  return getRouteParts().activeRoute;
 }
 
 function findCustomer(snapshot, customerId) {
@@ -66,6 +75,152 @@ function findProject(snapshot, projectId) {
 
 function statusLabel(status) {
   return status.replace("-", " ");
+}
+
+function formatDate(value) {
+  return new Intl.DateTimeFormat("de-DE").format(new Date(value + "T12:00:00"));
+}
+
+function paymentMethodLabel(method) {
+  if (method === "Bankueberweisung") return "Bankueberweisung";
+  return method;
+}
+
+function getDocumentPositions(documentItem) {
+  if (Array.isArray(documentItem.positions) && documentItem.positions.length > 0) {
+    return documentItem.positions;
+  }
+
+  return [
+    {
+      id: documentItem.id + "-fallback-position",
+      title: documentItem.type === "offer" ? "Demo offer package" : "Demo invoice service",
+      description: "Preview-only sample position",
+      quantity: 1,
+      netPrice: documentItem.net,
+      total: documentItem.net
+    }
+  ];
+}
+
+function getDocumentPayments(documentItem) {
+  return Array.isArray(documentItem.payments) ? documentItem.payments : [];
+}
+
+function getDocumentNote() {
+  return "Vielen Dank fuer Ihren Auftrag. Bitte ueberweisen Sie den faelligen Betrag innerhalb von 14 Tagen auf das unten angegebene Konto.";
+}
+
+function closeDemoModal() {
+  const existing = document.querySelector(".demo-modal-backdrop");
+  if (existing) existing.remove();
+  document.body.classList.remove("demo-modal-open");
+}
+
+function showDemoModal(modal) {
+  closeDemoModal();
+
+  const backdrop = createElement("div", "demo-modal-backdrop");
+  backdrop.addEventListener("click", (event) => {
+    if (event.target === backdrop) closeDemoModal();
+  });
+
+  backdrop.append(modal);
+  document.body.append(backdrop);
+  document.body.classList.add("demo-modal-open");
+}
+
+function createModalShell(title, icon) {
+  const modal = createElement("section", "demo-modal");
+  modal.setAttribute("role", "dialog");
+  modal.setAttribute("aria-modal", "true");
+
+  const header = createElement("div", "demo-modal-header");
+  const heading = createElement("div", "demo-modal-title");
+  heading.append(createElement("span", "demo-modal-icon", icon));
+  heading.append(createElement("h2", "", title));
+  header.append(heading, createButton("demo-modal-close", "x", closeDemoModal));
+
+  const body = createElement("div", "demo-modal-body");
+  const footer = createElement("div", "demo-modal-footer");
+  modal.append(header, body, footer);
+  return { modal, body, footer };
+}
+
+function createField(label, value, tag = "input") {
+  const wrapper = createElement("label", "demo-field");
+  wrapper.append(createElement("span", "", label));
+  const input = createElement(tag, "demo-input");
+  input.value = value;
+  wrapper.append(input);
+  return wrapper;
+}
+
+function showEmailModal(documentItem, customer) {
+  const { modal, body, footer } = createModalShell("Per E-Mail senden", "mail");
+  const recipient = customer?.email ?? "demo-recipient@example";
+  const documentType = documentItem.type === "offer" ? "Angebot" : "Rechnung";
+
+  body.append(
+    createField("Empfaenger", recipient),
+    createField("Betreff", documentType + " " + documentItem.number),
+    createField(
+      "Nachricht",
+      "Sehr geehrte Damen und Herren,\n\nanbei erhalten Sie Ihre " + documentType.toLowerCase() + " " + documentItem.number + ".\n\nMit freundlichen Gruessen,\nDream Invoice Studio",
+      "textarea"
+    )
+  );
+
+  const attachment = createElement("div", "attachment-pill");
+  attachment.append(createElement("span", "", "paperclip"));
+  attachment.append(createElement("strong", "", "Angehaengt: " + documentItem.number + ".pdf"));
+  body.append(attachment);
+
+  footer.append(
+    createButton("secondary-button", "Abbrechen", closeDemoModal),
+    createButton("primary-button", "Senden", () => {
+      closeDemoModal();
+      showDemoToast("Demo mode: email sending is simulated.");
+    })
+  );
+
+  showDemoModal(modal);
+}
+
+function showPaymentModal(documentItem, payment) {
+  const { modal, body, footer } = createModalShell(payment ? "Zahlung bearbeiten" : "Zahlung erfassen", "eur");
+  const methodWrapper = createElement("label", "demo-field");
+  methodWrapper.append(createElement("span", "", "Methode"));
+  const select = createElement("select", "demo-input");
+  for (const method of ["Bankueberweisung", "PayPal", "Karte", "Bar", "Sonstiges"]) {
+    const option = createElement("option", "", paymentMethodLabel(method));
+    option.value = method;
+    if ((payment?.method ?? "Bankueberweisung") === method) option.selected = true;
+    select.append(option);
+  }
+  methodWrapper.append(select);
+
+  const row = createElement("div", "demo-modal-two");
+  row.append(
+    createField("Datum", formatDate(payment?.date ?? documentItem.issueDate)),
+    createField("Betrag (EUR)", String(payment?.amount ?? documentItem.gross))
+  );
+
+  body.append(
+    row,
+    methodWrapper,
+    createField("Grund (Pflicht)", payment?.reason ?? "z.B. Zahlungseingang Kontoauszug, Teilzahlung, ...", "textarea")
+  );
+
+  footer.append(
+    createButton("secondary-button", "Abbrechen", closeDemoModal),
+    createButton("primary-button", "Speichern", () => {
+      closeDemoModal();
+      showDemoToast("Demo mode: payment changes are simulated.");
+    })
+  );
+
+  showDemoModal(modal);
 }
 
 function showDemoToast(message) {
@@ -261,13 +416,177 @@ function renderDocumentsList(snapshot, documents) {
     const amount = createElement("div", "document-amount");
     amount.append(createElement("strong", "", formatCurrency(documentItem.gross, "EUR", 2)));
     amount.append(createStatus(documentItem.status));
-    amount.append(createButton("text-action", "Preview", () => showReadOnlyAction("Document preview")));
+    amount.append(createLinkButton("text-action", "Preview", "#/documents/" + documentItem.id));
 
     row.append(main, amount);
     list.append(row);
   }
 
   return list;
+}
+
+function renderDocumentDetailPage(snapshot, documentId) {
+  const documentItem = snapshot.documents.find((item) => item.id === documentId);
+  if (!documentItem) return renderDocumentsPage(snapshot);
+
+  const customer = findCustomer(snapshot, documentItem.customerId);
+  const positions = getDocumentPositions(documentItem);
+  const payments = getDocumentPayments(documentItem);
+  const paidAmount = payments.reduce((sum, payment) => sum + payment.amount, 0);
+  const openAmount = Math.max(documentItem.gross - paidAmount, 0);
+  const progress = documentItem.gross > 0 ? Math.min((paidAmount / documentItem.gross) * 100, 100) : 0;
+
+  const page = createElement("section", "document-detail-shell");
+  const header = createElement("article", "detail-header panel");
+  const headerCopy = createElement("div", "");
+  headerCopy.append(createLinkButton("back-link", "Zurueck zu Dokumenten", "#/documents"));
+  headerCopy.append(createElement("h1", "", documentItem.number));
+  headerCopy.append(createElement("p", "", (documentItem.type === "offer" ? "Angebot" : "Rechnung") + " - " + (customer?.name ?? "Demo customer")));
+
+  const actions = createElement("div", "detail-actions");
+  actions.append(
+    createButton("detail-button", "Bearbeiten", () => showReadOnlyAction("Document edit")),
+    createButton("detail-button accent", "Senden", () => showEmailModal(documentItem, customer)),
+    createButton("detail-button", "Drucken", () => showReadOnlyAction("Print")),
+    createButton("detail-button", "Teilen", () => showReadOnlyAction("Share")),
+    createButton("detail-button accent", "Download", () => showReadOnlyAction("PDF download"))
+  );
+  header.append(headerCopy, actions);
+
+  const grid = createElement("div", "detail-grid");
+  const leftColumn = createElement("div", "detail-column");
+  const rightColumn = createElement("aside", "detail-column");
+
+  const facts = createElement("article", "detail-card");
+  facts.append(createElement("h2", "", "Dokumentdaten"));
+  facts.append(createElement("p", "", "Empfaenger, Datum und Zahlungsinformationen."));
+  const factGrid = createElement("div", "document-facts");
+  for (const [label, value] of [
+    ["Empfaenger", customer?.name ?? "Unbekannt"],
+    ["Datum", formatDate(documentItem.issueDate)],
+    ["Faellig", documentItem.dueDate ? formatDate(documentItem.dueDate) : "-"]
+  ]) {
+    const fact = createElement("div", "fact-card");
+    fact.append(createElement("span", "", label), createElement("strong", "", value));
+    factGrid.append(fact);
+  }
+  facts.append(factGrid);
+
+  const positionsCard = createElement("article", "detail-card");
+  positionsCard.append(createElement("h2", "", "Positionen"));
+  positionsCard.append(createElement("p", "", "Leistungen und Betraege."));
+  const positionsTable = createElement("div", "positions-table");
+  const tableHeader = createElement("div", "position-row position-head");
+  tableHeader.append(createElement("span", "", "Beschreibung"), createElement("span", "", "Betrag"));
+  positionsTable.append(tableHeader);
+  for (const position of positions) {
+    const row = createElement("div", "position-row");
+    const copy = createElement("div", "");
+    copy.append(createElement("strong", "", position.title));
+    copy.append(createElement("small", "", position.description ?? (position.quantity + " x " + formatCurrency(position.netPrice, "EUR", 2))));
+    row.append(copy, createElement("strong", "", formatCurrency(position.total, "EUR", 2)));
+    positionsTable.append(row);
+  }
+  positionsCard.append(positionsTable);
+
+  const noteTotals = createElement("div", "note-total-grid");
+  const note = createElement("div", "document-note");
+  note.append(createElement("strong", "", "Hinweis"));
+  note.append(createElement("p", "", getDocumentNote()));
+  const totals = createElement("div", "totals-card");
+  for (const [label, value] of [
+    ["Netto", documentItem.net],
+    ["MwSt 19%", documentItem.tax],
+    ["Gesamt", documentItem.gross]
+  ]) {
+    const row = createElement("div", label === "Gesamt" ? "total-row-detail grand" : "total-row-detail");
+    row.append(createElement("span", "", label), createElement("strong", "", formatCurrency(value, "EUR", 2)));
+    totals.append(row);
+  }
+  noteTotals.append(note, totals);
+  positionsCard.append(noteTotals);
+
+  leftColumn.append(facts, positionsCard);
+
+  const statusCard = createElement("article", "detail-card status-detail");
+  statusCard.append(createElement("h2", "", "Status"));
+  statusCard.append(createElement("p", "", "Aktueller Dokumentstatus."));
+  if (documentItem.status === "overdue") {
+    const warning = createElement("div", "status-alert");
+    const copy = createElement("div", "");
+    copy.append(createElement("strong", "", "Zahlung ueberfaellig"));
+    copy.append(createButton("status-alert-action", "Mahnung erstellen", () => showReadOnlyAction("Reminder")));
+    warning.append(createElement("span", "", "!"), copy);
+    statusCard.append(warning);
+  }
+  const statusLine = createElement("div", "status-line");
+  statusLine.append(createStatus(documentItem.status));
+  statusLine.append(createElement("span", "", documentItem.status === "paid" ? "Bezahlt am " + formatDate(payments[0]?.date ?? documentItem.issueDate) : "Beim Kunden angekommen"));
+  statusCard.append(statusLine);
+
+  const paymentsCard = createElement("article", "detail-card payments-card");
+  const paymentsHeader = createElement("div", "compact-card-header");
+  paymentsHeader.append(createElement("h2", "", "Zahlungen"));
+  paymentsHeader.append(createButton("detail-button small", "+ Zahlung", () => showPaymentModal(documentItem)));
+  paymentsCard.append(paymentsHeader);
+  const paymentSummary = createElement("div", "payment-summary");
+  for (const [label, value] of [
+    ["Bezahlt", paidAmount],
+    ["Noch offen", openAmount]
+  ]) {
+    const line = createElement("div", "");
+    line.append(createElement("span", "", label), createElement("strong", "", formatCurrency(value, "EUR", 2)));
+    paymentSummary.append(line);
+  }
+  const bar = createElement("div", "payment-bar");
+  const fill = createElement("span", "payment-progress");
+  fill.style.width = progress + "%";
+  bar.append(fill);
+  paymentsCard.append(paymentSummary, bar);
+
+  if (payments.length > 0) {
+    for (const payment of payments) {
+      const paymentRow = createElement("div", "payment-entry");
+      const paymentCopy = createElement("div", "");
+      paymentCopy.append(createElement("strong", "", formatDate(payment.date)));
+      paymentCopy.append(createElement("span", "", paymentMethodLabel(payment.method).toUpperCase()));
+      const paymentActions = createElement("div", "payment-actions");
+      paymentActions.append(
+        createElement("strong", "", formatCurrency(payment.amount, "EUR", 2)),
+        createButton("round-action", "edit", () => showPaymentModal(documentItem, payment)),
+        createButton("round-action danger", "delete", () => showReadOnlyAction("Delete payment"))
+      );
+      paymentRow.append(paymentCopy, paymentActions);
+      paymentsCard.append(paymentRow);
+    }
+  } else {
+    paymentsCard.append(createElement("div", "empty-payment", "Noch keine Zahlung erfasst."));
+  }
+
+  const noteCard = createElement("article", "detail-card internal-note");
+  noteCard.append(createElement("h2", "", "Interne Notiz"));
+  const noteInput = createElement("textarea", "note-input");
+  noteInput.placeholder = "Notiz zu diesem Vorgang...";
+  noteCard.append(noteInput);
+
+  const historyCard = createElement("article", "detail-card history-card");
+  historyCard.append(createElement("h2", "", "Verlauf"));
+  const history = createElement("ul", "history-list");
+  for (const item of [
+    [formatDate(documentItem.issueDate), documentItem.type === "offer" ? "Angebot erstellt" : "Rechnung erstellt"],
+    [formatDate(documentItem.issueDate), "Per E-Mail vorbereitet"],
+    [payments[0] ? formatDate(payments[0].date) : formatDate(documentItem.dueDate), documentItem.status === "paid" ? "Zahlung vollstaendig erhalten" : "Status aktualisiert"]
+  ]) {
+    const row = createElement("li", "");
+    row.append(createElement("span", "", item[0]), createElement("strong", "", item[1]));
+    history.append(row);
+  }
+  historyCard.append(history);
+
+  rightColumn.append(statusCard, paymentsCard, noteCard, historyCard);
+  grid.append(leftColumn, rightColumn);
+  page.append(header, grid);
+  return page;
 }
 
 function renderCustomersList(snapshot) {
@@ -436,9 +755,11 @@ function renderSettingsPage(snapshot) {
   return section;
 }
 
-function renderRoute(snapshot, routeId) {
+function renderRoute(snapshot, routeInfo) {
+  const routeId = routeInfo.activeRoute;
   if (routeId === "customers") return renderCustomersPage(snapshot);
   if (routeId === "projects") return renderProjectsPage(snapshot);
+  if (routeId === "documents" && routeInfo.detailId) return renderDocumentDetailPage(snapshot, routeInfo.detailId);
   if (routeId === "documents") return renderDocumentsPage(snapshot);
   if (routeId === "templates") return renderTemplatesPage(snapshot);
   if (routeId === "finance") return renderFinancePage(snapshot);
@@ -451,9 +772,9 @@ function renderDemo(snapshot) {
   const app = document.querySelector("#app");
   if (!app) return;
 
-  const routeId = getRouteId();
+  const routeInfo = getRouteParts();
   app.textContent = "";
-  app.append(renderHeader(routeId), renderNotice(), renderRoute(snapshot, routeId));
+  app.append(renderHeader(routeInfo.activeRoute), renderNotice(), renderRoute(snapshot, routeInfo));
 }
 
 async function loadSnapshot() {

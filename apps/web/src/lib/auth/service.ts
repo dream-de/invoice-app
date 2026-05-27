@@ -2,6 +2,7 @@ import { cookies } from "next/headers"
 import { isUserRole, isUserStatus, type UserRole, type UserStatus } from "@dream-invoice/auth"
 import { prisma } from "@dream-invoice/database"
 import { createAppUser, UserServiceError } from "@/lib/users/service"
+import { normalizePermissionSettings, type UserPermissionSetting } from "@/lib/users/permissions"
 import { assertStrongPassword, hashPassword, PasswordError, verifyPassword } from "./password"
 import { SESSION_COOKIE_NAME, SessionError, createSessionToken, verifySessionToken } from "./session"
 
@@ -11,6 +12,13 @@ export type SessionUser = {
   name: string | null
   role: UserRole
   status: UserStatus
+  permissions: UserPermissionSetting[]
+}
+
+type PermissionRecord = {
+  scope: string
+  action: string
+  allowed: boolean
 }
 
 type UserRecord = {
@@ -25,6 +33,7 @@ type UserRecord = {
   disabledAt: Date | null
   createdAt: Date
   updatedAt: Date
+  permissions?: PermissionRecord[]
 }
 
 type UserStore = {
@@ -68,6 +77,20 @@ export class AuthServiceError extends Error {
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+const permissionRelation = {
+  permissions: {
+    select: {
+      scope: true,
+      action: true,
+      allowed: true
+    },
+    orderBy: [
+      { scope: "asc" },
+      { action: "asc" }
+    ]
+  }
+}
+
 function getStore(context?: AuthContext): UserStore {
   return (context?.store ?? prisma) as UserStore
 }
@@ -100,7 +123,8 @@ function toSessionUser(user: UserRecord): SessionUser {
     email: user.email,
     name: user.name,
     role: user.role,
-    status: user.status
+    status: user.status,
+    permissions: normalizePermissionSettings(user.permissions ?? [], user.role)
   }
 }
 
@@ -153,7 +177,8 @@ export async function createInitialOwner(input: InitialOwnerInput, context?: Aut
 
   const updated = await store.user.update({
     where: { id: created.id },
-    data: { passwordHash }
+    data: { passwordHash },
+    include: permissionRelation
   })
 
   return toSessionUser(updated)
@@ -172,7 +197,8 @@ export async function authenticateAppUser(input: LoginInput, context?: AuthConte
   const token = createSessionToken(user.id, { now: context?.now?.(), secret: context?.secret })
   const updated = await store.user.update({
     where: { id: user.id },
-    data: { lastLoginAt: context?.now?.() ?? new Date() }
+    data: { lastLoginAt: context?.now?.() ?? new Date() },
+    include: permissionRelation
   })
 
   return {
@@ -185,7 +211,10 @@ export async function getSessionUserFromToken(token: string | null | undefined, 
   const payload = verifySessionToken(token, { now: context?.now?.(), secret: context?.secret })
   if (!payload) return null
 
-  const user = await getStore(context).user.findUnique({ where: { id: payload.userId } })
+  const user = await getStore(context).user.findUnique({
+    where: { id: payload.userId },
+    include: permissionRelation
+  })
   if (!user || user.status !== "active") return null
 
   return toSessionUser(user)

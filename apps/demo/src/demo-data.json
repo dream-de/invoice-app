@@ -106,7 +106,26 @@
       "status": "sent",
       "net": 1250,
       "tax": 237.5,
-      "gross": 1487.5
+      "gross": 1487.5,
+      "positions": [
+        {
+          "id": "demo-position-001",
+          "title": "UI concept dashboard",
+          "description": "Structure, components and visual alignment",
+          "quantity": 1,
+          "netPrice": 850,
+          "total": 850
+        },
+        {
+          "id": "demo-position-002",
+          "title": "Component polish",
+          "description": "5 x 80.00 EUR",
+          "quantity": 5,
+          "netPrice": 80,
+          "total": 400
+        }
+      ],
+      "payments": []
     },
     {
       "id": "demo-document-002",
@@ -119,7 +138,34 @@
       "status": "draft",
       "net": 5400,
       "tax": 1026,
-      "gross": 6426
+      "gross": 6426,
+      "positions": [
+        {
+          "id": "demo-position-003",
+          "title": "Process consulting",
+          "description": "8 x 150.00 EUR workshop and process analysis",
+          "quantity": 8,
+          "netPrice": 150,
+          "total": 1200
+        },
+        {
+          "id": "demo-position-004",
+          "title": "Interface concept",
+          "description": "Technical documentation and integration plan",
+          "quantity": 1,
+          "netPrice": 900,
+          "total": 900
+        },
+        {
+          "id": "demo-position-005",
+          "title": "Automation package",
+          "description": "Workflow setup and handover package",
+          "quantity": 1,
+          "netPrice": 3300,
+          "total": 3300
+        }
+      ],
+      "payments": []
     },
     {
       "id": "demo-document-003",
@@ -132,7 +178,26 @@
       "net": 640,
       "tax": 121.6,
       "gross": 761.6,
-      "projectId": "demo-project-003"
+      "projectId": "demo-project-003",
+      "positions": [
+        {
+          "id": "demo-position-006",
+          "title": "Server maintenance",
+          "description": "3 x 150.00 EUR",
+          "quantity": 3,
+          "netPrice": 150,
+          "total": 450
+        },
+        {
+          "id": "demo-position-007",
+          "title": "Emergency support",
+          "description": "2 x 95.00 EUR",
+          "quantity": 2,
+          "netPrice": 95,
+          "total": 190
+        }
+      ],
+      "payments": []
     },
     {
       "id": "demo-document-004",
@@ -145,7 +210,42 @@
       "status": "paid",
       "net": 18420,
       "tax": 3499.8,
-      "gross": 21919.8
+      "gross": 21919.8,
+      "positions": [
+        {
+          "id": "demo-position-008",
+          "title": "Quarterly billing automation",
+          "description": "Automation workflow and billing rules",
+          "quantity": 1,
+          "netPrice": 12000,
+          "total": 12000
+        },
+        {
+          "id": "demo-position-009",
+          "title": "Data migration",
+          "description": "20 x 210.00 EUR",
+          "quantity": 20,
+          "netPrice": 210,
+          "total": 4200
+        },
+        {
+          "id": "demo-position-010",
+          "title": "Training package",
+          "description": "Team onboarding and handover",
+          "quantity": 1,
+          "netPrice": 2220,
+          "total": 2220
+        }
+      ],
+      "payments": [
+        {
+          "id": "demo-payment-001",
+          "date": "2026-04-03",
+          "amount": 21919.8,
+          "method": "Bankueberweisung",
+          "reason": "Full payment from demo bank statement"
+        }
+      ]
     }
   ],
   "bankAccounts": [

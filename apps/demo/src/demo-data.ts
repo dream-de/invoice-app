@@ -40,6 +40,21 @@ export type DemoDocument = {
   net: number;
   tax: number;
   gross: number;
+  positions?: Array<{
+    id: string;
+    title: string;
+    description?: string;
+    quantity: number;
+    netPrice: number;
+    total: number;
+  }>;
+  payments?: Array<{
+    id: string;
+    date: string;
+    amount: number;
+    method: "Bankueberweisung" | "PayPal" | "Karte" | "Bar" | "Sonstiges";
+    reason?: string;
+  }>;
 };
 
 export type DemoBankAccount = {

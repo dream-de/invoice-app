@@ -69,6 +69,9 @@ function createStore(initialUsers: StoredUser[]) {
             lastLoginAt: null,
             invitedAt: args.data.invitedAt instanceof Date ? args.data.invitedAt : null,
             disabledAt: args.data.disabledAt instanceof Date ? args.data.disabledAt : null,
+            permissions: typeof args.data.permissions === "object" && args.data.permissions !== null && "create" in args.data.permissions && Array.isArray(args.data.permissions.create)
+              ? args.data.permissions.create as StoredUser["permissions"]
+              : [],
             createdAt: now,
             updatedAt: now
           }
@@ -85,6 +88,9 @@ function createStore(initialUsers: StoredUser[]) {
             name: typeof args.data.name === "string" || args.data.name === null ? args.data.name : users[index].name,
             role: typeof args.data.role === "string" ? args.data.role as StoredUser["role"] : users[index].role,
             status: typeof args.data.status === "string" ? args.data.status as StoredUser["status"] : users[index].status,
+            permissions: typeof args.data.permissions === "object" && args.data.permissions !== null && "create" in args.data.permissions && Array.isArray(args.data.permissions.create)
+              ? args.data.permissions.create as StoredUser["permissions"]
+              : users[index].permissions,
             disabledAt: args.data.disabledAt instanceof Date || args.data.disabledAt === null ? args.data.disabledAt : users[index].disabledAt,
             updatedAt: date("2026-05-26T10:30:00.000Z")
           }
@@ -104,6 +110,7 @@ const owner: AppUser = {
   lastLoginAt: null,
   invitedAt: null,
   disabledAt: null,
+  permissions: [],
   createdAt: date("2026-05-26T08:00:00.000Z"),
   updatedAt: date("2026-05-26T08:00:00.000Z")
 }
@@ -247,5 +254,37 @@ describe("app user service", () => {
 
     assert.equal(serialized.createdAt, "2026-05-26T08:00:00.000Z")
     assert.equal("passwordHash" in serialized, false)
+  })
+
+  it("stores explicit permissions for regular users", async () => {
+    const { store } = createStore([owner])
+    const user = await createAppUser(
+      {
+        email: "permissions@example.test",
+        status: "inactive",
+        permissions: [
+          { scope: "documents", action: "view", allowed: true },
+          { scope: "archive", action: "use", allowed: true }
+        ]
+      },
+      { store }
+    )
+
+    assert.deepEqual(user.permissions, [
+      { scope: "documents", action: "view", allowed: true },
+      { scope: "archive", action: "use", allowed: true }
+    ])
+
+    const updated = await updateAppUser(
+      {
+        id: user.id,
+        permissions: [{ scope: "finance", action: "view", allowed: true }]
+      },
+      { store }
+    )
+
+    assert.deepEqual(updated.permissions, [
+      { scope: "finance", action: "view", allowed: true }
+    ])
   })
 })
