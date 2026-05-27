@@ -27,7 +27,7 @@ type DocumentDetailPageProps = {
   }
 }
 
-type PaymentMethod = "Überweisung" | "PayPal" | "Karte" | "Bar" | "Sonstiges"
+type PaymentMethod = "Banküberweisung" | "PayPal" | "Karte" | "Bar" | "Sonstiges"
 
 type PaymentEntry = {
   id: string
@@ -273,7 +273,7 @@ function initialPaymentsForDocument(document: DetailDocument): PaymentEntry[] {
       id: `${document.id}-payment-1`,
       date: dateInputValue(new Date()),
       amount: document.grossTotal,
-      method: "Überweisung",
+      method: "Banküberweisung",
       reason: "Zahlungseingang Kontoauszug"
     }
   ]
@@ -308,7 +308,7 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
   const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null)
   const [paymentDate, setPaymentDate] = useState(dateInputValue(new Date()))
   const [paymentAmount, setPaymentAmount] = useState("")
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("Überweisung")
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("Banküberweisung")
   const [paymentReason, setPaymentReason] = useState("")
 
   useEffect(() => {
@@ -378,7 +378,7 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
         : currentStatusKey === "overdue"
           ? "Zahlung überfällig"
           : "Beim Kunden angekommen"
-  const paymentMethods: PaymentMethod[] = ["Überweisung", "PayPal", "Karte", "Bar", "Sonstiges"]
+  const paymentMethods: PaymentMethod[] = ["Banküberweisung", "PayPal", "Karte", "Bar", "Sonstiges"]
 
   async function loadEmailLog() {
     try {
@@ -497,7 +497,7 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
       setEditingPaymentId(null)
       setPaymentDate(dateInputValue(new Date()))
       setPaymentAmount(openAmount > 0 ? openAmount.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "")
-      setPaymentMethod("Überweisung")
+      setPaymentMethod("Banküberweisung")
       setPaymentReason("")
     }
 
@@ -538,7 +538,7 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
     "inline-flex min-h-10 items-center gap-2 rounded-full bg-[#eef2f7] px-4 py-2 text-sm font-semibold text-[#1f2937] transition hover:bg-[#e5ebf2]"
 
   const iconButton =
-    "inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#f3f6fa] text-slate-600 ring-1 ring-slate-200 transition hover:bg-white hover:text-slate-950"
+    "inline-flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-600 shadow-sm ring-1 ring-slate-200 transition hover:bg-white hover:text-slate-950 hover:shadow-md"
 
   return (
     <PageShell title={doc.number} description={`${doc.type ?? t("documents.detail.type.invoice")} · ${doc.customer}`}>
@@ -728,7 +728,7 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
                       <button
                         type="button"
                         onClick={() => deletePayment(payment.id)}
-                        className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#f7f9fc] text-slate-500 ring-1 ring-slate-200 transition hover:bg-red-50 hover:text-red-600 hover:ring-red-100"
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-200 transition hover:bg-red-50 hover:text-red-600 hover:ring-red-100 hover:shadow-md"
                         aria-label="Zahlung loeschen"
                       >
                         <Trash2 className="h-4 w-4" />
