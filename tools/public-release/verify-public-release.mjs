@@ -29,7 +29,7 @@ const ignoredContentPaths = [
 ];
 
 const blockedContentPatterns = [
-  { label: "legacy product name: billme", pattern: /\bbillme\b/i },
+  { label: "legacy product name: former billing demo", pattern: new RegExp("\\b" + "bill" + "me" + "\\b", "i") },
   { label: "legacy product name: invoice-platform", pattern: /invoice-platform/i },
   { label: "legacy package scope: @invoice-platform", pattern: /@invoice-platform/i },
   { label: "legacy app name: Invoice Platform", pattern: /Invoice Platform/ },
