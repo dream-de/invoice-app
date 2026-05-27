@@ -4,14 +4,12 @@ import Link from "next/link"
 import { useParams } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 import {
-  Building2,
   CheckCircle2,
   CircleDollarSign,
   Download,
   Mail,
   Paperclip,
   Pencil,
-  Plus,
   Printer,
   Send,
   Share2,
@@ -29,11 +27,14 @@ type DocumentDetailPageProps = {
   }
 }
 
-type BankAccount = {
+type PaymentMethod = "Überweisung" | "PayPal" | "Karte" | "Bar" | "Sonstiges"
+
+type PaymentEntry = {
   id: string
-  bank: string
-  iban: string
-  bic: string
+  date: string
+  amount: number
+  method: PaymentMethod
+  reason: string
 }
 
 type DocumentPosition = {
@@ -111,6 +112,31 @@ function formatDisplayDate(value: string | Date | null | undefined, locale = "de
   if (Number.isNaN(date.getTime())) return "-"
 
   return new Intl.DateTimeFormat(locale).format(date)
+}
+
+function displayDate(value: string | Date | null | undefined, locale = "de-DE") {
+  const formatted = formatDisplayDate(value, locale)
+
+  if (formatted !== "-") return formatted
+  if (typeof value === "string" && value.trim()) return value
+
+  return "-"
+}
+
+function dateInputValue(value: string | Date | null | undefined) {
+  if (!value) return new Date().toISOString().slice(0, 10)
+
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return new Date().toISOString().slice(0, 10)
+
+  return date.toISOString().slice(0, 10)
+}
+
+function parseMoneyInput(value: string) {
+  const normalized = value.replace(/\./g, "").replace(",", ".")
+  const parsed = Number(normalized)
+
+  return Number.isFinite(parsed) ? parsed : 0
 }
 
 function statusLabel(status: string) {
@@ -239,20 +265,21 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
   )
   const [, setEmailLog] = useState<EmailLogEntry[]>([])
 
-  const [editingBankId, setEditingBankId] = useState<string | null>(null)
-  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([
+  const [payments, setPayments] = useState<PaymentEntry[]>([
     {
-      id: "main",
-      bank: "Hausbank",
-      iban: "DE89 3704 0044 0532 0130 00",
-      bic: "COBADEFFXXX"
+      id: "payment-1",
+      date: "2023-10-28",
+      amount: fallbackDocument.grossTotal,
+      method: "Überweisung",
+      reason: "Zahlungseingang Kontoauszug"
     }
   ])
-
-  const [newBank, setNewBank] = useState("")
-  const [newIban, setNewIban] = useState("")
-  const [newBic, setNewBic] = useState("")
-  const [showNewBankForm, setShowNewBankForm] = useState(false)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null)
+  const [paymentDate, setPaymentDate] = useState(dateInputValue(new Date()))
+  const [paymentAmount, setPaymentAmount] = useState("")
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("Überweisung")
+  const [paymentReason, setPaymentReason] = useState("")
 
   useEffect(() => {
     let cancelled = false
@@ -290,37 +317,18 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
   const net = doc.netTotal
   const tax = doc.vatTotal
   const currentStatusKey = statusKey(doc.status)
-  const statusSteps = [
-    {
-      key: "draft",
-      label: t("documents.detail.status.draft.label"),
-      description: t("documents.detail.status.draft.description"),
-      icon: Pencil,
-      done: true
-    },
-    {
-      key: "sent",
-      label: t("documents.detail.status.sent.label"),
-      description: t("documents.detail.status.sent.description"),
-      icon: Send,
-      done: ["sent", "open", "overdue", "paid"].includes(currentStatusKey)
-    },
-    {
-      key: "paid",
-      label: t("documents.detail.status.paid.label"),
-      description: t("documents.detail.status.paid.description"),
-      icon: CircleDollarSign,
-      done: currentStatusKey === "paid"
-    }
-  ]
-  const nextStatusAction =
+  const paidAmount = payments.reduce((sum, payment) => sum + payment.amount, 0)
+  const openAmount = Math.max(amount - paidAmount, 0)
+  const paymentProgress = amount > 0 ? Math.min(100, Math.max(0, (paidAmount / amount) * 100)) : 0
+  const statusDetail =
     currentStatusKey === "draft"
-      ? t("documents.detail.nextAction.draft")
+      ? "Dokument vorbereitet"
       : currentStatusKey === "paid"
-        ? t("documents.detail.nextAction.paid")
+        ? `Bezahlt am ${payments[0] ? displayDate(payments[0].date, locale) : displayDate(doc.issueDate, locale)}`
         : currentStatusKey === "overdue"
-          ? t("documents.detail.nextAction.overdue")
-          : t("documents.detail.nextAction.open")
+          ? "Zahlung überfällig"
+          : "Beim Kunden angekommen"
+  const paymentMethods: PaymentMethod[] = ["Überweisung", "PayPal", "Karte", "Bar", "Sonstiges"]
 
   async function loadEmailLog() {
     try {
@@ -428,43 +436,52 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
     alert(t("documents.detail.notice.shareCopied"))
   }
 
-  function updateBankAccount(id: string, field: keyof BankAccount, value: string) {
-    setBankAccounts((items) =>
-      items.map((item) => item.id === id ? { ...item, [field]: value } : item)
-    )
-  }
-
-  function deleteBankAccount(id: string) {
-    setBankAccounts((items) => items.filter((item) => item.id !== id))
-    if (editingBankId === id) {
-      setEditingBankId(null)
-    }
-  }
-
-  function addBankAccount() {
-    if (!showNewBankForm) {
-      setShowNewBankForm(true)
-      return
+  function openPaymentModal(payment?: PaymentEntry) {
+    if (payment) {
+      setEditingPaymentId(payment.id)
+      setPaymentDate(payment.date)
+      setPaymentAmount(payment.amount.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
+      setPaymentMethod(payment.method)
+      setPaymentReason(payment.reason)
+    } else {
+      setEditingPaymentId(null)
+      setPaymentDate(dateInputValue(new Date()))
+      setPaymentAmount(openAmount > 0 ? openAmount.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "")
+      setPaymentMethod("Überweisung")
+      setPaymentReason("")
     }
 
-    if (!newBank.trim() && !newIban.trim() && !newBic.trim()) return
+    setShowPaymentModal(true)
+  }
 
-    const id = `bank-${Date.now()}`
-    setBankAccounts((items) => [
-      ...items,
-      {
-        id,
-        bank: newBank.trim() || t("documents.detail.bank.newBankFallback"),
-        iban: newIban.trim() || t("documents.detail.bank.ibanFallback"),
-        bic: newBic.trim() || t("documents.detail.bank.bicFallback")
-      }
-    ])
+  function closePaymentModal() {
+    setShowPaymentModal(false)
+    setEditingPaymentId(null)
+  }
 
-    setEditingBankId(id)
-    setNewBank("")
-    setNewIban("")
-    setNewBic("")
-    setShowNewBankForm(false)
+  function savePayment() {
+    const parsedAmount = parseMoneyInput(paymentAmount)
+
+    if (parsedAmount <= 0 || !paymentReason.trim()) return
+
+    const nextPayment: PaymentEntry = {
+      id: editingPaymentId ?? `payment-${Date.now()}`,
+      date: paymentDate,
+      amount: parsedAmount,
+      method: paymentMethod,
+      reason: paymentReason.trim()
+    }
+
+    setPayments((items) => {
+      if (!editingPaymentId) return [nextPayment, ...items]
+
+      return items.map((item) => item.id === editingPaymentId ? nextPayment : item)
+    })
+    closePaymentModal()
+  }
+
+  function deletePayment(id: string) {
+    setPayments((items) => items.filter((item) => item.id !== id))
   }
 
   const actionButton =
@@ -592,143 +609,112 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
 
           <div className="space-y-6">
             <ContentCard title={t("documents.detail.cards.status.title")} description={t("documents.detail.cards.status.description")}>
+              <div className="flex items-center gap-3">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--brand-lime)] text-black">
+                  <CheckCircle2 className="h-4 w-4" />
+                </span>
+                <div>
+                  <span className={`inline-flex rounded-full px-3 py-1.5 text-xs font-black ring-1 ${statusBadgeClass(doc.status)}`}>
+                    {translateStatus(doc.status ?? "draft", t)}
+                  </span>
+                  <p className="mt-2 text-sm font-semibold text-slate-500">{statusDetail}</p>
+                </div>
+              </div>
+            </ContentCard>
+
+            <ContentCard>
               <div className="flex items-center justify-between gap-3">
-                <span className={`inline-flex rounded-full px-4 py-2 text-sm font-black ring-1 ${statusBadgeClass(doc.status)}`}>
-                  {translateStatus(doc.status ?? "draft", t)}
-                </span>
-                <span className="text-xs font-bold uppercase tracking-widest text-slate-400">
-                  {t("documents.detail.workflow")}
-                </span>
+                <h2 className="inline-flex items-center gap-2 text-lg font-extrabold text-slate-950">
+                  <CircleDollarSign className="h-5 w-5 text-slate-400" />
+                  Zahlungen
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => openPaymentModal()}
+                  className="inline-flex items-center gap-2 rounded-full bg-[#eef2f7] px-4 py-2 text-sm font-extrabold text-slate-900 transition hover:bg-[#e5ebf2]"
+                >
+                  <span className="text-lg leading-none">+</span>
+                  Zahlung
+                </button>
+              </div>
+
+              <div className="mt-5 space-y-2">
+                <div className="flex items-center justify-between text-sm font-semibold text-slate-500">
+                  <span>Bezahlt</span>
+                  <span className="font-black text-slate-950"><Currency value={paidAmount} /></span>
+                </div>
+                <div className="h-2.5 overflow-hidden rounded-full bg-slate-100">
+                  <div className="h-full rounded-full bg-black" style={{ width: `${paymentProgress}%` }} />
+                </div>
+                <div className="flex items-center justify-between text-sm font-semibold text-slate-500">
+                  <span>Noch offen</span>
+                  <span className="font-black text-slate-950"><Currency value={openAmount} /></span>
+                </div>
               </div>
 
               <div className="mt-5 space-y-3">
-                {statusSteps.map((step, index) => {
-                  const Icon = step.done ? CheckCircle2 : step.icon
-
-                  return (
-                    <div key={step.key} className="flex gap-3">
-                      <div className="flex flex-col items-center">
-                        <span className={`inline-flex h-9 w-9 items-center justify-center rounded-full ring-1 ${step.done ? "bg-[var(--brand-lime)] text-black ring-[var(--brand-lime)]" : "bg-white text-slate-400 ring-slate-200"}`}>
-                          <Icon className="h-4 w-4" />
-                        </span>
-                        {index < statusSteps.length - 1 ? (
-                          <span className={`mt-2 h-8 w-px ${step.done ? "bg-[var(--brand-lime)]" : "bg-slate-200"}`} />
-                        ) : null}
-                      </div>
-
-                      <div className="min-w-0 pb-3">
-                        <p className="text-sm font-extrabold text-slate-950">{step.label}</p>
-                        <p className="mt-1 text-xs font-semibold text-slate-500">{step.description}</p>
-                      </div>
+                {payments.length ? payments.map((payment) => (
+                  <div key={payment.id} className="flex items-center justify-between gap-3 rounded-[24px] bg-[#f7f9fc] px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-black text-slate-950">{displayDate(payment.date, locale)}</p>
+                      <p className="truncate text-xs font-extrabold uppercase tracking-wider text-slate-500">{payment.method}</p>
                     </div>
-                  )
-                })}
+                    <div className="flex shrink-0 items-center gap-2">
+                      <span className="text-sm font-black text-slate-950"><Currency value={payment.amount} /></span>
+                      <button
+                        type="button"
+                        onClick={() => openPaymentModal(payment)}
+                        className={iconButton}
+                        aria-label="Zahlung bearbeiten"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deletePayment(payment.id)}
+                        className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#f7f9fc] text-slate-500 ring-1 ring-slate-200 transition hover:bg-red-50 hover:text-red-600 hover:ring-red-100"
+                        aria-label="Zahlung loeschen"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                )) : (
+                  <p className="rounded-2xl bg-[#f7f9fc] px-4 py-3 text-sm font-bold text-slate-500">
+                    Noch keine Zahlung erfasst.
+                  </p>
+                )}
               </div>
-
-              <p className="mt-2 rounded-2xl bg-[#f7f9fc] px-4 py-3 text-sm font-bold text-slate-600">
-                {nextStatusAction}
-              </p>
             </ContentCard>
 
-            <ContentCard title={t("documents.detail.cards.bank.title")} description={t("documents.detail.cards.bank.description")}>
-              <div className="space-y-3">
-                {bankAccounts.map((account) => {
-                  const isEditing = editingBankId === account.id
+            <ContentCard>
+              <h2 className="text-lg font-extrabold text-slate-950">Interne Notiz</h2>
+              <textarea
+                placeholder="Notiz zu diesem Vorgang..."
+                className="mt-4 min-h-24 w-full resize-none rounded-[26px] border border-[var(--brand-lime)] bg-[#fffef5] px-5 py-4 text-sm font-semibold text-slate-800 outline-none transition focus:ring-2 focus:ring-[var(--brand-lime)]"
+              />
+            </ContentCard>
 
-                  return (
-                    <div key={account.id} className="rounded-[26px] border border-[#e5eaf0] bg-white p-3 shadow-[0_10px_26px_rgba(15,23,42,0.04)]">
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                          <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#eef2f7] text-slate-600">
-                            <Building2 className="h-4 w-4" />
-                          </span>
-                          <div>
-                            <p className="text-sm font-bold text-slate-900">{account.bank}</p>
-                            <p className="text-xs font-medium text-slate-400">{t("documents.detail.bank.connection")}</p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setEditingBankId(isEditing ? null : account.id)}
-                            className={`${iconButton} ${isEditing ? "bg-black text-white hover:bg-black hover:text-white" : "bg-[#f7f9fc]"}`}
-                            aria-label={t("documents.detail.bank.edit")}
-                            title={t("documents.detail.actions.edit")}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => deleteBankAccount(account.id)}
-                            className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-red-50 text-red-600 ring-1 ring-red-100 transition hover:bg-red-100"
-                            aria-label={t("documents.detail.bank.delete")}
-                            title={t("documents.list.selection.delete")}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-
-                      {isEditing ? (
-                        <div className="mt-3 space-y-2">
-                          <input
-                            value={account.bank}
-                            onChange={(event) => updateBankAccount(account.id, "bank", event.target.value)}
-                            className="w-full rounded-full bg-[#f3f6fa] px-4 py-2.5 text-sm font-semibold text-slate-800 outline-none transition focus:ring-2 focus:ring-slate-900"
-                            aria-label="Bankname"
-                          />
-                          <input
-                            value={account.iban}
-                            onChange={(event) => updateBankAccount(account.id, "iban", event.target.value)}
-                            className="w-full rounded-full bg-[#f3f6fa] px-4 py-2.5 text-sm font-semibold text-slate-800 outline-none transition focus:ring-2 focus:ring-slate-900"
-                            aria-label="IBAN"
-                          />
-                          <input
-                            value={account.bic}
-                            onChange={(event) => updateBankAccount(account.id, "bic", event.target.value)}
-                            className="w-full rounded-full bg-[#f3f6fa] px-4 py-2.5 text-sm font-semibold text-slate-800 outline-none transition focus:ring-2 focus:ring-slate-900"
-                            aria-label="BIC"
-                          />
-                        </div>
-                      ) : (
-                        <div className="mt-3 space-y-2">
-                          <p className="truncate rounded-full bg-[#f8fafc] px-4 py-2 text-xs font-bold text-slate-600">{account.bank}</p>
-                          <p className="truncate rounded-full bg-[#f8fafc] px-4 py-2 text-xs font-bold text-slate-600">{account.iban}</p>
-                          <p className="truncate rounded-full bg-[#f8fafc] px-4 py-2 text-xs font-bold text-slate-600">{account.bic}</p>
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-
-                <div className="rounded-2xl border border-dashed border-[#d8e0ea] bg-[#f7f9fc] p-4">
-                  <div className={`${showNewBankForm ? "mb-4" : ""} flex items-center justify-between`}>
-                    <div>
-                      <p className="text-sm font-bold text-slate-900">{t("documents.detail.bank.newTitle")}</p>
-                      <p className="text-xs font-medium text-slate-400">{t("documents.detail.bank.newDescription")}</p>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={addBankAccount}
-                      className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-black text-white shadow-sm transition hover:scale-105 hover:bg-slate-800"
-                      aria-label={t("documents.detail.bank.add")}
-                      title={t("documents.detail.bank.add")}
-                    >
-                      <Plus className="h-5 w-5" />
-                    </button>
-                  </div>
-
-                  {showNewBankForm ? (
-                    <div className="space-y-3">
-                      <input value={newBank} onChange={(event) => setNewBank(event.target.value)} placeholder="Bank" className="w-full rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900" />
-                      <input value={newIban} onChange={(event) => setNewIban(event.target.value)} placeholder="IBAN" className="w-full rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900" />
-                      <input value={newBic} onChange={(event) => setNewBic(event.target.value)} placeholder="BIC" className="w-full rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900" />
-                    </div>
-                  ) : null}
+            <ContentCard>
+              <h2 className="text-lg font-extrabold text-slate-950">Verlauf</h2>
+              <div className="mt-5 space-y-4 border-l border-slate-200 pl-5">
+                <div className="relative">
+                  <span className="absolute -left-[1.55rem] top-1 h-2 w-2 rounded-full bg-slate-200" />
+                  <p className="text-xs font-bold text-slate-400">{displayDate(doc.issueDate, locale)}</p>
+                  <p className="text-sm font-extrabold text-slate-900">Rechnung erstellt</p>
                 </div>
+                <div className="relative">
+                  <span className="absolute -left-[1.55rem] top-1 h-2 w-2 rounded-full bg-slate-200" />
+                  <p className="text-xs font-bold text-slate-400">16.10.2023</p>
+                  <p className="text-sm font-extrabold text-slate-900">Per E-Mail versendet</p>
+                </div>
+                {payments[0] ? (
+                  <div className="relative">
+                    <span className="absolute -left-[1.55rem] top-1 h-2 w-2 rounded-full bg-slate-200" />
+                    <p className="text-xs font-bold text-slate-400">{displayDate(payments[0].date, locale)}</p>
+                    <p className="text-sm font-extrabold text-slate-900">Zahlung vollstaendig erhalten</p>
+                  </div>
+                ) : null}
               </div>
             </ContentCard>
           </div>
@@ -736,43 +722,43 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
       </div>
 
       {showSendModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45 px-4 backdrop-blur-sm">
-          <div className="w-full max-w-lg overflow-hidden rounded-[32px] bg-white shadow-[0_28px_80px_rgba(15,23,42,0.32)]">
-            <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-6 py-5">
-              <h3 className="inline-flex items-center gap-2 text-xl font-extrabold text-slate-900">
-                <Mail className="h-5 w-5" />
+        <div className="fixed inset-0 z-[100] flex items-start justify-center bg-black/45 px-4 py-16 backdrop-blur-sm">
+          <div className="max-h-[calc(100vh-8rem)] w-full max-w-md overflow-hidden rounded-[30px] bg-white shadow-[0_28px_80px_rgba(15,23,42,0.32)]">
+            <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-4">
+              <h3 className="inline-flex items-center gap-2 text-lg font-extrabold text-slate-900">
+                <Mail className="h-4 w-4" />
                 {t("documents.detail.modal.send.title")}
               </h3>
               <button
                 type="button"
                 onClick={() => setShowSendModal(false)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#f3f6fa] text-slate-600 transition hover:bg-slate-200"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#f3f6fa] text-slate-600 transition hover:bg-slate-200"
                 aria-label={t("documents.detail.modal.send.close")}
               >
-                <X className="h-5 w-5" />
+                <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="space-y-4 px-6 py-6">
+            <div className="max-h-[calc(100vh-18rem)] space-y-3 overflow-y-auto px-5 py-5">
               <label className="block">
-                <span className="mb-2 block text-sm font-extrabold text-slate-500">{t("documents.detail.modal.send.toPlaceholder")}</span>
-                <input value={sendTo} onChange={(event) => setSendTo(event.target.value)} className="w-full rounded-full border border-slate-200 bg-[#f8fafc] px-5 py-3 text-sm font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-slate-900" />
+                <span className="mb-2 block text-xs font-extrabold text-slate-500">{t("documents.detail.modal.send.toPlaceholder")}</span>
+                <input value={sendTo} onChange={(event) => setSendTo(event.target.value)} className="w-full rounded-full border border-slate-200 bg-[#f8fafc] px-4 py-2.5 text-sm font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-slate-900" />
               </label>
               <label className="block">
-                <span className="mb-2 block text-sm font-extrabold text-slate-500">{t("documents.detail.modal.send.subjectPlaceholder")}</span>
-                <input value={subject} onChange={(event) => setSubject(event.target.value)} className="w-full rounded-full border border-slate-200 bg-[#f8fafc] px-5 py-3 text-sm font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-slate-900" />
+                <span className="mb-2 block text-xs font-extrabold text-slate-500">{t("documents.detail.modal.send.subjectPlaceholder")}</span>
+                <input value={subject} onChange={(event) => setSubject(event.target.value)} className="w-full rounded-full border border-slate-200 bg-[#f8fafc] px-4 py-2.5 text-sm font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-slate-900" />
               </label>
               <label className="block">
-                <span className="mb-2 block text-sm font-extrabold text-slate-500">{t("documents.detail.modal.send.messagePlaceholder")}</span>
-                <textarea value={message} onChange={(event) => setMessage(event.target.value)} className="min-h-36 w-full rounded-[24px] border border-slate-200 bg-[#f8fafc] px-5 py-4 text-sm font-semibold leading-6 text-slate-800 outline-none focus:ring-2 focus:ring-slate-900" />
+                <span className="mb-2 block text-xs font-extrabold text-slate-500">{t("documents.detail.modal.send.messagePlaceholder")}</span>
+                <textarea value={message} onChange={(event) => setMessage(event.target.value)} className="min-h-28 w-full resize-none rounded-[22px] border border-slate-200 bg-[#f8fafc] px-4 py-3 text-sm font-semibold leading-6 text-slate-800 outline-none focus:ring-2 focus:ring-slate-900" />
               </label>
-              <div className="inline-flex w-full items-center gap-2 rounded-full bg-[#f7f9fc] px-4 py-3 text-xs font-bold text-slate-500">
+              <div className="inline-flex w-full items-center gap-2 rounded-full bg-[#f7f9fc] px-4 py-2.5 text-xs font-bold text-slate-500">
                 <Paperclip className="h-4 w-4" />
                 <span className="truncate">Angehängt: {doc.number}.pdf</span>
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 bg-[#f8fafc] px-6 py-5">
+            <div className="flex justify-end gap-3 bg-[#f8fafc] px-5 py-4">
               <button type="button" onClick={() => setShowSendModal(false)} className="rounded-full bg-white px-5 py-2.5 text-sm font-extrabold text-slate-600 ring-1 ring-slate-200">
                 {t("documents.detail.modal.send.cancel")}
               </button>
@@ -784,6 +770,92 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
               >
                 <Send className="h-4 w-4" />
                 {sendingEmail ? t("documents.detail.modal.send.sending") : t("documents.detail.modal.send.submit")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showPaymentModal && (
+        <div className="fixed inset-0 z-[100] flex items-start justify-center bg-black/45 px-4 py-16 backdrop-blur-sm">
+          <div className="w-full max-w-md overflow-hidden rounded-[30px] bg-white shadow-[0_28px_80px_rgba(15,23,42,0.32)]">
+            <div className="flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-4">
+              <div>
+                <h3 className="text-lg font-extrabold text-slate-900">
+                  {editingPaymentId ? "Zahlung bearbeiten" : "Zahlung erfassen"}
+                </h3>
+                <p className="mt-1 text-sm font-semibold text-slate-500">
+                  Wird im Audit-Log gespeichert (GoBD).
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={closePaymentModal}
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#f3f6fa] text-slate-600 transition hover:bg-slate-200"
+                aria-label="Zahlungsfenster schliessen"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4 px-5 py-5">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className="block">
+                  <span className="mb-2 block text-xs font-extrabold text-slate-500">Datum</span>
+                  <input
+                    type="date"
+                    value={paymentDate}
+                    onChange={(event) => setPaymentDate(event.target.value)}
+                    className="w-full rounded-full border border-slate-200 bg-[#f8fafc] px-4 py-2.5 text-sm font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-slate-900"
+                  />
+                </label>
+                <label className="block">
+                  <span className="mb-2 block text-xs font-extrabold text-slate-500">Betrag (EUR)</span>
+                  <input
+                    value={paymentAmount}
+                    onChange={(event) => setPaymentAmount(event.target.value)}
+                    placeholder="z.B. 250,00"
+                    inputMode="decimal"
+                    className="w-full rounded-full border border-slate-200 bg-[#f8fafc] px-4 py-2.5 text-sm font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-slate-900"
+                  />
+                </label>
+              </div>
+
+              <label className="block">
+                <span className="mb-2 block text-xs font-extrabold text-slate-500">Methode</span>
+                <select
+                  value={paymentMethod}
+                  onChange={(event) => setPaymentMethod(event.target.value as PaymentMethod)}
+                  className="w-full rounded-full border border-slate-200 bg-[#f8fafc] px-4 py-2.5 text-sm font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-slate-900"
+                >
+                  {paymentMethods.map((method) => (
+                    <option key={method} value={method}>{method}</option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="block">
+                <span className="mb-2 block text-xs font-extrabold text-slate-500">Grund (Pflicht)</span>
+                <textarea
+                  value={paymentReason}
+                  onChange={(event) => setPaymentReason(event.target.value)}
+                  placeholder="z.B. Zahlungseingang Kontoauszug, Teilzahlung, ..."
+                  className="min-h-24 w-full resize-none rounded-[22px] border border-slate-200 bg-[#f8fafc] px-4 py-3 text-sm font-semibold leading-6 text-slate-800 outline-none focus:ring-2 focus:ring-slate-900"
+                />
+              </label>
+            </div>
+
+            <div className="flex justify-end gap-3 bg-[#f8fafc] px-5 py-4">
+              <button type="button" onClick={closePaymentModal} className="rounded-full bg-white px-5 py-2.5 text-sm font-extrabold text-slate-600 ring-1 ring-slate-200">
+                Abbrechen
+              </button>
+              <button
+                type="button"
+                onClick={savePayment}
+                disabled={parseMoneyInput(paymentAmount) <= 0 || !paymentReason.trim()}
+                className="rounded-full bg-black px-6 py-2.5 text-sm font-extrabold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Speichern
               </button>
             </div>
           </div>
