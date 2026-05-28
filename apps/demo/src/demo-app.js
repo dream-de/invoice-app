@@ -61,10 +61,6 @@ function getRouteParts() {
   };
 }
 
-function getRouteId() {
-  return getRouteParts().activeRoute;
-}
-
 function findCustomer(snapshot, customerId) {
   return snapshot.customers.find((customer) => customer.id === customerId);
 }
