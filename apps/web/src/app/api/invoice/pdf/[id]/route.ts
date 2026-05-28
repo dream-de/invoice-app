@@ -82,6 +82,14 @@ async function readJsonFileWithLimit(filePath: string) {
   return fs.readFile(filePath, "utf8")
 }
 
+function errorForLog(error: unknown) {
+  if (error instanceof Error) {
+    return { name: error.name, message: error.message }
+  }
+
+  return { message: String(error) }
+}
+
 function normalizeTemplateId(value: string | null) {
   if (!value) return null
   const templateId = value.trim()
@@ -195,7 +203,7 @@ async function loadPdfSource(id: string): Promise<{ invoice: PdfInvoice; company
       company: companySettings ?? fallbackCompany()
     }
   } catch (error) {
-    console.error("PDF source loading failed.", { invoiceId: id, error })
+    console.error("PDF source loading failed.", { invoiceId: id, error: errorForLog(error) })
     throw error
   }
 }
@@ -300,7 +308,7 @@ export async function GET(
       )
     }
 
-    console.error("PDF generation failed.", { invoiceId: id, error: err })
+    console.error("PDF generation failed.", { invoiceId: id, error: errorForLog(err) })
     return NextResponse.json({ error: "PDF error" }, { status: 500 })
   }
 }

@@ -142,6 +142,17 @@ export async function POST(req: Request) {
       const prefix = range.prefix.replace("%Y", String(new Date().getFullYear()))
       const invoiceNumber = prefix + padded
 
+      if (data.customerId) {
+        const customer = await tx.customer.findUnique({
+          where: { id: data.customerId },
+          select: { id: true }
+        })
+
+        if (!customer) {
+          throw new AuthServiceError("not_found", "Kunde wurde nicht gefunden.", 404)
+        }
+      }
+
       const netTotal = items.reduce(
         (sum, item) => sum + item.price * item.quantity,
         0

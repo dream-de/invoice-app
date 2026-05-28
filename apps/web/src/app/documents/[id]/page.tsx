@@ -345,8 +345,11 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
       setDoc(fallbackDocument)
       setPayments(initialPaymentsForDocument(fallbackDocument))
 
+      const controller = new AbortController()
+      const timeoutId = window.setTimeout(() => controller.abort(), 8_000)
+
       try {
-        const response = await fetch(`/api/invoice/get/${documentId}`)
+        const response = await fetch(`/api/invoice/get/${documentId}`, { signal: controller.signal })
 
         if (!response.ok) return
 
@@ -360,8 +363,10 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
         setSendTo(normalized.customerEmail)
         setSubject(`${t("documents.detail.email.subjectPrefix")} ${normalized.number}`)
         setMessage(`${t("documents.detail.email.bodyPrefix")}\n\n${t("documents.detail.email.bodyMiddle")} ${normalized.number}.\n\n${t("documents.detail.email.bodyClosing")}`)
-      } catch {
-        // Demo-Dokumente bleiben als lokaler Fallback sichtbar.
+      } catch (error) {
+        console.warn("Document detail loading failed.", error)
+      } finally {
+        window.clearTimeout(timeoutId)
       }
     }
 

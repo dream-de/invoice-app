@@ -22,7 +22,7 @@ export async function POST(request: Request) {
 
   const count = await prisma.article.count()
 
-  const articles = await Promise.all(
+  const articles = await prisma.$transaction(
     result.articles.map((article, index) =>
       prisma.article.create({
         data: {

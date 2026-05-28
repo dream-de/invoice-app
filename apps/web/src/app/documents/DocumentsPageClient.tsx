@@ -139,6 +139,7 @@ export default function DocumentsPage() {
   const [creatingInvoice, setCreatingInvoice] = useState(false)
   const [documentItems, setDocumentItems] = useState<DocumentListItem[]>(() => documents.map(normalizeStaticDocument))
   const [bulkNotice, setBulkNotice] = useState<BulkNotice | null>(null)
+  const [loadNotice, setLoadNotice] = useState<BulkNotice | null>(null)
   const { language, t } = useLanguage()
 
   const documentTypeOptions: Array<{ value: DocumentTypeFilter; label: string }> = [
@@ -159,18 +160,29 @@ export default function DocumentsPage() {
     let cancelled = false
 
     async function loadDocuments() {
-      try {
-        const response = await fetch("/api/invoice/list")
+      const controller = new AbortController()
+      const timeoutId = window.setTimeout(() => controller.abort(), 8_000)
 
-        if (!response.ok) return
+      try {
+        const response = await fetch("/api/invoice/list", { signal: controller.signal })
+
+        if (!response.ok) {
+          throw new Error("Dokumente konnten nicht geladen werden.")
+        }
 
         const result = await response.json() as ApiInvoiceListItem[]
 
         if (!cancelled && Array.isArray(result)) {
           setDocumentItems(result.map((item) => normalizeApiDocument(item, t, language === "en" ? "en-US" : "de-DE")))
+          setLoadNotice(null)
         }
-      } catch {
-        // Demo-Dokumente bleiben als lokaler Fallback sichtbar.
+      } catch (error) {
+        if (!cancelled) {
+          console.warn("Document list loading failed.", error)
+          setLoadNotice({ type: "error", text: "Dokumente konnten nicht geladen werden." })
+        }
+      } finally {
+        window.clearTimeout(timeoutId)
       }
     }
 
@@ -383,6 +395,12 @@ export default function DocumentsPage() {
           </button>
         </div>
       </div>
+
+      {loadNotice && (
+        <div className="mt-4 rounded-[24px] bg-red-50 px-5 py-3 text-sm font-black text-red-700">
+          {loadNotice.text}
+        </div>
+      )}
 
       {bulkNotice && (
         <div className={`mt-4 rounded-[24px] px-5 py-3 text-sm font-black ${bulkNotice.type === "error" ? "bg-red-50 text-red-700" : bulkNotice.type === "success" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-700"}`}>
