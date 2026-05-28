@@ -14,7 +14,7 @@ export async function POST(req: Request) {
   let actor
 
   try {
-    actor = await requireCurrentUserRole(["owner", "admin"])
+    actor = await requireCurrentUserRole(["admin"])
   } catch (error) {
     const mapped = mapAuthError(error)
     return NextResponse.json(

@@ -1,4 +1,4 @@
-export const userRoles = ["owner", "admin", "accountant", "user"] as const
+export const userRoles = ["admin", "user"] as const
 export type UserRole = (typeof userRoles)[number]
 
 export const userStatuses = ["active", "inactive", "disabled"] as const

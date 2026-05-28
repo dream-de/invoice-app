@@ -15,22 +15,22 @@ export function LanguageSettings() {
     window.setTimeout(() => setSaved(false), 1800)
   }
 
-  const languages: Array<{ value: AppLanguage; label: string; description: string }> = [
-    { value: "de", label: "Deutsch", description: t("settings.language.de.description") },
-    { value: "en", label: "English", description: t("settings.language.en.description") },
-    { value: "fr", label: "Francais", description: t("settings.language.fr.description") },
-    { value: "es", label: "Espanol", description: t("settings.language.es.description") },
-    { value: "it", label: "Italiano", description: t("settings.language.it.description") },
-    { value: "nl", label: "Nederlands", description: t("settings.language.nl.description") },
-    { value: "pl", label: "Polski", description: t("settings.language.pl.description") },
-    { value: "pt", label: "Portugues", description: t("settings.language.pt.description") },
-    { value: "tr", label: "Turkce", description: t("settings.language.tr.description") }
+  const languages: Array<{ value: AppLanguage; label: string }> = [
+    { value: "de", label: "Deutsch" },
+    { value: "en", label: "English" },
+    { value: "fr", label: "Francais" },
+    { value: "es", label: "Espanol" },
+    { value: "it", label: "Italiano" },
+    { value: "nl", label: "Nederlands" },
+    { value: "pl", label: "Polski" },
+    { value: "pt", label: "Portugues" },
+    { value: "tr", label: "Turkce" }
   ]
 
   const activeLanguage = languages.find((item) => item.value === language) ?? languages[0]
 
   return (
-    <SettingCard title={t("settings.language.title")} description={t("settings.language.description")}>
+    <SettingCard title={t("settings.language.title")}>
       <div className="rounded-[24px] border border-[#e1e7ef] bg-[#f8fafc] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-center gap-3">
@@ -40,9 +40,6 @@ export function LanguageSettings() {
 
             <div className="min-w-0">
               <p className="text-sm font-black text-[#111827]">{activeLanguage.label}</p>
-              <p className="mt-1 truncate text-sm font-medium text-[#64748b]">
-                {activeLanguage.description}
-              </p>
             </div>
           </div>
 
@@ -63,16 +60,12 @@ export function LanguageSettings() {
           </div>
         </div>
 
-        <div className="mt-4 flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-extrabold text-[#64748b] ring-1 ring-[#e5eaf0]">
-          {saved ? (
-            <>
-              <Check className="h-4 w-4 text-emerald-600" />
-              <span>{t("settings.language.saved")}</span>
-            </>
-          ) : (
-            <span>{t("settings.language.hint")}</span>
-          )}
-        </div>
+        {saved ? (
+          <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-xs font-extrabold text-emerald-700 ring-1 ring-emerald-100">
+            <Check className="h-4 w-4 text-emerald-600" />
+            <span>{t("settings.language.saved")}</span>
+          </div>
+        ) : null}
       </div>
     </SettingCard>
   )

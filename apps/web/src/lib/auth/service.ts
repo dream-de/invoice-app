@@ -3,8 +3,9 @@ import { isUserRole, isUserStatus, type UserRole, type UserStatus } from "@dream
 import { prisma } from "@dream-invoice/database"
 import { createAppUser, UserServiceError } from "@/lib/users/service"
 import { normalizePermissionSettings, type UserPermissionSetting } from "@/lib/users/permissions"
+import { createEmailVerificationToken } from "./email-verification"
 import { assertStrongPassword, hashPassword, PasswordError, verifyPassword } from "./password"
-import { SESSION_COOKIE_NAME, SessionError, createSessionToken, verifySessionToken } from "./session"
+import { SESSION_COOKIE_NAME, SessionError, createSessionToken, createTwoFactorChallengeToken, verifySessionToken } from "./session"
 
 export type SessionUser = {
   id: string
@@ -12,6 +13,8 @@ export type SessionUser = {
   name: string | null
   role: UserRole
   status: UserStatus
+  emailVerifiedAt: Date | null
+  twoFactorEnabled: boolean
   permissions: UserPermissionSetting[]
 }
 
@@ -28,6 +31,12 @@ type UserRecord = {
   role: string
   status: string
   passwordHash: string | null
+  emailVerifiedAt: Date | null
+  emailVerificationTokenHash?: string | null
+  emailVerificationTokenExpiresAt?: Date | null
+  twoFactorSecret?: string | null
+  twoFactorEnabledAt?: Date | null
+  twoFactorBackupCodes?: unknown
   lastLoginAt: Date | null
   invitedAt: Date | null
   disabledAt: Date | null
@@ -41,6 +50,7 @@ type UserStore = {
     count(args?: unknown): Promise<number>
     findMany(args?: unknown): Promise<UserRecord[]>
     findUnique(args: unknown): Promise<UserRecord | null>
+    findFirst?(args: unknown): Promise<UserRecord | null>
     create(args: unknown): Promise<UserRecord>
     update(args: unknown): Promise<UserRecord>
   }
@@ -52,12 +62,17 @@ type AuthContext = {
   secret?: string
 }
 
+type SessionUserCacheEntry = {
+  expiresAt: number
+  user: SessionUser
+}
+
 export type LoginInput = {
   email?: unknown
   password?: unknown
 }
 
-export type InitialOwnerInput = {
+export type InitialAdminInput = {
   name?: unknown
   email?: unknown
   password?: unknown
@@ -91,6 +106,9 @@ const permissionRelation = {
   }
 }
 
+const SESSION_USER_CACHE_TTL_MS = 15_000
+const sessionUserCache = new Map<string, SessionUserCacheEntry>()
+
 function getStore(context?: AuthContext): UserStore {
   return (context?.store ?? prisma) as UserStore
 }
@@ -114,7 +132,9 @@ function normalizePassword(value: unknown) {
 }
 
 function toSessionUser(user: UserRecord): SessionUser {
-  if (!isUserRole(user.role) || !isUserStatus(user.status)) {
+  const role = user.role === "owner" ? "admin" : user.role === "accountant" ? "user" : user.role
+
+  if (!isUserRole(role) || !isUserStatus(user.status)) {
     throw new AuthServiceError("invalid_user", "Benutzerprofil ist ungueltig.", 500)
   }
 
@@ -122,9 +142,11 @@ function toSessionUser(user: UserRecord): SessionUser {
     id: user.id,
     email: user.email,
     name: user.name,
-    role: user.role,
+    role,
     status: user.status,
-    permissions: normalizePermissionSettings(user.permissions ?? [], user.role)
+    emailVerifiedAt: user.emailVerifiedAt,
+    twoFactorEnabled: Boolean(user.twoFactorEnabledAt),
+    permissions: normalizePermissionSettings(user.permissions ?? [], role)
   }
 }
 
@@ -136,7 +158,10 @@ function normalizePasswordError(error: unknown): never {
   throw error
 }
 
-export async function createInitialOwner(input: InitialOwnerInput, context?: AuthContext): Promise<SessionUser> {
+export async function createInitialAdmin(
+  input: InitialAdminInput,
+  context?: AuthContext
+): Promise<{ user: SessionUser; verificationToken: string }> {
   const store = getStore(context)
   const existingUsers = await store.user.count()
 
@@ -152,12 +177,13 @@ export async function createInitialOwner(input: InitialOwnerInput, context?: Aut
   }
 
   const passwordHash = await hashPassword(password)
+  const verification = createEmailVerificationToken()
   const created = await createAppUser(
     {
       name: input.name,
       email: input.email,
-      role: "owner",
-      status: "active"
+      role: "admin",
+      status: "inactive"
     },
     {
       store,
@@ -177,21 +203,37 @@ export async function createInitialOwner(input: InitialOwnerInput, context?: Aut
 
   const updated = await store.user.update({
     where: { id: created.id },
-    data: { passwordHash },
+    data: {
+      passwordHash,
+      emailVerificationTokenHash: verification.tokenHash,
+      emailVerificationTokenExpiresAt: verification.expiresAt
+    },
     include: permissionRelation
   })
 
-  return toSessionUser(updated)
+  return { user: toSessionUser(updated), verificationToken: verification.token }
 }
 
-export async function authenticateAppUser(input: LoginInput, context?: AuthContext): Promise<{ user: SessionUser; token: string }> {
+export async function authenticateAppUser(input: LoginInput, context?: AuthContext): Promise<
+  | { user: SessionUser; token: string; requiresTwoFactor: false }
+  | { user: SessionUser; challengeToken: string; requiresTwoFactor: true }
+> {
   const store = getStore(context)
   const email = normalizeEmail(input.email)
   const password = normalizePassword(input.password)
   const user = await store.user.findUnique({ where: { email } })
 
-  if (!user || user.status !== "active" || !await verifyPassword(password, user.passwordHash)) {
+  if (!user || user.status !== "active" || !user.emailVerifiedAt || !await verifyPassword(password, user.passwordHash)) {
     throw new AuthServiceError("invalid_credentials", "E-Mail oder Passwort ist ungueltig.", 401)
+  }
+
+  const sessionUser = toSessionUser(user)
+  if (user.twoFactorEnabledAt && user.twoFactorSecret) {
+    return {
+      user: sessionUser,
+      challengeToken: createTwoFactorChallengeToken(user.id, { now: context?.now?.(), secret: context?.secret }),
+      requiresTwoFactor: true
+    }
   }
 
   const token = createSessionToken(user.id, { now: context?.now?.(), secret: context?.secret })
@@ -203,7 +245,8 @@ export async function authenticateAppUser(input: LoginInput, context?: AuthConte
 
   return {
     user: toSessionUser(updated),
-    token
+    token,
+    requiresTwoFactor: false
   }
 }
 
@@ -211,13 +254,29 @@ export async function getSessionUserFromToken(token: string | null | undefined, 
   const payload = verifySessionToken(token, { now: context?.now?.(), secret: context?.secret })
   if (!payload) return null
 
+  const canUseCache = !context && Boolean(token)
+  const now = Date.now()
+  if (canUseCache && token) {
+    const cached = sessionUserCache.get(token)
+    if (cached && cached.expiresAt > now) return cached.user
+    if (cached) sessionUserCache.delete(token)
+  }
+
   const user = await getStore(context).user.findUnique({
     where: { id: payload.userId },
     include: permissionRelation
   })
-  if (!user || user.status !== "active") return null
+  if (!user || user.status !== "active" || !user.emailVerifiedAt) return null
 
-  return toSessionUser(user)
+  const sessionUser = toSessionUser(user)
+  if (canUseCache && token) {
+    sessionUserCache.set(token, {
+      user: sessionUser,
+      expiresAt: now + SESSION_USER_CACHE_TTL_MS
+    })
+  }
+
+  return sessionUser
 }
 
 export async function getCurrentUser(): Promise<SessionUser | null> {
@@ -237,7 +296,7 @@ export async function requireCurrentUser(): Promise<SessionUser> {
 export async function requireCurrentUserRole(roles: UserRole[]): Promise<SessionUser> {
   const user = await requireCurrentUser()
   if (!roles.includes(user.role)) {
-    throw new AuthServiceError("forbidden", "Diese Aktion ist nur fuer Owner oder Admins erlaubt.", 403)
+    throw new AuthServiceError("forbidden", "Diese Aktion ist nur fuer Admins erlaubt.", 403)
   }
 
   return user

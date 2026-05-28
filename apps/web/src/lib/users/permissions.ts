@@ -90,33 +90,19 @@ export function isKnownPermission(scope: string, action: string) {
 }
 
 export function canEditRolePermissions(role: UserRole) {
-  return role !== "owner" && role !== "admin"
+  return role !== "admin"
 }
 
 export function getRoleDefaultPermissionKeys(role: UserRole) {
   const allKeys = allPermissionDefinitions.map(permissionKey)
 
-  if (role === "owner" || role === "admin") return new Set(allKeys)
-
-  if (role === "accountant") {
-    return new Set([
-      "documents:view",
-      "documents:create",
-      "documents:edit",
-      "documents:finalize",
-      "documents:pdf",
-      "customers:view",
-      "projects:view",
-      "articles:view",
-      "finance:view"
-    ])
-  }
+  if (role === "admin") return new Set(allKeys)
 
   return new Set(["documents:view", "documents:pdf", "customers:view", "projects:view"])
 }
 
 export function normalizePermissionSettings(value: unknown, role: UserRole): UserPermissionSetting[] {
-  if (role === "owner" || role === "admin") return []
+  if (role === "admin") return []
 
   if (!Array.isArray(value)) {
     return Array.from(getRoleDefaultPermissionKeys(role)).map((key) => ({
@@ -145,7 +131,7 @@ export function getEffectivePermissionKeys(
   role: UserRole,
   permissions: UserPermissionSetting[]
 ) {
-  if (role === "owner" || role === "admin") {
+  if (role === "admin") {
     return getRoleDefaultPermissionKeys(role)
   }
 

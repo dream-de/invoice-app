@@ -4,6 +4,7 @@ import { AuthServiceError, requireCurrentUserRole } from "@/lib/auth/service"
 import { getUserLimitStatus } from "@/lib/license/limits"
 import {
   createAppUser,
+  deleteAppUser,
   listAppUsers,
   serializeAppUser,
   updateAppUser,
@@ -50,7 +51,7 @@ async function parseBody(request: Request) {
 
 export async function GET() {
   try {
-    await requireCurrentUserRole(["owner", "admin"])
+    await requireCurrentUserRole(["admin"])
     const [users, limit] = await Promise.all([listAppUsers(), getUserLimitStatus()])
     return NextResponse.json({
       ok: true,
@@ -67,7 +68,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const actor = await requireCurrentUserRole(["owner", "admin"])
+    const actor = await requireCurrentUserRole(["admin"])
     const user = await createAppUser(await parseBody(request))
 
     await writeAuditLog({
@@ -91,7 +92,7 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const actor = await requireCurrentUserRole(["owner", "admin"])
+    const actor = await requireCurrentUserRole(["admin"])
     const user = await updateAppUser(await parseBody(request))
 
     await writeAuditLog({
@@ -104,6 +105,29 @@ export async function PATCH(request: Request) {
         status: user.status,
         email: user.email,
         permissions: user.permissions
+      }
+    })
+
+    return NextResponse.json({ ok: true, user: serializeAppUser(user) })
+  } catch (error) {
+    return mapUserError(error)
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const actor = await requireCurrentUserRole(["admin"])
+    const user = await deleteAppUser(await parseBody(request))
+
+    await writeAuditLog({
+      action: "user.delete",
+      entity: "user",
+      entityId: user.id,
+      data: {
+        actorUserId: actor.id,
+        role: user.role,
+        status: user.status,
+        email: user.email
       }
     })
 

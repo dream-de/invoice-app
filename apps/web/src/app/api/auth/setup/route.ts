@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server"
 import { writeAuditLog } from "@/lib/audit/log"
-import { createInitialOwner, mapAuthError } from "@/lib/auth/service"
-import { SESSION_COOKIE_NAME, assertSessionConfigured, createSessionToken, getSessionCookieOptions } from "@/lib/auth/session"
+import { sendVerificationEmail } from "@/lib/auth/email-verification"
+import { createInitialAdmin, mapAuthError } from "@/lib/auth/service"
+import { assertSessionConfigured } from "@/lib/auth/session"
+import { readEmailSettings } from "@/lib/email/delivery"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -17,9 +19,21 @@ async function parseBody(request: Request) {
 export async function POST(request: Request) {
   try {
     assertSessionConfigured()
-    const user = await createInitialOwner(await parseBody(request))
-    const response = NextResponse.json({ ok: true, user }, { status: 201 })
-    response.cookies.set(SESSION_COOKIE_NAME, createSessionToken(user.id), getSessionCookieOptions())
+    const emailSettings = await readEmailSettings()
+    if (!emailSettings.provider || emailSettings.provider === "disabled") {
+      return NextResponse.json(
+        { ok: false, error: "Bitte zuerst den E-Mail-Versand konfigurieren, damit die Registrierung bestaetigt werden kann.", code: "email_delivery_required" },
+        { status: 409 }
+      )
+    }
+
+    const { user, verificationToken } = await createInitialAdmin(await parseBody(request))
+    await sendVerificationEmail({
+      to: user.email,
+      name: user.name,
+      token: verificationToken,
+      request
+    })
 
     await writeAuditLog({
       action: "auth.setup",
@@ -28,7 +42,12 @@ export async function POST(request: Request) {
       data: { email: user.email, role: user.role }
     })
 
-    return response
+    return NextResponse.json({
+      ok: true,
+      user,
+      verificationRequired: true,
+      message: "Bitte bestaetige deine E-Mail-Adresse. Wir haben dir einen Aktivierungslink gesendet."
+    }, { status: 201 })
   } catch (error) {
     const mapped = mapAuthError(error)
     return NextResponse.json(

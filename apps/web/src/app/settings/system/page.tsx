@@ -25,16 +25,29 @@ export default function SystemSettingsPage() {
         </div>
       </SettingCard>
 
-      <SettingCard title={t("settings.backup.title")} description={t("settings.backup.description")}>
-        <div className="flex flex-wrap gap-2">
-          <IconButton kind="success">
-            <Download className="h-4 w-4" />
-            {t("settings.backup.create")}
-          </IconButton>
-          <IconButton>
-            <RotateCcw className="h-4 w-4" />
-            {t("settings.backup.restore")}
-          </IconButton>
+      <SettingCard title={t("settings.backup.title")}>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="rounded-[22px] border border-[#e5eaf0] bg-[#f8fafc] p-4">
+            <h4 className="text-sm font-black text-[#111827]">{t("settings.backup.createTitle")}</h4>
+            <p className="mt-1 text-sm font-medium leading-6 text-[#64748b]">{t("settings.backup.createDescription")}</p>
+            <div className="mt-4">
+              <IconButton kind="success">
+                <Download className="h-4 w-4" />
+                {t("settings.backup.create")}
+              </IconButton>
+            </div>
+          </div>
+
+          <div className="rounded-[22px] border border-[#e5eaf0] bg-[#f8fafc] p-4">
+            <h4 className="text-sm font-black text-[#111827]">{t("settings.backup.restoreTitle")}</h4>
+            <p className="mt-1 text-sm font-medium leading-6 text-[#64748b]">{t("settings.backup.restoreDescription")}</p>
+            <div className="mt-4">
+              <IconButton>
+                <RotateCcw className="h-4 w-4" />
+                {t("settings.backup.restore")}
+              </IconButton>
+            </div>
+          </div>
         </div>
       </SettingCard>
     </SettingsLayout>

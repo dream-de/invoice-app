@@ -2,11 +2,13 @@ import { createHmac, timingSafeEqual } from "node:crypto"
 
 export const SESSION_COOKIE_NAME = "dream_invoice_session"
 export const SESSION_DURATION_SECONDS = 60 * 60 * 24 * 7
+export const TWO_FACTOR_CHALLENGE_DURATION_SECONDS = 60 * 5
 
 type SessionPayload = {
   userId: string
   issuedAt: number
   expiresAt: number
+  purpose?: "session" | "two_factor"
 }
 
 type SessionOptions = {
@@ -66,7 +68,23 @@ export function createSessionToken(userId: string, options: SessionOptions = {})
   const payload: SessionPayload = {
     userId,
     issuedAt,
-    expiresAt: issuedAt + SESSION_DURATION_SECONDS
+    expiresAt: issuedAt + SESSION_DURATION_SECONDS,
+    purpose: "session"
+  }
+  const encoded = encodeJson(payload)
+
+  return `${encoded}.${sign(encoded, secret)}`
+}
+
+export function createTwoFactorChallengeToken(userId: string, options: SessionOptions = {}) {
+  const secret = getSessionSecret(options.secret)
+  const now = options.now ?? new Date()
+  const issuedAt = Math.floor(now.getTime() / 1000)
+  const payload: SessionPayload = {
+    userId,
+    issuedAt,
+    expiresAt: issuedAt + TWO_FACTOR_CHALLENGE_DURATION_SECONDS,
+    purpose: "two_factor"
   }
   const encoded = encodeJson(payload)
 
@@ -85,6 +103,26 @@ export function verifySessionToken(token: string | null | undefined, options: Se
 
   const payload = decodeJson<SessionPayload>(encoded)
   if (!payload || typeof payload.userId !== "string" || typeof payload.expiresAt !== "number") return null
+  if (payload.purpose && payload.purpose !== "session") return null
+
+  const now = Math.floor((options.now ?? new Date()).getTime() / 1000)
+  if (payload.expiresAt <= now) return null
+
+  return payload
+}
+
+export function verifyTwoFactorChallengeToken(token: string | null | undefined, options: SessionOptions = {}): SessionPayload | null {
+  if (!token) return null
+
+  const [encoded, signature] = token.split(".")
+  if (!encoded || !signature) return null
+
+  const secret = getSessionSecret(options.secret)
+  const expectedSignature = sign(encoded, secret)
+  if (!signaturesMatch(signature, expectedSignature)) return null
+
+  const payload = decodeJson<SessionPayload>(encoded)
+  if (!payload || payload.purpose !== "two_factor" || typeof payload.userId !== "string" || typeof payload.expiresAt !== "number") return null
 
   const now = Math.floor((options.now ?? new Date()).getTime() / 1000)
   if (payload.expiresAt <= now) return null

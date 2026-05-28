@@ -48,6 +48,7 @@ type UserStore = {
     findUnique(args: unknown): Promise<UserRecord | null>
     create(args: unknown): Promise<UserRecord>
     update(args: unknown): Promise<UserRecord>
+    delete?(args: unknown): Promise<UserRecord>
   }
 }
 
@@ -68,9 +69,14 @@ export type CreateAppUserInput = {
 export type UpdateAppUserInput = {
   id?: unknown
   name?: unknown
+  email?: unknown
   role?: unknown
   status?: unknown
   permissions?: unknown
+}
+
+export type DeleteAppUserInput = {
+  id?: unknown
 }
 
 export class UserServiceError extends Error {
@@ -133,6 +139,14 @@ function normalizeRole(value: unknown, fallback: UserRole): UserRole {
   return role
 }
 
+function normalizeStoredRole(value: unknown): UserRole {
+  const role = String(value ?? "").trim()
+  if (role === "owner") return "admin"
+  if (role === "accountant") return "user"
+
+  return normalizeRole(role, "user")
+}
+
 function normalizeStatus(value: unknown, fallback: UserStatus): UserStatus {
   const status = String(value ?? fallback).trim()
   if (!isUserStatus(status)) {
@@ -143,16 +157,18 @@ function normalizeStatus(value: unknown, fallback: UserStatus): UserStatus {
 }
 
 function toAppUser(user: UserRecord): AppUser {
+  const role = normalizeStoredRole(user.role)
+
   return {
     id: user.id,
     name: user.name,
     email: user.email,
-    role: normalizeRole(user.role, "user"),
+    role,
     status: normalizeStatus(user.status, "active"),
     lastLoginAt: user.lastLoginAt,
     invitedAt: user.invitedAt,
     disabledAt: user.disabledAt,
-    permissions: normalizePermissionSettings(user.permissions, normalizeRole(user.role, "user")),
+    permissions: normalizePermissionSettings(user.permissions, role),
     createdAt: user.createdAt,
     updatedAt: user.updatedAt
   }
@@ -178,28 +194,28 @@ async function assertCanActivateUser(context?: UserServiceContext) {
   return status
 }
 
-async function assertNotLastActiveOwner(
+async function assertNotLastActiveAdmin(
   current: AppUser,
   nextRole: UserRole,
   nextStatus: UserStatus,
   context?: UserServiceContext
 ) {
-  if (current.role !== "owner" || current.status !== "active") return
-  if (nextRole === "owner" && nextStatus === "active") return
+  if (current.role !== "admin" || current.status !== "active") return
+  if (nextRole === "admin" && nextStatus === "active") return
 
   const store = getStore(context)
-  const remainingOwners = await store.user.count({
+  const remainingAdmins = await store.user.count({
     where: {
-      role: "owner",
+      role: "admin",
       status: "active",
       id: { not: current.id }
     }
   })
 
-  if (remainingOwners < 1) {
+  if (remainingAdmins < 1) {
     throw new UserServiceError(
-      "last_owner",
-      "Der letzte aktive Owner kann nicht entfernt oder deaktiviert werden.",
+      "last_admin",
+      "Der letzte aktive Admin kann nicht geloescht, deaktiviert oder zu Benutzer gemacht werden.",
       409
     )
   }
@@ -268,13 +284,14 @@ export async function updateAppUser(
   const nextRole = normalizeRole(input.role, current.role)
   const nextStatus = normalizeStatus(input.status, current.status)
   const nextName = input.name === undefined ? current.name : normalizeName(input.name)
+  const nextEmail = input.email === undefined ? current.email : normalizeEmail(input.email)
   const nextPermissions = normalizePermissionSettings(
     input.permissions === undefined ? current.permissions : input.permissions,
     nextRole
   )
   const now = context?.now?.() ?? new Date()
 
-  await assertNotLastActiveOwner(current, nextRole, nextStatus, context)
+  await assertNotLastActiveAdmin(current, nextRole, nextStatus, context)
 
   if (current.status !== "active" && nextStatus === "active") {
     await assertCanActivateUser(context)
@@ -284,6 +301,7 @@ export async function updateAppUser(
     where: { id },
     data: {
       name: nextName,
+      email: nextEmail,
       role: nextRole,
       status: nextStatus,
       permissions: {
@@ -296,4 +314,30 @@ export async function updateAppUser(
   })
 
   return toAppUser(updated)
+}
+
+export async function deleteAppUser(
+  input: DeleteAppUserInput,
+  context?: UserServiceContext
+): Promise<AppUser> {
+  const id = String(input.id ?? "").trim()
+  if (!id) {
+    throw new UserServiceError("missing_user", "Benutzer fehlt.")
+  }
+
+  const store = getStore(context)
+  const existing = await store.user.findUnique({ where: { id }, include: permissionInclude })
+  if (!existing) {
+    throw new UserServiceError("user_not_found", "Benutzer wurde nicht gefunden.", 404)
+  }
+
+  const current = toAppUser(existing)
+  await assertNotLastActiveAdmin(current, "user", "disabled", context)
+
+  if (!store.user.delete) {
+    throw new UserServiceError("delete_unavailable", "Benutzer koennen aktuell nicht geloescht werden.", 500)
+  }
+
+  const deleted = await store.user.delete({ where: { id }, include: permissionInclude })
+  return toAppUser(deleted)
 }

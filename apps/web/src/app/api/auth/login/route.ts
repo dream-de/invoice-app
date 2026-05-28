@@ -16,8 +16,19 @@ async function parseBody(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { user, token } = await authenticateAppUser(await parseBody(request))
-    const response = NextResponse.json({ ok: true, user })
+    const result = await authenticateAppUser(await parseBody(request))
+
+    if (result.requiresTwoFactor) {
+      return NextResponse.json({
+        ok: true,
+        requiresTwoFactor: true,
+        challengeToken: result.challengeToken,
+        user: result.user
+      })
+    }
+
+    const { user, token } = result
+    const response = NextResponse.json({ ok: true, requiresTwoFactor: false, user })
     response.cookies.set(SESSION_COOKIE_NAME, token, getSessionCookieOptions())
 
     await writeAuditLog({

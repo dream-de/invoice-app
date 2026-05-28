@@ -265,7 +265,7 @@
   "settings.portal.offer.description": "Publish offer links and synchronize status.",
   "settings.portal.archive.title": "Archive export",
   "settings.portal.archive.accessLabel": "Access",
-  "settings.portal.archive.accessDescription": "Owners and admins may configure it. Regular users may only use archive export when an admin grants access.",
+  "settings.portal.archive.accessDescription": "Admins may configure it. Regular users may only use archive export when an admin grants access.",
   "settings.portal.archive.paperless.title": "Paperless-ngx",
   "settings.portal.archive.paperless.description": "Send invoice PDFs to Paperless via API and archive them with tags.",
   "settings.portal.archive.nextcloud.title": "Nextcloud",

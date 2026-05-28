@@ -1,0 +1,48 @@
+import { NextResponse } from "next/server"
+import { prisma } from "@dream-invoice/database"
+import { writeAuditLog } from "@/lib/audit/log"
+import { hashPassword } from "@/lib/auth/password"
+import { createBackupCodes, verifyTotpCode } from "@/lib/auth/totp"
+import { mapAuthError, requireCurrentUser } from "@/lib/auth/service"
+
+export const runtime = "nodejs"
+export const dynamic = "force-dynamic"
+
+export async function POST(request: Request) {
+  try {
+    const current = await requireCurrentUser()
+    const body = await request.json().catch(() => ({}))
+    const code = String(body.code ?? "")
+    const user = await prisma.user.findUnique({ where: { id: current.id } })
+
+    if (!user?.twoFactorSecret) {
+      return NextResponse.json({ ok: false, error: "Bitte 2FA zuerst vorbereiten." }, { status: 400 })
+    }
+
+    if (!verifyTotpCode(user.twoFactorSecret, code)) {
+      return NextResponse.json({ ok: false, error: "Der Sicherheitscode ist ungueltig." }, { status: 400 })
+    }
+
+    const backupCodes = createBackupCodes()
+    const backupCodeHashes = await Promise.all(backupCodes.map((backupCode) => hashPassword(backupCode)))
+    await prisma.user.update({
+      where: { id: current.id },
+      data: {
+        twoFactorEnabledAt: new Date(),
+        twoFactorBackupCodes: backupCodeHashes
+      }
+    })
+
+    await writeAuditLog({
+      action: "account.2fa_enable",
+      entity: "user",
+      entityId: current.id,
+      data: { email: current.email }
+    })
+
+    return NextResponse.json({ ok: true, backupCodes })
+  } catch (error) {
+    const mapped = mapAuthError(error)
+    return NextResponse.json({ ok: false, error: mapped.error, code: mapped.code }, { status: mapped.status })
+  }
+}

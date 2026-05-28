@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic"
 
 export default async function UsersAndPermissionsPage() {
   try {
-    await requireCurrentUserRole(["owner", "admin"])
+    await requireCurrentUserRole(["admin"])
   } catch {
     redirect("/settings")
   }

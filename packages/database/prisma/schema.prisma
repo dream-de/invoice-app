@@ -11,9 +11,15 @@ model User {
   id           String           @id @default(cuid())
   name         String?
   email        String           @unique
-  role         String           @default("owner")
+  role         String           @default("user")
   status       String           @default("active")
   passwordHash String?
+  emailVerifiedAt DateTime?
+  emailVerificationTokenHash String?
+  emailVerificationTokenExpiresAt DateTime?
+  twoFactorSecret String?
+  twoFactorEnabledAt DateTime?
+  twoFactorBackupCodes Json?
   lastLoginAt  DateTime?
   invitedAt    DateTime?
   disabledAt   DateTime?
@@ -22,6 +28,7 @@ model User {
   updatedAt    DateTime         @updatedAt
 
   @@index([status])
+  @@index([emailVerificationTokenHash])
 }
 
 model CompanySettings {

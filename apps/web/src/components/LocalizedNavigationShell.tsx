@@ -1,7 +1,7 @@
 "use client"
 
 import type { ReactNode } from "react"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
 import { isUserRole } from "@dream-invoice/auth"
 import { NavigationShell } from "@dream-invoice/ui"
@@ -30,14 +30,19 @@ export function LocalizedNavigationShell({ children }: { children: ReactNode }) 
   const { language, t } = useLanguage()
   const isEnglish = language === "en"
   const [currentUser, setCurrentUser] = useState<ShellUser | null>(null)
+  const hasLoadedCurrentUser = useRef(false)
 
   const isLoginPage = currentPathname === "/login" || currentPathname.startsWith("/login/")
+  const isPublicAuthPage = isLoginPage || currentPathname.startsWith("/api/auth/verify-email")
 
   useEffect(() => {
-    if (isLoginPage) {
+    if (isPublicAuthPage) {
+      hasLoadedCurrentUser.current = false
       setCurrentUser(null)
       return
     }
+
+    if (hasLoadedCurrentUser.current) return
 
     let cancelled = false
 
@@ -45,9 +50,15 @@ export function LocalizedNavigationShell({ children }: { children: ReactNode }) 
       try {
         const response = await fetch("/api/auth/me", { cache: "no-store" })
         const result = await response.json().catch(() => null)
-        if (!cancelled) setCurrentUser(isShellUser(result?.user) ? result.user : null)
+        if (!cancelled) {
+          setCurrentUser(isShellUser(result?.user) ? result.user : null)
+          hasLoadedCurrentUser.current = true
+        }
       } catch {
-        if (!cancelled) setCurrentUser(null)
+        if (!cancelled) {
+          setCurrentUser(null)
+          hasLoadedCurrentUser.current = false
+        }
       }
     }
 
@@ -56,7 +67,7 @@ export function LocalizedNavigationShell({ children }: { children: ReactNode }) 
     return () => {
       cancelled = true
     }
-  }, [currentPathname, isLoginPage])
+  }, [isPublicAuthPage])
 
   const handleLogout = useCallback(async () => {
     await fetch("/api/auth/logout", { method: "POST" })
@@ -79,7 +90,7 @@ export function LocalizedNavigationShell({ children }: { children: ReactNode }) 
     can("articles:view") ? { href: "/articles", label: t("nav.articles"), icon: "▣" } : null
   ].filter((item): item is { href: string; label: string; icon: string } => Boolean(item))
 
-  if (isLoginPage) return <>{children}</>
+  if (isPublicAuthPage) return <>{children}</>
 
   return (
     <NavigationShell
@@ -92,6 +103,8 @@ export function LocalizedNavigationShell({ children }: { children: ReactNode }) 
       currentUser={currentUser}
       showSettings={can("settings:manage")}
       profileLabel={isEnglish ? "User menu" : "Benutzermenue"}
+      accountLabel={isEnglish ? "Account & Security" : "Konto & Sicherheit"}
+      profileHref="/account/security"
       logoutLabel={isEnglish ? "Sign out" : "Abmelden"}
       onLogout={handleLogout}
     >

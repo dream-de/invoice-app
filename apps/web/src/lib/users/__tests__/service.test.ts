@@ -2,6 +2,7 @@ import assert from "node:assert/strict"
 import { describe, it } from "node:test"
 import {
   createAppUser,
+  deleteAppUser,
   listAppUsers,
   serializeAppUser,
   updateAppUser,
@@ -86,6 +87,7 @@ function createStore(initialUsers: StoredUser[]) {
           users[index] = {
             ...users[index],
             name: typeof args.data.name === "string" || args.data.name === null ? args.data.name : users[index].name,
+            email: typeof args.data.email === "string" ? args.data.email : users[index].email,
             role: typeof args.data.role === "string" ? args.data.role as StoredUser["role"] : users[index].role,
             status: typeof args.data.status === "string" ? args.data.status as StoredUser["status"] : users[index].status,
             permissions: typeof args.data.permissions === "object" && args.data.permissions !== null && "create" in args.data.permissions && Array.isArray(args.data.permissions.create)
@@ -95,17 +97,24 @@ function createStore(initialUsers: StoredUser[]) {
             updatedAt: date("2026-05-26T10:30:00.000Z")
           }
           return users[index]
+        },
+        async delete(args: StoreArgs) {
+          const where = getWhere(args)
+          const index = users.findIndex((user) => user.id === where.id)
+          if (index < 0) throw new Error("missing")
+          const [deleted] = users.splice(index, 1)
+          return deleted
         }
       }
     }
   }
 }
 
-const owner: AppUser = {
-  id: "owner_1",
-  name: "Owner",
+const admin: AppUser = {
+  id: "admin_1",
+  name: "Admin",
   email: "admin@example.com",
-  role: "owner",
+  role: "admin",
   status: "active",
   lastLoginAt: null,
   invitedAt: null,
@@ -117,9 +126,9 @@ const owner: AppUser = {
 
 describe("app user service", () => {
   it("creates active users through the central license limit check", async () => {
-    const { store } = createStore([owner])
+    const { store } = createStore([admin])
     const user = await createAppUser(
-      { email: "  NEU@example.test ", name: "Neue Person", role: "accountant" },
+      { email: "  NEU@example.test ", name: "Neue Person" },
       {
         store,
         getLimitStatus: async () => ({
@@ -137,13 +146,13 @@ describe("app user service", () => {
     )
 
     assert.equal(user.email, "neu@example.test")
-    assert.equal(user.role, "accountant")
+    assert.equal(user.role, "user")
     assert.equal(user.status, "active")
     assert.equal(user.invitedAt?.toISOString(), "2026-05-26T09:00:00.000Z")
   })
 
   it("blocks active user creation when the license limit is reached", async () => {
-    const { store } = createStore([owner])
+    const { store } = createStore([admin])
 
     await assert.rejects(
       createAppUser(
@@ -166,8 +175,18 @@ describe("app user service", () => {
     )
   })
 
+  it("rejects removed roles for new writes", async () => {
+    const { store } = createStore([admin])
+
+    await assert.rejects(
+      createAppUser({ email: "accounting@example.test", role: "accountant", status: "inactive" }, { store }),
+      (error: unknown) =>
+        error instanceof UserServiceError && error.code === "invalid_role"
+    )
+  })
+
   it("blocks local users with the reserved Dream Invoice domain", async () => {
-    const { store } = createStore([owner])
+    const { store } = createStore([admin])
 
     await assert.rejects(
       createAppUser(
@@ -198,7 +217,7 @@ describe("app user service", () => {
   })
 
   it("allows inactive invites without consuming an active user slot", async () => {
-    const { store } = createStore([owner])
+    const { store } = createStore([admin])
     const user = await createAppUser(
       { email: "invite@example.test", status: "inactive" },
       {
@@ -213,8 +232,8 @@ describe("app user service", () => {
   })
 
   it("checks the license before activating an inactive user", async () => {
-    const invited = { ...owner, id: "user_2", email: "invite@example.test", role: "user" as const, status: "inactive" as const }
-    const { store } = createStore([owner, invited])
+    const invited = { ...admin, id: "user_2", email: "invite@example.test", role: "user" as const, status: "inactive" as const }
+    const { store } = createStore([admin, invited])
 
     await assert.rejects(
       updateAppUser(
@@ -237,18 +256,36 @@ describe("app user service", () => {
     )
   })
 
-  it("keeps at least one active owner", async () => {
-    const { store } = createStore([owner])
+  it("keeps at least one active admin", async () => {
+    const { store } = createStore([admin])
 
     await assert.rejects(
-      updateAppUser({ id: "owner_1", role: "admin" }, { store }),
+      updateAppUser({ id: "admin_1", role: "user" }, { store }),
       (error: unknown) =>
-        error instanceof UserServiceError && error.code === "last_owner"
+        error instanceof UserServiceError && error.code === "last_admin"
     )
   })
 
+  it("blocks deleting the last active admin", async () => {
+    const { store } = createStore([admin])
+
+    await assert.rejects(
+      deleteAppUser({ id: "admin_1" }, { store }),
+      (error: unknown) =>
+        error instanceof UserServiceError && error.code === "last_admin"
+    )
+  })
+
+  it("allows admin email updates", async () => {
+    const secondAdmin = { ...admin, id: "admin_2", email: "second@example.test" }
+    const { store } = createStore([admin, secondAdmin])
+    const updated = await updateAppUser({ id: "admin_2", email: " Updated@Example.test " }, { store })
+
+    assert.equal(updated.email, "updated@example.test")
+  })
+
   it("serializes users without exposing password hashes", async () => {
-    const { store } = createStore([owner])
+    const { store } = createStore([admin])
     const [user] = await listAppUsers({ store })
     const serialized = serializeAppUser(user)
 
@@ -257,7 +294,7 @@ describe("app user service", () => {
   })
 
   it("stores explicit permissions for regular users", async () => {
-    const { store } = createStore([owner])
+    const { store } = createStore([admin])
     const user = await createAppUser(
       {
         email: "permissions@example.test",

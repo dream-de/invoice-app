@@ -5,5 +5,5 @@ export function hasRole(user: AuthUser, roles: UserRole[]): boolean {
 }
 
 export function isAdmin(user: AuthUser): boolean {
-  return hasRole(user, ["owner", "admin"])
+  return hasRole(user, ["admin"])
 }

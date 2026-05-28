@@ -1,9 +1,9 @@
 "use client"
 
 import type { ReactNode } from "react"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 
 type NavigationItem = {
   href: string
@@ -28,6 +28,8 @@ type NavigationShellProps = {
   currentUser?: NavigationShellUser | null
   showSettings?: boolean
   profileLabel?: string
+  profileHref?: string
+  accountLabel?: string
   logoutLabel?: string
   onLogout?: () => void | Promise<void>
 }
@@ -121,6 +123,47 @@ function BellIcon() {
   )
 }
 
+function AccountIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-[17px] w-[17px]" fill="none">
+      <path
+        d="M12 12.2a4.1 4.1 0 1 0 0-8.2 4.1 4.1 0 0 0 0 8.2Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M4.8 20.2c.8-3.6 3.43-5.4 7.2-5.4s6.4 1.8 7.2 5.4"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function LogoutIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-[17px] w-[17px]" fill="none">
+      <path
+        d="M10.5 6.5H6.8A2.3 2.3 0 0 0 4.5 8.8v6.4a2.3 2.3 0 0 0 2.3 2.3h3.7"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <path
+        d="M14.5 8.2 18.3 12l-3.8 3.8M18 12H9.2"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 export function NavigationShell({
   title,
   items,
@@ -131,18 +174,36 @@ export function NavigationShell({
   currentUser = null,
   showSettings = true,
   profileLabel = "Profil",
+  profileHref = "/account/security",
+  accountLabel = "Konto & Sicherheit",
   logoutLabel = "Abmelden",
   onLogout
 }: NavigationShellProps) {
   const pathname = usePathname()
+  const router = useRouter()
   const [notificationsOpen, setNotificationsOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
+  const searchCloseTimerRef = useRef<number | null>(null)
   const [emailConfigured, setEmailConfigured] = useState<boolean | null>(null)
   const [emailLog, setEmailLog] = useState<EmailLogEntry[]>([])
   const isEnglish = notificationsLabel.toLowerCase().includes("notification")
+
+  const prefetchTargets = useMemo(() => {
+    const hrefs = new Set(items.map((item) => item.href))
+    if (showSettings) hrefs.add("/settings/company")
+    if (profileHref) hrefs.add(profileHref)
+
+    return Array.from(hrefs).filter((href) => href && href !== pathname)
+  }, [items, pathname, profileHref, showSettings])
+
+  useEffect(() => {
+    for (const href of prefetchTargets) {
+      router.prefetch(href)
+    }
+  }, [prefetchTargets, router])
 
   useEffect(() => {
     let cancelled = false
@@ -204,6 +265,14 @@ export function NavigationShell({
     window.addEventListener("keydown", handleKeyDown)
 
     return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (searchCloseTimerRef.current) {
+        window.clearTimeout(searchCloseTimerRef.current)
+      }
+    }
   }, [])
 
   const searchItems = useMemo<GlobalSearchItem[]>(() => {
@@ -308,6 +377,21 @@ export function NavigationShell({
     }
   }
 
+  function keepSearchOpen() {
+    if (searchCloseTimerRef.current) {
+      window.clearTimeout(searchCloseTimerRef.current)
+      searchCloseTimerRef.current = null
+    }
+  }
+
+  function closeSearchAfterPointerLeave() {
+    keepSearchOpen()
+    searchCloseTimerRef.current = window.setTimeout(() => {
+      setSearchOpen(false)
+      setSearchQuery("")
+    }, 260)
+  }
+
   return (
     <div className="min-h-screen overflow-x-hidden bg-[var(--bg-app)] text-slate-950">
       <div className="invoice-app-zoom">
@@ -346,7 +430,11 @@ export function NavigationShell({
           </nav>
 
           <div className="invoice-header-actions">
-            <div className="invoice-search-wrap">
+            <div
+              className="invoice-search-wrap"
+              onMouseEnter={keepSearchOpen}
+              onMouseLeave={closeSearchAfterPointerLeave}
+            >
               <button
                 type="button"
                 className={`invoice-header-search invoice-header-search-button ${focusRing}`}
@@ -503,19 +591,26 @@ export function NavigationShell({
                   <div className="invoice-user-panel" role="dialog" aria-label={profileLabel}>
                     <div className="invoice-user-panel-head">
                       <span className="invoice-user-avatar">{userInitials}</span>
-                      <span className="min-w-0">
-                        <span className="invoice-user-name">{currentUser.name || currentUser.email}</span>
-                        <span className="invoice-user-email">{currentUser.email}</span>
-                      </span>
+                      <span className="invoice-user-name">{currentUser.name || currentUser.email}</span>
+                      <span className="invoice-user-email">{currentUser.email}</span>
+                      {currentUser.role ? <span className="invoice-user-role">{currentUser.role}</span> : null}
                     </div>
-                    {currentUser.role ? <p className="invoice-user-role">{currentUser.role}</p> : null}
+                    <Link
+                      href={profileHref}
+                      onClick={() => setUserMenuOpen(false)}
+                      className={`invoice-user-menu-link no-underline ${focusRing}`}
+                    >
+                      <AccountIcon />
+                      <span>{accountLabel}</span>
+                    </Link>
                     <button
                       type="button"
                       onClick={handleLogout}
                       disabled={isLoggingOut}
                       className={`invoice-user-logout ${focusRing}`}
                     >
-                      {isLoggingOut ? "..." : logoutLabel}
+                      <LogoutIcon />
+                      <span>{isLoggingOut ? "..." : logoutLabel}</span>
                     </button>
                   </div>
                 ) : null}

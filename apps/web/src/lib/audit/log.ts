@@ -2,13 +2,19 @@ import { Prisma, prisma } from "@dream-invoice/database"
 
 export type AuditAction =
   | "auth.login"
+  | "auth.email_verify"
   | "auth.setup"
+  | "account.2fa_disable"
+  | "account.2fa_enable"
+  | "account.password_update"
+  | "account.profile_update"
   | "license.activate"
   | "settings.company.update"
   | "settings.number_ranges.update"
   | "invoice.finalize"
   | "invoice.delete"
   | "user.create"
+  | "user.delete"
   | "user.update"
 
 type AuditLogInput = {
