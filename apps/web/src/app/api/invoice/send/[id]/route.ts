@@ -106,7 +106,12 @@ export async function POST(
     }
 
     invoiceNumber = invoice.number
-    const pdfResponse = await fetch(new URL("/api/invoice/pdf/" + id, request.url), { cache: "no-store" })
+    const pdfResponse = await fetch(new URL("/api/invoice/pdf/" + id, request.url), {
+      cache: "no-store",
+      headers: {
+        cookie: request.headers.get("cookie") ?? ""
+      }
+    })
 
     if (!pdfResponse.ok) {
       const errorText = await pdfResponse.text().catch(() => "unknown")

@@ -62,7 +62,8 @@ function formatDisplayDate(value: string | Date | null | undefined, locale = "de
 }
 
 function csvCell(value: unknown) {
-  const text = String(value ?? "")
+  const raw = String(value ?? "")
+  const text = /^[=+@-]/.test(raw) ? "'" + raw : raw
   return "\"" + text.replace(/"/g, "\"\"") + "\""
 }
 

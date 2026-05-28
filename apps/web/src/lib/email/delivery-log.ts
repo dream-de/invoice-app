@@ -3,6 +3,14 @@ import path from "node:path"
 
 const EMAIL_LOG_PATH = path.join(process.cwd(), "data", "email-delivery-log.local.json")
 const MAX_LOG_ENTRIES = 250
+const MAX_LOG_FIELD_LENGTH = 500
+
+function limitLogField(value: string | undefined) {
+  if (!value) return value
+  return value.length > MAX_LOG_FIELD_LENGTH
+    ? value.slice(0, MAX_LOG_FIELD_LENGTH) + "..."
+    : value
+}
 
 export function maskEmailAddress(value: string) {
   const email = String(value ?? "").trim()
@@ -44,6 +52,9 @@ export async function appendEmailDeliveryLog(entry: Omit<EmailDeliveryLogEntry, 
   const entries = await readEntries()
   const next: EmailDeliveryLogEntry = {
     ...entry,
+    to: limitLogField(entry.to) ?? "",
+    subject: limitLogField(entry.subject) ?? "",
+    error: limitLogField(entry.error),
     id: `email-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     createdAt: new Date().toISOString()
   }

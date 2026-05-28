@@ -91,12 +91,6 @@ export async function GET(
 
   } catch (err) {
     console.error(err)
-    const invoice = fallbackInvoice(id)
-
-    if (invoice) {
-      return NextResponse.json(invoice)
-    }
-
     return NextResponse.json(
       { error: "Server error" },
       { status: 500 }

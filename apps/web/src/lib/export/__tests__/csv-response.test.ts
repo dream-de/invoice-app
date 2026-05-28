@@ -13,6 +13,13 @@ describe("csv export response", () => {
     )
   })
 
+  it("escapes spreadsheet formulas", () => {
+    assert.equal(
+      createCsvContent([["Wert"], ["=SUM(1,1)"], ["+1"], ["@cmd"], ["-10"]]),
+      `"Wert"\n"'=SUM(1,1)"\n"'+1"\n"'@cmd"\n"'-10"`
+    )
+  })
+
   it("creates browser friendly content disposition headers", () => {
     assert.equal(
       createCsvContentDisposition("kunden-export-äöü.csv"),

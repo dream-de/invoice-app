@@ -11,10 +11,14 @@ import type { DocumentTemplate } from "@/lib/document-templates/types"
 import { DEFAULT_INVOICE_TEMPLATE } from "@/lib/document-templates/constants"
 import { createSepaQrPayload } from "@/lib/payment/sepa-qr"
 import { documents } from "@/data/invoice-data"
+import { AuthServiceError, mapAuthError, requireCurrentUser } from "@/lib/auth/service"
+import { hasUserPermission } from "@/lib/auth/permissions"
 
 const APP_ROOT = process.cwd()
 const LEGACY_TEMPLATE_PATH = path.join(APP_ROOT, "data", "default-template.json")
 const TEMPLATES_PATH = path.join(APP_ROOT, "data", "templates.json")
+const MAX_TEMPLATE_FILE_BYTES = 1_000_000
+const MAX_TEMPLATE_ID_LENGTH = 128
 
 type TemplateRecord = {
   id: string
@@ -69,9 +73,29 @@ function normalizeTemplate(data: Partial<DocumentTemplate> | undefined): Documen
   }
 }
 
+async function readJsonFileWithLimit(filePath: string) {
+  const stat = await fs.stat(filePath)
+  if (stat.size > MAX_TEMPLATE_FILE_BYTES) {
+    throw new Error("Template-Datei ist zu gross.")
+  }
+
+  return fs.readFile(filePath, "utf8")
+}
+
+function normalizeTemplateId(value: string | null) {
+  if (!value) return null
+  const templateId = value.trim()
+  if (!templateId) return null
+  if (templateId.length > MAX_TEMPLATE_ID_LENGTH) {
+    throw new AuthServiceError("invalid_request", "Template-ID ist zu lang.", 400)
+  }
+
+  return templateId
+}
+
 async function loadInvoiceTemplate(templateId: string | null): Promise<DocumentTemplate> {
   try {
-    const raw = await fs.readFile(TEMPLATES_PATH, "utf8")
+    const raw = await readJsonFileWithLimit(TEMPLATES_PATH)
     const templates = JSON.parse(raw) as TemplateRecord[]
     const invoiceTemplates = templates.filter((template) => template.type === "invoice")
     const selected = templateId
@@ -86,7 +110,7 @@ async function loadInvoiceTemplate(templateId: string | null): Promise<DocumentT
   }
 
   try {
-    const raw = await fs.readFile(LEGACY_TEMPLATE_PATH, "utf8")
+    const raw = await readJsonFileWithLimit(LEGACY_TEMPLATE_PATH)
     const data = JSON.parse(raw)
     return normalizeTemplate(data)
   } catch {
@@ -138,6 +162,15 @@ function fallbackInvoice(id: string): PdfInvoice | null {
   }
 }
 
+async function requireInvoicePdfPermission() {
+  const user = await requireCurrentUser()
+  if (!hasUserPermission(user, "documents", "pdf")) {
+    throw new AuthServiceError("forbidden", "Keine Berechtigung fuer dieses Rechnungs-PDF.", 403)
+  }
+
+  return user
+}
+
 async function loadPdfSource(id: string): Promise<{ invoice: PdfInvoice; company: PdfCompany } | null> {
   if (!process.env.DATABASE_URL) {
     const invoice = fallbackInvoice(id)
@@ -162,9 +195,8 @@ async function loadPdfSource(id: string): Promise<{ invoice: PdfInvoice; company
       company: companySettings ?? fallbackCompany()
     }
   } catch (error) {
-    console.error(error)
-    const invoice = fallbackInvoice(id)
-    return invoice ? { invoice, company: fallbackCompany() } : null
+    console.error("PDF source loading failed.", { invoiceId: id, error })
+    throw error
   }
 }
 
@@ -176,6 +208,11 @@ export async function GET(
   const { searchParams } = new URL(req.url)
 
   try {
+    if (process.env.DATABASE_URL) {
+      await requireInvoicePdfPermission()
+    }
+
+    const templateId = normalizeTemplateId(searchParams.get("templateId"))
     const source = await loadPdfSource(id)
 
     if (!source) {
@@ -189,7 +226,7 @@ export async function GET(
 
     const { subtotal, taxTotal, total, positions } = calculatePdfInvoiceTotals(invoice.positions)
 
-    const template = await loadInvoiceTemplate(searchParams.get("templateId"))
+    const template = await loadInvoiceTemplate(templateId)
     const qrElement = template.elements.find((element) => element.type === "paymentQr")
     const paymentNote = replacePaymentPlaceholders(qrElement?.content, invoice.number)
 
@@ -255,7 +292,15 @@ export async function GET(
       await browser.close().catch(() => undefined)
     }
   } catch (err) {
-    console.error(err)
+    if (err instanceof AuthServiceError) {
+      const mapped = mapAuthError(err)
+      return NextResponse.json(
+        { ok: false, error: mapped.error, code: mapped.code },
+        { status: mapped.status }
+      )
+    }
+
+    console.error("PDF generation failed.", { invoiceId: id, error: err })
     return NextResponse.json({ error: "PDF error" }, { status: 500 })
   }
 }

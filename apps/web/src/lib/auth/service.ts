@@ -106,7 +106,7 @@ const permissionRelation = {
   }
 }
 
-const SESSION_USER_CACHE_TTL_MS = 15_000
+const SESSION_USER_CACHE_TTL_MS = 5_000
 const sessionUserCache = new Map<string, SessionUserCacheEntry>()
 
 function getStore(context?: AuthContext): UserStore {

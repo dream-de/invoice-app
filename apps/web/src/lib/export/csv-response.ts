@@ -1,5 +1,6 @@
 function csvCell(value: unknown) {
-  const text = String(value ?? "")
+  const raw = String(value ?? "")
+  const text = /^[=+@-]/.test(raw) ? "'" + raw : raw
   return "\"" + text.replace(/"/g, "\"\"") + "\""
 }
 
