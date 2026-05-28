@@ -34,23 +34,15 @@ type NavigationShellProps = {
   onLogout?: () => void | Promise<void>
 }
 
-type EmailLogEntry = {
+type NotificationApiItem = {
   id: string
   createdAt: string
-  status: "success" | "error"
-  to: string
-  subject: string
-  documentId?: string
-  error?: string
-}
-
-type HeaderNotification = {
-  id: string
+  category: string
   tone: "success" | "warning" | "info"
   title: string
-  text: string
+  message: string
   href?: string
-  time?: string
+  read: boolean
 }
 
 type GlobalSearchItem = {
@@ -187,8 +179,8 @@ export function NavigationShell({
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const searchCloseTimerRef = useRef<number | null>(null)
-  const [emailConfigured, setEmailConfigured] = useState<boolean | null>(null)
-  const [emailLog, setEmailLog] = useState<EmailLogEntry[]>([])
+  const [notifications, setNotifications] = useState<NotificationApiItem[]>([])
+  const [notificationCount, setNotificationCount] = useState(0)
   const isEnglish = notificationsLabel.toLowerCase().includes("notification")
 
   const prefetchTargets = useMemo(() => {
@@ -210,23 +202,17 @@ export function NavigationShell({
 
     async function loadNotifications() {
       try {
-        const [settingsResponse, logResponse] = await Promise.all([
-          fetch("/api/settings/email", { cache: "no-store" }),
-          fetch("/api/email/log?limit=4", { cache: "no-store" })
-        ])
-        const settingsResult = await settingsResponse.json().catch(() => null)
-        const logResult = await logResponse.json().catch(() => null)
+        const response = await fetch("/api/notifications?limit=5", { cache: "no-store" })
+        const result = await response.json().catch(() => null)
 
         if (cancelled) return
 
-        const provider = settingsResult?.settings?.provider
-        const fromEmail = settingsResult?.settings?.fromEmail
-        setEmailConfigured(Boolean(provider && provider !== "disabled" && fromEmail))
-        setEmailLog(Array.isArray(logResult?.entries) ? logResult.entries : [])
+        setNotifications(Array.isArray(result?.notifications) ? result.notifications : [])
+        setNotificationCount(Number.isFinite(result?.unreadCount) ? result.unreadCount : 0)
       } catch {
         if (!cancelled) {
-          setEmailConfigured(false)
-          setEmailLog([])
+          setNotifications([])
+          setNotificationCount(0)
         }
       }
     }
@@ -322,48 +308,31 @@ export function NavigationShell({
       .slice(0, 8)
   }, [searchItems, searchQuery])
 
-  const notifications = useMemo<HeaderNotification[]>(() => {
-    const items: HeaderNotification[] = []
-
-    if (emailConfigured === false) {
-      items.push({
-        id: "email-settings",
-        tone: "warning",
-        title: isEnglish ? "Email delivery is not active" : "E-Mail-Versand ist nicht aktiv",
-        text: isEnglish ? "Configure SMTP or Resend before sending invoices." : "SMTP oder Resend einrichten, bevor Rechnungen versendet werden.",
-        href: "/settings/email"
-      })
-    }
-
-    for (const entry of emailLog) {
-      items.push({
-        id: entry.id,
-        tone: entry.status === "success" ? "success" : "warning",
-        title: entry.status === "success"
-          ? (isEnglish ? "Invoice email sent" : "Rechnung per E-Mail gesendet")
-          : (isEnglish ? "Email delivery failed" : "E-Mail-Versand fehlgeschlagen"),
-        text: entry.status === "success"
-          ? `${entry.subject} · ${entry.to}`
-          : entry.error || `${entry.subject} · ${entry.to}`,
-        href: entry.documentId ? `/documents/${entry.documentId}` : undefined,
-        time: formatNotificationTime(entry.createdAt)
-      })
-    }
-
-    if (items.length === 0) {
-      items.push({
-        id: "all-good",
-        tone: "success",
-        title: isEnglish ? "Everything looks good" : "Alles sieht gut aus",
-        text: isEnglish ? "No open notifications right now." : "Aktuell gibt es keine offenen Hinweise."
-      })
-    }
-
-    return items.slice(0, 5)
-  }, [emailConfigured, emailLog, isEnglish])
-
-  const notificationCount = notifications.filter((item) => item.id !== "all-good").length
+  const visibleNotifications = notifications.length > 0
+    ? notifications
+    : [{
+      id: "all-good",
+      createdAt: "",
+      category: "system",
+      tone: "success" as const,
+      title: isEnglish ? "Everything looks good" : "Alles sieht gut aus",
+      message: isEnglish ? "No open notifications right now." : "Aktuell gibt es keine offenen Hinweise.",
+      read: true
+    }]
   const userInitials = currentUser ? getUserInitials(currentUser) : ""
+
+  async function markNotificationRead(id: string) {
+    if (id === "all-good") return
+
+    setNotifications((current) => current.map((item) => item.id === id ? { ...item, read: true } : item))
+    setNotificationCount((current) => Math.max(0, current - 1))
+
+    await fetch("/api/notifications", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids: [id] })
+    }).catch(() => null)
+  }
 
   async function handleLogout() {
     if (!onLogout || isLoggingOut) return
@@ -536,15 +505,15 @@ export function NavigationShell({
                   </div>
 
                   <div className="invoice-notification-list">
-                    {notifications.map((item) => {
+                    {visibleNotifications.map((item) => {
                       const content = (
                         <>
                           <span className={`invoice-notification-dot invoice-notification-dot-${item.tone}`} />
                           <span className="min-w-0">
                             <span className="invoice-notification-item-title">{item.title}</span>
-                            <span className="invoice-notification-item-text">{item.text}</span>
+                            <span className="invoice-notification-item-text">{item.message}</span>
                           </span>
-                          {item.time ? <span className="invoice-notification-time">{item.time}</span> : null}
+                          {item.createdAt ? <span className="invoice-notification-time">{formatNotificationTime(item.createdAt)}</span> : null}
                         </>
                       )
 
@@ -554,6 +523,7 @@ export function NavigationShell({
                             key={item.id}
                             href={item.href}
                             className={`invoice-notification-item no-underline ${focusRing}`}
+                            onClick={() => markNotificationRead(item.id)}
                           >
                             {content}
                           </Link>
@@ -561,9 +531,14 @@ export function NavigationShell({
                       }
 
                       return (
-                        <div key={item.id} className="invoice-notification-item">
+                        <button
+                          key={item.id}
+                          type="button"
+                          className={`invoice-notification-item w-full text-left ${focusRing}`}
+                          onClick={() => markNotificationRead(item.id)}
+                        >
                           {content}
-                        </div>
+                        </button>
                       )
                     })}
                   </div>

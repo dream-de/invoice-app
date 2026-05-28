@@ -12,6 +12,8 @@
   "settings.nav.numberRanges.sub": "Invoice, offer & customer numbers",
   "settings.nav.email": "Email",
   "settings.nav.email.sub": "SMTP & Resend",
+  "settings.nav.notifications": "Notifications",
+  "settings.nav.notifications.sub": "Bell & categories",
   "settings.nav.reminders": "Reminders",
   "settings.nav.reminders.sub": "Reminder levels & fees",
   "settings.nav.legal": "Legal",

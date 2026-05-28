@@ -3,6 +3,7 @@ import { writeAuditLog } from "@/lib/audit/log"
 import { authenticateAppUser, mapAuthError } from "@/lib/auth/service"
 import { SESSION_COOKIE_NAME, getSessionCookieOptions } from "@/lib/auth/session"
 import { RateLimitError, assertRateLimit, clearRateLimit, clientAddress } from "@/lib/auth/rate-limit"
+import { appendNotification } from "@/lib/notifications/store"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -59,6 +60,14 @@ export async function POST(request: Request) {
       entityId: user.id,
       data: { email: user.email, role: user.role }
     })
+    await appendNotification({
+      category: "security",
+      tone: "info",
+      title: "Anmeldung erkannt",
+      message: user.email + " hat sich angemeldet.",
+      href: "/account/security",
+      source: "auth-login:" + user.id + ":" + Date.now()
+    }).catch(() => null)
 
     return response
   } catch (error) {

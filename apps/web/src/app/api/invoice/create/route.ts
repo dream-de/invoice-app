@@ -4,6 +4,7 @@ import { z } from "zod"
 import { documents } from "@/data/invoice-data"
 import { AuthServiceError, mapAuthError, requireCurrentUser } from "@/lib/auth/service"
 import { hasUserPermission } from "@/lib/auth/permissions"
+import { appendNotification } from "@/lib/notifications/store"
 
 const MAX_ITEMS = 100
 const MAX_MONEY = 999_999_999
@@ -190,6 +191,15 @@ export async function POST(req: Request) {
         }
       })
     })
+
+    await appendNotification({
+      category: "documents",
+      tone: "info",
+      title: "Neue Rechnung erstellt",
+      message: invoice.number + " wurde als Entwurf angelegt.",
+      href: "/documents/" + invoice.id,
+      source: "invoice-created:" + invoice.id
+    }).catch(() => null)
 
     return NextResponse.json({ success: true, invoice })
   } catch (err) {

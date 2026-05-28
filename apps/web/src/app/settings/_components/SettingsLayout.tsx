@@ -33,6 +33,7 @@ const items: Item[] = [
   { href: "/settings/finance", labelKey: "settings.nav.finance", subKey: "settings.nav.finance.sub", icon: Banknote },
   { href: "/settings/number-ranges", labelKey: "settings.nav.numberRanges", subKey: "settings.nav.numberRanges.sub", icon: Hash },
   { href: "/settings/email", labelKey: "settings.nav.email", subKey: "settings.nav.email.sub", icon: Mail },
+  { href: "/settings/notifications", labelKey: "settings.nav.notifications", subKey: "settings.nav.notifications.sub", icon: BellRing },
   { href: "/settings/reminders", labelKey: "settings.nav.reminders", subKey: "settings.nav.reminders.sub", icon: BellRing },
   { href: "/settings/legal", labelKey: "settings.nav.legal", subKey: "settings.nav.legal.sub", icon: Gavel },
   { href: "/settings/portal", labelKey: "settings.nav.portal", subKey: "settings.nav.portal.sub", icon: Globe2 },

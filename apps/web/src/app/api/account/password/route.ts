@@ -3,6 +3,7 @@ import { prisma } from "@dream-invoice/database"
 import { writeAuditLog } from "@/lib/audit/log"
 import { mapAuthError, requireCurrentUser } from "@/lib/auth/service"
 import { assertStrongPassword, hashPassword, PasswordError, verifyPassword } from "@/lib/auth/password"
+import { appendNotification } from "@/lib/notifications/store"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -45,6 +46,14 @@ export async function PATCH(request: Request) {
       entityId: current.id,
       data: { email: current.email }
     })
+    await appendNotification({
+      category: "security",
+      tone: "warning",
+      title: "Passwort geaendert",
+      message: current.email + " hat das Kontopasswort geaendert.",
+      href: "/account/security",
+      source: "password-update:" + current.id + ":" + Date.now()
+    }).catch(() => null)
 
     return NextResponse.json({ ok: true })
   } catch (error) {

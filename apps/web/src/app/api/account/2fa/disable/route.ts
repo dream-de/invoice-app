@@ -3,6 +3,7 @@ import { Prisma, prisma } from "@dream-invoice/database"
 import { writeAuditLog } from "@/lib/audit/log"
 import { verifyPassword } from "@/lib/auth/password"
 import { mapAuthError, requireCurrentUser } from "@/lib/auth/service"
+import { appendNotification } from "@/lib/notifications/store"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -33,6 +34,14 @@ export async function POST(request: Request) {
       entityId: current.id,
       data: { email: current.email }
     })
+    await appendNotification({
+      category: "security",
+      tone: "warning",
+      title: "2FA deaktiviert",
+      message: current.email + " hat Zwei-Faktor-Authentifizierung deaktiviert.",
+      href: "/account/security",
+      source: "2fa-disable:" + current.id + ":" + Date.now()
+    }).catch(() => null)
 
     return NextResponse.json({ ok: true })
   } catch (error) {

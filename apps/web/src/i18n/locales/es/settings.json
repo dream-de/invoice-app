@@ -12,6 +12,8 @@
   "settings.nav.numberRanges.sub": "Numeros de factura, oferta y cliente",
   "settings.nav.email": "Email",
   "settings.nav.email.sub": "SMTP y Resend",
+  "settings.nav.notifications": "Notificaciones",
+  "settings.nav.notifications.sub": "Campana y categorias",
   "settings.nav.reminders": "Recordatorios",
   "settings.nav.reminders.sub": "Niveles y cargos",
   "settings.nav.legal": "Legal",

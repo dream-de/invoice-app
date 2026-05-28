@@ -4,6 +4,7 @@ import { writeAuditLog } from "@/lib/audit/log"
 import { hashPassword } from "@/lib/auth/password"
 import { createBackupCodes, verifyTotpCode } from "@/lib/auth/totp"
 import { mapAuthError, requireCurrentUser } from "@/lib/auth/service"
+import { appendNotification } from "@/lib/notifications/store"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -39,6 +40,14 @@ export async function POST(request: Request) {
       entityId: current.id,
       data: { email: current.email }
     })
+    await appendNotification({
+      category: "security",
+      tone: "success",
+      title: "2FA aktiviert",
+      message: current.email + " hat Zwei-Faktor-Authentifizierung aktiviert.",
+      href: "/account/security",
+      source: "2fa-enable:" + current.id + ":" + Date.now()
+    }).catch(() => null)
 
     return NextResponse.json({ ok: true, backupCodes })
   } catch (error) {

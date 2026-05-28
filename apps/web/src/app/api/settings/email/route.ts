@@ -1,6 +1,7 @@
 import { promises as fs } from "node:fs"
 import path from "node:path"
 import { NextResponse } from "next/server"
+import { appendNotification } from "@/lib/notifications/store"
 
 export const dynamic = "force-dynamic"
 
@@ -113,6 +114,16 @@ export async function PUT(request: Request) {
 
     await fs.mkdir(path.dirname(SETTINGS_PATH), { recursive: true })
     await fs.writeFile(SETTINGS_PATH, JSON.stringify(next, null, 2))
+    await appendNotification({
+      category: "settings",
+      tone: next.provider === "disabled" ? "warning" : "success",
+      title: next.provider === "disabled" ? "E-Mail-Versand deaktiviert" : "E-Mail-Versand konfiguriert",
+      message: next.provider === "disabled"
+        ? "Rechnungen koennen erst wieder nach Aktivierung per E-Mail versendet werden."
+        : "Provider: " + next.provider,
+      href: "/settings/email",
+      source: "settings:email:" + next.updatedAt
+    }).catch(() => null)
 
     return NextResponse.json({ ok: true, settings: sanitize(next) })
   } catch (error) {

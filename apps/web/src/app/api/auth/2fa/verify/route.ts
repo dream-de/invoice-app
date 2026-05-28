@@ -5,6 +5,7 @@ import { verifyTotpCode } from "@/lib/auth/totp"
 import { SESSION_COOKIE_NAME, createSessionToken, getSessionCookieOptions, verifyTwoFactorChallengeToken } from "@/lib/auth/session"
 import { verifyPassword } from "@/lib/auth/password"
 import { RateLimitError, assertRateLimit, clearRateLimit, clientAddress } from "@/lib/auth/rate-limit"
+import { appendNotification } from "@/lib/notifications/store"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -108,6 +109,14 @@ export async function POST(request: Request) {
     entityId: user.id,
     data: { email: user.email, role: user.role, twoFactor: true }
   })
+  await appendNotification({
+    category: "security",
+    tone: "info",
+    title: "2FA-Anmeldung erkannt",
+    message: user.email + " hat sich mit zweitem Faktor angemeldet.",
+    href: "/account/security",
+    source: "auth-login-2fa:" + user.id + ":" + Date.now()
+  }).catch(() => null)
 
   return response
 }

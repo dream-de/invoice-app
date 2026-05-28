@@ -25,6 +25,11 @@ export const settingsNav = [
     description: "SMTP & Resend"
   },
   {
+    href: "/settings/notifications",
+    title: "Benachrichtigungen",
+    description: "Glocke & Kategorien"
+  },
+  {
     href: "/settings/reminders",
     title: "Mahnwesen",
     description: "Mahnstufen & Gebühren"

@@ -12,6 +12,8 @@
   "settings.nav.numberRanges.sub": "Fatura, teklif ve musteri numaralari",
   "settings.nav.email": "E-posta",
   "settings.nav.email.sub": "SMTP ve Resend",
+  "settings.nav.notifications": "Bildirimler",
+  "settings.nav.notifications.sub": "Zil ve kategoriler",
   "settings.nav.reminders": "Hatirlatmalar",
   "settings.nav.reminders.sub": "Hatirlatma seviyeleri ve ucretler",
   "settings.nav.legal": "Yasal",

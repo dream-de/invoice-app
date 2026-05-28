@@ -12,6 +12,8 @@
   "settings.nav.numberRanges.sub": "Factuur-, offerte- en klantnummers",
   "settings.nav.email": "E-mail",
   "settings.nav.email.sub": "SMTP & Resend",
+  "settings.nav.notifications": "Meldingen",
+  "settings.nav.notifications.sub": "Bel en categorieen",
   "settings.nav.reminders": "Herinneringen",
   "settings.nav.reminders.sub": "Herinneringsniveaus & kosten",
   "settings.nav.legal": "Juridisch",

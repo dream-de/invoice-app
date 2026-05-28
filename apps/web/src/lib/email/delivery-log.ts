@@ -1,5 +1,6 @@
 import { promises as fs } from "node:fs"
 import path from "node:path"
+import { appendNotification } from "@/lib/notifications/store"
 
 const EMAIL_LOG_PATH = path.join(process.cwd(), "data", "email-delivery-log.local.json")
 const MAX_LOG_ENTRIES = 250
@@ -52,7 +53,7 @@ export async function appendEmailDeliveryLog(entry: Omit<EmailDeliveryLogEntry, 
   const entries = await readEntries()
   const next: EmailDeliveryLogEntry = {
     ...entry,
-    to: limitLogField(entry.to) ?? "",
+    to: limitLogField(maskEmailAddress(entry.to)) ?? "",
     subject: limitLogField(entry.subject) ?? "",
     error: limitLogField(entry.error),
     id: `email-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -61,6 +62,18 @@ export async function appendEmailDeliveryLog(entry: Omit<EmailDeliveryLogEntry, 
 
   await fs.mkdir(path.dirname(EMAIL_LOG_PATH), { recursive: true })
   await fs.writeFile(EMAIL_LOG_PATH, JSON.stringify([next, ...entries].slice(0, MAX_LOG_ENTRIES), null, 2))
+  await appendNotification({
+    category: "email",
+    tone: next.status === "success" ? "success" : "warning",
+    title: next.status === "success"
+      ? (next.type === "test" ? "Test-E-Mail gesendet" : "Rechnung per E-Mail gesendet")
+      : (next.type === "test" ? "Test-E-Mail fehlgeschlagen" : "E-Mail-Versand fehlgeschlagen"),
+    message: next.status === "success"
+      ? [next.subject, next.to].filter(Boolean).join(" · ")
+      : next.error || [next.subject, next.to].filter(Boolean).join(" · "),
+    href: next.documentId ? "/documents/" + next.documentId : "/settings/email",
+    source: next.id
+  }).catch(() => null)
 
   return next
 }

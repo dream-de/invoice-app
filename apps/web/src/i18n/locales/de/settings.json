@@ -12,6 +12,8 @@
   "settings.nav.numberRanges.sub": "Rechnungs-, Angebots- & Kundennr.",
   "settings.nav.email": "E-Mail",
   "settings.nav.email.sub": "SMTP & Resend",
+  "settings.nav.notifications": "Benachrichtigungen",
+  "settings.nav.notifications.sub": "Glocke & Kategorien",
   "settings.nav.reminders": "Mahnwesen",
   "settings.nav.reminders.sub": "Mahnstufen & Gebuehren",
   "settings.nav.legal": "Rechtliches",
