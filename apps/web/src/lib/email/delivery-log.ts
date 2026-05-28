@@ -4,6 +4,18 @@ import path from "node:path"
 const EMAIL_LOG_PATH = path.join(process.cwd(), "data", "email-delivery-log.local.json")
 const MAX_LOG_ENTRIES = 250
 
+export function maskEmailAddress(value: string) {
+  const email = String(value ?? "").trim()
+  const at = email.lastIndexOf("@")
+  if (at <= 0) return email ? "***" : ""
+
+  const local = email.slice(0, at)
+  const domain = email.slice(at + 1)
+  const visible = local.slice(0, Math.min(2, local.length))
+
+  return visible + "***@" + domain
+}
+
 export type EmailDeliveryLogEntry = {
   id: string
   createdAt: string

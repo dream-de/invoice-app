@@ -26,10 +26,19 @@ export class SessionError extends Error {
   }
 }
 
+const INSECURE_SESSION_SECRETS = new Set([
+  "change-this-secret-before-production",
+  "dream-invoice-change-this-secret"
+])
+
 function getSessionSecret(secret = process.env.AUTH_SECRET) {
   const value = String(secret ?? "").trim()
-  if (!value || value === "change-this-secret-before-production") {
+  if (!value || INSECURE_SESSION_SECRETS.has(value)) {
     throw new SessionError("missing_secret", "AUTH_SECRET ist nicht konfiguriert.")
+  }
+
+  if (process.env.NODE_ENV === "production" && value.length < 32) {
+    throw new SessionError("weak_secret", "AUTH_SECRET muss in Production mindestens 32 Zeichen lang sein.")
   }
 
   return value

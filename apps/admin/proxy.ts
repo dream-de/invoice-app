@@ -14,7 +14,7 @@ export function proxy(request: NextRequest) {
     fallbackBasicAuthUserEnv: "DREAM_INVOICE_AUTH_USER",
     fallbackBasicAuthPasswordEnv: "DREAM_INVOICE_AUTH_PASSWORD",
     defaultBasicAuthRequired: process.env.NODE_ENV === "production",
-    protectMutatingApiSameOrigin: false
+    protectMutatingApiSameOrigin: true
   })
 
   if (decision.allowed) return NextResponse.next()

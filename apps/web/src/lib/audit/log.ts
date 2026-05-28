@@ -25,7 +25,20 @@ type AuditLogInput = {
   data?: Prisma.InputJsonValue
 }
 
-export async function writeAuditLog(input: AuditLogInput) {
+type AuditLogClient = {
+  auditLog: {
+    create(args: Prisma.AuditLogCreateArgs): Promise<unknown>
+  }
+}
+
+type AuditLogOptions = {
+  client?: AuditLogClient
+  throwOnError?: boolean
+}
+
+export async function writeAuditLog(input: AuditLogInput, options: AuditLogOptions = {}) {
+  const client = options.client ?? prisma
+
   try {
     const payload: Prisma.AuditLogCreateInput = {
       action: input.action,
@@ -38,8 +51,9 @@ export async function writeAuditLog(input: AuditLogInput) {
       payload.data = input.data
     }
 
-    await prisma.auditLog.create({ data: payload })
+    await client.auditLog.create({ data: payload })
   } catch (error) {
+    if (options.throwOnError) throw error
     console.warn("Audit log write failed.", error)
   }
 }
