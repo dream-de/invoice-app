@@ -23,14 +23,20 @@ function isShellUser(value: unknown): value is ShellUser {
   return typeof user.id === "string" && typeof user.email === "string" && typeof user.role === "string"
 }
 
-export function LocalizedNavigationShell({ children }: { children: ReactNode }) {
+export function LocalizedNavigationShell({
+  children,
+  initialUser = null
+}: {
+  children: ReactNode
+  initialUser?: ShellUser | null
+}) {
   const router = useRouter()
   const pathname = usePathname()
   const currentPathname = pathname ?? ""
   const { language, t } = useLanguage()
   const isEnglish = language === "en"
-  const [currentUser, setCurrentUser] = useState<ShellUser | null>(null)
-  const hasLoadedCurrentUser = useRef(false)
+  const [currentUser, setCurrentUser] = useState<ShellUser | null>(initialUser)
+  const hasLoadedCurrentUser = useRef(Boolean(initialUser))
 
   const isLoginPage = currentPathname === "/login" || currentPathname.startsWith("/login/")
   const isPublicAuthPage = isLoginPage || currentPathname.startsWith("/api/auth/verify-email")
@@ -51,8 +57,9 @@ export function LocalizedNavigationShell({ children }: { children: ReactNode }) 
         const response = await fetch("/api/auth/me", { cache: "no-store" })
         const result = await response.json().catch(() => null)
         if (!cancelled) {
-          setCurrentUser(isShellUser(result?.user) ? result.user : null)
-          hasLoadedCurrentUser.current = true
+          const user = isShellUser(result?.user) ? result.user : null
+          setCurrentUser(user)
+          hasLoadedCurrentUser.current = Boolean(user)
         }
       } catch {
         if (!cancelled) {

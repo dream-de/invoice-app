@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { LocalizedNavigationShell } from "@/components/LocalizedNavigationShell"
 import { PageTranslationBridge } from "@/components/PageTranslationBridge"
+import { getCurrentUser } from "@/lib/auth/service"
 import "./globals.css"
 
 export const metadata: Metadata = {
@@ -8,15 +9,27 @@ export const metadata: Metadata = {
   description: "Dream Invoice"
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children
 }: {
   children: React.ReactNode
 }) {
+  const currentUser = await getCurrentUser().catch(() => null)
+  const shellUser = currentUser
+    ? {
+        id: currentUser.id,
+        email: currentUser.email,
+        name: currentUser.name,
+        role: currentUser.role,
+        status: currentUser.status,
+        permissions: currentUser.permissions
+      }
+    : null
+
   return (
     <html lang="de" suppressHydrationWarning>
       <body>
-        <LocalizedNavigationShell>{children}</LocalizedNavigationShell>
+        <LocalizedNavigationShell initialUser={shellUser}>{children}</LocalizedNavigationShell>
         <PageTranslationBridge />
       </body>
     </html>
