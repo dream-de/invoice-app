@@ -16,6 +16,7 @@ type TemplateRecord = {
 
 const DATA_DIR = path.join(process.cwd(), "data")
 const FILE_PATH = path.join(DATA_DIR, "templates.json")
+const TEMP_FILE_PATH = path.join(DATA_DIR, "templates.json.tmp")
 const MAX_TEMPLATE_ID_LENGTH = 128
 const MAX_TEMPLATE_NAME_LENGTH = 160
 
@@ -87,7 +88,8 @@ async function readAll(): Promise<TemplateRecord[]> {
 
 async function writeAll(items: TemplateRecord[]) {
   await ensureStore()
-  await fs.writeFile(FILE_PATH, JSON.stringify(items, null, 2), "utf8")
+  await fs.writeFile(TEMP_FILE_PATH, JSON.stringify(items, null, 2), "utf8")
+  await fs.rename(TEMP_FILE_PATH, FILE_PATH)
 }
 
 export async function GET(request: Request) {

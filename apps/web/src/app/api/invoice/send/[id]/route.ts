@@ -47,7 +47,9 @@ function assertSameOriginRequest(request: Request) {
   const requestUrl = new URL(request.url)
   const source = request.headers.get("origin") ?? request.headers.get("referer")
 
-  if (!source) return
+  if (!source) {
+    throw new AuthServiceError("invalid_origin", "Ungueltige Anfragequelle.", 403)
+  }
 
   let sourceOrigin: string
   try {

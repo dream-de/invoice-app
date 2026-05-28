@@ -91,7 +91,7 @@ export class UserServiceError extends Error {
   }
 }
 
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const EMAIL_PATTERN = /^[^\s@]+@(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}$/i
 const RESERVED_EMAIL_DOMAIN = "dream-invoice.com"
 const permissionInclude = {
   permissions: {

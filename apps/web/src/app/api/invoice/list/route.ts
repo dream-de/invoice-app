@@ -1,6 +1,30 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
 import { documents } from "@/data/invoice-data"
+import { AuthServiceError, mapAuthError, requireCurrentUser } from "@/lib/auth/service"
+import { hasUserPermission } from "@/lib/auth/permissions"
+
+
+function authErrorResponse(error: unknown) {
+  if (error instanceof AuthServiceError) {
+    const mapped = mapAuthError(error)
+    return NextResponse.json(
+      { ok: false, error: mapped.error, code: mapped.code },
+      { status: mapped.status }
+    )
+  }
+
+  return null
+}
+
+async function requirePermission(scope: string, action: string) {
+  const user = await requireCurrentUser()
+  if (!hasUserPermission(user, scope, action)) {
+    throw new AuthServiceError("forbidden", "Keine Berechtigung fuer diese Aktion.", 403)
+  }
+
+  return user
+}
 
 function normalizeType(type: string) {
   if (type === "Rechnung") return "invoice"
@@ -46,6 +70,8 @@ export async function GET() {
   }
 
   try {
+    await requirePermission("documents", "view")
+
     const invoices = await prisma.invoice.findMany({
       orderBy: { issueDate: "desc" },
       include: {
@@ -69,7 +95,13 @@ export async function GET() {
 
     return NextResponse.json(formatted)
   } catch (error) {
-    console.error("Invoice list unavailable, using fallback documents.", error)
-    return NextResponse.json(fallbackInvoices())
+    const authError = authErrorResponse(error)
+    if (authError) return authError
+
+    console.error("Invoice list unavailable.", error)
+    return NextResponse.json(
+      { ok: false, error: "Invoice list unavailable" },
+      { status: 500 }
+    )
   }
 }

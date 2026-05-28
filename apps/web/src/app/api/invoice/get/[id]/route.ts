@@ -1,6 +1,30 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
 import { documents } from "@/data/invoice-data"
+import { AuthServiceError, mapAuthError, requireCurrentUser } from "@/lib/auth/service"
+import { hasUserPermission } from "@/lib/auth/permissions"
+
+
+function authErrorResponse(error: unknown) {
+  if (error instanceof AuthServiceError) {
+    const mapped = mapAuthError(error)
+    return NextResponse.json(
+      { ok: false, error: mapped.error, code: mapped.code },
+      { status: mapped.status }
+    )
+  }
+
+  return null
+}
+
+async function requirePermission(scope: string, action: string) {
+  const user = await requireCurrentUser()
+  if (!hasUserPermission(user, scope, action)) {
+    throw new AuthServiceError("forbidden", "Keine Berechtigung fuer diese Aktion.", 403)
+  }
+
+  return user
+}
 
 function normalizeStatus(status: string | undefined) {
   const normalized = String(status ?? "open").toLowerCase()
@@ -70,6 +94,8 @@ export async function GET(
   }
 
   try {
+    await requirePermission("documents", "view")
+
     const invoice = await prisma.invoice.findUnique({
       where: { id },
       include: {
@@ -90,6 +116,9 @@ export async function GET(
     return NextResponse.json(invoice)
 
   } catch (err) {
+    const authError = authErrorResponse(err)
+    if (authError) return authError
+
     console.error(err)
     return NextResponse.json(
       { error: "Server error" },

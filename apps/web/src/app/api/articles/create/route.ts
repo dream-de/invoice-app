@@ -1,5 +1,29 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
+import { AuthServiceError, mapAuthError, requireCurrentUser } from "@/lib/auth/service"
+import { hasUserPermission } from "@/lib/auth/permissions"
+
+
+function authErrorResponse(error: unknown) {
+  if (error instanceof AuthServiceError) {
+    const mapped = mapAuthError(error)
+    return NextResponse.json(
+      { ok: false, error: mapped.error, code: mapped.code },
+      { status: mapped.status }
+    )
+  }
+
+  return null
+}
+
+async function requirePermission(scope: string, action: string) {
+  const user = await requireCurrentUser()
+  if (!hasUserPermission(user, scope, action)) {
+    throw new AuthServiceError("forbidden", "Keine Berechtigung fuer diese Aktion.", 403)
+  }
+
+  return user
+}
 
 function toNumber(value: unknown) {
   return Number(String(value ?? "").replace(",", ".")) || 0
@@ -39,6 +63,8 @@ export async function POST(request: Request) {
       })
     }
 
+    await requirePermission("articles", "edit")
+
     const count = await prisma.article.count()
     const number =
       String(data.code || data.number || "").trim() ||
@@ -58,6 +84,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true, article })
   } catch (error: unknown) {
+    const authError = authErrorResponse(error)
+    if (authError) return authError
+
     if (typeof error === "object" && error && "code" in error && error.code === "P2002") {
       return NextResponse.json(
         { ok: false, error: "Artikelnummer existiert bereits." },

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
 import { writeAuditLog } from "@/lib/audit/log"
+import { AuthServiceError, mapAuthError, requireCurrentUserRole } from "@/lib/auth/service"
 
 export const dynamic = "force-dynamic"
 
@@ -9,6 +10,18 @@ const defaults = [
   { type: "offer", prefix: "AN-%Y-", nextValue: 42, padding: 3 },
   { type: "customer", prefix: "KD-", nextValue: 4, padding: 4 }
 ]
+
+function authErrorResponse(error: unknown) {
+  if (error instanceof AuthServiceError) {
+    const mapped = mapAuthError(error)
+    return NextResponse.json(
+      { ok: false, error: mapped.error, code: mapped.code },
+      { status: mapped.status }
+    )
+  }
+
+  return null
+}
 
 function normalizeRanges(value: unknown) {
   const ranges = Array.isArray(value) ? value : []
@@ -34,6 +47,8 @@ export async function GET() {
   }
 
   try {
+    await requireCurrentUserRole(["admin"])
+
     for (const item of defaults) {
       await prisma.numberRange.upsert({
         where: { type: item.type },
@@ -48,13 +63,21 @@ export async function GET() {
 
     return NextResponse.json({ ok: true, ranges })
   } catch (error) {
+    const authError = authErrorResponse(error)
+    if (authError) return authError
+
     console.error(error)
-    return NextResponse.json({ ok: true, ranges: defaults, mode: "demo" })
+    return NextResponse.json(
+      { ok: false, error: "Nummernkreise konnten nicht geladen werden." },
+      { status: 500 }
+    )
   }
 }
 
 export async function PUT(request: Request) {
   try {
+    await requireCurrentUserRole(["admin"])
+
     const data = await request.json()
     const ranges = normalizeRanges(data.ranges)
 
@@ -94,6 +117,9 @@ export async function PUT(request: Request) {
 
     return NextResponse.json({ ok: true, ranges: saved })
   } catch (error) {
+    const authError = authErrorResponse(error)
+    if (authError) return authError
+
     console.error(error)
     return NextResponse.json(
       { ok: false, error: "Nummernkreise konnten nicht gespeichert werden." },
