@@ -2,43 +2,17 @@ import { NextResponse } from "next/server"
 import { writeAuditLog } from "@/lib/audit/log"
 import { authenticateAppUser, mapAuthError } from "@/lib/auth/service"
 import { SESSION_COOKIE_NAME, getSessionCookieOptions } from "@/lib/auth/session"
+import { RateLimitError, assertRateLimit, clearRateLimit, clientAddress } from "@/lib/auth/rate-limit"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 const LOGIN_WINDOW_MS = 15 * 60 * 1000
 const MAX_LOGIN_ATTEMPTS = 8
-const loginAttempts = new Map<string, { count: number; resetAt: number }>()
-
-function clientAddress(request: Request) {
-  return request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip") ||
-    "unknown"
-}
 
 function loginRateLimitKey(request: Request, body: Record<string, unknown>) {
   const email = String(body.email ?? "").trim().toLowerCase()
-  return clientAddress(request) + ":" + email
-}
-
-function assertLoginRateLimit(key: string) {
-  const now = Date.now()
-  const current = loginAttempts.get(key)
-
-  if (!current || current.resetAt <= now) {
-    loginAttempts.set(key, { count: 1, resetAt: now + LOGIN_WINDOW_MS })
-    return
-  }
-
-  if (current.count >= MAX_LOGIN_ATTEMPTS) {
-    throw new Error("rate_limited")
-  }
-
-  current.count += 1
-}
-
-function clearLoginRateLimit(key: string) {
-  loginAttempts.delete(key)
+  return "login:" + clientAddress(request) + ":" + email
 }
 
 async function parseBody(request: Request): Promise<Record<string, unknown>> {
@@ -55,12 +29,16 @@ export async function POST(request: Request) {
   try {
     const body = await parseBody(request)
     rateLimitKey = loginRateLimitKey(request, body)
-    assertLoginRateLimit(rateLimitKey)
+    assertRateLimit({
+      key: rateLimitKey,
+      windowMs: LOGIN_WINDOW_MS,
+      maxAttempts: MAX_LOGIN_ATTEMPTS
+    })
 
     const result = await authenticateAppUser(body)
 
     if (result.requiresTwoFactor) {
-      clearLoginRateLimit(rateLimitKey)
+      clearRateLimit(rateLimitKey)
       return NextResponse.json({
         ok: true,
         requiresTwoFactor: true,
@@ -69,7 +47,7 @@ export async function POST(request: Request) {
       })
     }
 
-    clearLoginRateLimit(rateLimitKey)
+    clearRateLimit(rateLimitKey)
 
     const { user, token } = result
     const response = NextResponse.json({ ok: true, requiresTwoFactor: false, user })
@@ -84,10 +62,10 @@ export async function POST(request: Request) {
 
     return response
   } catch (error) {
-    if (error instanceof Error && error.message === "rate_limited") {
+    if (error instanceof RateLimitError) {
       return NextResponse.json(
         { ok: false, error: "Zu viele Login-Versuche. Bitte spaeter erneut versuchen.", code: "rate_limited" },
-        { status: 429 }
+        { status: 429, headers: { "Retry-After": String(error.retryAfterSeconds) } }
       )
     }
 

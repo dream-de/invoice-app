@@ -9,7 +9,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: ${POSTGRES_DB:-dream_invoice}
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${POSTGRES_PORT:-127.0.0.1:5432}:5432"
     volumes:
       - dream_invoice_postgres:/var/lib/postgresql/data
     healthcheck:
@@ -31,7 +31,7 @@ services:
       PORT: 3000
       NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-Dream Invoice}
       AUTH_SECRET: ${AUTH_SECRET:?Set AUTH_SECRET in .env}
-      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-true}
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-}
       DREAM_INVOICE_AUTH_USER: ${DREAM_INVOICE_AUTH_USER:-admin}
       DREAM_INVOICE_AUTH_PASSWORD: ${DREAM_INVOICE_AUTH_PASSWORD:-}

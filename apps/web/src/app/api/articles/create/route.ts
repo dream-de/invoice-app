@@ -1,8 +1,34 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
+import { z } from "zod"
 import { AuthServiceError, mapAuthError, requireCurrentUser } from "@/lib/auth/service"
 import { hasUserPermission } from "@/lib/auth/permissions"
 
+const decimalInput = z.union([z.string(), z.number()]).transform((value, ctx) => {
+  const normalized = String(value).trim().replace(",", ".")
+  if (!/^\d+(?:\.\d{1,2})?$/.test(normalized)) {
+    ctx.addIssue({ code: "custom", message: "Ungueltige Zahl." })
+    return z.NEVER
+  }
+
+  return Number(normalized)
+})
+
+const articleCreateSchema = z.object({
+  name: z.string().trim().min(2, "Artikelname fehlt.").max(160),
+  code: z.string().trim().min(1).max(64).optional(),
+  number: z.string().trim().min(1).max(64).optional(),
+  category: z.string().trim().max(80).optional().nullable(),
+  description: z.string().trim().max(2_000).optional().nullable(),
+  unit: z.string().trim().min(1).max(24).optional(),
+  price: decimalInput.optional(),
+  netPrice: decimalInput.optional(),
+  tax: decimalInput.optional(),
+  vatRate: decimalInput.optional()
+}).refine((data) => data.price !== undefined || data.netPrice !== undefined, {
+  path: ["price"],
+  message: "Preis fehlt."
+})
 
 function authErrorResponse(error: unknown) {
   if (error instanceof AuthServiceError) {
@@ -25,23 +51,26 @@ async function requirePermission(scope: string, action: string) {
   return user
 }
 
-function toNumber(value: unknown) {
-  return Number(String(value ?? "").replace(",", ".")) || 0
+function optionalText(value: string | null | undefined) {
+  const text = value?.trim() ?? ""
+  return text.length ? text : null
 }
 
 export async function POST(request: Request) {
   try {
-    const data = await request.json()
-
-    if (!data.name || String(data.name).trim().length < 2) {
+    const parsed = articleCreateSchema.safeParse(await request.json().catch(() => ({})))
+    if (!parsed.success) {
       return NextResponse.json(
-        { ok: false, error: "Artikelname fehlt." },
+        { ok: false, error: parsed.error.issues[0]?.message ?? "Ungueltige Artikel-Daten." },
         { status: 400 }
       )
     }
+    const data = parsed.data
+    const netPrice = data.price ?? data.netPrice ?? 0
+    const vatRate = data.tax ?? data.vatRate ?? 19
 
     if (!process.env.DATABASE_URL) {
-      const number = String(data.code || data.number || "").trim() || "AR-DEMO-0001"
+      const number = data.code || data.number || "AR-DEMO-0001"
 
       return NextResponse.json({
         ok: true,
@@ -49,14 +78,14 @@ export async function POST(request: Request) {
           id: "demo-" + Date.now(),
           number,
           code: number,
-          name: String(data.name).trim(),
-          category: data.category ? String(data.category).trim() : null,
-          description: data.description ? String(data.description).trim() : null,
-          unit: data.unit ? String(data.unit).trim() : "Stk",
-          netPrice: toNumber(data.price ?? data.netPrice),
-          price: toNumber(data.price ?? data.netPrice),
-          vatRate: toNumber(data.tax ?? data.vatRate ?? 19),
-          tax: toNumber(data.tax ?? data.vatRate ?? 19),
+          name: data.name,
+          category: optionalText(data.category),
+          description: optionalText(data.description),
+          unit: data.unit ?? "Stk",
+          netPrice,
+          price: netPrice,
+          vatRate,
+          tax: vatRate,
           active: true
         },
         mode: "demo"
@@ -67,18 +96,19 @@ export async function POST(request: Request) {
 
     const count = await prisma.article.count()
     const number =
-      String(data.code || data.number || "").trim() ||
+      data.code ||
+      data.number ||
       `AR-${String(count + 1).padStart(4, "0")}`
 
     const article = await prisma.article.create({
       data: {
         number,
-        name: String(data.name).trim(),
-        category: data.category ? String(data.category).trim() : null,
-        description: data.description ? String(data.description).trim() : null,
-        unit: data.unit ? String(data.unit).trim() : "Stk",
-        netPrice: toNumber(data.price ?? data.netPrice),
-        vatRate: toNumber(data.tax ?? data.vatRate ?? 19)
+        name: data.name,
+        category: optionalText(data.category),
+        description: optionalText(data.description),
+        unit: data.unit ?? "Stk",
+        netPrice,
+        vatRate
       }
     })
 

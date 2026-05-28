@@ -1,6 +1,8 @@
 import { promises as fs } from "fs"
 import path from "path"
+import { randomUUID } from "crypto"
 import { NextResponse } from "next/server"
+import { z } from "zod"
 import { DEFAULT_INVOICE_TEMPLATE } from "@/lib/document-templates/constants"
 import { AuthServiceError, mapAuthError, requireCurrentUser } from "@/lib/auth/service"
 import { hasUserPermission } from "@/lib/auth/permissions"
@@ -16,9 +18,17 @@ type TemplateRecord = {
 
 const DATA_DIR = path.join(process.cwd(), "data")
 const FILE_PATH = path.join(DATA_DIR, "templates.json")
-const TEMP_FILE_PATH = path.join(DATA_DIR, "templates.json.tmp")
 const MAX_TEMPLATE_ID_LENGTH = 128
 const MAX_TEMPLATE_NAME_LENGTH = 160
+const MAX_TEMPLATE_PAYLOAD_BYTES = 100_000
+
+const templatePayloadSchema = z.object({
+  id: z.string().trim().min(1).max(MAX_TEMPLATE_ID_LENGTH).optional(),
+  name: z.string().trim().min(1).max(MAX_TEMPLATE_NAME_LENGTH).optional(),
+  type: z.enum(["invoice", "offer"]).default("invoice"),
+  active: z.boolean().optional(),
+  data: z.unknown().optional()
+}).passthrough()
 
 function authErrorResponse(error: unknown) {
   if (error instanceof AuthServiceError) {
@@ -56,8 +66,11 @@ function normalizeId(value: unknown) {
   return id
 }
 
-function normalizeType(value: unknown): "invoice" | "offer" {
-  return value === "offer" ? "offer" : "invoice"
+function assertPayloadSize(value: unknown) {
+  const size = Buffer.byteLength(JSON.stringify(value ?? {}), "utf8")
+  if (size > MAX_TEMPLATE_PAYLOAD_BYTES) {
+    throw new AuthServiceError("invalid_request", "Template-Daten sind zu gross.", 413)
+  }
 }
 
 async function ensureStore() {
@@ -88,8 +101,9 @@ async function readAll(): Promise<TemplateRecord[]> {
 
 async function writeAll(items: TemplateRecord[]) {
   await ensureStore()
-  await fs.writeFile(TEMP_FILE_PATH, JSON.stringify(items, null, 2), "utf8")
-  await fs.rename(TEMP_FILE_PATH, FILE_PATH)
+  const tempPath = path.join(DATA_DIR, "templates." + randomUUID() + ".tmp")
+  await fs.writeFile(tempPath, JSON.stringify(items, null, 2), "utf8")
+  await fs.rename(tempPath, FILE_PATH)
 }
 
 export async function GET(request: Request) {
@@ -126,19 +140,25 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => {
       throw new AuthServiceError("invalid_request", "Ungueltige JSON-Anfrage.", 400)
     })
-    const all = await readAll()
+    assertPayloadSize(body)
+    const parsed = templatePayloadSchema.safeParse(body)
+    if (!parsed.success) {
+      throw new AuthServiceError("invalid_request", parsed.error.issues[0]?.message ?? "Ungueltige Template-Daten.", 400)
+    }
 
-    const id = normalizeId(body.id) || `tpl-${Math.random().toString(36).slice(2, 8)}`
+    const all = await readAll()
+    const payload = parsed.data
+    const id = normalizeId(payload.id) || "tpl-" + randomUUID().slice(0, 8)
     const now = new Date().toISOString()
-    const name = String(body.name || "Neue Vorlage").trim().slice(0, MAX_TEMPLATE_NAME_LENGTH)
+    const name = payload.name?.trim() || "Neue Vorlage"
 
     const incoming: TemplateRecord = {
       id,
-      name: name || "Neue Vorlage",
-      type: normalizeType(body.type),
-      active: Boolean(body.active),
+      name,
+      type: payload.type,
+      active: Boolean(payload.active),
       updatedAt: now,
-      data: body.data ?? body
+      data: payload.data ?? payload
     }
 
     const idx = all.findIndex((t) => t.id === id)
