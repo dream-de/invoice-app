@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { SESSION_COOKIE_NAME } from "@/lib/auth/session"
+import { SESSION_COOKIE_NAME, getSessionCookieOptions } from "@/lib/auth/session"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -7,10 +7,7 @@ export const dynamic = "force-dynamic"
 export async function POST() {
   const response = NextResponse.json({ ok: true })
   response.cookies.set(SESSION_COOKIE_NAME, "", {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
+    ...getSessionCookieOptions(),
     maxAge: 0
   })
 
