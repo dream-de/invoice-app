@@ -5,6 +5,7 @@ import { documents } from "@/data/invoice-data"
 import { AuthServiceError, mapAuthError, requireCurrentUser } from "@/lib/auth/service"
 import { hasUserPermission } from "@/lib/auth/permissions"
 import { appendNotification } from "@/lib/notifications/store"
+import { demoModeResponse, isDemoMode } from "@/lib/demo-mode"
 
 const MAX_ITEMS = 100
 const MAX_MONEY = 999_999_999
@@ -93,7 +94,7 @@ export async function POST(req: Request) {
     const items = data.items
     const dueDate = data.dueDate instanceof Date ? data.dueDate : null
 
-    if (!process.env.DATABASE_URL) {
+    if (isDemoMode() || !process.env.DATABASE_URL) {
       const firstDemoDocument = documents[0]
       const netTotal = items.reduce(
         (sum, item) => sum + item.price * item.quantity,
@@ -102,7 +103,7 @@ export async function POST(req: Request) {
       const vatTotal = netTotal * data.taxRate
       const grossTotal = netTotal + vatTotal + data.tip
 
-      return NextResponse.json({
+      return NextResponse.json(demoModeResponse({
         success: true,
         invoice: {
           id: firstDemoDocument?.id ?? "demo-draft",
@@ -114,9 +115,8 @@ export async function POST(req: Request) {
           netTotal,
           vatTotal,
           grossTotal
-        },
-        mode: "demo"
-      })
+        }
+      }))
     }
 
     await requireInvoicePermission("create")

@@ -13,6 +13,7 @@ import { createSepaQrPayload } from "@/lib/payment/sepa-qr"
 import { documents } from "@/data/invoice-data"
 import { AuthServiceError, mapAuthError, requireCurrentUser } from "@/lib/auth/service"
 import { hasUserPermission } from "@/lib/auth/permissions"
+import { isDemoMode } from "@/lib/demo-mode"
 
 const APP_ROOT = process.cwd()
 const LEGACY_TEMPLATE_PATH = path.join(APP_ROOT, "data", "default-template.json")
@@ -180,7 +181,7 @@ async function requireInvoicePdfPermission() {
 }
 
 async function loadPdfSource(id: string): Promise<{ invoice: PdfInvoice; company: PdfCompany } | null> {
-  if (!process.env.DATABASE_URL) {
+  if (isDemoMode() || !process.env.DATABASE_URL) {
     const invoice = fallbackInvoice(id)
     return invoice ? { invoice, company: fallbackCompany() } : null
   }
@@ -216,7 +217,7 @@ export async function GET(
   const { searchParams } = new URL(req.url)
 
   try {
-    if (process.env.DATABASE_URL) {
+    if (process.env.DATABASE_URL && !isDemoMode()) {
       await requireInvoicePdfPermission()
     }
 

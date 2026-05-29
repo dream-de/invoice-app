@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
+import { demoModeResponse, isDemoMode } from "@/lib/demo-mode"
 
 function toNumber(value: unknown) {
   return Number(String(value ?? "").replace(",", ".")) || 0
@@ -30,7 +31,7 @@ export async function POST(request: Request) {
       )
     }
 
-    if (!process.env.DATABASE_URL) {
+    if (isDemoMode() || !process.env.DATABASE_URL) {
       const saved = rows
         .filter((row) => row.name && String(row.name).trim().length >= 2)
         .map((row, index) => {
@@ -54,12 +55,11 @@ export async function POST(request: Request) {
           }
         })
 
-      return NextResponse.json({
+      return NextResponse.json(demoModeResponse({
         ok: true,
         savedCount: saved.length,
-        articles: saved,
-        mode: "demo"
-      })
+        articles: saved
+      }))
     }
 
     const startCount = await prisma.article.count()

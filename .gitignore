@@ -90,3 +90,5 @@ license-keys/
 # ---------------------------------------------------------
 apps/web/data/email-settings.local.json
 apps/web/data/email-delivery-log.local.json
+apps/web/data/notification-settings.local.json
+apps/web/data/notifications.local.json

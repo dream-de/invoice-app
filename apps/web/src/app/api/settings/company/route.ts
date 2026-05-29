@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
 import { writeAuditLog } from "@/lib/audit/log"
+import { demoModeResponse, isDemoMode } from "@/lib/demo-mode"
 
 export const dynamic = "force-dynamic"
 
@@ -47,7 +48,7 @@ function companySettingsFromData(data: Record<string, unknown>) {
 }
 
 export async function GET() {
-  if (!process.env.DATABASE_URL) {
+  if (isDemoMode() || !process.env.DATABASE_URL) {
     return NextResponse.json({ ok: true, settings: fallbackCompanySettings, mode: "demo" })
   }
 
@@ -74,12 +75,11 @@ export async function PUT(request: Request) {
       )
     }
 
-    if (!process.env.DATABASE_URL) {
-      return NextResponse.json({
+    if (isDemoMode() || !process.env.DATABASE_URL) {
+      return NextResponse.json(demoModeResponse({
         ok: true,
-        settings: companySettingsFromData(data),
-        mode: "demo"
-      })
+        settings: companySettingsFromData(data)
+      }))
     }
 
     const existing = await prisma.companySettings.findFirst({

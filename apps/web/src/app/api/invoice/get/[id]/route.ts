@@ -3,6 +3,7 @@ import { prisma } from "@dream-invoice/database"
 import { documents } from "@/data/invoice-data"
 import { AuthServiceError, mapAuthError, requireCurrentUser } from "@/lib/auth/service"
 import { hasUserPermission } from "@/lib/auth/permissions"
+import { isDemoMode } from "@/lib/demo-mode"
 
 
 function authErrorResponse(error: unknown) {
@@ -83,7 +84,7 @@ export async function GET(
 ) {
   const { id } = await params
 
-  if (!process.env.DATABASE_URL) {
+  if (isDemoMode() || !process.env.DATABASE_URL) {
     const invoice = fallbackInvoice(id)
 
     if (!invoice) {

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
 import { writeAuditLog } from "@/lib/audit/log"
 import { documents } from "@/data/invoice-data"
+import { demoModeResponse, isDemoMode } from "@/lib/demo-mode"
 
 export async function POST(
   req: Request,
@@ -11,19 +12,18 @@ export async function POST(
 
 
 try {
-    if (!process.env.DATABASE_URL) {
+    if (isDemoMode() || !process.env.DATABASE_URL) {
       const document = documents.find((item) => item.id === id)
 
-      return NextResponse.json({
+      return NextResponse.json(demoModeResponse({
         success: true,
         invoice: {
           id,
           number: document?.number ?? "DI-DEMO-DRAFT",
           status: "final",
           type: document?.type === "Angebot" ? "offer" : "invoice"
-        },
-        mode: "demo"
-      })
+        }
+      }))
     }
 
     const invoice = await prisma.invoice.update({

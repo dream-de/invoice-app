@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
 import { recognizeArticlesFromFile } from "@dream-invoice/ocr"
+import { demoModeResponse, isDemoMode } from "@/lib/demo-mode"
 
 export async function POST(request: Request) {
   const formData = await request.formData()
@@ -18,6 +19,14 @@ export async function POST(request: Request) {
 
   if (!save || !result.ok) {
     return NextResponse.json(result, { status: result.ok || result.unsupported ? 200 : 422 })
+  }
+
+  if (isDemoMode() || !process.env.DATABASE_URL) {
+    return NextResponse.json(demoModeResponse({
+      ...result,
+      saved: true,
+      savedCount: result.ok ? result.articles.length : 0
+    }))
   }
 
   const count = await prisma.article.count()

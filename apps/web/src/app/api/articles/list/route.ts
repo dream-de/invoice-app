@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
 import { articles as fallbackArticles } from "@/data/invoice-data"
+import { isDemoMode } from "@/lib/demo-mode"
 
 type FallbackArticle = (typeof fallbackArticles)[number]
 
@@ -40,7 +41,7 @@ type ListArticle = {
 }
 
 export async function GET() {
-  if (!process.env.DATABASE_URL) {
+  if (isDemoMode() || !process.env.DATABASE_URL) {
     return NextResponse.json({
       ok: true,
       articles: fallbackArticleRows(),

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
+import { demoModeResponse, isDemoMode } from "@/lib/demo-mode"
 
 function demoCustomerFromData(data: Record<string, unknown>) {
   const number = String(data.number || "").trim() || "KD-DEMO-0001"
@@ -30,12 +31,11 @@ export async function POST(req: Request) {
       )
     }
 
-    if (!process.env.DATABASE_URL) {
-      return NextResponse.json({
+    if (isDemoMode() || !process.env.DATABASE_URL) {
+      return NextResponse.json(demoModeResponse({
         ok: true,
-        customer: demoCustomerFromData(data),
-        mode: "demo"
-      })
+        customer: demoCustomerFromData(data)
+      }))
     }
 
     const count = await prisma.customer.count()

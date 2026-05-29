@@ -2,6 +2,7 @@ import { promises as fs } from "node:fs"
 import path from "node:path"
 import { NextResponse } from "next/server"
 import { appendNotification } from "@/lib/notifications/store"
+import { demoModeResponse, isDemoMode } from "@/lib/demo-mode"
 
 export const dynamic = "force-dynamic"
 
@@ -50,6 +51,16 @@ function sanitize(settings: StoredEmailSettings) {
 }
 
 async function readSettings(): Promise<StoredEmailSettings> {
+  if (isDemoMode()) {
+    return {
+      ...defaultSettings,
+      provider: "smtp",
+      fromEmail: "demo@dream-invoice.local",
+      replyTo: "demo@dream-invoice.local",
+      smtpHost: "demo.local"
+    }
+  }
+
   try {
     const raw = await fs.readFile(SETTINGS_PATH, "utf8")
     const parsed = JSON.parse(raw) as Partial<StoredEmailSettings>
@@ -112,8 +123,10 @@ export async function PUT(request: Request) {
       return NextResponse.json({ ok: false, error: "SMTP-Host ist erforderlich." }, { status: 400 })
     }
 
-    await fs.mkdir(path.dirname(SETTINGS_PATH), { recursive: true })
-    await fs.writeFile(SETTINGS_PATH, JSON.stringify(next, null, 2))
+    if (!isDemoMode()) {
+      await fs.mkdir(path.dirname(SETTINGS_PATH), { recursive: true })
+      await fs.writeFile(SETTINGS_PATH, JSON.stringify(next, null, 2))
+    }
     await appendNotification({
       category: "settings",
       tone: next.provider === "disabled" ? "warning" : "success",
@@ -125,7 +138,9 @@ export async function PUT(request: Request) {
       source: "settings:email:" + next.updatedAt
     }).catch(() => null)
 
-    return NextResponse.json({ ok: true, settings: sanitize(next) })
+    return NextResponse.json(isDemoMode()
+      ? demoModeResponse({ ok: true, settings: sanitize(next) })
+      : { ok: true, settings: sanitize(next) })
   } catch (error) {
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : "E-Mail-Einstellungen konnten nicht gespeichert werden." },

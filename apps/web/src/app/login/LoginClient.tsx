@@ -21,7 +21,13 @@ function getError(result: unknown, fallback: string) {
   return fallback
 }
 
-export function LoginClient({ setupAvailable }: { setupAvailable: boolean }) {
+export function LoginClient({
+  setupAvailable,
+  demoMode = false
+}: {
+  setupAvailable: boolean
+  demoMode?: boolean
+}) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { t } = useLanguage()
@@ -82,14 +88,14 @@ export function LoginClient({ setupAvailable }: { setupAvailable: boolean }) {
   }
 
   return (
-    <main className="min-h-screen bg-[#f4f6f9] px-6 py-10 text-[#1d2433]">
+    <main className="flex min-h-screen items-center justify-center bg-[#f4f6f9] px-6 py-10 text-[#1d2433]">
       <section className="mx-auto max-w-md rounded-[32px] border border-[#e5eaf0] bg-white p-8 shadow-[0_24px_70px_rgba(15,23,42,0.12)]">
         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#94a3b8]">Dream Invoice</p>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight text-[#111827]">
           {mode === "setup" ? t("login.title.setup") : t("login.title.login")}
         </h1>
         <p className="mt-3 text-sm font-medium leading-6 text-[#64748b]">
-          {loginStep === "two_factor" ? "Gib den Sicherheitscode aus deiner Authenticator-App oder einen Backup-Code ein." : mode === "setup" ? t("login.description.setup") : t("login.description.login")}
+          {loginStep === "two_factor" ? "Gib den Sicherheitscode aus deiner Authenticator-App oder einen Backup-Code ein." : demoMode ? "Melde dich mit einem aktiven Demo-Benutzer an." : mode === "setup" ? t("login.description.setup") : t("login.description.login")}
         </p>
 
         {searchParams?.get("verified") === "1" ? (
@@ -142,10 +148,10 @@ export function LoginClient({ setupAvailable }: { setupAvailable: boolean }) {
           ) : null}
 
           {loginStep === "credentials" ? <label className="block text-sm font-semibold text-[#111827]">
-            {t("login.field.email")}
+            {demoMode ? "E-Mail / Benutzername" : t("login.field.email")}
             <input
               required
-              type="email"
+              type={demoMode ? "text" : "email"}
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               className="mt-2 min-h-12 w-full rounded-[16px] border border-[#dbe3ec] bg-[#f8fafc] px-4 text-sm font-medium outline-none focus:border-[#94a3b8] focus:bg-white"
@@ -174,9 +180,11 @@ export function LoginClient({ setupAvailable }: { setupAvailable: boolean }) {
                 {showPassword ? <EyeOff size={17} aria-hidden="true" /> : <Eye size={17} aria-hidden="true" />}
               </button>
             </span>
-            <span className="mt-2 block text-xs font-medium leading-5 text-[#64748b]">
-              {t("login.password.hint")}
-            </span>
+            {!demoMode ? (
+              <span className="mt-2 block text-xs font-medium leading-5 text-[#64748b]">
+                {t("login.password.hint")}
+              </span>
+            ) : null}
           </label> : null}
 
           <button

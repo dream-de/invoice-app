@@ -11,22 +11,24 @@
 
 Dream Invoice is a modern invoicing platform for invoices, offers, customers, articles, finance workflows, document templates, and self-hosted business operations.
 
-## Documentation
+## Live Demo
 
-- [Production Deployment](./docs/deployment/production.md)
-- [Production Checklist](./docs/deployment/production-checklist.md)
-- [Operations Runbook](./docs/operations/runbook.md)
-- [Testing](./docs/testing.md)
-- [Releasing](./docs/releasing.md)
-- [Security Policy](./SECURITY.md)
-- [Secrets Rotation](./docs/security/secrets-rotation.md)
-- [Audit Log](./docs/security/audit-log.md)
-- [Roadmap](./ROADMAP.md)
-- [App Structure](./docs/architecture/app-structure.md)
-- [PDF Tools](./docs/pdf-tools.md)
-- [Contributing](./CONTRIBUTING.md)
-- [Support](./SUPPORT.md)
-- [Code of Conduct](./CODE_OF_CONDUCT.md)
+Demo: [http://demo.dream-invoice.com:3001](http://demo.dream-invoice.com:3001)
+
+Demo access:
+
+- Email: `demo@example.com`
+- Password: `dreaminvoice`
+
+All demo data is fictional. Changes are simulated and are not saved permanently.
+
+## Screenshots
+
+![Dream Invoice dashboard](docs/assets/screenshots/dashboard.jpg)
+
+![Dream Invoice documents](docs/assets/screenshots/documents.jpg)
+
+![Dream Invoice articles](docs/assets/screenshots/articles.jpg)
 
 ## Features
 
@@ -36,9 +38,11 @@ Dream Invoice is a modern invoicing platform for invoices, offers, customers, ar
 - Product Docker stack with PostgreSQL, web app, app proxy, health checks, and optional worker
 - Optional demo and landing page kept separate from product/LXC installs
 
-## Compliance Note
+## GoBD-Oriented Workflows
 
-Dream Invoice provides technical building blocks for traceable business workflows. Legal, tax, and accounting compliance still depends on each deployment, process, role setup, retention policy, and country. Dream Invoice does not claim official tax-authority certification.
+Dream Invoice provides technical building blocks for traceable business workflows, including role-based access, audit logging, document history, PDF generation, and structured exports such as CSV.
+
+GoBD readiness depends on the concrete deployment, operating procedures, retention policy, user roles, backup strategy, country-specific requirements, and tax advisor review. Dream Invoice does not claim official tax-authority certification.
 
 ## Workspace
 
@@ -49,11 +53,7 @@ Dream Invoice provides technical building blocks for traceable business workflow
 - `packages/database`, `packages/ui`, `packages/licensing`, `packages/accounting-core`: shared data, UI, licensing, and domain logic
 - `docker/`, `docs/`, `tools/license/`: deployment, documentation, and license tooling
 
-## Live Demo
-
-Demo: [↗ Demo](https://demo.dream-invoice.com)
-
-## Quick Install
+## Getting Started
 
 For a fresh self-hosted LXC or server, install Docker first, then run:
 
@@ -131,7 +131,29 @@ The app will be available at:
 http://localhost:3000
 ```
 
-## Common Commands
+## Project Documentation
+
+- [Production Deployment](./docs/deployment/production.md)
+- [Production Checklist](./docs/deployment/production-checklist.md)
+- [Operations Runbook](./docs/operations/runbook.md)
+- [Testing](./docs/testing.md)
+- [Releasing](./docs/releasing.md)
+- [Security Policy](./SECURITY.md)
+- [Secrets Rotation](./docs/security/secrets-rotation.md)
+- [Audit Log](./docs/security/audit-log.md)
+- [Roadmap](./ROADMAP.md)
+- [App Structure](./docs/architecture/app-structure.md)
+- [PDF Tools](./docs/pdf-tools.md)
+- [Contributing](./CONTRIBUTING.md)
+- [Support](./SUPPORT.md)
+- [Code of Conduct](./CODE_OF_CONDUCT.md)
+
+## Developer Reference
+
+Most users only need the quick install above. The commands below are kept for maintainers and advanced self-hosted setups.
+
+<details>
+<summary>Common development commands</summary>
 
 ```bash
 pnpm dev                 # Start all development tasks through Turbo
@@ -154,7 +176,10 @@ pnpm release:quality     # Run full local release quality gates
 pnpm security:audit      # Run dependency audit from pnpm
 ```
 
-## Docker
+</details>
+
+<details>
+<summary>Docker commands</summary>
 
 Start the product Docker stack manually. Use `--build` when you want to force a fresh image build. This installs Dream Invoice, PostgreSQL, and the app proxy only. Demo and landing-page services are handled by their own stack:
 
@@ -198,7 +223,10 @@ pnpm docker:public:logs
 
 The website stack uses `docker/public-site.compose.yml` and uses `PUBLIC_HTTP_PORT` instead of joining the product installation.
 
-## Development Docker Helpers
+</details>
+
+<details>
+<summary>Development Docker helpers</summary>
 
 Start local development services only:
 
@@ -221,7 +249,10 @@ pnpm docker:dev:logs
 pnpm docker:dev:down
 ```
 
-## Backup
+</details>
+
+<details>
+<summary>Backup and restore</summary>
 
 Create a database backup:
 
@@ -234,6 +265,8 @@ Restore a database backup:
 ```bash
 cat backup.sql | docker compose exec -T postgres psql -U dream_invoice dream_invoice
 ```
+
+</details>
 
 ## License
 

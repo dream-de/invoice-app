@@ -3,10 +3,12 @@
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
+import useSWR from "swr"
 import { FileText } from "lucide-react"
 import { Button, Currency, PageShell } from "@dream-invoice/ui"
 import { documents } from "@/data/invoice-data"
 import { translateStatus, useLanguage } from "@/lib/i18n"
+import { jsonFetcher, listCacheOptions } from "@/lib/swr/fetcher"
 import type { TranslationKey } from "@/i18n/dictionary"
 
 type DocumentStatus = "draft" | "open" | "paid" | "overdue"
@@ -141,6 +143,11 @@ export default function DocumentsPage() {
   const [bulkNotice, setBulkNotice] = useState<BulkNotice | null>(null)
   const [loadNotice, setLoadNotice] = useState<BulkNotice | null>(null)
   const { language, t } = useLanguage()
+  const { data: invoiceData, error: invoiceLoadError, mutate: refreshDocuments } = useSWR<ApiInvoiceListItem[]>(
+    "/api/invoice/list",
+    jsonFetcher,
+    listCacheOptions
+  )
 
   const documentTypeOptions: Array<{ value: DocumentTypeFilter; label: string }> = [
     { value: "invoice", label: t("documents.list.typeFilter.invoices") },
@@ -157,41 +164,17 @@ export default function DocumentsPage() {
   ]
 
   useEffect(() => {
-    let cancelled = false
-
-    async function loadDocuments() {
-      const controller = new AbortController()
-      const timeoutId = window.setTimeout(() => controller.abort(), 8_000)
-
-      try {
-        const response = await fetch("/api/invoice/list", { signal: controller.signal })
-
-        if (!response.ok) {
-          throw new Error("Dokumente konnten nicht geladen werden.")
-        }
-
-        const result = await response.json() as ApiInvoiceListItem[]
-
-        if (!cancelled && Array.isArray(result)) {
-          setDocumentItems(result.map((item) => normalizeApiDocument(item, t, language === "en" ? "en-US" : "de-DE")))
-          setLoadNotice(null)
-        }
-      } catch (error) {
-        if (!cancelled) {
-          console.warn("Document list loading failed.", error)
-          setLoadNotice({ type: "error", text: "Dokumente konnten nicht geladen werden." })
-        }
-      } finally {
-        window.clearTimeout(timeoutId)
-      }
+    if (invoiceLoadError) {
+      console.warn("Document list loading failed.", invoiceLoadError)
+      setLoadNotice({ type: "error", text: "Dokumente konnten nicht geladen werden." })
+      return
     }
 
-    loadDocuments()
-
-    return () => {
-      cancelled = true
+    if (Array.isArray(invoiceData)) {
+      setDocumentItems(invoiceData.map((item) => normalizeApiDocument(item, t, language === "en" ? "en-US" : "de-DE")))
+      setLoadNotice(null)
     }
-  }, [language, t])
+  }, [invoiceData, invoiceLoadError, language, t])
 
   const filteredDocuments = useMemo(() => {
     return documentItems.filter((doc) => doc.type === documentType && (status === "all" || doc.status === status))
@@ -282,6 +265,7 @@ export default function DocumentsPage() {
     if (deletedIds.length > 0) {
       setDocumentItems((items) => items.filter((doc) => !deletedIds.includes(doc.id)))
       setSelectedIds((ids) => ids.filter((id) => !deletedIds.includes(id)))
+      void refreshDocuments()
     }
 
     setBulkNotice({

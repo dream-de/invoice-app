@@ -4,6 +4,7 @@ import { writeAuditLog } from "@/lib/audit/log"
 import { mapAuthError, requireCurrentUser } from "@/lib/auth/service"
 import { assertStrongPassword, hashPassword, PasswordError, verifyPassword } from "@/lib/auth/password"
 import { appendNotification } from "@/lib/notifications/store"
+import { demoModeResponse, isDemoMode } from "@/lib/demo-mode"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -18,6 +19,10 @@ export async function PATCH(request: Request) {
 
     if (nextPassword !== confirmPassword) {
       return NextResponse.json({ ok: false, error: "Die neuen Passwoerter stimmen nicht ueberein." }, { status: 400 })
+    }
+
+    if (isDemoMode()) {
+      return NextResponse.json(demoModeResponse({ ok: true }))
     }
 
     const user = await prisma.user.findUnique({ where: { id: current.id } })

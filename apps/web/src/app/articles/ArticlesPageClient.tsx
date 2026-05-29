@@ -13,10 +13,12 @@ import {
   Trash2,
   X
 } from "lucide-react"
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState } from "react"
+import useSWR from "swr"
 import { Input } from "@dream-invoice/ui"
 import { articles as fallbackArticles } from "@/data/invoice-data"
 import { useLanguage } from "@/lib/i18n"
+import { jsonFetcher, listCacheOptions } from "@/lib/swr/fetcher"
 
 type ViewMode = "grid" | "list"
 
@@ -29,6 +31,11 @@ type ArticleItem = {
   price?: number
   unit?: string
   tax?: number
+}
+
+type ArticleListResponse = {
+  ok: boolean
+  articles?: ArticleItem[]
 }
 
 type ImportRow = {
@@ -139,8 +146,6 @@ function TaxRateControl({
 
 export default function ArticlesPage() {
   const { language, t } = useLanguage()
-  const [items, setItems] = useState<ArticleItem[]>(fallbackArticles)
-  const [loading, setLoading] = useState(false)
   const [view, setView] = useState<ViewMode>("grid")
   const [query, setQuery] = useState("")
   const [taxMode, setTaxMode] = useState<"net" | "gross">("net")
@@ -156,34 +161,25 @@ export default function ArticlesPage() {
   const [importError, setImportError] = useState("")
   const [form, setForm] = useState<ArticleForm>(emptyForm)
   const [editForm, setEditForm] = useState<ArticleForm>(emptyForm)
-
-  async function loadArticles() {
-    setLoading(true)
-
-    try {
-      const response = await fetch("/api/articles/list", { cache: "no-store" })
-      if (!response.ok) return
-
-      const result = await response.json()
-
-      if (result.ok && Array.isArray(result.articles) && result.articles.length > 0) {
-        setItems(result.articles)
-      }
-    } catch (error) {
-      console.warn("Article list unavailable, using fallback articles.", error)
-    } finally {
-      setLoading(false)
+  const { data: articleData, mutate: refreshArticles, isLoading } = useSWR<ArticleListResponse>(
+    "/api/articles/list",
+    jsonFetcher,
+    {
+      ...listCacheOptions,
+      fallbackData: { ok: true, articles: fallbackArticles }
     }
-  }
+  )
+  const items = useMemo(
+    () => (articleData?.ok && Array.isArray(articleData.articles) && articleData.articles.length > 0
+      ? articleData.articles
+      : fallbackArticles),
+    [articleData]
+  )
 
-  useEffect(() => {
-    loadArticles()
-  }, [])
-
-  const categories = [
+  const categories = useMemo(() => [
     "Alle",
     ...Array.from(new Set(items.map((article) => article.category || "Sonstiges")))
-  ]
+  ], [items])
 
   const categoryLabel = (value: string) => {
     if (value === "Alle") return t("articles.filters.all")
@@ -192,17 +188,10 @@ export default function ArticlesPage() {
   }
 
   const filtered = useMemo(() => {
-    const search = query.toLowerCase()
+    const search = query.trim().toLowerCase()
 
     return items.filter((article) => {
-      const text = [
-        article.name,
-        article.code,
-        article.category,
-        article.unit
-      ].join(" ").toLowerCase()
-
-      const matchesQuery = text.includes(search)
+      const matchesQuery = !search || `${article.name} ${article.code ?? ""} ${article.category ?? ""} ${article.unit ?? ""}`.toLowerCase().includes(search)
       const matchesCategory = category === "Alle" || (article.category || "Sonstiges") === category
 
       return matchesQuery && matchesCategory
@@ -233,7 +222,7 @@ export default function ArticlesPage() {
 
     setForm(emptyForm)
     setPanelOpen(false)
-    await loadArticles()
+    await refreshArticles()
   }
 
   function openEdit(article: ArticleItem) {
@@ -260,7 +249,7 @@ export default function ArticlesPage() {
 
     setEditOpen(false)
     setEditingArticle(null)
-    await loadArticles()
+    await refreshArticles()
   }
 
   async function deleteArticle(article: ArticleItem) {
@@ -278,7 +267,7 @@ export default function ArticlesPage() {
       return
     }
 
-    await loadArticles()
+    await refreshArticles()
   }
 
   async function recognizeImportFile(file: File) {
@@ -352,7 +341,7 @@ export default function ArticlesPage() {
       setImportStep("upload")
       setFileName("")
       setImportRows([])
-      await loadArticles()
+      await refreshArticles()
     } catch (error) {
       setImportError(error instanceof Error ? error.message : t("articles.messages.importFailed"))
     } finally {
@@ -393,7 +382,7 @@ export default function ArticlesPage() {
               {t("articles.overview.description")}
             </p>
             <p className="mt-2 text-sm font-extrabold text-[#94a3b8]">
-              {loading ? t("articles.overview.loading") : t("articles.overview.entries").replace("{count}", String(items.length))}
+              {isLoading ? t("articles.overview.loading") : t("articles.overview.entries").replace("{count}", String(items.length))}
             </p>
           </div>
 

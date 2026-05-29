@@ -1,4 +1,5 @@
 import { Prisma, prisma } from "@dream-invoice/database"
+import { isDemoMode } from "@/lib/demo-mode"
 
 export type AuditAction =
   | "auth.login"
@@ -37,6 +38,8 @@ type AuditLogOptions = {
 }
 
 export async function writeAuditLog(input: AuditLogInput, options: AuditLogOptions = {}) {
+  if (isDemoMode()) return
+
   const client = options.client ?? prisma
 
   try {

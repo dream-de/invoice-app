@@ -20,8 +20,8 @@ export class PasswordError extends Error {
 
 export function assertStrongPassword(password: unknown): string {
   const normalized = String(password ?? "")
-  if (normalized.length < 12) {
-    throw new PasswordError("weak_password", "Das Passwort muss mindestens 12 Zeichen haben.")
+  if (normalized.length < 8) {
+    throw new PasswordError("weak_password", "Das Passwort muss mindestens 8 Zeichen haben.")
   }
 
   if (!/[a-z]/.test(normalized) || !/[A-Z]/.test(normalized) || !/[0-9]/.test(normalized)) {

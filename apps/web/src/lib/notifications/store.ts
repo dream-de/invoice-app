@@ -1,5 +1,6 @@
 import { promises as fs } from "node:fs"
 import path from "node:path"
+import { isDemoMode } from "@/lib/demo-mode"
 
 export const notificationCategories = ["documents", "email", "settings", "security", "system"] as const
 export const notificationTones = ["success", "warning", "info"] as const
@@ -108,6 +109,8 @@ function normalizeNotification(value: unknown): StoredNotification | null {
 }
 
 async function readNotifications(): Promise<StoredNotification[]> {
+  if (isDemoMode()) return []
+
   try {
     const raw = await fs.readFile(NOTIFICATIONS_PATH, "utf8")
     const data = JSON.parse(raw)
@@ -120,11 +123,18 @@ async function readNotifications(): Promise<StoredNotification[]> {
 }
 
 async function writeNotifications(items: StoredNotification[]) {
+  if (isDemoMode()) {
+    void items
+    return
+  }
+
   await fs.mkdir(path.dirname(NOTIFICATIONS_PATH), { recursive: true })
   await fs.writeFile(NOTIFICATIONS_PATH, JSON.stringify(items.slice(0, MAX_NOTIFICATIONS), null, 2))
 }
 
 export async function readNotificationSettings(): Promise<NotificationSettings> {
+  if (isDemoMode()) return defaultNotificationSettings
+
   try {
     const raw = await fs.readFile(SETTINGS_PATH, "utf8")
     return normalizeSettings(JSON.parse(raw) as Partial<NotificationSettings>)
@@ -138,6 +148,8 @@ export async function writeNotificationSettings(settings: Partial<NotificationSe
     ...settings,
     updatedAt: new Date().toISOString()
   })
+
+  if (isDemoMode()) return next
 
   await fs.mkdir(path.dirname(SETTINGS_PATH), { recursive: true })
   await fs.writeFile(SETTINGS_PATH, JSON.stringify(next, null, 2))
@@ -165,6 +177,8 @@ export async function appendNotification(input: NotificationInput) {
   const withoutDuplicate = next.source
     ? current.filter((item) => item.source !== next.source)
     : current
+
+  if (isDemoMode()) return next
 
   await writeNotifications([next, ...withoutDuplicate])
   return next

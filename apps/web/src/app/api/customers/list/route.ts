@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
 import { customers as fallbackCustomers } from "@/data/invoice-data"
+import { isDemoMode } from "@/lib/demo-mode"
 
 export const dynamic = "force-dynamic"
 
@@ -27,7 +28,7 @@ function fallbackCustomerRows() {
 }
 
 export async function GET() {
-  if (!process.env.DATABASE_URL) {
+  if (isDemoMode() || !process.env.DATABASE_URL) {
     return NextResponse.json(fallbackCustomerRows())
   }
 

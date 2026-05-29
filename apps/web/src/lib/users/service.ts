@@ -1,6 +1,7 @@
 import { enforceUserLimit } from "@dream-invoice/licensing/signed-license"
 import { isUserRole, isUserStatus, type UserRole, type UserStatus } from "@dream-invoice/auth"
 import { prisma } from "@dream-invoice/database"
+import { demoSessionUser, isDemoMode } from "@/lib/demo-mode"
 import { getUserLimitStatus, type UserLimitStatus } from "@/lib/license/limits"
 import {
   normalizePermissionSettings,
@@ -222,6 +223,23 @@ async function assertNotLastActiveAdmin(
 }
 
 export async function listAppUsers(context?: UserServiceContext): Promise<AppUser[]> {
+  if (isDemoMode() && !context?.store) {
+    const now = new Date("2026-01-01T00:00:00.000Z")
+    return [{
+      id: demoSessionUser.id,
+      name: demoSessionUser.name,
+      email: demoSessionUser.email,
+      role: demoSessionUser.role,
+      status: demoSessionUser.status,
+      lastLoginAt: null,
+      invitedAt: now,
+      disabledAt: null,
+      permissions: [],
+      createdAt: now,
+      updatedAt: now
+    }]
+  }
+
   const store = getStore(context)
   const users = await store.user.findMany({
     orderBy: [{ createdAt: "asc" }],
@@ -235,6 +253,25 @@ export async function createAppUser(
   input: CreateAppUserInput,
   context?: UserServiceContext
 ): Promise<AppUser> {
+  if (isDemoMode() && !context?.store) {
+    const now = new Date()
+    const role = normalizeRole(input.role, "user")
+    const status = normalizeStatus(input.status, "active")
+    return {
+      id: "demo-user-" + Date.now(),
+      name: normalizeName(input.name),
+      email: normalizeEmail(input.email),
+      role,
+      status,
+      lastLoginAt: null,
+      invitedAt: now,
+      disabledAt: status === "disabled" ? now : null,
+      permissions: normalizePermissionSettings(input.permissions, role),
+      createdAt: now,
+      updatedAt: now
+    }
+  }
+
   const store = getStore(context)
   const email = normalizeEmail(input.email)
   const name = normalizeName(input.name)
@@ -272,6 +309,25 @@ export async function updateAppUser(
   const id = String(input.id ?? "").trim()
   if (!id) {
     throw new UserServiceError("missing_user", "Benutzer fehlt.")
+  }
+
+  if (isDemoMode() && !context?.store) {
+    const now = new Date()
+    const role = normalizeRole(input.role, "admin")
+    const status = normalizeStatus(input.status, "active")
+    return {
+      id,
+      name: normalizeName(input.name) ?? demoSessionUser.name,
+      email: input.email === undefined ? demoSessionUser.email : normalizeEmail(input.email),
+      role,
+      status,
+      lastLoginAt: null,
+      invitedAt: now,
+      disabledAt: status === "disabled" ? now : null,
+      permissions: normalizePermissionSettings(input.permissions, role),
+      createdAt: now,
+      updatedAt: now
+    }
   }
 
   const store = getStore(context)
@@ -323,6 +379,23 @@ export async function deleteAppUser(
   const id = String(input.id ?? "").trim()
   if (!id) {
     throw new UserServiceError("missing_user", "Benutzer fehlt.")
+  }
+
+  if (isDemoMode() && !context?.store) {
+    const now = new Date()
+    return {
+      id,
+      name: "Demo Benutzer",
+      email: "demo-user@dream-invoice.local",
+      role: "user",
+      status: "disabled",
+      lastLoginAt: null,
+      invitedAt: now,
+      disabledAt: now,
+      permissions: [],
+      createdAt: now,
+      updatedAt: now
+    }
   }
 
   const store = getStore(context)

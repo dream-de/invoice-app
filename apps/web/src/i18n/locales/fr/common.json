@@ -10,7 +10,7 @@
   "login.field.email": "E-mail",
   "login.field.password": "Mot de passe",
   "login.placeholder.name": "admin",
-  "login.placeholder.password": "Au moins 12 caracteres",
+  "login.placeholder.password": "Au moins 8 caracteres",
   "login.submitting": "Veuillez patienter...",
   "login.submit.setup": "Enregistrer",
   "login.submit.login": "Se connecter",

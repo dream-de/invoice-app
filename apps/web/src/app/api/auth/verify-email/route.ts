@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
 import { writeAuditLog } from "@/lib/audit/log"
 import { hashEmailVerificationToken } from "@/lib/auth/email-verification"
+import { isDemoMode } from "@/lib/demo-mode"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -10,6 +11,12 @@ export async function GET(request: Request) {
   const url = new URL(request.url)
   const token = String(url.searchParams.get("token") ?? "").trim()
   const loginUrl = new URL("/login", url.origin)
+
+  if (isDemoMode()) {
+    loginUrl.pathname = "/dashboard"
+    loginUrl.searchParams.set("mode", "demo")
+    return NextResponse.redirect(loginUrl)
+  }
 
   if (!token) {
     loginUrl.searchParams.set("verified", "invalid")

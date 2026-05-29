@@ -10,7 +10,7 @@
   "login.field.email": "E-mail",
   "login.field.password": "Haslo",
   "login.placeholder.name": "admin",
-  "login.placeholder.password": "Co najmniej 12 znakow",
+  "login.placeholder.password": "Co najmniej 8 znakow",
   "login.submitting": "Prosze czekac...",
   "login.submit.setup": "Zarejestruj",
   "login.submit.login": "Zaloguj",

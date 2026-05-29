@@ -1,5 +1,6 @@
 import { enforceUserLimit } from "@dream-invoice/licensing/signed-license"
 import { prisma } from "@dream-invoice/database"
+import { isDemoMode } from "@/lib/demo-mode"
 import { FREE_USER_LIMIT } from "./plans"
 
 export type UserLimitStatus = {
@@ -14,6 +15,19 @@ export type UserLimitStatus = {
 }
 
 export async function getUserLimitStatus(): Promise<UserLimitStatus> {
+  if (isDemoMode()) {
+    return {
+      activeUsers: 1,
+      maxUsers: 1,
+      remainingUsers: 0,
+      limitReached: true,
+      plan: "demo",
+      billingCycle: "demo",
+      status: "active",
+      validUntil: null
+    }
+  }
+
   const now = new Date()
 
   const [activeUsers, license] = await Promise.all([

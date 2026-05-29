@@ -1,6 +1,7 @@
 import { prisma, type Customer } from "@dream-invoice/database"
 import { createCsvResponse } from "@/lib/export/csv-response"
 import { customers as fallbackCustomers } from "@/data/invoice-data"
+import { isDemoMode } from "@/lib/demo-mode"
 
 export const dynamic = "force-dynamic"
 
@@ -30,7 +31,7 @@ function rowsFromFallbackCustomers() {
 }
 
 export async function GET() {
-  if (!process.env.DATABASE_URL) {
+  if (isDemoMode() || !process.env.DATABASE_URL) {
     return createCustomerCsv(rowsFromFallbackCustomers())
   }
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
 import { writeAuditLog } from "@/lib/audit/log"
 import { requireCurrentUser, mapAuthError } from "@/lib/auth/service"
+import { demoModeResponse, isDemoMode } from "@/lib/demo-mode"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -41,6 +42,22 @@ function serialize(user: {
 export async function GET() {
   try {
     const current = await requireCurrentUser()
+    if (isDemoMode()) {
+      return NextResponse.json({
+        ok: true,
+        user: {
+          id: current.id,
+          name: current.name,
+          email: current.email,
+          role: current.role,
+          status: current.status,
+          emailVerified: true,
+          twoFactorEnabled: false,
+          lastLoginAt: null
+        }
+      })
+    }
+
     const user = await prisma.user.findUnique({ where: { id: current.id } })
     if (!user) return NextResponse.json({ ok: false, error: "Benutzer wurde nicht gefunden." }, { status: 404 })
 
@@ -60,6 +77,22 @@ export async function PATCH(request: Request) {
 
     if (!EMAIL_PATTERN.test(email)) {
       return NextResponse.json({ ok: false, error: "Bitte eine gueltige E-Mail-Adresse eintragen." }, { status: 400 })
+    }
+
+    if (isDemoMode()) {
+      return NextResponse.json(demoModeResponse({
+        ok: true,
+        user: {
+          id: current.id,
+          name,
+          email,
+          role: current.role,
+          status: current.status,
+          emailVerified: true,
+          twoFactorEnabled: false,
+          lastLoginAt: null
+        }
+      }))
     }
 
     const user = await prisma.user.update({

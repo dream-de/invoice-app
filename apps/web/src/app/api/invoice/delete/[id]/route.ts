@@ -3,6 +3,7 @@ import { prisma } from "@dream-invoice/database"
 import { writeAuditLog } from "@/lib/audit/log"
 import { AuthServiceError, mapAuthError, requireCurrentUser } from "@/lib/auth/service"
 import { hasUserPermission } from "@/lib/auth/permissions"
+import { demoModeResponse, isDemoMode } from "@/lib/demo-mode"
 
 function isPrismaNotFound(error: unknown) {
   return typeof error === "object" && error !== null && "code" in error && error.code === "P2025"
@@ -24,8 +25,8 @@ export async function DELETE(
   const { id } = await params
 
   try {
-    if (!process.env.DATABASE_URL) {
-      return NextResponse.json({ success: true, mode: "demo" })
+    if (isDemoMode() || !process.env.DATABASE_URL) {
+      return NextResponse.json(demoModeResponse({ success: true }))
     }
 
     const actor = await requireInvoicePermission("delete")

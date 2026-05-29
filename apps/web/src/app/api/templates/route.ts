@@ -6,6 +6,7 @@ import { z } from "zod"
 import { DEFAULT_INVOICE_TEMPLATE } from "@/lib/document-templates/constants"
 import { AuthServiceError, mapAuthError, requireCurrentUser } from "@/lib/auth/service"
 import { hasUserPermission } from "@/lib/auth/permissions"
+import { isDemoMode } from "@/lib/demo-mode"
 
 type TemplateRecord = {
   id: string
@@ -21,6 +22,19 @@ const FILE_PATH = path.join(DATA_DIR, "templates.json")
 const MAX_TEMPLATE_ID_LENGTH = 128
 const MAX_TEMPLATE_NAME_LENGTH = 160
 const MAX_TEMPLATE_PAYLOAD_BYTES = 100_000
+
+function demoTemplateSeed(): TemplateRecord[] {
+  return [
+    {
+      id: "default-invoice",
+      name: "Dream Invoice Standard",
+      type: "invoice",
+      active: true,
+      updatedAt: new Date("2026-01-01T00:00:00.000Z").toISOString(),
+      data: { ...DEFAULT_INVOICE_TEMPLATE, id: "default-invoice", name: "Dream Invoice Standard" }
+    }
+  ]
+}
 
 const templatePayloadSchema = z.object({
   id: z.string().trim().min(1).max(MAX_TEMPLATE_ID_LENGTH).optional(),
@@ -74,6 +88,10 @@ function assertPayloadSize(value: unknown) {
 }
 
 async function ensureStore() {
+  if (isDemoMode()) {
+    return
+  }
+
   await fs.mkdir(DATA_DIR, { recursive: true })
   try {
     await fs.access(FILE_PATH)
@@ -94,6 +112,8 @@ async function ensureStore() {
 
 async function readAll(): Promise<TemplateRecord[]> {
   await ensureStore()
+  if (isDemoMode()) return demoTemplateSeed()
+
   const raw = await fs.readFile(FILE_PATH, "utf8")
   const parsed = JSON.parse(raw)
   return Array.isArray(parsed) ? parsed as TemplateRecord[] : []
@@ -101,6 +121,11 @@ async function readAll(): Promise<TemplateRecord[]> {
 
 async function writeAll(items: TemplateRecord[]) {
   await ensureStore()
+  if (isDemoMode()) {
+    void items
+    return
+  }
+
   const tempPath = path.join(DATA_DIR, "templates." + randomUUID() + ".tmp")
   await fs.writeFile(tempPath, JSON.stringify(items, null, 2), "utf8")
   await fs.rename(tempPath, FILE_PATH)

@@ -2,6 +2,7 @@ import { promises as fs } from "fs";
 import path from "path";
 import { NextResponse } from "next/server";
 import { DEFAULT_INVOICE_TEMPLATE } from "@/lib/document-templates/constants";
+import { demoModeResponse, isDemoMode } from "@/lib/demo-mode";
 
 const APP_ROOT = process.cwd();
 const DATA_DIR = path.join(APP_ROOT, "data");
@@ -27,6 +28,10 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
+    if (isDemoMode()) {
+      return NextResponse.json(demoModeResponse({ ok: true, template: body }), { status: 200 });
+    }
+
     await ensureDataDir();
     await fs.writeFile(FILE_PATH, JSON.stringify(body, null, 2), "utf8");
     return NextResponse.json({ ok: true, filePath: FILE_PATH }, { status: 200 });

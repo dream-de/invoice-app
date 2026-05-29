@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma, type Prisma } from "@dream-invoice/database"
 import { documents } from "@/data/invoice-data"
+import { demoModeResponse, isDemoMode } from "@/lib/demo-mode"
 
 type InvoiceItemPayload = {
   name?: string
@@ -43,7 +44,7 @@ export async function PUT(
     const taxRate = toNumber(data.taxRate ?? 0.19)
     const tip = toNumber(data.tip)
 
-    if (!process.env.DATABASE_URL) {
+    if (isDemoMode() || !process.env.DATABASE_URL) {
       const existingDemoDocument = documents.find((item) => item.id === id) ?? documents[0]
       const netTotal = items.reduce(
         (sum, item) => sum + toNumber(item.price) * toNumber(item.quantity),
@@ -52,7 +53,7 @@ export async function PUT(
       const vatTotal = netTotal * taxRate
       const grossTotal = netTotal + vatTotal + tip
 
-      return NextResponse.json({
+      return NextResponse.json(demoModeResponse({
         success: true,
         invoice: {
           id,
@@ -78,9 +79,8 @@ export async function PUT(
             vatRate: taxRate * 100,
             sortOrder: index
           }))
-        },
-        mode: "demo"
-      })
+        }
+      }))
     }
 
     const existing = await prisma.invoice.findUnique({

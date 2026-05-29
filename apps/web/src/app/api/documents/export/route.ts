@@ -1,6 +1,7 @@
 import { prisma } from "@dream-invoice/database"
 import { documents } from "@/data/invoice-data"
 import { createCsvResponse } from "@/lib/export/csv-response"
+import { isDemoMode } from "@/lib/demo-mode"
 
 function formatDate(value: Date | string | null | undefined) {
   if (!value) return ""
@@ -43,7 +44,7 @@ export async function GET(request: Request) {
 
   const header = ["Nummer", "Typ", "Status", "Kunde", "Datum", "Faelligkeit", "Netto", "MwSt", "Brutto"]
 
-  if (!process.env.DATABASE_URL) {
+  if (isDemoMode() || !process.env.DATABASE_URL) {
     return createCsvResponse([header, ...staticRows(ids)], "dokumente-export.csv")
   }
 

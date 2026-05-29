@@ -3,6 +3,7 @@ import { Prisma, prisma } from "@dream-invoice/database"
 import * as QRCode from "qrcode"
 import { createOtpAuthUri, createTwoFactorSecret } from "@/lib/auth/totp"
 import { mapAuthError, requireCurrentUser } from "@/lib/auth/service"
+import { isDemoMode } from "@/lib/demo-mode"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -11,10 +12,12 @@ export async function POST() {
   try {
     const current = await requireCurrentUser()
     const secret = createTwoFactorSecret()
-    await prisma.user.update({
-      where: { id: current.id },
-      data: { twoFactorSecret: secret, twoFactorEnabledAt: null, twoFactorBackupCodes: Prisma.JsonNull }
-    })
+    if (!isDemoMode()) {
+      await prisma.user.update({
+        where: { id: current.id },
+        data: { twoFactorSecret: secret, twoFactorEnabledAt: null, twoFactorBackupCodes: Prisma.JsonNull }
+      })
+    }
     const otpAuthUri = createOtpAuthUri({ email: current.email, secret })
     const qrCodeDataUrl = await QRCode.toDataURL(otpAuthUri, {
       errorCorrectionLevel: "M",

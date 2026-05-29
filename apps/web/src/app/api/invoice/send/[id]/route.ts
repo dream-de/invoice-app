@@ -4,10 +4,26 @@ import { AuthServiceError, mapAuthError, requireCurrentUser } from "@/lib/auth/s
 import { hasUserPermission } from "@/lib/auth/permissions"
 import { appendEmailDeliveryLog, maskEmailAddress } from "@/lib/email/delivery-log"
 import { cleanString, isEmail, readEmailSettings, sendEmail, type EmailSettings } from "@/lib/email/delivery"
+import { demoModeResponse, isDemoMode } from "@/lib/demo-mode"
+import { documents } from "@/data/invoice-data"
 
 export const dynamic = "force-dynamic"
 
 async function loadInvoice(id: string) {
+  if (isDemoMode()) {
+    const document = documents.find((item) => item.id === id) ?? documents[0]
+    return document
+      ? {
+          id: document.id,
+          number: document.number,
+          customer: {
+            email: document.customerEmail,
+            name: document.customer
+          }
+        }
+      : null
+  }
+
   return prisma.invoice.findUnique({
     where: { id },
     include: {
@@ -76,7 +92,7 @@ export async function POST(
   try {
     assertSameOriginRequest(request)
 
-    if (process.env.DATABASE_URL) {
+    if (process.env.DATABASE_URL && !isDemoMode()) {
       await requireInvoicePermission("pdf")
     }
 
@@ -87,9 +103,9 @@ export async function POST(
     to = cleanString(data.to)
     subject = cleanString(data.subject)
     const message = cleanString(data.message)
-    settings = await readEmailSettings()
+    settings = isDemoMode() ? { provider: "unknown" } : await readEmailSettings()
 
-    if (!settings.provider || settings.provider === "disabled") {
+    if (!isDemoMode() && (!settings.provider || settings.provider === "disabled")) {
       throw new Error("E-Mail-Versand ist deaktiviert. Bitte zuerst unter Einstellungen > E-Mail aktivieren.")
     }
 
@@ -126,18 +142,20 @@ export async function POST(
     }
 
     const pdfBuffer = Buffer.from(await pdfResponse.arrayBuffer())
-    const result = await sendEmail({
-      to,
-      subject,
-      text: message || "Anbei erhalten Sie Ihre Rechnung " + invoice.number + ".",
-      attachments: [
-        {
-          filename: invoice.number + ".pdf",
-          content: pdfBuffer,
-          contentType: "application/pdf"
-        }
-      ]
-    })
+    const result = isDemoMode()
+      ? { provider: "unknown" as const, id: "demo-email-" + Date.now() }
+      : await sendEmail({
+          to,
+          subject,
+          text: message || "Anbei erhalten Sie Ihre Rechnung " + invoice.number + ".",
+          attachments: [
+            {
+              filename: invoice.number + ".pdf",
+              content: pdfBuffer,
+              contentType: "application/pdf"
+            }
+          ]
+        })
 
     await appendEmailDeliveryLog({
       type: "invoice",
@@ -150,7 +168,9 @@ export async function POST(
       messageId: result.id
     })
 
-    return NextResponse.json({ ok: true, ...result })
+    return NextResponse.json(isDemoMode()
+      ? demoModeResponse({ ok: true, ...result, message: "Demo: E-Mail-Versand wurde simuliert." })
+      : { ok: true, ...result })
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "E-Mail konnte nicht gesendet werden."
     const mapped = error instanceof AuthServiceError ? mapAuthError(error) : null

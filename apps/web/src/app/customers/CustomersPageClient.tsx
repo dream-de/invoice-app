@@ -1,40 +1,41 @@
 "use client"
 
 import Link from "next/link"
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react"
+import { ChangeEvent, useMemo, useRef, useState } from "react"
+import useSWR from "swr"
 import { AlertCircle, CheckCircle2 } from "lucide-react"
 import { PageShell } from "@dream-invoice/ui"
 import { customers, projects } from "@/data/invoice-data"
 import { useLanguage } from "@/lib/i18n"
+import { jsonFetcher, listCacheOptions } from "@/lib/swr/fetcher"
+
+type CustomerItem = typeof customers[number]
 
 export default function CustomersPage() {
   const importInputRef = useRef<HTMLInputElement>(null)
   const [view, setView] = useState<"grid" | "list">("grid")
   const [query, setQuery] = useState("")
-  const [customerItems, setCustomerItems] = useState(customers)
   const [importing, setImporting] = useState(false)
   const [importStatus, setImportStatus] = useState<"idle" | "success" | "error">("idle")
   const [importMessage, setImportMessage] = useState("")
   const { t } = useLanguage()
-
-  async function loadCustomers() {
-    const response = await fetch("/api/customers/list")
-    if (!response.ok) return
-
-    const data = await response.json() as typeof customers
-    if (data.length === 0) return
-
-    setCustomerItems(data.map((customer) => ({
+  const { data: customerData, mutate: refreshCustomers } = useSWR<CustomerItem[]>(
+    "/api/customers/list",
+    jsonFetcher,
+    {
+      ...listCacheOptions,
+      fallbackData: customers
+    }
+  )
+  const customerItems = useMemo(
+    () => (customerData && customerData.length > 0 ? customerData : customers).map((customer) => ({
       ...customer,
       contact: customer.contact || "",
       email: customer.email || "",
       status: customer.status || "active"
-    })))
-  }
-
-  useEffect(() => {
-    void loadCustomers()
-  }, [])
+    })),
+    [customerData]
+  )
 
   async function importCustomers(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
@@ -61,7 +62,7 @@ export default function CustomersPage() {
 
       setImportStatus("success")
       setImportMessage(t("customers.overview.import.result").replace("{created}", String(result.created || 0)).replace("{updated}", String(result.updated || 0)))
-      await loadCustomers()
+      await refreshCustomers()
     } catch (error) {
       setImportStatus("error")
       setImportMessage(error instanceof Error ? error.message : t("customers.overview.import.error"))
@@ -72,10 +73,13 @@ export default function CustomersPage() {
   }
 
   const filtered = useMemo(() => {
-    const q = query.toLowerCase()
-    return customerItems.filter((c) =>
-      [c.name, c.contact, c.email, c.status].join(" ").toLowerCase().includes(q)
-    )
+    const q = query.trim().toLowerCase()
+    if (!q) return customerItems
+
+    return customerItems.filter((c) => {
+      const text = `${c.name} ${c.contact} ${c.email} ${c.status}`.toLowerCase()
+      return text.includes(q)
+    })
   }, [customerItems, query])
 
   const statusLabel = (status: string) => {

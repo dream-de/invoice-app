@@ -3,6 +3,7 @@ import { isUserRole, isUserStatus, type UserRole, type UserStatus } from "@dream
 import { prisma } from "@dream-invoice/database"
 import { createAppUser, UserServiceError } from "@/lib/users/service"
 import { normalizePermissionSettings, type UserPermissionSetting } from "@/lib/users/permissions"
+import { demoSessionUser, isDemoMode } from "@/lib/demo-mode"
 import { createEmailVerificationToken } from "./email-verification"
 import { assertStrongPassword, hashPassword, PasswordError, verifyPassword } from "./password"
 import { SESSION_COOKIE_NAME, SessionError, createSessionToken, createTwoFactorChallengeToken, verifySessionToken } from "./session"
@@ -253,6 +254,7 @@ export async function authenticateAppUser(input: LoginInput, context?: AuthConte
 export async function getSessionUserFromToken(token: string | null | undefined, context?: AuthContext): Promise<SessionUser | null> {
   const payload = verifySessionToken(token, { now: context?.now?.(), secret: context?.secret })
   if (!payload) return null
+  if (isDemoMode()) return payload.userId === demoSessionUser.id ? demoSessionUser : null
 
   const canUseCache = !context && Boolean(token)
   const now = Date.now()

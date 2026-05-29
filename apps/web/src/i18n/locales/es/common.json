@@ -10,7 +10,7 @@
   "login.field.email": "Email",
   "login.field.password": "Contrasena",
   "login.placeholder.name": "admin",
-  "login.placeholder.password": "Minimo 12 caracteres",
+  "login.placeholder.password": "Minimo 8 caracteres",
   "login.submitting": "Espera...",
   "login.submit.setup": "Registrarse",
   "login.submit.login": "Iniciar sesion",

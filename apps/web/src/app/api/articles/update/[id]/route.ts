@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
+import { demoModeResponse, isDemoMode } from "@/lib/demo-mode"
 
 function toNumber(value: unknown) {
   return Number(String(value ?? "").replace(",", ".")) || 0
@@ -20,10 +21,10 @@ export async function PUT(
       )
     }
 
-    if (!process.env.DATABASE_URL) {
+    if (isDemoMode() || !process.env.DATABASE_URL) {
       const number = String(data.code || data.number || "").trim()
 
-      return NextResponse.json({
+      return NextResponse.json(demoModeResponse({
         ok: true,
         article: {
           id,
@@ -38,9 +39,8 @@ export async function PUT(
           vatRate: toNumber(data.tax ?? data.vatRate ?? 19),
           tax: toNumber(data.tax ?? data.vatRate ?? 19),
           active: true
-        },
-        mode: "demo"
-      })
+        }
+      }))
     }
 
     const article = await prisma.article.update({

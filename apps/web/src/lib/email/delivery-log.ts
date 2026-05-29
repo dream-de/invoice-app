@@ -1,5 +1,6 @@
 import { promises as fs } from "node:fs"
 import path from "node:path"
+import { isDemoMode } from "@/lib/demo-mode"
 import { appendNotification } from "@/lib/notifications/store"
 
 const EMAIL_LOG_PATH = path.join(process.cwd(), "data", "email-delivery-log.local.json")
@@ -40,6 +41,8 @@ export type EmailDeliveryLogEntry = {
 }
 
 async function readEntries(): Promise<EmailDeliveryLogEntry[]> {
+  if (isDemoMode()) return []
+
   try {
     const raw = await fs.readFile(EMAIL_LOG_PATH, "utf8")
     const data = JSON.parse(raw)
@@ -60,8 +63,12 @@ export async function appendEmailDeliveryLog(entry: Omit<EmailDeliveryLogEntry, 
     createdAt: new Date().toISOString()
   }
 
-  await fs.mkdir(path.dirname(EMAIL_LOG_PATH), { recursive: true })
-  await fs.writeFile(EMAIL_LOG_PATH, JSON.stringify([next, ...entries].slice(0, MAX_LOG_ENTRIES), null, 2))
+  if (isDemoMode()) {
+    void entries
+  } else {
+    await fs.mkdir(path.dirname(EMAIL_LOG_PATH), { recursive: true })
+    await fs.writeFile(EMAIL_LOG_PATH, JSON.stringify([next, ...entries].slice(0, MAX_LOG_ENTRIES), null, 2))
+  }
   await appendNotification({
     category: "email",
     tone: next.status === "success" ? "success" : "warning",

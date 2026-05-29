@@ -3,6 +3,7 @@ import { prisma } from "@dream-invoice/database"
 import { z } from "zod"
 import { writeAuditLog } from "@/lib/audit/log"
 import { AuthServiceError, mapAuthError, requireCurrentUserRole } from "@/lib/auth/service"
+import { demoModeResponse, isDemoMode } from "@/lib/demo-mode"
 
 export const dynamic = "force-dynamic"
 
@@ -45,7 +46,7 @@ function validateRanges(value: unknown) {
 }
 
 export async function GET() {
-  if (!process.env.DATABASE_URL) {
+  if (isDemoMode() || !process.env.DATABASE_URL) {
     return NextResponse.json({ ok: true, ranges: defaults, mode: "demo" })
   }
 
@@ -79,17 +80,16 @@ export async function GET() {
 
 export async function PUT(request: Request) {
   try {
-    await requireCurrentUserRole(["admin"])
-
     const ranges = validateRanges(await request.json().catch(() => ({})))
 
-    if (!process.env.DATABASE_URL) {
-      return NextResponse.json({
+    if (isDemoMode() || !process.env.DATABASE_URL) {
+      return NextResponse.json(demoModeResponse({
         ok: true,
-        ranges: ranges.length > 0 ? ranges : defaults,
-        mode: "demo"
-      })
+        ranges: ranges.length > 0 ? ranges : defaults
+      }))
     }
+
+    await requireCurrentUserRole(["admin"])
 
     const saved = []
 

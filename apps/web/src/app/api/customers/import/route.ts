@@ -1,5 +1,6 @@
 import { prisma } from "@dream-invoice/database"
 import { NextResponse } from "next/server"
+import { isDemoMode } from "@/lib/demo-mode"
 
 type CustomerImportRow = Record<string, string>
 
@@ -213,7 +214,7 @@ export async function POST(request: Request) {
     )
   }
 
-  if (!process.env.DATABASE_URL) {
+  if (isDemoMode() || !process.env.DATABASE_URL) {
     const { preview, skipped, warnings } = buildPreview(rows, 0)
     return importResponse({
       save,

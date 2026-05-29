@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server"
 import { writeAuditLog } from "@/lib/audit/log"
 import { authenticateAppUser, mapAuthError } from "@/lib/auth/service"
-import { SESSION_COOKIE_NAME, getSessionCookieOptions } from "@/lib/auth/session"
+import { SESSION_COOKIE_NAME, createSessionToken, getSessionCookieOptions } from "@/lib/auth/session"
 import { RateLimitError, assertRateLimit, clearRateLimit, clientAddress } from "@/lib/auth/rate-limit"
 import { appendNotification } from "@/lib/notifications/store"
+import { demoSessionUser, isDemoMode, isValidDemoLogin } from "@/lib/demo-mode"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -29,6 +30,20 @@ export async function POST(request: Request) {
 
   try {
     const body = await parseBody(request)
+
+    if (isDemoMode()) {
+      if (!isValidDemoLogin(body.email, body.password)) {
+        return NextResponse.json(
+          { ok: false, error: "Demo-Zugangsdaten sind ungueltig.", code: "invalid_credentials" },
+          { status: 401 }
+        )
+      }
+
+      const response = NextResponse.json({ ok: true, requiresTwoFactor: false, user: demoSessionUser, mode: "demo" })
+      response.cookies.set(SESSION_COOKIE_NAME, createSessionToken(demoSessionUser.id), getSessionCookieOptions())
+      return response
+    }
+
     rateLimitKey = loginRateLimitKey(request, body)
     assertRateLimit({
       key: rateLimitKey,

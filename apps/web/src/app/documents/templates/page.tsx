@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import { Button } from "@dream-invoice/ui";
 import { useLanguage } from "@/lib/i18n";
+import { jsonFetcher, listCacheOptions } from "@/lib/swr/fetcher";
 
 type TemplateRecord = {
   id: string;
@@ -15,20 +17,15 @@ type TemplateRecord = {
 
 export default function TemplatesPage() {
   const [tab, setTab] = useState<"invoice" | "offer">("invoice");
-  const [items, setItems] = useState<TemplateRecord[]>([]);
   const { t } = useLanguage();
-
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch(`/api/templates?type=${tab}`, { cache: "no-store" });
-        const data = await res.json();
-        setItems(Array.isArray(data) ? data : []);
-      } catch {
-        setItems([]);
-      }
-    })();
-  }, [tab]);
+  const { data: items = [] } = useSWR<TemplateRecord[]>(
+    `/api/templates?type=${tab}`,
+    jsonFetcher,
+    {
+      ...listCacheOptions,
+      fallbackData: []
+    }
+  );
 
   return (
     <div className="rounded-[22px] border border-[#e3e9f1] bg-[#f8f9fb] p-6 shadow-[0_8px_26px_rgba(15,23,42,0.05)]">

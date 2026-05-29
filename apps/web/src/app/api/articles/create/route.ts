@@ -3,6 +3,7 @@ import { prisma } from "@dream-invoice/database"
 import { z } from "zod"
 import { AuthServiceError, mapAuthError, requireCurrentUser } from "@/lib/auth/service"
 import { hasUserPermission } from "@/lib/auth/permissions"
+import { demoModeResponse, isDemoMode } from "@/lib/demo-mode"
 
 const decimalInput = z.union([z.string(), z.number()]).transform((value, ctx) => {
   const normalized = String(value).trim().replace(",", ".")
@@ -69,10 +70,10 @@ export async function POST(request: Request) {
     const netPrice = data.price ?? data.netPrice ?? 0
     const vatRate = data.tax ?? data.vatRate ?? 19
 
-    if (!process.env.DATABASE_URL) {
+    if (isDemoMode() || !process.env.DATABASE_URL) {
       const number = data.code || data.number || "AR-DEMO-0001"
 
-      return NextResponse.json({
+      return NextResponse.json(demoModeResponse({
         ok: true,
         article: {
           id: "demo-" + Date.now(),
@@ -87,9 +88,8 @@ export async function POST(request: Request) {
           vatRate,
           tax: vatRate,
           active: true
-        },
-        mode: "demo"
-      })
+        }
+      }))
     }
 
     await requirePermission("articles", "edit")

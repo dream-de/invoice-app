@@ -48,6 +48,11 @@ export type AppData = {
 
 const STORAGE_KEY = "dream-invoice-data";
 
+function isDemoClient() {
+  if (typeof window === "undefined") return false;
+  return window.location.port === "3001" || window.location.hostname.startsWith("demo.");
+}
+
 export const defaultData: AppData = {
   customers: [
     {
@@ -96,6 +101,10 @@ export const defaultData: AppData = {
 
 export function loadAppData(): AppData {
   if (typeof window === "undefined") return defaultData;
+  if (isDemoClient()) {
+    window.localStorage.removeItem(STORAGE_KEY);
+    return defaultData;
+  }
 
   const raw = window.localStorage.getItem(STORAGE_KEY);
 
@@ -113,9 +122,14 @@ export function loadAppData(): AppData {
 }
 
 export function saveAppData(data: AppData) {
+  if (isDemoClient()) return;
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
 export function resetAppData() {
+  if (isDemoClient()) {
+    window.localStorage.removeItem(STORAGE_KEY);
+    return;
+  }
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultData));
 }

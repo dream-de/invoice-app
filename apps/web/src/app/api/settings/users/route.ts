@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { writeAuditLog } from "@/lib/audit/log"
 import { AuthServiceError, requireCurrentUserRole } from "@/lib/auth/service"
 import { getUserLimitStatus } from "@/lib/license/limits"
+import { demoModeResponse, isDemoMode } from "@/lib/demo-mode"
 import {
   createAppUser,
   deleteAppUser,
@@ -71,20 +72,24 @@ export async function POST(request: Request) {
     const actor = await requireCurrentUserRole(["admin"])
     const user = await createAppUser(await parseBody(request))
 
-    await writeAuditLog({
-      action: "user.create",
-      entity: "user",
-      entityId: user.id,
-      data: {
-        actorUserId: actor.id,
-        role: user.role,
-        status: user.status,
-        email: user.email,
-        permissions: user.permissions
-      }
-    })
+    if (!isDemoMode()) {
+      await writeAuditLog({
+        action: "user.create",
+        entity: "user",
+        entityId: user.id,
+        data: {
+          actorUserId: actor.id,
+          role: user.role,
+          status: user.status,
+          email: user.email,
+          permissions: user.permissions
+        }
+      })
+    }
 
-    return NextResponse.json({ ok: true, user: serializeAppUser(user) }, { status: 201 })
+    return NextResponse.json(isDemoMode()
+      ? demoModeResponse({ ok: true, user: serializeAppUser(user) })
+      : { ok: true, user: serializeAppUser(user) }, { status: 201 })
   } catch (error) {
     return mapUserError(error)
   }
@@ -95,20 +100,24 @@ export async function PATCH(request: Request) {
     const actor = await requireCurrentUserRole(["admin"])
     const user = await updateAppUser(await parseBody(request))
 
-    await writeAuditLog({
-      action: "user.update",
-      entity: "user",
-      entityId: user.id,
-      data: {
-        actorUserId: actor.id,
-        role: user.role,
-        status: user.status,
-        email: user.email,
-        permissions: user.permissions
-      }
-    })
+    if (!isDemoMode()) {
+      await writeAuditLog({
+        action: "user.update",
+        entity: "user",
+        entityId: user.id,
+        data: {
+          actorUserId: actor.id,
+          role: user.role,
+          status: user.status,
+          email: user.email,
+          permissions: user.permissions
+        }
+      })
+    }
 
-    return NextResponse.json({ ok: true, user: serializeAppUser(user) })
+    return NextResponse.json(isDemoMode()
+      ? demoModeResponse({ ok: true, user: serializeAppUser(user) })
+      : { ok: true, user: serializeAppUser(user) })
   } catch (error) {
     return mapUserError(error)
   }
@@ -119,19 +128,23 @@ export async function DELETE(request: Request) {
     const actor = await requireCurrentUserRole(["admin"])
     const user = await deleteAppUser(await parseBody(request))
 
-    await writeAuditLog({
-      action: "user.delete",
-      entity: "user",
-      entityId: user.id,
-      data: {
-        actorUserId: actor.id,
-        role: user.role,
-        status: user.status,
-        email: user.email
-      }
-    })
+    if (!isDemoMode()) {
+      await writeAuditLog({
+        action: "user.delete",
+        entity: "user",
+        entityId: user.id,
+        data: {
+          actorUserId: actor.id,
+          role: user.role,
+          status: user.status,
+          email: user.email
+        }
+      })
+    }
 
-    return NextResponse.json({ ok: true, user: serializeAppUser(user) })
+    return NextResponse.json(isDemoMode()
+      ? demoModeResponse({ ok: true, user: serializeAppUser(user) })
+      : { ok: true, user: serializeAppUser(user) })
   } catch (error) {
     return mapUserError(error)
   }

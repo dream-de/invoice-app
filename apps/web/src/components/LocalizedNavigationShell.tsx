@@ -77,6 +77,11 @@ export function LocalizedNavigationShell({
   }, [isPublicAuthPage])
 
   const handleLogout = useCallback(async () => {
+    if (currentUser?.id === "demo-user") {
+      router.push("/dashboard")
+      return
+    }
+
     await fetch("/api/auth/logout", { method: "POST" })
     setCurrentUser(null)
     router.push("/login")

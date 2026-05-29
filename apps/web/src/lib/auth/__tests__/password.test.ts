@@ -13,8 +13,8 @@ describe("password hashing", () => {
   })
 
   it("requires a strong setup password", () => {
-    assert.throws(() => assertStrongPassword("short"), /mindestens 12/)
+    assert.throws(() => assertStrongPassword("short"), /mindestens 8/)
     assert.throws(() => assertStrongPassword("lowercaseonlypassword"), /Grossbuchstaben/)
-    assert.equal(assertStrongPassword("SecurePass123"), "SecurePass123")
+    assert.equal(assertStrongPassword("Password1"), "Password1")
   })
 })

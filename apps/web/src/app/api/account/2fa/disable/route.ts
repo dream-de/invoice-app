@@ -4,6 +4,7 @@ import { writeAuditLog } from "@/lib/audit/log"
 import { verifyPassword } from "@/lib/auth/password"
 import { mapAuthError, requireCurrentUser } from "@/lib/auth/service"
 import { appendNotification } from "@/lib/notifications/store"
+import { demoModeResponse, isDemoMode } from "@/lib/demo-mode"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -13,6 +14,10 @@ export async function POST(request: Request) {
     const current = await requireCurrentUser()
     const body = await request.json().catch(() => ({}))
     const password = String(body.password ?? "")
+    if (isDemoMode()) {
+      return NextResponse.json(demoModeResponse({ ok: true }))
+    }
+
     const user = await prisma.user.findUnique({ where: { id: current.id } })
 
     if (!user || !await verifyPassword(password, user.passwordHash)) {

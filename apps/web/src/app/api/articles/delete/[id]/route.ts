@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
+import { demoModeResponse, isDemoMode } from "@/lib/demo-mode"
 
 export async function DELETE(
   _request: Request,
@@ -8,8 +9,8 @@ export async function DELETE(
   try {
     const { id } = await params
 
-    if (!process.env.DATABASE_URL) {
-      return NextResponse.json({ ok: true, mode: "demo" })
+    if (isDemoMode() || !process.env.DATABASE_URL) {
+      return NextResponse.json(demoModeResponse({ ok: true }))
     }
 
     await prisma.article.delete({

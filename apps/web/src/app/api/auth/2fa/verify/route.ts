@@ -6,6 +6,7 @@ import { SESSION_COOKIE_NAME, createSessionToken, getSessionCookieOptions, verif
 import { verifyPassword } from "@/lib/auth/password"
 import { RateLimitError, assertRateLimit, clearRateLimit, clientAddress } from "@/lib/auth/rate-limit"
 import { appendNotification } from "@/lib/notifications/store"
+import { demoSessionUser, isDemoMode } from "@/lib/demo-mode"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -33,6 +34,10 @@ function rateLimitResponse(error: RateLimitError) {
 }
 
 export async function POST(request: Request) {
+  if (isDemoMode()) {
+    return NextResponse.json({ ok: true, user: demoSessionUser, mode: "demo" })
+  }
+
   const body = await parseBody(request)
   const challengeToken = typeof body.challengeToken === "string" ? body.challengeToken : ""
   const code = typeof body.code === "string" ? body.code.trim() : ""
