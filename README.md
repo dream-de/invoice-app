@@ -9,7 +9,11 @@
 
 ---
 
-Dream Invoice is a modern invoicing platform for invoices, offers, customers, articles, finance workflows, document templates, and self-hosted business operations.
+Dream Invoice is a modern invoicing and business management platform for self-hosted teams, freelancers, and small companies. It helps manage invoices, offers, customers, articles, projects, finance workflows, document templates, PDF generation, exports, user roles, and operational settings in one focused workspace.
+
+The application can be used as a self-hosted web app and includes an isolated public demo environment for evaluation.
+
+> **Note:** Dream Invoice is currently in active development. Some features, workflows, and UI details may still change before the first stable release. Feedback and issue reports are welcome.
 
 ## Live Demo
 
@@ -21,8 +25,6 @@ Demo access:
 - Password: `dreaminvoice`
 
 All demo data is fictional. Changes are simulated and are not saved permanently.
-
-## Screenshots
 
 ![Dream Invoice dashboard](docs/assets/screenshots/dashboard.jpg)
 
