@@ -1,6 +1,7 @@
 FROM node:22-bookworm-slim
 
 ENV PNPM_HOME="/pnpm"
+ENV COREPACK_HOME="/pnpm/corepack"
 ENV PATH="$PNPM_HOME:$PATH"
 ENV NODE_ENV="production"
 ENV PORT="3000"
@@ -36,7 +37,7 @@ RUN rm -rf apps/demo apps/landing-page docker/Demo.Dockerfile docker/LandingPage
 
 EXPOSE 3000
 
-RUN mkdir -p data && chown dreaminvoice:dreaminvoice data
+RUN mkdir -p data "$COREPACK_HOME" && chown -R dreaminvoice:dreaminvoice data "$PNPM_HOME"
 
 USER dreaminvoice
 
