@@ -79,11 +79,11 @@ The product stack starts PostgreSQL, the Dream Invoice web app, and the app prox
 Default access for the first test start:
 
 - User: `admin`
-- Password: `dreaminvoice`
+- Password: the value of `DREAM_INVOICE_AUTH_PASSWORD` in your `.env`
 
 ---
 
-Before real production use, change all default passwords and secrets in `.env`, especially the values below, or generate strong passwords with `openssl rand -base64 32`
+Before real production use, change all default passwords and secrets in `.env`, especially the values below:
 
 - `AUTH_SECRET`
 - `AUTH_COOKIE_SECURE` (set to `true` when the public app URL uses HTTPS)

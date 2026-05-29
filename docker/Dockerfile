@@ -28,7 +28,6 @@ COPY packages ./packages
 COPY database ./database
 COPY docker/scripts ./docker/scripts
 COPY assets ./assets
-COPY logos ./logos
 
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @dream-invoice/database db:generate
