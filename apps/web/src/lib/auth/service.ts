@@ -61,6 +61,7 @@ type AuthContext = {
   store?: UserStore
   now?: () => Date
   secret?: string
+  requireEmailVerification?: boolean
 }
 
 type SessionUserCacheEntry = {
@@ -162,7 +163,7 @@ function normalizePasswordError(error: unknown): never {
 export async function createInitialAdmin(
   input: InitialAdminInput,
   context?: AuthContext
-): Promise<{ user: SessionUser; verificationToken: string }> {
+): Promise<{ user: SessionUser; verificationToken: string | null }> {
   const store = getStore(context)
   const existingUsers = await store.user.count()
 
@@ -178,13 +179,15 @@ export async function createInitialAdmin(
   }
 
   const passwordHash = await hashPassword(password)
-  const verification = createEmailVerificationToken()
+  const requireEmailVerification = context?.requireEmailVerification ?? true
+  const verification = requireEmailVerification ? createEmailVerificationToken() : null
+  const now = context?.now?.() ?? new Date()
   const created = await createAppUser(
     {
       name: input.name,
       email: input.email,
       role: "admin",
-      status: "inactive"
+      status: requireEmailVerification ? "inactive" : "active"
     },
     {
       store,
@@ -204,15 +207,22 @@ export async function createInitialAdmin(
 
   const updated = await store.user.update({
     where: { id: created.id },
-    data: {
-      passwordHash,
-      emailVerificationTokenHash: verification.tokenHash,
-      emailVerificationTokenExpiresAt: verification.expiresAt
-    },
+    data: verification
+      ? {
+          passwordHash,
+          emailVerificationTokenHash: verification.tokenHash,
+          emailVerificationTokenExpiresAt: verification.expiresAt
+        }
+      : {
+          passwordHash,
+          emailVerifiedAt: now,
+          emailVerificationTokenHash: null,
+          emailVerificationTokenExpiresAt: null
+        },
     include: permissionRelation
   })
 
-  return { user: toSessionUser(updated), verificationToken: verification.token }
+  return { user: toSessionUser(updated), verificationToken: verification?.token ?? null }
 }
 
 export async function authenticateAppUser(input: LoginInput, context?: AuthContext): Promise<
