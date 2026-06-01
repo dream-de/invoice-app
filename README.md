@@ -37,7 +37,7 @@ All demo data is fictional. Changes are simulated and are not saved permanently.
 - Invoices, offers, documents, DIN A4 preview, PDF export, and visual templates
 - Customers, articles, projects, finance workflows, import/export, and reporting
 - Multi-language app shell, login/session protection, licensing, and user-limit enforcement
-- Product Docker stack with PostgreSQL, web app, app proxy, health checks, and optional worker
+- Product Docker stack with PostgreSQL, web app, health checks, optional proxy, and optional worker
 - Optional demo and landing page kept separate from product/LXC installs
 
 ## GoBD-Oriented Workflows
@@ -72,7 +72,7 @@ Start the stack:
 docker compose up -d
 ```
 
-The product stack starts PostgreSQL, the Dream Invoice web app, and the app proxy. Demo and landing-page services stay in a separate stack.
+The default product stack starts PostgreSQL and the Dream Invoice web app. Open the app at `http://SERVER-IP:3000`. The optional Nginx proxy is available through the `proxy` profile when you want port 80, a domain, or HTTPS in front of the app.
 
 ---
 
@@ -183,10 +183,16 @@ pnpm security:audit      # Run dependency audit from pnpm
 <details>
 <summary>Docker commands</summary>
 
-Start the product Docker stack manually. Use `--build` when you want to force a fresh image build. This installs Dream Invoice, PostgreSQL, and the app proxy only. Demo and landing-page services are handled by their own stack:
+Start the product Docker stack manually. Use `--build` when you want to force a fresh image build. This starts Dream Invoice and PostgreSQL. Demo and landing-page services are handled by their own stack:
 
 ```bash
 docker compose up -d
+```
+
+The web app is available on port `3000`. To also start the optional Nginx proxy on port `80`, run:
+
+```bash
+docker compose --profile proxy up -d
 ```
 
 Check status and logs:
