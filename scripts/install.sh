@@ -6,7 +6,7 @@ ENV_FILE="$ROOT_DIR/.env"
 
 random_secret() {
   if command -v openssl >/dev/null 2>&1; then
-    openssl rand -base64 "$1" | tr -d '\n'
+    openssl rand -hex "$1" | tr -d '\n'
   else
     date +%s | sha256sum | awk '{print $1}'
   fi

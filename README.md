@@ -60,9 +60,8 @@ GoBD readiness depends on the concrete deployment, operating procedures, retenti
 For a fresh self-hosted LXC or server, install Docker first, then run:
 
 ```bash
-cd /
 git clone https://github.com/dream-de/invoice-app.git dream-invoice
-cd /dream-invoice
+cd dream-invoice
 cp .env.example .env
 nano .env
 ```
@@ -102,9 +101,8 @@ Before real production use, change all default passwords and secrets in `.env`, 
 If you want the installer to create random secrets automatically, use:
 
 ```bash
-cd /
 git clone https://github.com/dream-de/invoice-app.git dream-invoice
-cd /dream-invoice
+cd dream-invoice
 chmod +x scripts/install.sh scripts/status.sh
 ./scripts/install.sh
 ```
