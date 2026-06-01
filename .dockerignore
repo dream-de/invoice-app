@@ -16,3 +16,5 @@ backup
 _tmp_*
 .DS_Store
 .git
+**/.env
+**/.env.*
