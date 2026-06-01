@@ -80,7 +80,7 @@ services:
     volumes:
       - ./docker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     healthcheck:
-      test: ["CMD-SHELL", "nginx -t && wget --user=\"$$DREAM_INVOICE_AUTH_USER\" --password=\"$$DREAM_INVOICE_AUTH_PASSWORD\" -qO- http://127.0.0.1/login >/dev/null"]
+      test: ["CMD-SHELL", "nginx -t && wget -qO- http://127.0.0.1/login >/dev/null"]
       interval: 10s
       timeout: 5s
       retries: 6
