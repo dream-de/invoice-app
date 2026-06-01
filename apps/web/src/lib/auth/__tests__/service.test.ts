@@ -108,6 +108,23 @@ describe("auth service", () => {
     )
   })
 
+  it("creates an active initial admin when email verification is disabled", async () => {
+    const { store, users } = createStore()
+    const { user: admin, verificationToken } = await createInitialAdmin(
+      { name: "Admin", email: "admin@example.com", password: "SecurePass123" },
+      { store, requireEmailVerification: false, now: () => new Date("2026-05-26T11:00:00.000Z") }
+    )
+
+    assert.equal(admin.email, "admin@example.com")
+    assert.equal(admin.role, "admin")
+    assert.equal(admin.status, "active")
+    assert.equal(admin.emailVerifiedAt?.toISOString(), "2026-05-26T11:00:00.000Z")
+    assert.equal(verificationToken, null)
+    assert.equal(users[0].passwordHash?.startsWith("scrypt:v1"), true)
+    assert.equal(users[0].emailVerificationTokenHash, null)
+    assert.equal(users[0].emailVerificationTokenExpiresAt, null)
+  })
+
   it("rejects reserved Dream Invoice emails during setup", async () => {
     const { store } = createStore()
 
