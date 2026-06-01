@@ -32,6 +32,7 @@ export function LoginClient({
   const searchParams = useSearchParams()
   const { t } = useLanguage()
   const [mode, setMode] = useState<Mode>(setupAvailable ? "setup" : "login")
+  const [setupCompleted, setSetupCompleted] = useState(false)
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -41,6 +42,7 @@ export function LoginClient({
   const [showPassword, setShowPassword] = useState(false)
   const [state, setState] = useState<SubmitState>({ type: "idle", message: "" })
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const setupModeAvailable = setupAvailable && !setupCompleted
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -69,15 +71,29 @@ export function LoginClient({
 
       if (result.verificationRequired) {
         setState({ type: "success", message: "Bitte pruefe dein E-Mail-Postfach und bestaetige die Registrierung. Danach kannst du dich anmelden." })
+        if (mode === "setup") {
+          setSetupCompleted(true)
+        }
         setMode("login")
         setPassword("")
+        router.replace("/login")
+        router.refresh()
+        return
+      }
+
+      setState({ type: "success", message: mode === "setup" ? t("login.success.setup") : t("login.success.login") })
+      if (mode === "setup") {
+        setSetupCompleted(true)
+        setMode("login")
+        setPassword("")
+        router.replace("/login")
+        router.refresh()
         return
       }
 
       const nextPath = new URL(window.location.href).searchParams.get("next")
       const safeNextPath = nextPath?.startsWith("/") && !nextPath.startsWith("//") ? nextPath : "/dashboard"
 
-      setState({ type: "success", message: mode === "setup" ? t("login.success.setup") : t("login.success.login") })
       router.push(safeNextPath)
       router.refresh()
     } catch {
@@ -104,7 +120,7 @@ export function LoginClient({
           </p>
         ) : null}
 
-        {setupAvailable && loginStep === "credentials" ? (
+        {setupModeAvailable && loginStep === "credentials" ? (
           <div className="mt-5 grid grid-cols-2 rounded-full bg-[#eef2f7] p-1 text-sm font-semibold">
             <button
               type="button"
