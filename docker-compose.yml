@@ -19,9 +19,7 @@ services:
       retries: 10
 
   web-app:
-    build:
-      context: .
-      dockerfile: docker/Dockerfile
+    image: ${DREAM_INVOICE_IMAGE:-ghcr.io/dream-de/invoice-app:latest}
     restart: unless-stopped
     depends_on:
       postgres:
@@ -52,9 +50,7 @@ services:
   server-worker:
     profiles:
       - worker
-    build:
-      context: .
-      dockerfile: docker/ServerWorker.Dockerfile
+    image: ${DREAM_INVOICE_WORKER_IMAGE:-ghcr.io/dream-de/invoice-app-worker:latest}
     restart: "no"
     depends_on:
       postgres:

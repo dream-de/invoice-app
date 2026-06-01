@@ -63,6 +63,9 @@ SERVER_WORKER_MODE=scheduled
 SERVER_WORKER_SCHEDULE_FILE="config/schedules.example.json"
 SERVER_WORKER_LIMIT=25
 SERVER_WORKER_NOW=""
+
+DREAM_INVOICE_IMAGE=ghcr.io/dream-de/invoice-app:latest
+DREAM_INVOICE_WORKER_IMAGE=ghcr.io/dream-de/invoice-app-worker:latest
 EOF
   chmod 600 "$ENV_FILE"
   CREATED_ENV=1
@@ -73,7 +76,8 @@ fi
 cd "$ROOT_DIR"
 
 echo "Starting Dream Invoice product stack..."
-docker compose up -d --build
+docker compose pull
+docker compose up -d
 
 echo
 echo "Dream Invoice is starting."

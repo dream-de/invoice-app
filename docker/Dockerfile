@@ -37,7 +37,7 @@ RUN rm -rf apps/demo apps/landing-page docker/Demo.Dockerfile docker/LandingPage
 
 EXPOSE 3000
 
-RUN mkdir -p data "$COREPACK_HOME" && chown -R dreaminvoice:dreaminvoice data "$PNPM_HOME"
+RUN mkdir -p data "$COREPACK_HOME" && chown dreaminvoice:dreaminvoice data
 
 USER dreaminvoice
 

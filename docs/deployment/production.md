@@ -30,6 +30,7 @@ Important values:
 Start the product stack from the repository root:
 
 ```bash
+docker compose pull
 docker compose up -d
 ```
 
@@ -40,7 +41,7 @@ The stack starts:
 - Nginx app proxy
 - Optional worker profile, when enabled
 
-Demo and landing-page services are handled by `docker/public-site.compose.yml` and are separate from the product installation.
+The default product stack uses the published Dream Invoice images from the registry. Local Docker builds are kept for maintainers in `docker-compose.build.yml`. Keep the GHCR packages public when you want unauthenticated self-hosted installs. Demo and landing-page services are handled by `docker/public-site.compose.yml` and are separate from the product installation.
 
 ## 3. Access
 
@@ -73,12 +74,6 @@ For a single-server install, bind PostgreSQL to localhost or leave it reachable 
 
 ## 6. Database
 
-Run migrations during deployment:
-
-```bash
-pnpm db:deploy
-```
-
 In Docker, migrations are applied through the app startup flow. Keep regular PostgreSQL backups and test restore steps before relying on them.
 
 ## 7. Worker
@@ -86,7 +81,7 @@ In Docker, migrations are applied through the app startup flow. Keep regular Pos
 The worker processes scheduled jobs and background tasks. Start it only when the installation needs those jobs:
 
 ```bash
-pnpm docker:worker
+docker compose --profile worker run --rm --no-deps server-worker
 ```
 
 ## 8. System Time

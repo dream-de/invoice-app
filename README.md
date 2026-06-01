@@ -70,10 +70,13 @@ nano .env
 Start the stack:
 
 ```bash
+docker compose pull
 docker compose up -d
 ```
 
-The default product stack starts PostgreSQL and the Dream Invoice web app. Open the app at `http://SERVER-IP:3000`. The optional Nginx proxy is available through the `proxy` profile when you want port 80, a domain, or HTTPS in front of the app.
+The default product stack pulls the prebuilt Dream Invoice image, starts PostgreSQL, and starts the web app. Open the app at `http://SERVER-IP:3000`. The optional Nginx proxy is available through the `proxy` profile when you want port 80, a domain, or HTTPS in front of the app.
+
+The published images are `ghcr.io/dream-de/invoice-app:latest` and `ghcr.io/dream-de/invoice-app-worker:latest`. Keep the GHCR packages public when you want unauthenticated self-hosted installs.
 
 ---
 
@@ -185,9 +188,10 @@ pnpm security:audit      # Run dependency audit from pnpm
 <details>
 <summary>Docker commands</summary>
 
-Start the product Docker stack manually. Use `--build` when you want to force a fresh image build. This starts Dream Invoice and PostgreSQL. Demo and landing-page services are handled by their own stack:
+Start the product Docker stack manually. This pulls the published Dream Invoice image and starts Dream Invoice with PostgreSQL. Demo and landing-page services are handled by their own stack:
 
 ```bash
+docker compose pull
 docker compose up -d
 ```
 
@@ -210,10 +214,17 @@ Check the database:
 docker compose exec postgres pg_isready -U dream_invoice -d dream_invoice
 ```
 
-Rebuild the stack:
+Update the published app image:
 
 ```bash
-docker compose build --no-cache
+docker compose pull
+docker compose up -d
+```
+
+Build local product images for maintainer testing:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.build.yml build --no-cache
 docker compose up -d
 ```
 
@@ -221,7 +232,7 @@ Build or run the worker profile:
 
 ```bash
 pnpm docker:build:worker
-pnpm docker:worker
+docker compose --profile worker run --rm --no-deps server-worker
 ```
 
 Run the optional website stack separately when you host the marketing site and demo:
