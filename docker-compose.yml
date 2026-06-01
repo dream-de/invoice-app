@@ -67,6 +67,8 @@ services:
       SERVER_WORKER_LIMIT: ${SERVER_WORKER_LIMIT:-25}
 
   nginx:
+    profiles:
+      - proxy
     image: nginx:1.27-alpine
     restart: unless-stopped
     depends_on:
