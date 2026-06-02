@@ -1,28 +1,45 @@
 import { NextResponse } from "next/server"
+import { z } from "zod"
 import { writeAuditLog } from "@/lib/audit/log"
 import { authenticateAppUser, mapAuthError } from "@/lib/auth/service"
 import { SESSION_COOKIE_NAME, createSessionToken, getSessionCookieOptions } from "@/lib/auth/session"
 import { RateLimitError, assertRateLimit, clearRateLimit, clientAddress } from "@/lib/auth/rate-limit"
 import { appendNotification } from "@/lib/notifications/store"
 import { demoSessionUser, isDemoMode, isValidDemoLogin } from "@/lib/demo-mode"
+import { RequestBodyError, readJsonBodyWithLimit } from "@/lib/http/request-body"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-const LOGIN_WINDOW_MS = 15 * 60 * 1000
-const MAX_LOGIN_ATTEMPTS = 8
+const loginSchema = z.object({
+  email: z.string().trim().email().transform((email) => email.toLowerCase()),
+  password: z.string().min(1)
+})
 
-function loginRateLimitKey(request: Request, body: Record<string, unknown>) {
-  const email = String(body.email ?? "").trim().toLowerCase()
-  return "login:" + clientAddress(request) + ":" + email
+type LoginBody = z.infer<typeof loginSchema>
+
+export function envInt(name: string, fallback: number, min: number, max: number) {
+  const parsed = Number(process.env[name])
+  if (!Number.isInteger(parsed)) return fallback
+  return Math.min(Math.max(parsed, min), max)
 }
 
-async function parseBody(request: Request): Promise<Record<string, unknown>> {
-  try {
-    return await request.json()
-  } catch {
-    return {}
+export function loginRateLimitConfig() {
+  return {
+    windowMs: envInt("DREAM_INVOICE_LOGIN_WINDOW_MS", 15 * 60 * 1000, 60_000, 60 * 60 * 1000),
+    maxAttempts: envInt("DREAM_INVOICE_LOGIN_MAX_ATTEMPTS", 8, 1, 100)
   }
+}
+
+function loginRateLimitKey(request: Request, body: LoginBody) {
+  return "login:" + clientAddress(request) + ":" + body.email
+}
+
+async function parseBody(request: Request): Promise<LoginBody> {
+  const body = await readJsonBodyWithLimit<Record<string, unknown>>(request, {
+    invalidJson: "throw"
+  })
+  return loginSchema.parse(body)
 }
 
 export async function POST(request: Request) {
@@ -47,8 +64,7 @@ export async function POST(request: Request) {
     rateLimitKey = loginRateLimitKey(request, body)
     assertRateLimit({
       key: rateLimitKey,
-      windowMs: LOGIN_WINDOW_MS,
-      maxAttempts: MAX_LOGIN_ATTEMPTS
+      ...loginRateLimitConfig()
     })
 
     const result = await authenticateAppUser(body)
@@ -86,6 +102,20 @@ export async function POST(request: Request) {
 
     return response
   } catch (error) {
+    if (error instanceof RequestBodyError) {
+      return NextResponse.json(
+        { ok: false, error: error.message, code: error.code },
+        { status: error.status }
+      )
+    }
+
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { ok: false, error: "E-Mail oder Passwort ist ungueltig.", code: "invalid_credentials" },
+        { status: 401 }
+      )
+    }
+
     if (error instanceof RateLimitError) {
       return NextResponse.json(
         { ok: false, error: "Zu viele Login-Versuche. Bitte spaeter erneut versuchen.", code: "rate_limited" },

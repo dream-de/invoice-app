@@ -7,6 +7,7 @@ import { verifyPassword } from "@/lib/auth/password"
 import { RateLimitError, assertRateLimit, clearRateLimit, clientAddress } from "@/lib/auth/rate-limit"
 import { appendNotification } from "@/lib/notifications/store"
 import { demoSessionUser, isDemoMode } from "@/lib/demo-mode"
+import { RequestBodyError, readJsonBodyWithLimit } from "@/lib/http/request-body"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -15,11 +16,7 @@ const TWO_FACTOR_WINDOW_MS = 10 * 60 * 1000
 const MAX_TWO_FACTOR_ATTEMPTS = 6
 
 async function parseBody(request: Request) {
-  try {
-    return await request.json()
-  } catch {
-    return {}
-  }
+  return readJsonBodyWithLimit<Record<string, unknown>>(request)
 }
 
 function parseBackupCodes(value: unknown): string[] {
@@ -38,7 +35,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true, user: demoSessionUser, mode: "demo" })
   }
 
-  const body = await parseBody(request)
+  let body: Record<string, unknown>
+  try {
+    body = await parseBody(request)
+  } catch (error) {
+    if (error instanceof RequestBodyError) {
+      return NextResponse.json(
+        { ok: false, error: error.message, code: error.code },
+        { status: error.status }
+      )
+    }
+    throw error
+  }
+
   const challengeToken = typeof body.challengeToken === "string" ? body.challengeToken : ""
   const code = typeof body.code === "string" ? body.code.trim() : ""
   const payload = verifyTwoFactorChallengeToken(challengeToken)

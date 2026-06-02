@@ -28,7 +28,8 @@ export class SessionError extends Error {
 
 const INSECURE_SESSION_SECRETS = new Set([
   "change-this-secret-before-production",
-  "dream-invoice-change-this-secret"
+  "dream-invoice-change-this-secret",
+  "CHANGEME_GENERATE_WITH_OPENSSL_RAND_HEX_32"
 ])
 
 function getSessionSecret(secret = process.env.AUTH_SECRET) {

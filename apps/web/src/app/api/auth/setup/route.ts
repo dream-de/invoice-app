@@ -5,16 +5,13 @@ import { createInitialAdmin, mapAuthError } from "@/lib/auth/service"
 import { assertSessionConfigured } from "@/lib/auth/session"
 import { readEmailSettings } from "@/lib/email/delivery"
 import { seedStarterWorkspace } from "@/lib/onboarding/starter-workspace"
+import { RequestBodyError, readJsonBodyWithLimit } from "@/lib/http/request-body"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-async function parseBody(request: Request) {
-  try {
-    return await request.json()
-  } catch {
-    return {}
-  }
+async function parseBody(request: Request): Promise<Record<string, unknown>> {
+  return readJsonBodyWithLimit<Record<string, unknown>>(request)
 }
 
 export async function POST(request: Request) {
@@ -55,6 +52,13 @@ export async function POST(request: Request) {
         : "Registrierung abgeschlossen. Du kannst dich jetzt anmelden."
     }, { status: 201 })
   } catch (error) {
+    if (error instanceof RequestBodyError) {
+      return NextResponse.json(
+        { ok: false, error: error.message, code: error.code },
+        { status: error.status }
+      )
+    }
+
     const mapped = mapAuthError(error)
     return NextResponse.json(
       { ok: false, error: mapped.error, code: mapped.code },

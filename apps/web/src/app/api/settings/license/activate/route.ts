@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { writeAuditLog } from "@/lib/audit/log"
 import { mapAuthError, requireCurrentUserRole } from "@/lib/auth/service"
 import { activateLicenseKey } from "@/lib/license/activate"
+import { RequestBodyError, readJsonBodyWithLimit } from "@/lib/http/request-body"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -26,12 +27,19 @@ export async function POST(req: Request) {
   let body: ActivateLicenseBody
 
   try {
-    body = await req.json()
-  } catch {
-    return NextResponse.json(
-      { ok: false, error: "Ungueltige Anfrage." },
-      { status: 400 }
-    )
+    body = await readJsonBodyWithLimit<ActivateLicenseBody>(req, {
+      invalidJson: "throw",
+      maxBytes: 16 * 1024
+    })
+  } catch (error) {
+    if (error instanceof RequestBodyError) {
+      return NextResponse.json(
+        { ok: false, error: error.message, code: error.code },
+        { status: error.status }
+      )
+    }
+
+    throw error
   }
 
   if (typeof body.licenseKey !== "string" || body.licenseKey.trim().length < 20) {

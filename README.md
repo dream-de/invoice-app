@@ -57,18 +57,20 @@ GoBD readiness depends on the concrete deployment, operating procedures, retenti
 
 ## Getting Started
 
-For a fresh self-hosted LXC or server, install Docker first, then run:
+For a fresh self-hosted LXC or server, install Docker first, then use the installer so secrets are generated automatically:
 
 ```bash
 git clone https://github.com/dream-de/invoice-app.git dream-invoice
 cd dream-invoice
-cp .env.example .env
-nano .env
+chmod +x scripts/install.sh scripts/status.sh
+./scripts/install.sh
 ```
 
-Start the stack:
+For a fully manual install, copy `.env.example` to `.env`, replace every `CHANGEME_*` value, then start the stack:
 
 ```bash
+cp .env.example .env
+nano .env
 docker compose pull
 docker compose up -d
 ```
@@ -88,6 +90,7 @@ Before real production use, change all default passwords and secrets in `.env`, 
 - `POSTGRES_PASSWORD`
 - `DREAM_INVOICE_AUTH_REQUIRED` and `DREAM_INVOICE_AUTH_PASSWORD`
 - `DREAM_INVOICE_ADMIN_PASSWORD`
+- `DREAM_INVOICE_LOGIN_WINDOW_MS` and `DREAM_INVOICE_LOGIN_MAX_ATTEMPTS` when custom login throttling is needed
 
 ---
 
@@ -102,7 +105,7 @@ chmod +x scripts/install.sh scripts/status.sh
 ./scripts/install.sh
 ```
 
-The installer creates a local `.env` file with generated secrets, starts the same product Docker stack, and prints the generated deployment password.
+The installer creates a local `.env` file with generated secrets and starts the same product Docker stack. Keep that file private.
 
 After installation, check the stack:
 

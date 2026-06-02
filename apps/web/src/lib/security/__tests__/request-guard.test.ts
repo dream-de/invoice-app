@@ -165,8 +165,7 @@ describe("request guard", () => {
 
   it("accepts a signed non-expired app session", async () => {
     const token = createSessionToken("user_1", {
-      secret: "test-secret",
-      now: new Date("2026-05-26T10:00:00.000Z")
+      secret: "test-secret"
     })
 
     const decision = await evaluateAppRequestGuard({
