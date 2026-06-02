@@ -179,6 +179,7 @@ export function NavigationShell({
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const searchCloseTimerRef = useRef<number | null>(null)
+  const userMenuCloseTimerRef = useRef<number | null>(null)
   const [notifications, setNotifications] = useState<NotificationApiItem[]>([])
   const [notificationCount, setNotificationCount] = useState(0)
   const isEnglish = notificationsLabel.toLowerCase().includes("notification")
@@ -257,6 +258,9 @@ export function NavigationShell({
     return () => {
       if (searchCloseTimerRef.current) {
         window.clearTimeout(searchCloseTimerRef.current)
+      }
+      if (userMenuCloseTimerRef.current) {
+        window.clearTimeout(userMenuCloseTimerRef.current)
       }
     }
   }, [])
@@ -359,6 +363,20 @@ export function NavigationShell({
       setSearchOpen(false)
       setSearchQuery("")
     }, 260)
+  }
+
+  function keepUserMenuOpen() {
+    if (userMenuCloseTimerRef.current) {
+      window.clearTimeout(userMenuCloseTimerRef.current)
+      userMenuCloseTimerRef.current = null
+    }
+  }
+
+  function closeUserMenuAfterPointerLeave() {
+    keepUserMenuOpen()
+    userMenuCloseTimerRef.current = window.setTimeout(() => {
+      setUserMenuOpen(false)
+    }, 220)
   }
 
   return (
@@ -547,12 +565,17 @@ export function NavigationShell({
             </div>
 
             {currentUser ? (
-              <div className="invoice-user-wrap">
+              <div
+                className="invoice-user-wrap"
+                onMouseEnter={keepUserMenuOpen}
+                onMouseLeave={closeUserMenuAfterPointerLeave}
+              >
                 <button
                   type="button"
                   aria-label={profileLabel}
                   aria-expanded={userMenuOpen}
                   onClick={() => {
+                    keepUserMenuOpen()
                     setUserMenuOpen((open) => !open)
                     setNotificationsOpen(false)
                     setSearchOpen(false)
