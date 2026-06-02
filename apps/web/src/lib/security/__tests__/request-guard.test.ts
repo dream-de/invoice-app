@@ -31,14 +31,35 @@ describe("request guard", () => {
     assert.equal(decision.allowed, true)
   })
 
-  it("requires basic auth when a deployment password is configured", () => {
+  it("does not require basic auth when deployment auth is explicitly disabled", () => {
+    const decision = evaluateRequestGuard({
+      method: "GET",
+      url: "https://invoice.test/dashboard",
+      headers: headers(),
+      env: {
+        DREAM_INVOICE_AUTH_PASSWORD: "secret",
+        DREAM_INVOICE_AUTH_REQUIRED: "false"
+      },
+      basicAuthUserEnv: "DREAM_INVOICE_AUTH_USER",
+      basicAuthPasswordEnv: "DREAM_INVOICE_AUTH_PASSWORD",
+      basicAuthRequiredEnv: "DREAM_INVOICE_AUTH_REQUIRED"
+    })
+
+    assert.equal(decision.allowed, true)
+  })
+
+  it("requires basic auth when deployment auth is explicitly enabled", () => {
     const denied = evaluateRequestGuard({
       method: "GET",
       url: "https://invoice.test/dashboard",
       headers: headers(),
-      env: { DREAM_INVOICE_AUTH_PASSWORD: "secret" },
+      env: {
+        DREAM_INVOICE_AUTH_PASSWORD: "secret",
+        DREAM_INVOICE_AUTH_REQUIRED: "true"
+      },
       basicAuthUserEnv: "DREAM_INVOICE_AUTH_USER",
-      basicAuthPasswordEnv: "DREAM_INVOICE_AUTH_PASSWORD"
+      basicAuthPasswordEnv: "DREAM_INVOICE_AUTH_PASSWORD",
+      basicAuthRequiredEnv: "DREAM_INVOICE_AUTH_REQUIRED"
     })
 
     assert.equal(denied.allowed, false)
@@ -48,9 +69,13 @@ describe("request guard", () => {
       method: "GET",
       url: "https://invoice.test/dashboard",
       headers: headers({ authorization: basic("admin", "secret") }),
-      env: { DREAM_INVOICE_AUTH_PASSWORD: "secret" },
+      env: {
+        DREAM_INVOICE_AUTH_PASSWORD: "secret",
+        DREAM_INVOICE_AUTH_REQUIRED: "true"
+      },
       basicAuthUserEnv: "DREAM_INVOICE_AUTH_USER",
-      basicAuthPasswordEnv: "DREAM_INVOICE_AUTH_PASSWORD"
+      basicAuthPasswordEnv: "DREAM_INVOICE_AUTH_PASSWORD",
+      basicAuthRequiredEnv: "DREAM_INVOICE_AUTH_REQUIRED"
     })
 
     assert.equal(allowed.allowed, true)

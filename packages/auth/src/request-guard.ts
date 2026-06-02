@@ -79,7 +79,7 @@ function basicAuthDecision(input: RequestGuardInput): RequestGuardDecision {
     envValue(env, input.basicAuthPasswordEnv) ??
     envValue(env, input.fallbackBasicAuthPasswordEnv)
 
-  if (!required && !password) return { allowed: true }
+  if (!required) return { allowed: true }
 
   if (!password) {
     return {
