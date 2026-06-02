@@ -9,12 +9,12 @@ function readEnvExample() {
 }
 
 describe("server worker env example", () => {
-  it("documents the supported worker environment variables", () => {
+  it("keeps worker-only configuration out of the public Docker env example", () => {
     const env = readEnvExample()
 
-    assert.match(env, /SERVER_WORKER_MODE=scheduled/)
-    assert.match(env, /SERVER_WORKER_SCHEDULE_FILE="config\/schedules\.example\.json"/)
-    assert.match(env, /SERVER_WORKER_LIMIT=25/)
-    assert.match(env, /SERVER_WORKER_NOW=""/)
+    assert.doesNotMatch(env, /SERVER_WORKER_MODE=/)
+    assert.doesNotMatch(env, /SERVER_WORKER_SCHEDULE_FILE=/)
+    assert.doesNotMatch(env, /SERVER_WORKER_LIMIT=/)
+    assert.doesNotMatch(env, /SERVER_WORKER_NOW=/)
   })
 })
