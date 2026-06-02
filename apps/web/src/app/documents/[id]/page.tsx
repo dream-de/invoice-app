@@ -85,6 +85,14 @@ type ApiInvoicePosition = {
   netPrice: unknown
 }
 
+type ApiPayment = {
+  id: string
+  amount?: unknown
+  method?: string | null
+  reference?: string | null
+  paidAt?: string | Date | null
+}
+
 type ApiInvoice = {
   id: string
   number?: string
@@ -101,6 +109,7 @@ type ApiInvoice = {
     email?: string | null
   } | null
   positions?: ApiInvoicePosition[]
+  payments?: ApiPayment[]
 }
 
 const DEFAULT_DOCUMENT_NOTE =
@@ -245,6 +254,18 @@ function emptyFallbackDocument(id: string, t: ReturnType<typeof useLanguage>["t"
   }
 }
 
+function normalizeApiPayment(payment: ApiPayment): PaymentEntry {
+  return {
+    id: payment.id,
+    date: dateInputValue(payment.paidAt),
+    amount: numberValue(payment.amount),
+    method: payment.method && ["Banküberweisung", "PayPal", "Karte", "Bar", "Sonstiges"].includes(payment.method)
+      ? payment.method as PaymentMethod
+      : "Banküberweisung",
+    reason: payment.reference || "Zahlungseingang Kontoauszug"
+  }
+}
+
 function normalizeApiInvoice(invoice: ApiInvoice, fallback: DetailDocument, t: ReturnType<typeof useLanguage>["t"], locale: string): DetailDocument {
   const positions = Array.isArray(invoice.positions)
     ? invoice.positions.map((item, index) => {
@@ -346,36 +367,44 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
     originY: number
   } | null>(null)
 
+  async function reloadDocument(options: { resetFallback?: boolean } = {}) {
+    if (options.resetFallback) {
+      setDoc(fallbackDocument)
+      setPayments(initialPaymentsForDocument(fallbackDocument))
+    }
+
+    const controller = new AbortController()
+    const timeoutId = window.setTimeout(() => controller.abort(), 8_000)
+
+    try {
+      const response = await fetch(`/api/invoice/get/${documentId}`, { signal: controller.signal })
+
+      if (!response.ok) return
+
+      const invoice = await response.json() as ApiInvoice
+      const normalized = normalizeApiInvoice(invoice, fallbackDocument, t, locale)
+
+      setDoc(normalized)
+      setPayments(Array.isArray(invoice.payments) && invoice.payments.length
+        ? invoice.payments.map(normalizeApiPayment)
+        : initialPaymentsForDocument(normalized)
+      )
+      setSendTo(normalized.customerEmail)
+      setSubject(`${t("documents.detail.email.subjectPrefix")} ${normalized.number}`)
+      setMessage(`${t("documents.detail.email.bodyPrefix")}\n\n${t("documents.detail.email.bodyMiddle")} ${normalized.number}.\n\n${t("documents.detail.email.bodyClosing")}`)
+    } catch (error) {
+      console.warn("Document detail loading failed.", error)
+    } finally {
+      window.clearTimeout(timeoutId)
+    }
+  }
+
   useEffect(() => {
     let cancelled = false
 
     async function loadDocument() {
-      setDoc(fallbackDocument)
-      setPayments(initialPaymentsForDocument(fallbackDocument))
-
-      const controller = new AbortController()
-      const timeoutId = window.setTimeout(() => controller.abort(), 8_000)
-
-      try {
-        const response = await fetch(`/api/invoice/get/${documentId}`, { signal: controller.signal })
-
-        if (!response.ok) return
-
-        const invoice = await response.json() as ApiInvoice
-        const normalized = normalizeApiInvoice(invoice, fallbackDocument, t, locale)
-
-        if (cancelled) return
-
-        setDoc(normalized)
-        setPayments((currentPayments) => initialPaymentsForDocument(normalized, currentPayments))
-        setSendTo(normalized.customerEmail)
-        setSubject(`${t("documents.detail.email.subjectPrefix")} ${normalized.number}`)
-        setMessage(`${t("documents.detail.email.bodyPrefix")}\n\n${t("documents.detail.email.bodyMiddle")} ${normalized.number}.\n\n${t("documents.detail.email.bodyClosing")}`)
-      } catch (error) {
-        console.warn("Document detail loading failed.", error)
-      } finally {
-        window.clearTimeout(timeoutId)
-      }
+      if (cancelled) return
+      await reloadDocument({ resetFallback: true })
     }
 
     loadDocument()
@@ -556,12 +585,12 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
     setEditingPaymentId(null)
   }
 
-  function savePayment() {
+  async function savePayment() {
     const parsedAmount = parseMoneyInput(paymentAmount)
 
     if (parsedAmount <= 0 || !paymentReason.trim()) return
 
-    const nextPayment: PaymentEntry = {
+    const optimisticPayment: PaymentEntry = {
       id: editingPaymentId ?? `payment-${Date.now()}`,
       date: paymentDate,
       amount: parsedAmount,
@@ -570,15 +599,74 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
     }
 
     setPayments((items) => {
-      if (!editingPaymentId) return [nextPayment, ...items]
+      if (!editingPaymentId) return [optimisticPayment, ...items]
 
-      return items.map((item) => item.id === editingPaymentId ? nextPayment : item)
+      return items.map((item) => item.id === editingPaymentId ? optimisticPayment : item)
     })
     closePaymentModal()
+
+    try {
+      const response = await fetch(`/api/invoice/payments/${documentId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          paymentId: editingPaymentId ?? undefined,
+          amount: parsedAmount,
+          paidAt: paymentDate,
+          method: paymentMethod,
+          reason: paymentReason.trim()
+        })
+      })
+      const result = await response.json().catch(() => null)
+
+      if (!response.ok || !result?.ok) {
+        throw new Error(result?.error || "Zahlung konnte nicht gespeichert werden.")
+      }
+
+      if (result.invoice?.payments) {
+        setPayments(result.invoice.payments.map(normalizeApiPayment))
+      }
+      if (result.invoice) {
+        setDoc(normalizeApiInvoice(result.invoice, doc, t, locale))
+      }
+    } catch (error) {
+      setDownloadNotice({
+        type: "error",
+        text: error instanceof Error ? error.message : "Zahlung konnte nicht gespeichert werden."
+      })
+      await reloadDocument()
+    }
   }
 
-  function deletePayment(id: string) {
+  async function deletePayment(id: string) {
+    const previousPayments = payments
     setPayments((items) => items.filter((item) => item.id !== id))
+
+    try {
+      const response = await fetch(`/api/invoice/payments/${documentId}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paymentId: id })
+      })
+      const result = await response.json().catch(() => null)
+
+      if (!response.ok || !result?.ok) {
+        throw new Error(result?.error || "Zahlung konnte nicht geloescht werden.")
+      }
+
+      if (result.invoice?.payments) {
+        setPayments(result.invoice.payments.map(normalizeApiPayment))
+      }
+      if (result.invoice) {
+        setDoc(normalizeApiInvoice(result.invoice, doc, t, locale))
+      }
+    } catch (error) {
+      setPayments(previousPayments)
+      setDownloadNotice({
+        type: "error",
+        text: error instanceof Error ? error.message : "Zahlung konnte nicht geloescht werden."
+      })
+    }
   }
 
   function clampModalOffset(x: number, y: number) {

@@ -103,6 +103,9 @@ export async function GET(
         customer: true,
         positions: {
           orderBy: { sortOrder: "asc" }
+        },
+        payments: {
+          orderBy: { paidAt: "desc" }
         }
       }
     })
