@@ -1,8 +1,26 @@
 import type { NextRequest } from "next/server"
 import { NextResponse } from "next/server"
 import { evaluateAppRequestGuard } from "@dream-invoice/auth"
+import { validateRuntimeEnv } from "@/lib/env/runtime"
 
 export async function proxy(request: NextRequest) {
+  const runtimeEnv = validateRuntimeEnv(process.env)
+  if (!runtimeEnv.valid) {
+    return new NextResponse(
+      JSON.stringify({
+        ok: false,
+        error: "Runtime environment is not configured securely.",
+        code: "runtime_env_invalid"
+      }),
+      {
+        status: 503,
+        headers: {
+          "content-type": "application/json; charset=utf-8"
+        }
+      }
+    )
+  }
+
   const isDemoMode = process.env.DREAM_INVOICE_DEMO_MODE === "true"
   const decision = await evaluateAppRequestGuard({
     method: request.method,
