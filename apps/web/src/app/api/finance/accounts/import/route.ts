@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server"
+import { AuthServiceError, mapAuthError, requireCurrentUser } from "@/lib/auth/service"
+import { hasUserPermission } from "@/lib/auth/permissions"
+import { isDemoMode } from "@/lib/demo-mode"
+import { ImportUploadError, readImportFile } from "@/lib/import/upload"
 
 type BankImportRow = Record<string, string>
 
@@ -9,6 +13,36 @@ type BankTransactionPreview = {
   iban: string
   amount: number
   currency: string
+}
+
+const BANK_IMPORT_KINDS = ["text", "csv"] as const
+
+function errorResponse(error: unknown) {
+  if (error instanceof ImportUploadError) {
+    return NextResponse.json(
+      { ok: false, message: error.message, error: error.message, code: error.code },
+      { status: error.status }
+    )
+  }
+
+  if (error instanceof AuthServiceError) {
+    const mapped = mapAuthError(error)
+    return NextResponse.json(
+      { ok: false, message: mapped.error, error: mapped.error, code: mapped.code },
+      { status: mapped.status }
+    )
+  }
+
+  return null
+}
+
+async function requireBankImportPermission() {
+  if (isDemoMode() || !process.env.DATABASE_URL) return
+
+  const user = await requireCurrentUser()
+  if (!hasUserPermission(user, "finance", "view")) {
+    throw new AuthServiceError("forbidden", "Keine Berechtigung fuer diesen Import.", 403)
+  }
 }
 
 const headerAliases = {
@@ -102,18 +136,11 @@ function normalizeAmount(value: string) {
 }
 
 export async function POST(request: Request) {
-  const formData = await request.formData()
-  const file = formData.get("file")
-
-  if (!(file instanceof File)) {
-    return NextResponse.json(
-      { ok: false, message: "Keine Datei erhalten." },
-      { status: 400 }
-    )
-  }
-
-  const text = new TextDecoder("utf-8").decode(await file.arrayBuffer())
-  const rows = parseCsv(text)
+  try {
+    await requireBankImportPermission()
+    const { file } = await readImportFile(request, { allowedKinds: [...BANK_IMPORT_KINDS] })
+    const text = new TextDecoder("utf-8").decode(await file.arrayBuffer())
+    const rows = parseCsv(text)
   const warnings: string[] = []
 
   const transactions = rows.map<BankTransactionPreview>((row, index) => {
@@ -134,16 +161,26 @@ export async function POST(request: Request) {
     }
   })
 
-  return NextResponse.json({
-    ok: true,
-    mode: "preview",
-    fileName: file.name,
-    fileType: file.type,
-    fileSize: file.size,
-    imported: transactions.length,
-    totalAmount: transactions.reduce((sum, transaction) => sum + transaction.amount, 0),
-    transactions,
-    warnings,
-    message: "Bankdatei wurde ausgelesen."
-  })
+    return NextResponse.json({
+      ok: true,
+      mode: "preview",
+      fileName: file.name,
+      fileType: file.type,
+      fileSize: file.size,
+      imported: transactions.length,
+      totalAmount: transactions.reduce((sum, transaction) => sum + transaction.amount, 0),
+      transactions,
+      warnings,
+      message: "Bankdatei wurde ausgelesen."
+    })
+  } catch (error) {
+    const mapped = errorResponse(error)
+    if (mapped) return mapped
+
+    console.error("Bank import failed.", error)
+    return NextResponse.json(
+      { ok: false, message: "Bankimport konnte nicht verarbeitet werden.", error: "Bankimport konnte nicht verarbeitet werden." },
+      { status: 500 }
+    )
+  }
 }

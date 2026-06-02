@@ -1,6 +1,9 @@
 import { prisma } from "@dream-invoice/database"
 import { NextResponse } from "next/server"
+import { AuthServiceError, mapAuthError, requireCurrentUser } from "@/lib/auth/service"
+import { hasUserPermission } from "@/lib/auth/permissions"
 import { isDemoMode } from "@/lib/demo-mode"
+import { ImportUploadError, readImportFile } from "@/lib/import/upload"
 
 type CustomerImportRow = Record<string, string>
 
@@ -16,6 +19,36 @@ type CustomerImportData = {
   country: string
   notes: string
   status: string
+}
+
+const CUSTOMER_IMPORT_KINDS = ["text", "csv"] as const
+
+function errorResponse(error: unknown) {
+  if (error instanceof ImportUploadError) {
+    return NextResponse.json(
+      { ok: false, message: error.message, error: error.message, code: error.code },
+      { status: error.status }
+    )
+  }
+
+  if (error instanceof AuthServiceError) {
+    const mapped = mapAuthError(error)
+    return NextResponse.json(
+      { ok: false, message: mapped.error, error: mapped.error, code: mapped.code },
+      { status: mapped.status }
+    )
+  }
+
+  return null
+}
+
+async function requireCustomerImportPermission() {
+  if (isDemoMode() || !process.env.DATABASE_URL) return
+
+  const user = await requireCurrentUser()
+  if (!hasUserPermission(user, "customers", "edit")) {
+    throw new AuthServiceError("forbidden", "Keine Berechtigung fuer diesen Import.", 403)
+  }
 }
 
 const headerAliases: Record<keyof CustomerImportData, string[]> = {
@@ -193,19 +226,12 @@ function importResponse({
 }
 
 export async function POST(request: Request) {
-  const formData = await request.formData()
-  const file = formData.get("file")
-  const save = formData.get("save") === "true"
-
-  if (!(file instanceof File)) {
-    return NextResponse.json(
-      { ok: false, message: "Keine Datei erhalten." },
-      { status: 400 }
-    )
-  }
-
-  const text = new TextDecoder("utf-8").decode(await file.arrayBuffer())
-  const rows = parseCsv(text)
+  try {
+    await requireCustomerImportPermission()
+    const { file, formData } = await readImportFile(request, { allowedKinds: [...CUSTOMER_IMPORT_KINDS] })
+    const save = formData.get("save") === "true"
+    const text = new TextDecoder("utf-8").decode(await file.arrayBuffer())
+    const rows = parseCsv(text)
 
   if (rows.length === 0) {
     return NextResponse.json(
@@ -228,8 +254,7 @@ export async function POST(request: Request) {
     })
   }
 
-  try {
-    const count = await prisma.customer.count()
+  const count = await prisma.customer.count()
     const { preview, skipped, warnings } = buildPreview(rows, count)
     let created = 0
     let updated = 0
@@ -287,17 +312,13 @@ export async function POST(request: Request) {
       warnings
     })
   } catch (error) {
-    console.error(error)
-    const { preview, skipped, warnings } = buildPreview(rows, 0)
-    return importResponse({
-      save,
-      file,
-      preview,
-      created: save ? preview.length : 0,
-      updated: 0,
-      skipped,
-      warnings,
-      mode: save ? "demo" : "preview"
-    })
+    const mapped = errorResponse(error)
+    if (mapped) return mapped
+
+    console.error("Customer import failed.", error)
+    return NextResponse.json(
+      { ok: false, message: "Kundenimport konnte nicht verarbeitet werden.", error: "Kundenimport konnte nicht verarbeitet werden." },
+      { status: 500 }
+    )
   }
 }
