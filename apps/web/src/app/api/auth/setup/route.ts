@@ -4,6 +4,7 @@ import { sendVerificationEmail } from "@/lib/auth/email-verification"
 import { createInitialAdmin, mapAuthError } from "@/lib/auth/service"
 import { assertSessionConfigured } from "@/lib/auth/session"
 import { readEmailSettings } from "@/lib/email/delivery"
+import { seedStarterWorkspace } from "@/lib/onboarding/starter-workspace"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -23,6 +24,10 @@ export async function POST(request: Request) {
     const emailVerificationRequired = Boolean(emailSettings.provider && emailSettings.provider !== "disabled")
     const { user, verificationToken } = await createInitialAdmin(await parseBody(request), {
       requireEmailVerification: emailVerificationRequired
+    })
+
+    await seedStarterWorkspace().catch((error) => {
+      console.warn("Starter workspace seeding skipped.", error)
     })
 
     if (verificationToken) {
