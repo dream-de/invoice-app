@@ -129,13 +129,13 @@ describe("request guard", () => {
     assert.equal(decision.allowed, true)
   })
 
-  it("allows setup requests when the proxy host is the LXC address", () => {
+  it("allows setup requests when the proxy host is the server address", () => {
     const decision = evaluateRequestGuard({
       method: "POST",
       url: "http://localhost:3000/api/auth/setup",
       headers: headers({
-        host: "192.168.20.25:3000",
-        origin: "http://192.168.20.25:3000"
+        host: "203.0.113.25:3000",
+        origin: "http://203.0.113.25:3000"
       }),
       env: {}
     })

@@ -36,6 +36,14 @@ const blockedContentPatterns = [
   { label: "legacy database name: invoice_platform", pattern: /invoice_platform/ },
   { label: "reference invoice company: ViniGrandi", pattern: /Vini\s*Grandi|ViniGrandi/i },
   { label: "reference invoice address: Parkallee", pattern: /Parkallee/i },
+  {
+    label: "private LAN IP address",
+    pattern: /\b(?:10\.(?:\d{1,3}\.){2}\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})\b/
+  },
+  { label: "weak example AUTH_SECRET", pattern: /AUTH_SECRET\s*=\s*1{32,}/ },
+  { label: "weak example POSTGRES_PASSWORD", pattern: /POSTGRES_PASSWORD\s*=\s*postgres\b/i },
+  { label: "weak example deployment password", pattern: /DREAM_INVOICE_AUTH_PASSWORD\s*=\s*dreaminvoice\b/i },
+  { label: "weak example admin password", pattern: /DREAM_INVOICE_ADMIN_PASSWORD\s*=\s*dreaminvoice\b/i },
 ];
 
 const failures = [];

@@ -24,7 +24,7 @@ describe("rate limit helper", () => {
   it("uses the first forwarded address when present", () => {
     const request = new Request("https://example.test/login", {
       headers: {
-        "x-forwarded-for": "203.0.113.10, 10.0.0.5"
+        "x-forwarded-for": "203.0.113.10, 198.51.100.5"
       }
     })
 
