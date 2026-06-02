@@ -27,7 +27,7 @@ RUN apt-get update \
 RUN corepack enable
 RUN groupadd --system dreaminvoice && useradd --system --gid dreaminvoice --home /app dreaminvoice
 
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.json eslint.config.js ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json tsconfig.json eslint.config.mjs ./
 COPY apps ./apps
 COPY packages ./packages
 COPY database ./database

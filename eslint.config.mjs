@@ -1,11 +1,11 @@
-const js = require("@eslint/js")
-const tsParser = require("@typescript-eslint/parser")
-const tsPlugin = require("@typescript-eslint/eslint-plugin")
-const importPlugin = require("eslint-plugin-import")
-const unusedImports = require("eslint-plugin-unused-imports")
-const nextConfig = require("eslint-config-next/typescript")
+import js from "@eslint/js"
+import tsParser from "@typescript-eslint/parser"
+import tsPlugin from "@typescript-eslint/eslint-plugin"
+import importPlugin from "eslint-plugin-import"
+import unusedImports from "eslint-plugin-unused-imports"
+import nextConfig from "eslint-config-next/typescript"
 
-module.exports = [
+export default [
   ...nextConfig,
   {
     ignores: [
