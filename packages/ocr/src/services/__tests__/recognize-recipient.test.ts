@@ -33,9 +33,9 @@ describe("recognizeRecipientFromFile", () => {
   it("splits company address lines into clean recipient fields", async () => {
     const file = new File(
       [
-        "di GmbH, Parkallee 14, 14974 Ludwigsfelde\n",
-        "AR Gastronomie GmbH\n",
-        "vini@vinigrandi.de\n",
+        "Nordlicht Handel GmbH, Marktweg 14, 14974 Ludwigsfelde\n",
+        "Klarfeld Service GmbH\n",
+        "kontakt@nordlicht.example\n",
         "DE308735227\n"
       ],
       "rechnung.pdf",
@@ -45,12 +45,12 @@ describe("recognizeRecipientFromFile", () => {
     const result = await recognizeRecipientFromFile(file)
 
     assert.equal(result.ok, true)
-    assert.equal(result.recipient?.company, "di GmbH")
+    assert.equal(result.recipient?.company, "Nordlicht Handel GmbH")
     assert.equal(result.recipient?.contact, "")
-    assert.equal(result.recipient?.street, "Parkallee 14")
+    assert.equal(result.recipient?.street, "Marktweg 14")
     assert.equal(result.recipient?.zip, "14974")
     assert.equal(result.recipient?.city, "Ludwigsfelde")
-    assert.equal(result.recipient?.email, "vini@vinigrandi.de")
+    assert.equal(result.recipient?.email, "kontakt@nordlicht.example")
     assert.equal(result.recipient?.vatId, "DE308735227")
   })
 
