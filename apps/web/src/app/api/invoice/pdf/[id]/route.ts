@@ -272,12 +272,28 @@ export async function GET(
       paymentNote
     })
 
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ["--no-sandbox", "--disable-setuid-sandbox"]
-    })
+    const browserUserDataDir = await fs.mkdtemp(path.join("/tmp", "dream-invoice-pdf-"))
+    let browser: Awaited<ReturnType<typeof puppeteer.launch>> | null = null
 
     try {
+      browser = await puppeteer.launch({
+        headless: true,
+        userDataDir: browserUserDataDir,
+        env: {
+          ...process.env,
+          HOME: browserUserDataDir,
+          XDG_CONFIG_HOME: browserUserDataDir,
+          XDG_CACHE_HOME: browserUserDataDir
+        },
+        args: [
+          "--no-sandbox",
+          "--disable-setuid-sandbox",
+          "--disable-dev-shm-usage",
+          "--disable-crash-reporter",
+          "--disable-crashpad"
+        ]
+      })
+
       const page = await browser.newPage()
       await page.setContent(html, { waitUntil: "load" })
 
@@ -298,7 +314,8 @@ export async function GET(
         }
       })
     } finally {
-      await browser.close().catch(() => undefined)
+      await browser?.close().catch(() => undefined)
+      await fs.rm(browserUserDataDir, { recursive: true, force: true }).catch(() => undefined)
     }
   } catch (err) {
     if (err instanceof AuthServiceError) {
