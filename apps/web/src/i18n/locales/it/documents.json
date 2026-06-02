@@ -213,5 +213,13 @@
   "documents.list.typeFilter.invoices": "Fatture",
   "documents.list.typeFilter.offers": "Offerte",
   "documents.list.empty.title": "Nessun documento trovato",
-  "documents.list.empty.description": "Non ci sono ancora documenti per questa selezione."
+  "documents.list.empty.description": "Non ci sono ancora documenti per questa selezione.",
+  "documents.edit.actions.importPositions": "Import",
+  "documents.edit.errors.positionsNotRecognized": "Items could not be recognized.",
+  "documents.edit.positionsImport.title": "Import items",
+  "documents.edit.positionsImport.description": "Recognize, review, correct and apply invoice items.",
+  "documents.edit.positionsImport.uploadTitle": "Upload TXT, CSV, PDF, image or scan",
+  "documents.edit.positionsImport.uploadDescription": "Items are recognized locally from TXT/CSV, PDF text and images/scans through OCR. Please review quantities and prices before applying.",
+  "documents.edit.positionsImport.reviewHint": "Please review. Current items are replaced only after “Apply items”.",
+  "documents.edit.positionsImport.apply": "Apply items"
 }

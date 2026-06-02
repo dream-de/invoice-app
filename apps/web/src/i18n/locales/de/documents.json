@@ -213,5 +213,13 @@
   "documents.list.typeFilter.invoices": "Rechnungen",
   "documents.list.typeFilter.offers": "Angebote",
   "documents.list.empty.title": "Keine Dokumente gefunden",
-  "documents.list.empty.description": "Für diese Auswahl gibt es noch keine Dokumente."
+  "documents.list.empty.description": "Für diese Auswahl gibt es noch keine Dokumente.",
+  "documents.edit.actions.importPositions": "Import",
+  "documents.edit.errors.positionsNotRecognized": "Positionen konnten nicht erkannt werden.",
+  "documents.edit.positionsImport.title": "Positionen importieren",
+  "documents.edit.positionsImport.description": "Rechnungspositionen erkennen, prüfen, korrigieren und übernehmen.",
+  "documents.edit.positionsImport.uploadTitle": "TXT, CSV, PDF, Bild oder Scan hochladen",
+  "documents.edit.positionsImport.uploadDescription": "Positionen werden lokal aus TXT/CSV, PDF-Text und Bildern/Scans per OCR erkannt. Bitte Preise und Mengen vor dem Übernehmen prüfen.",
+  "documents.edit.positionsImport.reviewHint": "Bitte prüfen. Erst nach „Positionen übernehmen“ werden die aktuellen Positionen ersetzt.",
+  "documents.edit.positionsImport.apply": "Positionen übernehmen"
 }

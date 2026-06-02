@@ -33,6 +33,13 @@ type RecipientImport = {
   vatId: string
 }
 
+type PositionImport = {
+  label: string
+  qty: number
+  price: number
+  category: string
+}
+
 type ApiInvoicePosition = {
   id: string
   title: string
@@ -125,6 +132,10 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
   const [recipientImportOpen, setRecipientImportOpen] = useState(false)
   const [recipientImportStep, setRecipientImportStep] = useState<"upload" | "preview">("upload")
   const [recipientFileName, setRecipientFileName] = useState("")
+  const [positionImportOpen, setPositionImportOpen] = useState(false)
+  const [positionImportStep, setPositionImportStep] = useState<"upload" | "preview">("upload")
+  const [positionFileName, setPositionFileName] = useState("")
+  const [recognizedPositions, setRecognizedPositions] = useState<PositionImport[]>([])
   const [recognizedRecipient, setRecognizedRecipient] = useState<RecipientImport>({
     company: "",
     contact: "",
@@ -299,6 +310,71 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
     setRecipientFileName("")
   }
 
+  async function recognizePositionFile(file: File) {
+    setPositionFileName(file.name)
+
+    const formData = new FormData()
+    formData.append("file", file)
+
+    const response = await fetch("/api/import/positions", {
+      method: "POST",
+      body: formData
+    })
+
+    const result = await response.json()
+
+    if (!response.ok || !result.ok || !Array.isArray(result.positions) || result.positions.length === 0) {
+      alert(result.warnings?.[0] || result.error || t("documents.edit.errors.positionsNotRecognized"))
+      return
+    }
+
+    setRecognizedPositions(
+      result.positions.map((item: { label?: string; qty?: unknown; netPrice?: unknown; category?: string }) => ({
+        label: item.label || t("documents.edit.fallback.position"),
+        qty: Number(item.qty ?? 1) || 1,
+        price: Number(item.netPrice ?? 0) || 0,
+        category: item.category || "(Keine)"
+      }))
+    )
+
+    setPositionImportStep("preview")
+  }
+
+  function updateRecognizedPosition(index: number, field: keyof PositionImport, value: string) {
+    setRecognizedPositions((items) =>
+      items.map((item, itemIndex) => {
+        if (itemIndex !== index) return item
+
+        if (field === "qty" || field === "price") {
+          return { ...item, [field]: Number(String(value).replace(",", ".")) || 0 }
+        }
+
+        return { ...item, [field]: value }
+      })
+    )
+  }
+
+  function deleteRecognizedPosition(index: number) {
+    setRecognizedPositions((items) => items.filter((_, itemIndex) => itemIndex !== index))
+  }
+
+  function applyRecognizedPositions() {
+    setPositions(
+      recognizedPositions.map((item, index) => ({
+        id: `pos-import-${Date.now()}-${index}`,
+        label: item.label || t("documents.edit.fallback.position"),
+        qty: Number(item.qty || 0),
+        price: Number(item.price || 0),
+        category: item.category || "(Keine)"
+      }))
+    )
+
+    setPositionImportOpen(false)
+    setPositionImportStep("upload")
+    setPositionFileName("")
+    setRecognizedPositions([])
+  }
+
   function sendInvoiceEmail() {
     if (!email.trim()) return
 
@@ -454,6 +530,15 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
               </div>
 
               <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPositionImportOpen(true)}
+                  className="compact-mini-button inline-flex items-center justify-center gap-1.5 rounded-full bg-[#eef2f7] px-3 text-xs font-black text-slate-800"
+                >
+                  <FileUp className="h-3.5 w-3.5" />
+                  {t("documents.edit.actions.importPositions")}
+                </button>
+
                 <select
                   aria-label={t("documents.edit.actions.addArticle")}
                   value={selectedArticle}
@@ -809,6 +894,101 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
           box-shadow: 0 0 0 2px rgba(217, 249, 68, 0.7);
         }
       `}</style>
+      {positionImportOpen && (
+        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/35 px-4">
+          <div className="w-full max-w-4xl rounded-[30px] bg-white p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-extrabold text-[#111827]">{t("documents.edit.positionsImport.title")}</h2>
+                <p className="mt-1 text-sm font-medium text-[#64748b]">
+                  {t("documents.edit.positionsImport.description")}
+                </p>
+              </div>
+
+              <button
+                onClick={() => setPositionImportOpen(false)}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-[#edf1f6] text-slate-700 hover:bg-[#e4eaf2]"
+                aria-label={t("documents.edit.import.close")}
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {positionImportStep === "upload" ? (
+              <div className="mt-6 rounded-[24px] border border-dashed border-[#cfd8e5] bg-[#f8fafc] p-8 text-center">
+                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-black text-[var(--brand-lime)]">
+                  <FileUp className="h-8 w-8" />
+                </div>
+
+                <h3 className="mt-5 text-xl font-extrabold text-[#111827]">
+                  {t("documents.edit.positionsImport.uploadTitle")}
+                </h3>
+                <p className="mx-auto mt-2 max-w-xl text-sm font-medium text-[#64748b]">
+                  {t("documents.edit.positionsImport.uploadDescription")}
+                </p>
+
+                <label className="mt-6 inline-flex cursor-pointer rounded-full bg-black px-6 py-3 text-sm font-extrabold text-white hover:bg-slate-800">
+                  {t("documents.edit.import.chooseFile")}
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept=".txt,.csv,.pdf,.png,.jpg,.jpeg,.webp,.tif,.tiff,text/plain,text/csv,application/pdf,image/*"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0]
+                      if (file) recognizePositionFile(file)
+                    }}
+                  />
+                </label>
+              </div>
+            ) : (
+              <div className="mt-6">
+                <div className="mb-3 rounded-[20px] bg-[#f8fafc] px-5 py-4">
+                  <p className="text-sm font-bold text-[#111827]">{t("documents.edit.import.recognizedFile")} {positionFileName}</p>
+                  <p className="mt-1 text-sm font-medium text-[#64748b]">
+                    {t("documents.edit.positionsImport.reviewHint")}
+                  </p>
+                </div>
+
+                <div className="max-h-[52vh] space-y-3 overflow-y-auto pr-1">
+                  {recognizedPositions.map((item, index) => (
+                    <div key={index} className="grid grid-cols-[minmax(0,1fr)_86px_118px_118px_36px] items-end gap-2 rounded-[20px] border border-[#e5eaf0] bg-white p-3">
+                      <Input label={t("documents.edit.preview.table.description")} value={item.label} onChange={(event) => updateRecognizedPosition(index, "label", event.target.value)} />
+                      <Input label={t("documents.edit.fields.quantity")} value={String(item.qty)} onChange={(event) => updateRecognizedPosition(index, "qty", event.target.value)} />
+                      <Input label={t("documents.edit.fields.unitPrice")} value={String(item.price)} onChange={(event) => updateRecognizedPosition(index, "price", event.target.value)} />
+                      <Select label={t("documents.edit.fields.category")} value={item.category} onChange={(event) => updateRecognizedPosition(index, "category", event.target.value)} options={categoryOptions.map((category) => ({ value: category, label: categoryLabel(category) }))} />
+                      <button
+                        type="button"
+                        onClick={() => deleteRecognizedPosition(index)}
+                        className="mb-1 flex h-9 w-9 items-center justify-center rounded-full bg-[#f8fafc] text-slate-400 hover:bg-red-50 hover:text-red-600"
+                        aria-label={t("documents.edit.actions.deletePosition")}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-6 flex justify-end gap-3">
+                  <button
+                    onClick={() => setPositionImportStep("upload")}
+                    className="rounded-full bg-[#eef2f7] px-5 py-2.5 text-sm font-bold text-[#334155]"
+                  >
+                    {t("documents.edit.import.back")}
+                  </button>
+                  <button
+                    onClick={applyRecognizedPositions}
+                    className="inline-flex items-center gap-2 rounded-full bg-black px-6 py-2.5 text-sm font-extrabold text-[var(--brand-lime)]"
+                  >
+                    <Check className="h-4 w-4" />
+                    {t("documents.edit.positionsImport.apply")}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {recipientImportOpen && (
         <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/35 px-4">
           <div className="w-full max-w-3xl rounded-[30px] bg-white p-6 shadow-2xl">
