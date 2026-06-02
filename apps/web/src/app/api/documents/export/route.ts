@@ -1,7 +1,12 @@
 import { prisma } from "@dream-invoice/database"
 import { documents } from "@/data/invoice-data"
+import { AuthServiceError, mapAuthError, requireCurrentUser } from "@/lib/auth/service"
+import { hasUserPermission } from "@/lib/auth/permissions"
 import { createCsvResponse } from "@/lib/export/csv-response"
 import { isDemoMode } from "@/lib/demo-mode"
+
+const MAX_EXPORT_IDS = 500
+const MAX_EXPORT_ID_LENGTH = 128
 
 function formatDate(value: Date | string | null | undefined) {
   if (!value) return ""
@@ -10,6 +15,43 @@ function formatDate(value: Date | string | null | undefined) {
   if (Number.isNaN(date.getTime())) return ""
 
   return date.toISOString().slice(0, 10)
+}
+
+function authErrorResponse(error: unknown) {
+  if (error instanceof AuthServiceError) {
+    const mapped = mapAuthError(error)
+    return Response.json(
+      { ok: false, error: mapped.error, code: mapped.code },
+      { status: mapped.status }
+    )
+  }
+
+  return null
+}
+
+async function requireDocumentExportPermission() {
+  const user = await requireCurrentUser()
+  if (!hasUserPermission(user, "documents", "view")) {
+    throw new AuthServiceError("forbidden", "Keine Berechtigung fuer diesen Dokumentexport.", 403)
+  }
+}
+
+function parseExportIds(request: Request) {
+  const url = new URL(request.url)
+  const ids = (url.searchParams.get("ids") || "")
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean)
+
+  if (ids.length > MAX_EXPORT_IDS) {
+    throw new AuthServiceError("invalid_request", "Zu viele Dokumente fuer den Export.", 400)
+  }
+
+  if (ids.some((id) => id.length > MAX_EXPORT_ID_LENGTH)) {
+    throw new AuthServiceError("invalid_request", "Ungueltige Dokumentauswahl.", 400)
+  }
+
+  return ids
 }
 
 function staticRows(ids: string[]) {
@@ -36,19 +78,17 @@ function staticRows(ids: string[]) {
 }
 
 export async function GET(request: Request) {
-  const url = new URL(request.url)
-  const ids = (url.searchParams.get("ids") || "")
-    .split(",")
-    .map((id) => id.trim())
-    .filter(Boolean)
-
   const header = ["Nummer", "Typ", "Status", "Kunde", "Datum", "Faelligkeit", "Netto", "MwSt", "Brutto"]
 
-  if (isDemoMode() || !process.env.DATABASE_URL) {
-    return createCsvResponse([header, ...staticRows(ids)], "dokumente-export.csv")
-  }
-
   try {
+    const ids = parseExportIds(request)
+
+    if (isDemoMode() || !process.env.DATABASE_URL) {
+      return createCsvResponse([header, ...staticRows(ids)], "dokumente-export.csv")
+    }
+
+    await requireDocumentExportPermission()
+
     const invoices = await prisma.invoice.findMany({
       where: ids.length > 0 ? { id: { in: ids } } : undefined,
       orderBy: { createdAt: "desc" },
@@ -74,7 +114,13 @@ export async function GET(request: Request) {
 
     return createCsvResponse(rows, "dokumente-export.csv")
   } catch (error) {
-    console.error("Document export unavailable, using fallback documents.", error)
-    return createCsvResponse([header, ...staticRows(ids)], "dokumente-export.csv")
+    const authError = authErrorResponse(error)
+    if (authError) return authError
+
+    console.error("Document export failed.", error)
+    return Response.json(
+      { ok: false, error: "Dokumentexport konnte nicht erstellt werden." },
+      { status: 500 }
+    )
   }
 }

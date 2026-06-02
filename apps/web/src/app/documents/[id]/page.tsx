@@ -562,6 +562,16 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
     alert(t("documents.detail.notice.shareCopied"))
   }
 
+  function showUnavailableReminderNotice() {
+    setDownloadNotice({
+      type: "info",
+      text: "Mahnungs-PDF ist noch nicht aktiviert."
+    })
+    window.setTimeout(() => {
+      setDownloadNotice((current) => current?.text === "Mahnungs-PDF ist noch nicht aktiviert." ? null : current)
+    }, 2600)
+  }
+
   function openPaymentModal(payment?: PaymentEntry) {
     if (payment) {
       setEditingPaymentId(payment.id)
@@ -888,10 +898,10 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
                         <p className="text-sm font-black">Zahlung überfällig</p>
                         <button
                           type="button"
-                          onClick={() => window.open(`/api/reminder/pdf/${doc.id}`, "_blank", "noopener,noreferrer")}
+                          onClick={showUnavailableReminderNotice}
                           className="mt-3 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-black text-red-700 transition hover:bg-red-100"
                         >
-                          Mahnung erstellen
+                          Mahnung vormerken
                         </button>
                       </div>
                     </div>
