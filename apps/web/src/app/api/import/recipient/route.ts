@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { recognizeRecipientFromFile } from "@dream-invoice/ocr"
 
+export const runtime = "nodejs"
+
 export async function POST(request: Request) {
   const formData = await request.formData()
   const file = formData.get("file")

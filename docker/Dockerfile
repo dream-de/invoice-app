@@ -17,7 +17,11 @@ RUN apt-get update \
     chromium \
     fonts-liberation \
     openssl \
+    poppler-utils \
     postgresql-client \
+    tesseract-ocr \
+    tesseract-ocr-deu \
+    tesseract-ocr-eng \
   && rm -rf /var/lib/apt/lists/*
 
 RUN corepack enable

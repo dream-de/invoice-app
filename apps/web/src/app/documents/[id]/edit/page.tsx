@@ -847,7 +847,7 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
                   <input
                     type="file"
                     className="hidden"
-                    accept=".pdf,.doc,.docx,.png,.jpg,.jpeg"
+                    accept=".txt,.csv,.pdf,.png,.jpg,.jpeg,.webp,.tif,.tiff,text/plain,text/csv,application/pdf,image/*"
                     onChange={(event) => {
                       const file = event.target.files?.[0]
                       if (file) recognizeRecipientFile(file)
