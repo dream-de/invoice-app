@@ -66,6 +66,21 @@ chmod +x scripts/install.sh scripts/status.sh
 ./scripts/install.sh
 ```
 
+The installer creates a private `.env`, pulls the published image `ghcr.io/dream-de/invoice-app:latest`, starts PostgreSQL, and starts the web app. Open the app at:
+
+```text
+http://SERVER-IP:3000
+```
+
+For the first local HTTP start, deployment Basic Auth is disabled so the setup screen opens directly. Create the first owner account in the browser, then enable deployment protection before exposing the installation:
+
+```env
+DREAM_INVOICE_AUTH_REQUIRED=true
+AUTH_COOKIE_SECURE=true
+```
+
+Use `AUTH_COOKIE_SECURE=true` only when the public app URL uses HTTPS. Keep it `false` for local HTTP/LXC tests.
+
 For a fully manual install, copy `.env.example` to `.env`, replace every `CHANGEME_*` value, then start the stack:
 
 ```bash
@@ -75,42 +90,43 @@ docker compose pull
 docker compose up -d
 ```
 
-The default product stack pulls the prebuilt Dream Invoice image, starts PostgreSQL, and starts the web app. Open the app at `http://SERVER-IP:3000`. The optional Nginx proxy is available through the `proxy` profile when you want port 80, a domain, or HTTPS in front of the app.
-
----
-
-For the first local HTTP start, deployment Basic Auth is disabled so the app opens directly. Enable `DREAM_INVOICE_AUTH_REQUIRED=true` in `.env` before exposing a production installation.
-
----
-
-Before real production use, change all default passwords and secrets in `.env`, especially the values below:
-
-- `AUTH_SECRET`
-- `AUTH_COOKIE_SECURE` (set to `true` when the public app URL uses HTTPS)
-- `POSTGRES_PASSWORD`
-- `DREAM_INVOICE_AUTH_REQUIRED` and `DREAM_INVOICE_AUTH_PASSWORD`
-- `DREAM_INVOICE_ADMIN_PASSWORD`
-- `DREAM_INVOICE_LOGIN_WINDOW_MS` and `DREAM_INVOICE_LOGIN_MAX_ATTEMPTS` when custom login throttling is needed
-
----
-
-## Install With Auto-Generated Secrets
-
-If you want the installer to create random secrets automatically, use:
+The optional Nginx container is not started by default. Use the `proxy` profile only when you want the included Docker Nginx in front of the app:
 
 ```bash
-git clone https://github.com/dream-de/invoice-app.git dream-invoice
-cd dream-invoice
-chmod +x scripts/install.sh scripts/status.sh
-./scripts/install.sh
+docker compose --profile proxy up -d
 ```
 
-The installer creates a local `.env` file with generated secrets and starts the same product Docker stack. Keep that file private.
-
-After installation, check the stack:
+Check the installation:
 
 ```bash
 ./scripts/status.sh
+docker compose ps
+```
+
+Before real production use, review these values in `.env`:
+
+- `AUTH_SECRET`
+- `AUTH_COOKIE_SECURE`
+- `POSTGRES_PASSWORD`
+- `DREAM_INVOICE_AUTH_REQUIRED` and `DREAM_INVOICE_AUTH_PASSWORD`
+- `DREAM_INVOICE_ADMIN_PASSWORD`
+- `DREAM_INVOICE_LOGIN_WINDOW_MS` and `DREAM_INVOICE_LOGIN_MAX_ATTEMPTS`
+
+## Updates
+
+Before updating a real installation, create a database backup and keep the current `.env` private. Then update the repository and restart the stack:
+
+```bash
+git pull
+docker compose pull
+docker compose up -d
+./scripts/status.sh
+```
+
+Maintainers who build from source instead of pulling the published image can use:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build web-app
 ```
 
 ## Development Setup
