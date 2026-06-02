@@ -43,7 +43,7 @@ AUTH_SECRET="$AUTH_SECRET"
 
 DREAM_INVOICE_AUTH_USER=admin
 DREAM_INVOICE_AUTH_PASSWORD="$DEPLOYMENT_PASSWORD"
-DREAM_INVOICE_AUTH_REQUIRED=true
+DREAM_INVOICE_AUTH_REQUIRED=false
 
 DREAM_INVOICE_ADMIN_USER=admin
 DREAM_INVOICE_ADMIN_PASSWORD="$ADMIN_PASSWORD"
@@ -83,9 +83,8 @@ echo "Open:"
 echo "  http://<your-server-ip>:3000/"
 echo
 if [ "$CREATED_ENV" = "1" ]; then
-  echo "Deployment Basic Auth:"
-  echo "  User: admin"
-  echo "  Password: $(grep '^DREAM_INVOICE_AUTH_PASSWORD=' "$ENV_FILE" | cut -d= -f2- | sed 's/^"//; s/"$//')"
+  echo "Basic Auth is disabled for the first local HTTP start."
+  echo "Enable DREAM_INVOICE_AUTH_REQUIRED=true in .env before exposing a production installation."
   echo
   echo "Secrets were written to:"
   echo "  $ENV_FILE"

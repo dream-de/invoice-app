@@ -77,10 +77,7 @@ The default product stack pulls the prebuilt Dream Invoice image, starts Postgre
 
 ---
 
-Default access for the first test start:
-
-- User: `admin`
-- Password: the value of `DREAM_INVOICE_AUTH_PASSWORD` in your `.env`
+For the first local HTTP start, deployment Basic Auth is disabled so the app opens directly. Enable `DREAM_INVOICE_AUTH_REQUIRED=true` in `.env` before exposing a production installation.
 
 ---
 
@@ -89,7 +86,7 @@ Before real production use, change all default passwords and secrets in `.env`, 
 - `AUTH_SECRET`
 - `AUTH_COOKIE_SECURE` (set to `true` when the public app URL uses HTTPS)
 - `POSTGRES_PASSWORD`
-- `DREAM_INVOICE_AUTH_PASSWORD`
+- `DREAM_INVOICE_AUTH_REQUIRED` and `DREAM_INVOICE_AUTH_PASSWORD`
 - `DREAM_INVOICE_ADMIN_PASSWORD`
 
 ---
