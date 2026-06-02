@@ -1,24 +1,35 @@
+type StatusTone = "success" | "warning" | "info" | "neutral"
+
 type StatusBadgeProps = {
   status: string
+  tone?: StatusTone
 }
 
-const statusStyles: Record<string, string> = {
-  Aktiv: "bg-green-100 text-green-700",
-  Bezahlt: "bg-green-100 text-green-700",
-  Offen: "bg-yellow-100 text-yellow-700",
-  Planung: "bg-blue-100 text-blue-700",
-  Entwurf: "bg-neutral-200 text-neutral-700"
+const toneStyles: Record<StatusTone, string> = {
+  success: "bg-green-100 text-green-700",
+  warning: "bg-yellow-100 text-yellow-800",
+  info: "bg-blue-100 text-blue-700",
+  neutral: "bg-neutral-200 text-neutral-700"
+}
+
+const statusTones: Record<string, StatusTone> = {
+  Aktiv: "success",
+  Bezahlt: "success",
+  Offen: "warning",
+  Planung: "info",
+  Entwurf: "neutral"
 }
 
 export function StatusBadge({
-  status
+  status,
+  tone
 }: StatusBadgeProps) {
+  const resolvedTone = tone ?? statusTones[status] ?? "neutral"
+
   return (
     <span
-      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
-        statusStyles[status] ??
-        "bg-neutral-200 text-neutral-700"
-      }`}
+      aria-label={"Status: " + status}
+      className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${toneStyles[resolvedTone]}`}
     >
       {status}
     </span>
