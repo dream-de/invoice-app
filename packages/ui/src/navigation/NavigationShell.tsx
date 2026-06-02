@@ -180,6 +180,7 @@ export function NavigationShell({
   const [searchQuery, setSearchQuery] = useState("")
   const searchCloseTimerRef = useRef<number | null>(null)
   const userMenuCloseTimerRef = useRef<number | null>(null)
+  const userMenuRef = useRef<HTMLDivElement | null>(null)
   const [notifications, setNotifications] = useState<NotificationApiItem[]>([])
   const [notificationCount, setNotificationCount] = useState(0)
   const isEnglish = notificationsLabel.toLowerCase().includes("notification")
@@ -379,6 +380,35 @@ export function NavigationShell({
     }, 220)
   }
 
+  useEffect(() => {
+    if (!userMenuOpen) return
+
+    function handlePointerMove(event: PointerEvent) {
+      const target = event.target
+      if (target instanceof Node && userMenuRef.current?.contains(target)) {
+        keepUserMenuOpen()
+        return
+      }
+
+      closeUserMenuAfterPointerLeave()
+    }
+
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target
+      if (target instanceof Node && userMenuRef.current?.contains(target)) return
+
+      setUserMenuOpen(false)
+    }
+
+    window.addEventListener("pointermove", handlePointerMove)
+    window.addEventListener("pointerdown", handlePointerDown)
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove)
+      window.removeEventListener("pointerdown", handlePointerDown)
+    }
+  }, [userMenuOpen])
+
   return (
     <div className="min-h-screen overflow-x-hidden bg-[var(--bg-app)] text-slate-950">
       <div className="invoice-app-zoom">
@@ -566,6 +596,7 @@ export function NavigationShell({
 
             {currentUser ? (
               <div
+                ref={userMenuRef}
                 className="invoice-user-wrap"
                 onMouseEnter={keepUserMenuOpen}
                 onMouseLeave={closeUserMenuAfterPointerLeave}
