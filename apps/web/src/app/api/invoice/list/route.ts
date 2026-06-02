@@ -76,23 +76,39 @@ export async function GET() {
     const invoices = await prisma.invoice.findMany({
       orderBy: { issueDate: "desc" },
       include: {
-        customer: true
+        customer: true,
+        positions: {
+          orderBy: { sortOrder: "asc" }
+        }
       }
     })
 
-    const formatted = invoices.map((inv) => ({
-      id: inv.id,
-      number: inv.number,
-      type: inv.type,
-      date: inv.issueDate,
-      dueDate: inv.dueDate,
-      createdAt: inv.createdAt,
-      status: inv.status,
-      customer: inv.customer?.name ?? "Unbekannt",
-      netTotal: inv.netTotal,
-      vatTotal: inv.vatTotal,
-      grossTotal: inv.grossTotal
-    }))
+    const formatted = invoices.map((inv) => {
+      const calculatedNetTotal = inv.positions.reduce(
+        (sum, position) => sum + Number(position.quantity) * Number(position.netPrice),
+        0
+      )
+      const storedNetTotal = Number(inv.netTotal)
+      const storedVatTotal = Number(inv.vatTotal)
+      const storedGrossTotal = Number(inv.grossTotal)
+      const netTotal = storedGrossTotal > 0 ? storedNetTotal : calculatedNetTotal
+      const vatTotal = storedGrossTotal > 0 ? storedVatTotal : netTotal * 0.19
+      const grossTotal = storedGrossTotal > 0 ? storedGrossTotal : netTotal + vatTotal
+
+      return {
+        id: inv.id,
+        number: inv.number,
+        type: inv.type,
+        date: inv.issueDate,
+        dueDate: inv.dueDate,
+        createdAt: inv.createdAt,
+        status: inv.status,
+        customer: inv.customer?.name ?? "Unbekannt",
+        netTotal,
+        vatTotal,
+        grossTotal
+      }
+    })
 
     return NextResponse.json(formatted)
   } catch (error) {

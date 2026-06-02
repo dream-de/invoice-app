@@ -94,8 +94,7 @@ export function LoginClient({
       const nextPath = new URL(window.location.href).searchParams.get("next")
       const safeNextPath = nextPath?.startsWith("/") && !nextPath.startsWith("//") ? nextPath : "/dashboard"
 
-      router.push(safeNextPath)
-      router.refresh()
+      window.location.assign(safeNextPath)
     } catch {
       setState({ type: "error", message: t("login.error.generic") })
     } finally {
