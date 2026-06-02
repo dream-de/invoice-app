@@ -47,21 +47,6 @@ services:
       timeout: 5s
       retries: 6
 
-  server-worker:
-    profiles:
-      - worker
-    image: ${DREAM_INVOICE_WORKER_IMAGE:-ghcr.io/dream-de/invoice-app-worker:latest}
-    restart: "no"
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      NODE_ENV: production
-      DATABASE_URL: postgresql://${POSTGRES_USER:-dream_invoice}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-dream_invoice}
-      SERVER_WORKER_MODE: ${SERVER_WORKER_MODE:-scheduled}
-      SERVER_WORKER_SCHEDULE_FILE: ${SERVER_WORKER_SCHEDULE_FILE:-config/schedules.example.json}
-      SERVER_WORKER_LIMIT: ${SERVER_WORKER_LIMIT:-25}
-
   nginx:
     profiles:
       - proxy

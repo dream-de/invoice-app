@@ -13,7 +13,6 @@ apps/
   accounting/     Accounting companion app.
   server/         Server app workspace.
   server-api/     API companion workspace.
-  server-worker/  Background worker workspace.
   desktop/        Desktop workspace.
   pro-desktop/    Pro desktop workspace.
   web-pro/        Pro web workspace.
@@ -44,7 +43,6 @@ The product stack uses the root `docker-compose.yml` and starts:
 - PostgreSQL
 - Dream Invoice web app
 - Nginx app proxy
-- Optional worker profile
 
 The website stack uses `docker/public-site.compose.yml` and starts the demo and landing-page services separately.
 

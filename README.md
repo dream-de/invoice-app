@@ -37,7 +37,7 @@ All demo data is fictional. Changes are simulated and are not saved permanently.
 - Invoices, offers, documents, DIN A4 preview, PDF export, and visual templates
 - Customers, articles, projects, finance workflows, import/export, and reporting
 - Multi-language app shell, login/session protection, licensing, and user-limit enforcement
-- Product Docker stack with PostgreSQL, web app, health checks, optional proxy, and optional worker
+- Product Docker stack with PostgreSQL, web app, health checks, and optional proxy
 - Optional demo and landing page kept separate from product/LXC installs
 
 ## GoBD-Oriented Workflows
@@ -50,7 +50,7 @@ GoBD readiness depends on the concrete deployment, operating procedures, retenti
 
 - `apps/web`: main product web app
 - `apps/demo`, `apps/landing-page`: optional demo and product website
-- `apps/server-worker`, `apps/server-api`, `apps/admin`, `apps/accounting`: service and companion apps
+- `apps/server-api`, `apps/admin`, `apps/accounting`: service and companion apps
 - `apps/desktop`, `apps/pro-desktop`, `packages/desktop-*`: separated desktop and Pro workspaces
 - `packages/database`, `packages/ui`, `packages/licensing`, `packages/accounting-core`: shared data, UI, licensing, and domain logic
 - `docker/`, `docs/`, `tools/license/`: deployment, documentation, and license tooling
@@ -74,8 +74,6 @@ docker compose up -d
 ```
 
 The default product stack pulls the prebuilt Dream Invoice image, starts PostgreSQL, and starts the web app. Open the app at `http://SERVER-IP:3000`. The optional Nginx proxy is available through the `proxy` profile when you want port 80, a domain, or HTTPS in front of the app.
-
-The published images are `ghcr.io/dream-de/invoice-app:latest` and `ghcr.io/dream-de/invoice-app-worker:latest`. Keep the GHCR packages public when you want unauthenticated self-hosted installs.
 
 ---
 
@@ -174,8 +172,6 @@ pnpm db:generate         # Generate the Prisma client
 pnpm db:migrate          # Run local database migrations
 pnpm db:deploy           # Run deployment migrations
 pnpm db:studio           # Open Prisma Studio
-pnpm worker:server       # Run the server worker locally
-pnpm worker:server:smoke # Run the worker smoke test
 pnpm release:check       # Run release checks
 pnpm release:quality     # Run full local release quality gates
 pnpm security:audit      # Run dependency audit from pnpm
@@ -226,12 +222,6 @@ docker compose -f docker-compose.yml -f docker-compose.build.yml build --no-cach
 docker compose up -d
 ```
 
-Build or run the worker profile:
-
-```bash
-pnpm docker:build:worker
-docker compose --profile worker run --rm --no-deps server-worker
-```
 
 Run the optional website stack separately when you host the marketing site and demo:
 

@@ -39,7 +39,6 @@ The stack starts:
 - PostgreSQL
 - Dream Invoice web app
 - Nginx app proxy
-- Optional worker profile, when enabled
 
 The default product stack uses the published Dream Invoice images from the registry. Local Docker builds are kept for maintainers in `docker-compose.build.yml`. Keep the GHCR packages public when you want unauthenticated self-hosted installs. Demo and landing-page services are handled by `docker/public-site.compose.yml` and are separate from the product installation.
 
@@ -76,15 +75,8 @@ For a single-server install, bind PostgreSQL to localhost or leave it reachable 
 
 In Docker, migrations are applied through the app startup flow. Keep regular PostgreSQL backups and test restore steps before relying on them.
 
-## 7. Worker
 
-The worker processes scheduled jobs and background tasks. Start it only when the installation needs those jobs:
-
-```bash
-docker compose --profile worker run --rm --no-deps server-worker
-```
-
-## 8. System Time
+## 7. System Time
 
 Keep the server clock synchronized with NTP. License expiry, audit timestamps, sessions, invoices, reminders, and email logs depend on correct time.
 

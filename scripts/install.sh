@@ -59,13 +59,8 @@ POSTGRES_DB=dream_invoice
 
 LICENSE_PUBLIC_KEY=""
 
-SERVER_WORKER_MODE=scheduled
-SERVER_WORKER_SCHEDULE_FILE="config/schedules.example.json"
-SERVER_WORKER_LIMIT=25
-SERVER_WORKER_NOW=""
 
 DREAM_INVOICE_IMAGE=ghcr.io/dream-de/invoice-app:latest
-DREAM_INVOICE_WORKER_IMAGE=ghcr.io/dream-de/invoice-app-worker:latest
 EOF
   chmod 600 "$ENV_FILE"
   CREATED_ENV=1

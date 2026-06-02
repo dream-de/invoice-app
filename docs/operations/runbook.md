@@ -79,19 +79,6 @@ Check migration status:
 pnpm --filter @dream-invoice/database prisma migrate status --schema ./prisma/schema.prisma
 ```
 
-## Worker
-
-Start the optional worker profile:
-
-```bash
-pnpm docker:worker
-```
-
-Check worker logs:
-
-```bash
-docker compose logs -f server-worker
-```
 
 ## Email
 
