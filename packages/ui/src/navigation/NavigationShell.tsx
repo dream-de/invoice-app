@@ -1,6 +1,6 @@
 "use client"
 
-import type { ReactNode } from "react"
+import type { PointerEvent as ReactPointerEvent, ReactNode } from "react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -373,7 +373,10 @@ export function NavigationShell({
     }
   }
 
-  function closeUserMenuAfterPointerLeave() {
+  function closeUserMenuAfterPointerLeave(event?: ReactPointerEvent<HTMLDivElement>) {
+    const nextTarget = event?.relatedTarget
+    if (nextTarget === null) return
+
     keepUserMenuOpen()
     userMenuCloseTimerRef.current = window.setTimeout(() => {
       setUserMenuOpen(false)
@@ -383,16 +386,6 @@ export function NavigationShell({
   useEffect(() => {
     if (!userMenuOpen) return
 
-    function handlePointerMove(event: PointerEvent) {
-      const target = event.target
-      if (target instanceof Node && userMenuRef.current?.contains(target)) {
-        keepUserMenuOpen()
-        return
-      }
-
-      closeUserMenuAfterPointerLeave()
-    }
-
     function handlePointerDown(event: PointerEvent) {
       const target = event.target
       if (target instanceof Node && userMenuRef.current?.contains(target)) return
@@ -400,11 +393,9 @@ export function NavigationShell({
       setUserMenuOpen(false)
     }
 
-    window.addEventListener("pointermove", handlePointerMove)
     window.addEventListener("pointerdown", handlePointerDown)
 
     return () => {
-      window.removeEventListener("pointermove", handlePointerMove)
       window.removeEventListener("pointerdown", handlePointerDown)
     }
   }, [userMenuOpen])
@@ -598,8 +589,8 @@ export function NavigationShell({
               <div
                 ref={userMenuRef}
                 className="invoice-user-wrap"
-                onMouseEnter={keepUserMenuOpen}
-                onMouseLeave={closeUserMenuAfterPointerLeave}
+                onPointerEnter={keepUserMenuOpen}
+                onPointerLeave={closeUserMenuAfterPointerLeave}
               >
                 <button
                   type="button"
