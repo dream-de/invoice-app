@@ -17,8 +17,8 @@ type DocumentEditPageProps = {
 type Position = {
   id: string
   label: string
-  qty: number
-  price: number
+  qty: string
+  price: string
   category: string
 }
 
@@ -35,8 +35,8 @@ type RecipientImport = {
 
 type PositionImport = {
   label: string
-  qty: number
-  price: number
+  qty: string
+  price: string
   category: string
 }
 
@@ -91,6 +91,27 @@ const articleCatalog = [
   { value: "travel", label: "Anfahrt", price: 45, category: "Dienstleistung" }
 ]
 
+function decimalInputValue(value: unknown, fallback = 0) {
+  const number = typeof value === "number" ? value : parseLocalizedDecimal(value, fallback)
+  return Number.isFinite(number) ? String(number).replace(".", ",") : String(fallback)
+}
+
+function parseLocalizedDecimal(value: unknown, fallback = 0) {
+  if (typeof value === "number") return Number.isFinite(value) ? value : fallback
+
+  const trimmed = String(value ?? "").trim().replace(/\s/g, "")
+  const normalized = trimmed.includes(",")
+    ? trimmed.replace(/\./g, "").replace(",", ".")
+    : trimmed
+
+  if (!normalized || normalized === "-" || normalized === "." || normalized === "-.") {
+    return fallback
+  }
+
+  const parsed = Number(normalized)
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
 export default function DocumentEditPage({ params }: DocumentEditPageProps) {
   const routeParams = useParams()
   const routeId = routeParams?.id
@@ -124,8 +145,8 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
   const [intro, setIntro] = useState(defaultIntro)
 
   const [positions, setPositions] = useState<Position[]>([
-    { id: "pos-1", label: "Dashboard Design", qty: 1, price: 851, category: "(Keine)" },
-    { id: "pos-2", label: "Frontend Integration", qty: 5, price: 80, category: "(Keine)" }
+    { id: "pos-1", label: "Dashboard Design", qty: "1", price: "851", category: "(Keine)" },
+    { id: "pos-2", label: "Frontend Integration", qty: "5", price: "80", category: "(Keine)" }
   ])
 
   const [selectedArticle, setSelectedArticle] = useState("")
@@ -185,8 +206,8 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
             invoice.positions.map((item, index) => ({
               id: item.id || `pos-${index + 1}`,
               label: item.title || t("documents.edit.fallback.position"),
-              qty: Number(item.quantity ?? 1) || 0,
-              price: Number(item.netPrice ?? 0) || 0,
+              qty: decimalInputValue(item.quantity, 1),
+              price: decimalInputValue(item.netPrice, 0),
               category: item.description || "(Keine)"
             }))
           )
@@ -204,7 +225,7 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
   }, [defaultIntro, document.customer, document.number, documentId, noCustomerOption, t])
 
   const net = useMemo(
-    () => positions.reduce((sum, item) => sum + Number(item.qty || 0) * Number(item.price || 0), 0),
+    () => positions.reduce((sum, item) => sum + parseLocalizedDecimal(item.qty) * parseLocalizedDecimal(item.price), 0),
     [positions]
   )
   const tax = net * 0.19
@@ -214,10 +235,6 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
     setPositions((items) =>
       items.map((item) => {
         if (item.id !== id) return item
-
-        if (field === "qty" || field === "price") {
-          return { ...item, [field]: Number(String(value).replace(",", ".")) || 0 }
-        }
 
         return { ...item, [field]: value }
       })
@@ -230,8 +247,8 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
       {
         id: `pos-${Date.now()}`,
         label: t("documents.edit.fallback.newPosition"),
-        qty: 1,
-        price: 0,
+        qty: "1",
+        price: "",
         category: "(Keine)"
       }
     ])
@@ -249,8 +266,8 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
       {
         id: `pos-${Date.now()}`,
         label: article?.label ?? t("documents.edit.fallback.newPosition"),
-        qty: 1,
-        price: article?.price ?? 0,
+        qty: "1",
+        price: article ? decimalInputValue(article.price) : "",
         category: article?.category ?? "(Keine)"
       }
     ])
@@ -331,8 +348,8 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
     setRecognizedPositions(
       result.positions.map((item: { label?: string; qty?: unknown; netPrice?: unknown; category?: string }) => ({
         label: item.label || t("documents.edit.fallback.position"),
-        qty: Number(item.qty ?? 1) || 1,
-        price: Number(item.netPrice ?? 0) || 0,
+        qty: decimalInputValue(item.qty, 1),
+        price: decimalInputValue(item.netPrice, 0),
         category: item.category || "(Keine)"
       }))
     )
@@ -344,10 +361,6 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
     setRecognizedPositions((items) =>
       items.map((item, itemIndex) => {
         if (itemIndex !== index) return item
-
-        if (field === "qty" || field === "price") {
-          return { ...item, [field]: Number(String(value).replace(",", ".")) || 0 }
-        }
 
         return { ...item, [field]: value }
       })
@@ -363,8 +376,8 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
       recognizedPositions.map((item, index) => ({
         id: `pos-import-${Date.now()}-${index}`,
         label: item.label || t("documents.edit.fallback.position"),
-        qty: Number(item.qty || 0),
-        price: Number(item.price || 0),
+        qty: item.qty || "0",
+        price: item.price || "0",
         category: item.category || "(Keine)"
       }))
     )
@@ -407,8 +420,8 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
           note: intro,
           items: positions.map((item) => ({
             name: item.label,
-            quantity: item.qty,
-            price: item.price,
+            quantity: parseLocalizedDecimal(item.qty),
+            price: parseLocalizedDecimal(item.price),
             category: item.category
           }))
         })
@@ -581,13 +594,13 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
                   </div>
 
                   <div className="position-card-row mt-3 grid grid-cols-[82px_82px_104px_1fr] items-end gap-2">
-                    <Input className="position-card-control bg-[#f8fbfc] px-3 py-1" label={t("documents.edit.fields.quantity")} value={String(item.qty)} onChange={(event) => updatePosition(item.id, "qty", event.target.value)} />
-                    <Input className="position-card-control bg-[#f8fbfc] px-3 py-1" label={t("documents.edit.fields.unitPrice")} value={String(item.price)} onChange={(event) => updatePosition(item.id, "price", event.target.value)} />
+                    <Input className="position-card-control bg-[#f8fbfc] px-3 py-1" inputMode="decimal" label={t("documents.edit.fields.quantity")} value={item.qty} onChange={(event) => updatePosition(item.id, "qty", event.target.value)} />
+                    <Input className="position-card-control bg-[#f8fbfc] px-3 py-1" inputMode="decimal" label={t("documents.edit.fields.unitPrice")} value={item.price} onChange={(event) => updatePosition(item.id, "price", event.target.value)} />
                     <Select className="position-card-control bg-[#f8fbfc] px-3 py-1" label={t("documents.edit.fields.category")} value={item.category} onChange={(event) => updatePosition(item.id, "category", event.target.value)} options={categoryOptions.map((category) => ({ value: category, label: categoryLabel(category) }))} />
                     <div className="space-y-2 text-right">
                       <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t("documents.edit.fields.total")}</p>
                       <p className="h-8 pt-1 text-sm font-black text-slate-950">
-                        <Currency value={item.qty * item.price} />
+                        <Currency value={parseLocalizedDecimal(item.qty) * parseLocalizedDecimal(item.price)} />
                       </p>
                     </div>
                   </div>
@@ -684,8 +697,8 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
                             <td className="py-3 pl-2 pr-3 font-bold text-slate-600">{index + 1}</td>
                             <td className="px-3 py-3 font-bold text-slate-900">{item.label}</td>
                             <td className="px-3 py-3 text-right font-bold text-slate-800">{item.qty}</td>
-                            <td className="px-3 py-3 text-right font-bold text-slate-800"><Currency value={item.price} /></td>
-                            <td className="py-3 pl-3 pr-2 text-right font-black text-slate-950"><Currency value={item.price * item.qty} /></td>
+                            <td className="px-3 py-3 text-right font-bold text-slate-800"><Currency value={parseLocalizedDecimal(item.price)} /></td>
+                            <td className="py-3 pl-3 pr-2 text-right font-black text-slate-950"><Currency value={parseLocalizedDecimal(item.price) * parseLocalizedDecimal(item.qty)} /></td>
                           </tr>
                         ))}
                       </tbody>
@@ -953,8 +966,8 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
                   {recognizedPositions.map((item, index) => (
                     <div key={index} className="grid grid-cols-[minmax(0,1fr)_86px_118px_118px_36px] items-end gap-2 rounded-[20px] border border-[#e5eaf0] bg-white p-3">
                       <Input label={t("documents.edit.preview.table.description")} value={item.label} onChange={(event) => updateRecognizedPosition(index, "label", event.target.value)} />
-                      <Input label={t("documents.edit.fields.quantity")} value={String(item.qty)} onChange={(event) => updateRecognizedPosition(index, "qty", event.target.value)} />
-                      <Input label={t("documents.edit.fields.unitPrice")} value={String(item.price)} onChange={(event) => updateRecognizedPosition(index, "price", event.target.value)} />
+                      <Input inputMode="decimal" label={t("documents.edit.fields.quantity")} value={item.qty} onChange={(event) => updateRecognizedPosition(index, "qty", event.target.value)} />
+                      <Input inputMode="decimal" label={t("documents.edit.fields.unitPrice")} value={item.price} onChange={(event) => updateRecognizedPosition(index, "price", event.target.value)} />
                       <Select label={t("documents.edit.fields.category")} value={item.category} onChange={(event) => updateRecognizedPosition(index, "category", event.target.value)} options={categoryOptions.map((category) => ({ value: category, label: categoryLabel(category) }))} />
                       <button
                         type="button"
