@@ -18,6 +18,7 @@ export type RuntimeEnvValidation =
 const INSECURE_AUTH_SECRETS = new Set([
   "change-this-secret-before-production",
   "dream-invoice-change-this-secret",
+  "CHANGE_ME_GENERATE_RANDOM_AUTH_SECRET",
   "CHANGEME_GENERATE_WITH_OPENSSL_RAND_HEX_32"
 ])
 
@@ -81,6 +82,7 @@ export function validateRuntimeEnv(env: RuntimeEnv = process.env): RuntimeEnvVal
     })
   } else if (
     authSecret.length < 32 ||
+    authSecret.startsWith("CHANGE_ME_") ||
     authSecret.startsWith("CHANGEME_") ||
     INSECURE_AUTH_SECRETS.has(authSecret)
   ) {

@@ -16,6 +16,7 @@ describe("runtime env validation", () => {
   it("rejects missing, weak, and placeholder auth secrets", () => {
     assert.equal(validateRuntimeEnv({}).valid, false)
     assert.equal(validateRuntimeEnv({ AUTH_SECRET: "short" }).valid, false)
+    assert.equal(validateRuntimeEnv({ AUTH_SECRET: "CHANGE_ME_GENERATE_RANDOM_AUTH_SECRET" }).valid, false)
     assert.equal(validateRuntimeEnv({ AUTH_SECRET: "CHANGEME_GENERATE_WITH_OPENSSL_RAND_HEX_32" }).valid, false)
   })
 

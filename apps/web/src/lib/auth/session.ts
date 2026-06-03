@@ -29,12 +29,18 @@ export class SessionError extends Error {
 const INSECURE_SESSION_SECRETS = new Set([
   "change-this-secret-before-production",
   "dream-invoice-change-this-secret",
+  "CHANGE_ME_GENERATE_RANDOM_AUTH_SECRET",
   "CHANGEME_GENERATE_WITH_OPENSSL_RAND_HEX_32"
 ])
 
 function getSessionSecret(secret = process.env.AUTH_SECRET) {
   const value = String(secret ?? "").trim()
-  if (!value || INSECURE_SESSION_SECRETS.has(value)) {
+  if (
+    !value ||
+    value.startsWith("CHANGE_ME_") ||
+    value.startsWith("CHANGEME_") ||
+    INSECURE_SESSION_SECRETS.has(value)
+  ) {
     throw new SessionError("missing_secret", "AUTH_SECRET ist nicht konfiguriert.")
   }
 

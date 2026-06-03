@@ -81,7 +81,7 @@ AUTH_COOKIE_SECURE=true
 
 Use `AUTH_COOKIE_SECURE=true` only when the public app URL uses HTTPS. Keep it `false` for local HTTP/LXC tests.
 
-For a fully manual install, copy `.env.example` to `.env`, replace every `CHANGEME_*` value, then start the stack:
+For a fully manual install, copy `.env.example` to `.env`, replace every `CHANGE_ME_*` value, then start the stack:
 
 ```bash
 cp .env.example .env
