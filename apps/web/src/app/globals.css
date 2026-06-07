@@ -1368,3 +1368,46 @@ main button {
     right: 0;
   }
 }
+
+.bm-preview-page .bm-company h1 {
+  font-size: 17px !important;
+  line-height: 1.15 !important;
+  font-weight: 800 !important;
+}
+
+.bm-preview-page .bm-company > div {
+  display: none !important;
+}
+
+.bm-preview-page .bm-sender-line {
+  display: block !important;
+  margin-bottom: 12px !important;
+  color: #111827 !important;
+  font-size: 10px !important;
+  font-weight: 400 !important;
+  line-height: 1.25 !important;
+  letter-spacing: 0 !important;
+  text-decoration: underline !important;
+}
+
+.bm-preview-page .bm-preview-title {
+  font-size: 18px !important;
+  line-height: 1.2 !important;
+  font-weight: 800 !important;
+}
+
+.bm-preview-page .bm-preview-title-row {
+  margin-top: 105px !important;
+}
+
+.bm-preview-page .bm-preview-address {
+  margin-top: 65px !important;
+  font-size: 14px !important;
+  font-weight: 400 !important;
+  line-height: 1.45 !important;
+}
+
+.bm-preview-page .bm-receiver-name {
+  font-weight: 400 !important;
+  line-height: 1.45 !important;
+}

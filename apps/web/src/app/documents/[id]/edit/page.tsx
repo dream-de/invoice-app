@@ -2,9 +2,10 @@
 
 import Link from "next/link"
 import { useParams } from "next/navigation"
+import { createPortal } from "react-dom"
 import { useEffect, useMemo, useState } from "react"
-import { Check, FileUp, Mail, PackagePlus, Plus, Sparkles, Trash2, UserRound, X } from "lucide-react"
-import { Button, ContentCard, Currency, Input, Select, Textarea } from "@dream-invoice/ui"
+import { Check, FileUp, Mail, Sparkles, Trash2, UserRound, X } from "lucide-react"
+import { Currency, Input, Select, Textarea } from "@dream-invoice/ui"
 import { documents } from "@/data/invoice-data"
 import { useLanguage } from "@/lib/i18n"
 
@@ -63,6 +64,24 @@ type ApiInvoice = {
   positions?: ApiInvoicePosition[]
 }
 
+const previewCustomerRecords = [
+  {
+    name: "Musterfirma GmbH",
+    email: "buchhaltung@musterfirma.de",
+    address: "Musterstraße 123\n12345 Musterstadt"
+  },
+  {
+    name: "StartUp Berlin AG",
+    email: "finance@startup-berlin.example",
+    address: "Invalidenstraße 44\n10115 Berlin"
+  },
+  {
+    name: "Handwerk Müller",
+    email: "rechnung@handwerk-mueller.example",
+    address: "Hauptstraße 18\n80331 München"
+  }
+]
+
 function formatDateForInput(value: string | Date | null | undefined) {
   if (!value) return ""
 
@@ -112,6 +131,30 @@ function parseLocalizedDecimal(value: unknown, fallback = 0) {
   return Number.isFinite(parsed) ? parsed : fallback
 }
 
+function formatDisplayDate(value: string) {
+  const [year, month, day] = value.split("-")
+
+  if (!year || !month || !day) return value
+
+  return `${day}.${month}.${year}`
+}
+
+function formatPreviewCustomerName(value: string) {
+  const normalized = value.trim()
+
+  return normalized === "Muster Firma GmbH" ? "Musterfirma GmbH" : value
+}
+
+function getPreviewCustomerName(value: string, emptyLabel: string) {
+  const normalized = value.trim()
+
+  if (!normalized || normalized === emptyLabel || normalized === "(Kein Kunde)" || normalized === "(No customer)") {
+    return "Musterfirma GmbH"
+  }
+
+  return formatPreviewCustomerName(value)
+}
+
 export default function DocumentEditPage({ params }: DocumentEditPageProps) {
   const routeParams = useParams()
   const routeId = routeParams?.id
@@ -135,18 +178,30 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
   }
 
   const [number, setNumber] = useState(document.number)
-  const [customer, setCustomer] = useState(document.customer)
+  const [customer, setCustomer] = useState(formatPreviewCustomerName(document.customer))
   const [project, setProject] = useState(noProjectOption)
   const [date, setDate] = useState("2026-05-14")
   const [serviceDate, setServiceDate] = useState("2026-05-14")
   const [dueDate, setDueDate] = useState("2026-05-28")
   const [email, setEmail] = useState("billing@aurora-labs.example")
-  const [address, setAddress] = useState("Lindenallee 42\n50667 Koeln")
+  const [address, setAddress] = useState("Musterstraße 123\n12345 Musterstadt")
   const [intro, setIntro] = useState(defaultIntro)
 
   const [positions, setPositions] = useState<Position[]>([
-    { id: "pos-1", label: "Dashboard Design", qty: "1", price: "851", category: "(Keine)" },
-    { id: "pos-2", label: "Frontend Integration", qty: "5", price: "80", category: "(Keine)" }
+    {
+      id: "pos-webdesign-entwurf",
+      label: "Webdesign Entwurf",
+      qty: "1",
+      price: "850",
+      category: "(Keine)"
+    },
+    {
+      id: "pos-frontend-entwicklung",
+      label: "Frontend Entwicklung",
+      qty: "5",
+      price: "80",
+      category: "(Keine)"
+    }
   ])
 
   const [selectedArticle, setSelectedArticle] = useState("")
@@ -170,6 +225,11 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
 
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle")
   const [saveMessage, setSaveMessage] = useState("")
+  const [isMounted, setIsMounted] = useState(false)
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -185,7 +245,7 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
         if (cancelled) return
 
         setNumber(invoice.number || document.number)
-        setCustomer(invoice.customer?.name || noCustomerOption)
+        setCustomer(formatPreviewCustomerName(invoice.customer?.name || noCustomerOption))
         setEmail(invoice.customer?.email || "")
 
         const addressLines = [
@@ -193,7 +253,7 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
           [invoice.customer?.zip, invoice.customer?.city].filter(Boolean).join(" ")
         ].filter(Boolean)
 
-        setAddress(addressLines.join("\n"))
+        setAddress(addressLines.length > 0 ? addressLines.join("\n") : "Musterstraße 123\n12345 Musterstadt")
 
         const invoiceDate = formatDateForInput(invoice.issueDate)
         setDate(invoiceDate || "2026-05-14")
@@ -201,17 +261,20 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
         setDueDate(formatDateForInput(invoice.dueDate) || "")
         setIntro(invoice.notes || defaultIntro)
 
-        if (Array.isArray(invoice.positions) && invoice.positions.length > 0) {
-          setPositions(
-            invoice.positions.map((item, index) => ({
-              id: item.id || `pos-${index + 1}`,
-              label: item.title || t("documents.edit.fallback.position"),
-              qty: decimalInputValue(item.quantity, 1),
-              price: decimalInputValue(item.netPrice, 0),
-              category: item.description || "(Keine)"
-            }))
-          )
-        }
+        // TEMP: Fuer den Sample-Design-Test bleiben die Startpositionen sichtbar.
+        // Wenn das Layout final passt, diesen Block wieder aktivieren, damit echte
+        // gespeicherte Rechnungspositionen aus der API geladen werden.
+        // if (Array.isArray(invoice.positions) && invoice.positions.length > 0) {
+        //   setPositions(
+        //     invoice.positions.map((item, index) => ({
+        //       id: item.id || `pos-${index + 1}`,
+        //       label: item.title || t("documents.edit.fallback.position"),
+        //       qty: decimalInputValue(item.quantity, 1),
+        //       price: decimalInputValue(item.netPrice, 0),
+        //       category: item.description || "(Keine)"
+        //     }))
+        //   )
+        // }
       } catch {
         // Demo-Dokumente bleiben als Fallback erhalten.
       }
@@ -258,8 +321,19 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
     setPositions((items) => items.filter((item) => item.id !== id))
   }
 
-  function addCatalogArticle() {
-    const article = articleCatalog.find((item) => item.value === selectedArticle)
+  function selectPreviewCustomer(value: string) {
+    setCustomer(value)
+
+    const record = previewCustomerRecords.find((item) => item.name === value)
+
+    if (!record) return
+
+    setEmail(record.email)
+    setAddress(record.address)
+  }
+
+  function addCatalogArticle(articleValue = selectedArticle) {
+    const article = articleCatalog.find((item) => item.value === articleValue)
 
     setPositions((items) => [
       ...items,
@@ -389,7 +463,11 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
   }
 
   function sendInvoiceEmail() {
-    if (!email.trim()) return
+    if (!email.trim()) {
+      setSaveStatus("error")
+      setSaveMessage("Bitte zuerst eine E-Mail-Adresse eintragen.")
+      return
+    }
 
     const subject = encodeURIComponent(`${t("documents.edit.email.subjectPrefix")} ${number}`)
     const body = encodeURIComponent(`${t("documents.edit.email.bodyPrefix")}\n\n${t("documents.edit.email.bodyMiddle")} ${number}.\n\n${t("documents.edit.email.bodyClosing")}`)
@@ -441,470 +519,1559 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
     }
   }
 
-  return (
-    <div className="fixed inset-0 z-[120] overflow-hidden bg-white text-slate-950">
-      <div className="flex h-10 items-center justify-between border-b border-slate-200 bg-white px-4">
-        <div className="flex items-center gap-2 font-black">
-          <span className="text-[var(--brand-lime)]">B</span>
-          <span>Invoice</span>
-        </div>
-        <div className="flex items-center gap-4 text-slate-500">
-          <span>−</span>
-          <span>□</span>
-          <span>×</span>
-        </div>
-      </div>
-      <div className="h-[calc(100vh-40px)] overflow-hidden bg-white px-4 py-5">
-        <div className="invoice-edit-compact grid h-full w-full min-w-[1180px] grid-cols-[420px_minmax(0,1fr)] gap-3">
-        <div className="invoice-edit-compact-left-flat h-[calc(100vh-80px)] w-[420px] shrink-0 overflow-y-auto pr-4">
-          <div className="mb-9">
-            <Link href="/documents" className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-400 no-underline hover:text-slate-900">
-              {t("documents.edit.back")}
-            </Link>
-            <h1 className="mt-6 text-2xl font-black tracking-tight text-slate-950">{t("documents.edit.title")}</h1>
-            <p className="mt-1 text-sm font-semibold text-slate-500">{number}</p>
-          </div>
-          <ContentCard title={t("documents.edit.sections.base")} description="">
-            <div className="grid grid-cols-2 gap-3">
-              <Input label={t("documents.edit.fields.invoiceNumber")} value={number} onChange={(event) => setNumber(event.target.value)} />
-              <Input label={t("documents.edit.fields.date")} type="date" value={date} onChange={(event) => setDate(event.target.value)} />
-              <Input label={t("documents.edit.fields.serviceDate")} type="date" value={serviceDate} onChange={(event) => setServiceDate(event.target.value)} />
-              <Input label={t("documents.edit.fields.dueDate")} type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} />
+  const editor = (
+    <div className="bm-root fixed inset-0 z-[120] overflow-hidden text-slate-950">
+      <div className="bm-shell">
+        <aside className="bm-sidebar">
+          <div className="bm-sidebar-inner">
+            <div className="bm-sidebar-header">
+              <Link href="/documents" className="bm-back-link">
+                {t("documents.edit.back")}
+              </Link>
+              <h2>Rechnung bearbeiten</h2>
+              <p className="bm-invoice-id">{number}</p>
             </div>
-          </ContentCard>
 
-          <ContentCard title={t("documents.edit.sections.recipient")} description="">
-            <Select
-              label={t("documents.edit.fields.customerSelect")}
-              value={customer}
-              onChange={(event) => setCustomer(event.target.value)}
-              options={[
-                { value: noCustomerOption, label: noCustomerOption },
-                { value: "Aurora Labs GmbH", label: "Aurora Labs GmbH" },
-                { value: "Aurora Labs GmbH", label: "Aurora Labs GmbH" },
-                { value: "Urban Commerce AG", label: "Urban Commerce AG" },
-                { value: "Polar Digital GmbH", label: "Polar Digital GmbH" }
-              ]}
-            />
+            <div className="bm-section">
+              <h3 className="bm-section-title">Basisdaten</h3>
+              <div className="bm-basis-grid">
+                <label className="bm-label">
+                  Rechnungs-Nr.
+                  <Input className="bm-input" value={number} onChange={(event) => setNumber(event.target.value)} />
+                </label>
+                <label className="bm-label">
+                  Datum
+                  <Input className="bm-input" type="date" value={date} onChange={(event) => setDate(event.target.value)} />
+                </label>
+                <label className="bm-label">
+                  Leistungsdatum
+                  <Input className="bm-input" type="date" value={serviceDate} onChange={(event) => setServiceDate(event.target.value)} />
+                </label>
+                <label className="bm-label">
+                  Fälligkeit
+                  <Input className="bm-input" type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} />
+                </label>
+              </div>
+            </div>
 
-            <div className="mt-3">
+            <div className="bm-section">
+              <h3 className="bm-section-title">Empfaenger</h3>
+
+            <label className="bm-label">
+              Kunde aus Daten
               <Select
-                label={t("documents.edit.fields.project")}
+                className="bm-input"
+                value={customer}
+                onChange={(event) => selectPreviewCustomer(event.target.value)}
+                options={[
+                  { value: noCustomerOption, label: noCustomerOption },
+                  ...previewCustomerRecords.map((item) => ({ value: item.name, label: item.name }))
+                ]}
+              />
+            </label>
+
+            <label className="bm-label">
+              Firmenname / Kunde
+              <Input className="bm-input" value={customer} onChange={(event) => setCustomer(event.target.value)} />
+            </label>
+
+            <label className="bm-label">
+              E-Mail
+              <Input className="bm-input" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@firma.de" />
+            </label>
+
+            <label className="bm-label bm-address-label">
+              Adresse (optional)
+              <Textarea className="bm-textarea bm-address-textarea" value={address} onChange={(event) => setAddress(event.target.value)} placeholder={t("documents.edit.placeholders.address")} />
+            </label>
+
+            <label className="bm-label">
+              Projekt (optional)
+              <Select
+                className="bm-input"
                 value={project}
                 onChange={(event) => setProject(event.target.value)}
                 options={[
                   { value: noProjectOption, label: noProjectOption },
                   { value: "Portal Relaunch 2026", label: "Portal Relaunch 2026" },
                   { value: "Launch Kampagne Q4", label: "Launch Kampagne Q4" },
-                  { value: "PRJ-2026-001 – Demo Setup", label: "PRJ-2026-001 – Demo Setup" }
+                  { value: "PRJ-2026-001 – Demo Setup", label: "PRJ-2026-001 - Demo Setup" }
                 ]}
               />
-            </div>
+            </label>
 
-            <div className="mt-3">
-              <Input label={t("documents.edit.fields.customerName")} value={customer} onChange={(event) => setCustomer(event.target.value)} />
-            </div>
-
-            <div className="mt-3">
-              <Input label={t("documents.edit.fields.email")} type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="name@firma.de" />
-            </div>
-
-            <div className="mt-3">
-              <Textarea label={t("documents.edit.fields.addressOptional")} value={address} onChange={(event) => setAddress(event.target.value)} placeholder={t("documents.edit.placeholders.address")} />
-            </div>
-
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setRecipientImportOpen(true)}
-                className="inline-flex h-8 min-h-8 items-center justify-center gap-1.5 rounded-full bg-black px-3 text-xs font-black text-[var(--brand-lime)]"
-              >
-                <UserRound className="h-3.5 w-3.5" />
-                {t("documents.edit.actions.changeRecipient")}
+            <div className="bm-action-row">
+              <button type="button" onClick={() => setRecipientImportOpen(true)} className="bm-icon-button" title={t("documents.edit.actions.changeRecipient")}>
+                <UserRound className="h-4 w-4" />
+                Empfaenger
               </button>
-
-              <button
-                type="button"
-                onClick={sendInvoiceEmail}
-                disabled={!email.trim()}
-                className="inline-flex h-8 min-h-8 items-center justify-center gap-1.5 rounded-full bg-[#eef2f7] px-3 text-xs font-black text-slate-800 disabled:opacity-50"
-              >
-                <Mail className="h-3.5 w-3.5" />
-                {t("documents.edit.actions.sendEmail")}
+              <button type="button" onClick={sendInvoiceEmail} className="bm-icon-button" title={t("documents.edit.actions.sendEmail")}>
+                <Mail className="h-4 w-4" />
+                E-Mail
+              </button>
+              <button type="button" onClick={() => setPositionImportOpen(true)} className="bm-icon-button" title={t("documents.edit.actions.importPositions")}>
+                <FileUp className="h-4 w-4" />
+                Import
               </button>
             </div>
-          </ContentCard>
+          </div>
 
-          <ContentCard title="" description="">
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 text-sm font-black uppercase tracking-[0.04em] text-slate-950">
-                <span className="h-3 w-3 rounded-[3px] bg-[var(--brand-lime)] shadow-[0_0_0_2px_rgba(216,246,60,0.24)]" />
-                {t("documents.edit.sections.positions")}
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setPositionImportOpen(true)}
-                  className="compact-mini-button inline-flex items-center justify-center gap-1.5 rounded-full bg-[#eef2f7] px-3 text-xs font-black text-slate-800"
-                >
-                  <FileUp className="h-3.5 w-3.5" />
-                  {t("documents.edit.actions.importPositions")}
-                </button>
-
+          <div className="bm-section" id="invoice-positions">
+            <div className="bm-section-head">
+              <h3 className="bm-section-title">Positionen</h3>
+              <div className="bm-catalog-row">
                 <select
+                  id="invoice-article-select"
                   aria-label={t("documents.edit.actions.addArticle")}
                   value={selectedArticle}
-                  onChange={(event) => setSelectedArticle(event.target.value)}
-                  className="compact-mini-control w-[188px]"
+                  onChange={(event) => {
+                    const articleValue = event.target.value
+                    setSelectedArticle(articleValue)
+                    if (articleValue) addCatalogArticle(articleValue)
+                  }}
+                  className="bm-catalog-select"
                 >
                   <option value="">{t("documents.edit.options.addArticle")}</option>
                   {articleCatalog.map((item) => (
                     <option key={item.value} value={item.value}>{item.label}</option>
                   ))}
                 </select>
-
-                <button
-                  type="button"
-                  onClick={addCatalogArticle}
-                  className="compact-mini-button inline-flex items-center justify-center gap-1.5 rounded-full bg-black px-3 text-xs font-black text-[var(--brand-lime)]"
-                >
-                  <PackagePlus className="h-3.5 w-3.5" />
-                  {t("documents.edit.actions.new")}
+                <button type="button" onClick={addPosition} className="bm-add-button">
+                  + Neu
                 </button>
               </div>
             </div>
 
-            <div className="space-y-3">
-              {positions.map((item, index) => (
-                <div key={item.id} className={`position-card rounded-[32px] border ${index < 2 ? "border-[var(--brand-lime)]" : "border-[#e5eaf0]"} bg-white p-4 shadow-[0_8px_18px_rgba(15,23,42,0.10)]`}>
-                  <div className="flex items-start gap-2">
-                    <div className="position-card-title flex-1">
-                      <Input className="bg-[#f8fbfc] px-4 py-1 text-sm font-black" value={item.label} onChange={(event) => updatePosition(item.id, "label", event.target.value)} placeholder={t("documents.edit.placeholders.position")} />
-                    </div>
+            {positions.map((item) => (
+              <div className="bm-position-card" key={item.id}>
+                <div className="bm-position-card-head">
+                  <Input
+                    className="bm-position-title-input"
+                    value={item.label}
+                    onChange={(event) => updatePosition(item.id, "label", event.target.value)}
+                    placeholder={t("documents.edit.placeholders.position")}
+                    aria-label={t("documents.edit.preview.table.description")}
+                  />
+                  <button type="button" onClick={() => deletePosition(item.id)} className="bm-delete-button" aria-label={t("documents.edit.actions.deletePosition")}>
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
 
-                    <button
-                      type="button"
-                      onClick={() => deletePosition(item.id)}
-                      className="position-delete-button mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-transparent text-slate-300 hover:bg-slate-100 hover:text-red-500"
-                      aria-label={t("documents.edit.actions.deletePosition")}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-
-                  <div className="position-card-row mt-3 grid grid-cols-[82px_82px_104px_1fr] items-end gap-2">
-                    <Input className="position-card-control bg-[#f8fbfc] px-3 py-1" inputMode="decimal" label={t("documents.edit.fields.quantity")} value={item.qty} onChange={(event) => updatePosition(item.id, "qty", event.target.value)} />
-                    <Input className="position-card-control bg-[#f8fbfc] px-3 py-1" inputMode="decimal" label={t("documents.edit.fields.unitPrice")} value={item.price} onChange={(event) => updatePosition(item.id, "price", event.target.value)} />
-                    <Select className="position-card-control bg-[#f8fbfc] px-3 py-1" label={t("documents.edit.fields.category")} value={item.category} onChange={(event) => updatePosition(item.id, "category", event.target.value)} options={categoryOptions.map((category) => ({ value: category, label: categoryLabel(category) }))} />
-                    <div className="space-y-2 text-right">
-                      <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{t("documents.edit.fields.total")}</p>
-                      <p className="h-8 pt-1 text-sm font-black text-slate-950">
-                        <Currency value={parseLocalizedDecimal(item.qty) * parseLocalizedDecimal(item.price)} />
-                      </p>
+                <div className="bm-position-grid">
+                  <label>
+                    <span className="bm-mini-label">Menge</span>
+                    <Input
+                      className="bm-mini-input"
+                      inputMode="decimal"
+                      value={item.qty}
+                      onChange={(event) => updatePosition(item.id, "qty", event.target.value)}
+                      aria-label={t("documents.edit.fields.quantity")}
+                    />
+                  </label>
+                  <label>
+                    <span className="bm-mini-label">Einzel (€)</span>
+                    <Input
+                      className="bm-mini-input"
+                      inputMode="decimal"
+                      value={item.price}
+                      onChange={(event) => updatePosition(item.id, "price", event.target.value)}
+                      aria-label={t("documents.edit.fields.unitPrice")}
+                    />
+                  </label>
+                  <label>
+                    <span className="bm-mini-label">Kategorie</span>
+                    <Select
+                      className="bm-mini-input"
+                      value={item.category}
+                      onChange={(event) => updatePosition(item.id, "category", event.target.value)}
+                      options={categoryOptions.map((category) => ({ value: category, label: categoryLabel(category) }))}
+                      aria-label={t("documents.edit.fields.category")}
+                    />
+                  </label>
+                  <div className="bm-total-field">
+                    <span className="bm-mini-label">Gesamt</span>
+                    <div className="bm-position-total">
+                      <Currency value={parseLocalizedDecimal(item.qty) * parseLocalizedDecimal(item.price)} />
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          </ContentCard>
+              </div>
+            ))}
+          </div>
 
-          <div className="rounded-[32px] border border-[#e5eaf0] bg-[#f8fbfc] p-4 shadow-[0_8px_18px_rgba(15,23,42,0.06)]">
-            <div className="flex justify-between text-sm text-slate-500">
+          <div className="bm-editor-summary">
+            <div className="bm-summary-row">
               <span>{t("documents.edit.totals.net")}</span>
-              <span className="font-bold text-slate-900"><Currency value={net} /></span>
+              <span><Currency value={net} /></span>
             </div>
-            <div className="mt-2 flex justify-between text-sm text-slate-500">
+            <div className="bm-summary-row">
               <span>{t("documents.edit.totals.vat")}</span>
-              <span className="font-bold text-slate-900"><Currency value={tax} /></span>
+              <span><Currency value={tax} /></span>
             </div>
-            <div className="mt-3 flex justify-between border-t border-slate-200 pt-4 text-lg font-extrabold text-slate-950">
+            <div className="bm-summary-row bm-summary-total">
               <span>{t("documents.edit.totals.gross")}</span>
               <Currency value={gross} />
             </div>
           </div>
 
-          <div className="sticky bottom-0 z-20 -mx-1 bg-white/95 px-1 py-4 backdrop-blur">
-            <Button
-              onClick={saveInvoice}
-              disabled={saveStatus === "saving"}
-              className="flex h-12 w-full items-center justify-center rounded-full bg-[var(--brand-lime)] text-sm font-black text-black shadow-[0_12px_26px_rgba(217,249,68,0.34)]"
-            >
-              {saveStatus === "saving" ? t("documents.edit.actions.saving") : t("documents.edit.actions.save")}
-            </Button>
+          <button type="button" onClick={saveInvoice} disabled={saveStatus === "saving"} className="bm-btn-primary">
+            {saveStatus === "saving" ? t("documents.edit.actions.saving") : "Änderungen speichern"}
+          </button>
 
-            {saveMessage && (
-              <p className={`mt-3 rounded-2xl px-4 py-3 text-sm font-black ${saveStatus === "error" ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-700"}`}>
-                {saveMessage}
-              </p>
-            )}
+          {saveMessage && (
+            <p className={`bm-save-message ${saveStatus === "error" ? "bm-save-error" : "bm-save-ok"}`}>
+              {saveMessage}
+            </p>
+          )}
           </div>
-        </div>
+        </aside>
 
-        <div className="sticky top-0 h-[calc(100vh-40px)] min-w-0 self-start overflow-x-hidden overflow-y-auto bg-[#555]">
-          <div className="flex min-h-full flex-col items-center bg-[#555] px-8 pb-8 pt-8">
-            <div className="mb-4 flex w-[794px] max-w-full justify-center text-white/50">
-            <p className="inline-flex items-center gap-2 text-xs font-medium uppercase tracking-wider text-white/50">{t("documents.edit.preview.live")}</p>
-          </div>
-          <div className="flex w-full justify-center">
-              <div className="invoice-a4-preview relative mx-auto min-h-[1123px] w-[794px] shrink-0 rounded-[4px] bg-white px-14 py-12 shadow-[0_25px_50px_rgba(0,0,0,0.28)]" style={{ zoom: 0.9 }}>
-                <div className="mb-20 flex justify-center">
-                  <h2 className="text-3xl font-extrabold tracking-tight text-slate-950">Dream Ledger GmbH</h2>
+        <main className="bm-preview-wrap">
+          <div className="bm-preview-label">LIVE VORSCHAU</div>
+
+          <div className="bm-preview-column">
+            <div className="bm-preview-page">
+              <header className="bm-preview-header">
+                <div />
+
+                <div className="bm-company bm-company-sample">
+                  <h1>Mustermann GmbH</h1>
                 </div>
+              </header>
 
-                <div className="mt-6 grid grid-cols-[1fr_250px] items-start gap-12">
+              <section className="bm-preview-address">
+                <div className="bm-sender-line">
+                  Mustermann GmbH | Musterstraße 123 | 10115 Berlin
+                </div>
+                <div className="bm-receiver-name">
+                  {getPreviewCustomerName(customer, noCustomerOption)}
+                  {address && (
+                    <>
+                      <br />
+                      {address.split("\n").map((line, index) => (
+                        <span key={`${line}-${index}`}>
+                          {line}
+                          <br />
+                        </span>
+                      ))}
+                    </>
+                  )}
+                </div>
+              </section>
+
+              <section className="bm-preview-title-row">
+                <h1 className="bm-preview-title bm-preview-title-sample">
+                  Rechnung {number}
+                </h1>
+
+                <div className="bm-preview-meta bm-preview-meta-sample">
                   <div>
-                    <p className="text-[11px] font-semibold leading-5 text-slate-400">
-                      Dream Ledger GmbH | Lindenallee 42 | 50667 Koeln
-                    </p>
-                    <div className="mt-4 text-[13px] leading-6 text-slate-800">
-                      <p className="font-extrabold text-slate-950">{customer}</p>
-                      <p className="whitespace-pre-line">{address}</p>
-                      <p className="text-slate-500">{email}</p>
-                    </div>
+                    <span>Rechnungs-Nr:</span> {number}
                   </div>
-
-                  <div className="text-right text-[13px] leading-6 text-slate-700">
-                    <p><span className="font-bold text-slate-950">{t("documents.edit.preview.labels.invoiceNumber")}</span> {number}</p>
-                    <p><span className="font-bold text-slate-950">{t("documents.edit.preview.labels.date")}</span> {date}</p>
-                    <p><span className="font-bold text-slate-950">{t("documents.edit.preview.labels.serviceDate")}</span> {serviceDate}</p>
-                    <p><span className="font-bold text-slate-950">{t("documents.edit.preview.labels.customerNumber")}</span> DI-DI-KD-1001</p>
+                  <div>
+                    <span>Datum:</span> {formatDisplayDate(date)}
+                  </div>
+                  <div>
+                    <span>Leistungsdatum:</span> {formatDisplayDate(serviceDate)}
+                  </div>
+                  <div>
+                    <span>Kunden-Nr:</span> KD-0001
                   </div>
                 </div>
+              </section>
 
-                <div className="mx-auto mt-28 max-w-[640px]">
-                  <h4 className="text-[19px] font-semibold tracking-tight text-slate-950">
-                    {t("documents.edit.preview.titlePrefix")} {number}
-                  </h4>
+              <section className="bm-preview-text bm-preview-text-sample">
+                <p>Sehr geehrte Damen und Herren,</p>
+                <p>
+                  vielen Dank für Ihren Auftrag. Wir berechnen Ihnen für unsere Leistungen wie folgt:
+                </p>
+              </section>
 
-                  <p className="mt-8 text-[11px] font-semibold leading-5 text-slate-900">{t("documents.edit.preview.greeting")}</p>
-                  <p className="mt-5 text-[11px] font-semibold leading-5 text-slate-900">{intro}</p>
+              <table className="bm-items-table bm-items-table-sample">
+                <thead>
+                  <tr>
+                    <th>POS.</th>
+                    <th>BEZEICHNUNG</th>
+                    <th>MENGE</th>
+                    <th>EINZELPREIS</th>
+                    <th>GESAMT</th>
+                  </tr>
+                </thead>
 
-                  <div className="mt-7">
-                    <table className="w-full border-collapse text-[11px]">
-                      <thead className="bg-slate-100 text-left text-[10px] font-black uppercase tracking-widest text-slate-500">
-                        <tr className="border-b border-slate-200">
-                          <th className="py-2.5 pl-2 pr-3">{t("documents.edit.preview.table.pos")}</th>
-                          <th className="px-3 py-2.5">{t("documents.edit.preview.table.description")}</th>
-                          <th className="px-3 py-2.5 text-right">{t("documents.edit.preview.table.quantity")}</th>
-                          <th className="px-3 py-2.5 text-right">{t("documents.edit.preview.table.unitPrice")}</th>
-                          <th className="py-2.5 pl-3 pr-2 text-right">{t("documents.edit.preview.table.total")}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {positions.map((item, index) => (
-                          <tr key={item.id} className="border-b border-slate-200/80 shadow-[0_1px_0_rgba(15,23,42,0.03)]">
-                            <td className="py-3 pl-2 pr-3 font-bold text-slate-600">{index + 1}</td>
-                            <td className="px-3 py-3 font-bold text-slate-900">{item.label}</td>
-                            <td className="px-3 py-3 text-right font-bold text-slate-800">{item.qty}</td>
-                            <td className="px-3 py-3 text-right font-bold text-slate-800"><Currency value={parseLocalizedDecimal(item.price)} /></td>
-                            <td className="py-3 pl-3 pr-2 text-right font-black text-slate-950"><Currency value={parseLocalizedDecimal(item.price) * parseLocalizedDecimal(item.qty)} /></td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                <tbody>
+                  {positions.map((item, index) => {
+                    const qty = parseLocalizedDecimal(item.qty)
+                    const price = parseLocalizedDecimal(item.price)
+                    const total = qty * price
 
-                  <div className="mt-10 ml-auto max-w-[210px] space-y-1 text-[10.5px] font-black leading-4 text-slate-950">
-                    <div className="flex justify-between gap-6">
-                      <span>{t("documents.edit.preview.totals.net")}</span>
-                      <span><Currency value={net} /></span>
-                    </div>
-                    <div className="flex justify-between gap-6">
-                      <span>{t("documents.edit.preview.totals.vat")}</span>
-                      <span><Currency value={tax} /></span>
-                    </div>
-                    <div className="flex justify-between gap-6">
-                      <span>{t("documents.edit.preview.totals.gross")}</span>
-                      <Currency value={gross} />
-                    </div>
-                  </div>
+                    return (
+                      <tr key={item.id}>
+                        <td>{index + 1}</td>
+                        <td>{item.label || "Neue Position"}</td>
+                        <td>{item.qty}</td>
+                        <td>
+                          <Currency value={price} />
+                        </td>
+                        <td>
+                          <Currency value={total} />
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
 
-                  <p className="mt-7 text-[10px] font-semibold leading-4 text-slate-900">
-                    {t("documents.edit.preview.payment.line1")}<br />
-                    {t("documents.edit.preview.payment.line2")}
-                  </p>
-
-                  <div className="absolute bottom-10 left-14 right-14">
-                    <div className="border-t border-slate-200" />
-                    <div className="grid grid-cols-3 gap-10 pt-4 text-[9px] font-medium leading-4 text-slate-500">
-                      <div>
-                        <p>Dream Ledger GmbH</p>
-                        <p>Lindenallee 42</p>
-                        <p>50667 Koeln</p>
-                      </div>
-                      <div>
-                        <p>{t("documents.edit.preview.footer.contact")}</p>
-                        <p>{t("documents.edit.preview.footer.phone")} +49 30 1234567</p>
-                        <p>{t("documents.edit.preview.footer.email")} office@dream-ledger.example</p>
-                        <p>{t("documents.edit.preview.footer.web")} www.dream-ledger.example</p>
-                      </div>
-                      <div>
-                        <p>{t("documents.edit.preview.footer.bank")}</p>
-                        <p>{t("documents.edit.preview.footer.iban")} DE12 1005 0000 1234 5678 90</p>
-                        <p>{t("documents.edit.preview.footer.bic")} BELA DE BE XXX</p>
-                        <p>{t("documents.edit.preview.footer.vatId")} DE123456789</p>
-                      </div>
-                    </div>
-                  </div>
+              <section className="bm-summary bm-summary-sample">
+                <div className="bm-summary-row">
+                  <span>Netto:</span>
+                  <span>
+                    <Currency value={net} />
+                  </span>
                 </div>
-              </div>
+
+                <div className="bm-summary-row">
+                  <span>USt (19%):</span>
+                  <span>
+                    <Currency value={tax} />
+                  </span>
+                </div>
+
+                <div className="bm-summary-row bm-summary-total">
+                  <span>Gesamtbetrag:</span>
+                  <Currency value={gross} />
+                </div>
+              </section>
+
+              <footer className="bm-preview-footer">
+                <div>
+                  <strong>Mustermann GmbH</strong>
+                  <span>Musterstraße 123</span>
+                  <span>10115 Berlin</span>
+                </div>
+
+                <div>
+                  <span>{email || "info@mustermann.example"}</span>
+                  <span>www.mustermann.example</span>
+                  <span>+49 30 123456</span>
+                </div>
+
+                <div>
+                  <span>IBAN: DE00 0000 0000 0000</span>
+                  <span>BIC: ABCDDEFFXXX</span>
+                  <span>USt-ID: DE123456789</span>
+                </div>
+              </footer>
             </div>
           </div>
-        </div>
-      </div>
+        </main>
       </div>
 
       <style>{`
-        .invoice-edit-compact-left-flat > section {
-          border: 0 !important;
-          box-shadow: none !important;
-          background: transparent !important;
-          border-radius: 0 !important;
-          margin: 0 !important;
-          padding: 0 0 22px 0 !important;
+        .bm-root {
+          --bm-bg: #f5f5f7;
+          --bm-white: #ffffff;
+          --bm-border: #e5e7eb;
+          --bm-field-bg: #f9fafb;
+          --bm-focus: #16a34a;
+          --bm-border-dark: #111111;
+          --bm-text: #111827;
+          --bm-text-muted: #6b7280;
+          --bm-green: #16a34a;
+          --bm-lime: #d9ff52;
+          --bm-lime-hover: #cdf542;
+          background: var(--bm-white);
+          font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         }
 
-        .invoice-edit-compact-left-flat > section > div,
-        .invoice-edit-compact-left-flat > section > div > div {
-          border: 0 !important;
-          box-shadow: none !important;
-          background: transparent !important;
-          border-radius: 0 !important;
-          padding: 0 !important;
-        }
-
-        .invoice-edit-compact-left-flat > section > div:first-child {
-          margin-bottom: 14px !important;
-        }
-
-        .invoice-edit-compact-left-flat h2 {
+        .bm-shell {
           display: flex;
-          align-items: center;
-          gap: 8px;
-          margin: 0 0 16px 0 !important;
-          font-size: 14px !important;
-          line-height: 20px !important;
-          font-weight: 900 !important;
-          letter-spacing: 0.04em;
+          height: 100%;
+          min-height: 100%;
+          gap: 0;
+          padding: 0;
+          box-sizing: border-box;
+          overflow: hidden;
+        }
+
+        .bm-sidebar {
+          display: flex;
+          position: relative;
+          z-index: 1;
+          flex: 0 0 460px;
+          flex-direction: column;
+          width: 460px;
+          height: 100%;
+          min-height: 0;
+          border-right: 1px solid var(--bm-border);
+          border-radius: 0;
+          background: var(--bm-white);
+          overflow-y: auto;
+          overscroll-behavior: contain;
+          padding: 32px;
+          box-shadow: none;
+        }
+
+        .bm-preview-wrap {
+          position: relative;
+          display: flex;
+          flex: 1;
+          height: 100%;
+          min-width: 0;
+          box-sizing: border-box;
+          border-radius: 0;
+          align-items: flex-start;
+          justify-content: center;
+          background: #f5f6f7;
+          overflow: auto;
+          overscroll-behavior: contain;
+          padding: 24px 24px 0;
+          box-shadow: none;
+        }
+
+        .bm-preview-column {
+          flex: 0 0 auto;
+          box-sizing: border-box;
+          width: 746.36px;
+          min-height: max(1055.62px, calc(100% - 24px));
+          background: var(--bm-white);
+          box-shadow:
+            -14px 0 18px -18px rgba(15, 23, 42, 0.22),
+            14px 0 18px -18px rgba(15, 23, 42, 0.22);
+        }
+
+        .bm-preview-page {
+          display: flex;
+          box-sizing: border-box;
+          width: 794px;
+          min-height: 1123px;
+          flex-direction: column;
+          justify-content: space-between;
+          border: 0;
+          border-radius: 0;
+          background: var(--bm-white);
+          padding: 50px;
+          box-shadow: none;
+          transform: scale(0.94);
+          transform-origin: top left;
+        }
+
+        .bm-sidebar-header,
+        .bm-section-head,
+        .bm-preview-header,
+        .bm-preview-title-row {
+          display: flex;
+          justify-content: space-between;
+          gap: 24px;
+        }
+
+        .bm-sidebar-header {
+          align-items: flex-start;
+          margin-bottom: 14px;
+        }
+
+        .bm-sidebar-header h2,
+        .bm-section-title {
+          margin: 0;
+          color: #111827;
+          font-weight: 800;
+        }
+
+        .bm-sidebar-header h2 {
+          font-size: 24px;
+        }
+
+        .bm-back-link {
+          display: inline-flex;
+          margin-bottom: 10px;
+          color: #6b7280;
+          font-size: 12px;
+          font-weight: 700;
+          text-decoration: none;
           text-transform: uppercase;
         }
 
-        .invoice-edit-compact-left-flat h2::before {
-          content: "";
-          width: 11px;
-          height: 11px;
-          border-radius: 3px;
-          background: #d8f63c;
-          box-shadow: 0 0 0 2px rgba(216, 246, 60, 0.24);
+        .bm-doc-status {
+          border-radius: 999px;
+          background: #ecfdf5;
+          color: #15803d;
+          padding: 6px 10px;
+          font-size: 12px;
+          font-weight: 800;
         }
 
-        .invoice-edit-compact-left-flat p[class*="text-slate-500"] {
-          display: none;
+        .bm-section {
+          border-top: 1px solid #eef0f4;
+          padding: 18px 0;
         }
 
-        .invoice-edit-compact input,
-        .invoice-edit-compact select,
-        .invoice-edit-compact textarea {
-          min-height: 42px;
-          height: 42px;
-          border-radius: 32px;
-          border-color: #e5e7eb;
-          background: #f8fafc;
-          padding: 10px 10px;
-          font-size: 14px;
-          font-weight: 500;
+        .bm-label {
+          display: block;
+          margin-bottom: 10px;
+          color: #4b5563;
+          font-size: 13px;
+          font-weight: 700;
         }
 
-        .invoice-edit-compact textarea {
+        .bm-basis-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 6px 16px;
+        }
+
+        .bm-root input,
+        .bm-root select,
+        .bm-root textarea {
+          width: 100%;
+          box-sizing: border-box;
+          margin-top: 4px;
+          border-radius: 8px !important;
+          border: 1px solid var(--bm-border) !important;
+          background: var(--bm-field-bg) !important;
+          padding: 8px 10px !important;
+          color: var(--bm-text);
+          font-size: 14px !important;
+          font-weight: 500 !important;
+          box-shadow: none !important;
+          outline: none;
+          transition: border-color 0.18s ease, background-color 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .bm-root input:focus,
+        .bm-root select:focus,
+        .bm-root textarea:focus {
+          border-color: var(--bm-focus) !important;
+          background: var(--bm-white) !important;
+          box-shadow: 0 0 3px rgba(22, 163, 74, 0.2) !important;
+        }
+
+        .bm-root textarea {
           min-height: 82px;
-          height: 82px;
-          border-radius: 32px;
-          padding: 10px 10px;
+          border-radius: 8px !important;
           resize: vertical;
         }
 
-
-        .invoice-edit-compact-left-flat label,
-        .invoice-edit-compact-left-flat p[class*="uppercase"] {
-          font-size: 10px;
-          letter-spacing: 0.07em;
+        .bm-action-row,
+        .bm-catalog-row {
+          display: flex;
+          gap: 8px;
         }
 
-        .invoice-edit-compact > div:first-child::-webkit-scrollbar {
-          width: 8px;
+        .bm-action-row {
+          margin-top: 12px;
         }
 
-        .invoice-edit-compact > div:first-child::-webkit-scrollbar-thumb {
-          border-radius: 999px;
-          background: #cfd6df;
+        .bm-icon-button,
+        .bm-add-button,
+        .bm-delete-button {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 6px;
+          border: 0;
+          cursor: pointer;
         }
 
-        .invoice-edit-compact button {
-          min-height: 42px;
+        .bm-icon-button {
+          flex: 1;
+          min-height: 36px;
+          border-radius: 6px;
+          background: #111827;
+          color: #ffffff;
+          padding: 0 10px;
+          font-size: 12px;
+          font-weight: 700;
         }
 
-        .invoice-edit-compact .compact-mini-control,
-        .invoice-edit-compact .compact-mini-button {
-          min-height: 28px !important;
-          height: 28px !important;
-          border-radius: 24px !important;
-          padding: 4px 10px !important;
-          font-size: 12px !important;
-          font-weight: 800 !important;
+        .bm-section-head {
+          align-items: center;
+          gap: 14px;
+          margin-bottom: 12px;
         }
 
-        .invoice-edit-compact .position-delete-button {
-          min-height: 24px !important;
-          height: 24px !important;
-          width: 24px !important;
-          padding: 0 !important;
+        .bm-catalog-row {
+          align-items: center;
+          min-width: 0;
         }
 
-        .invoice-edit-compact .position-card {
-          border-radius: 32px !important;
-          padding: 14px 16px 16px !important;
-          box-shadow: 0 6px 16px rgba(15, 23, 42, 0.10) !important;
-        }
-
-        .invoice-edit-compact .position-card input,
-        .invoice-edit-compact .position-card select {
-          min-height: 32px !important;
-          height: 32px !important;
-          border: 0 !important;
-          background: #f8fbfc !important;
+        .bm-catalog-select {
+          width: 180px !important;
+          min-height: 34px;
           box-shadow: none !important;
-          font-size: 14px !important;
-          font-weight: 600 !important;
-          padding-top: 4px !important;
-          padding-bottom: 4px !important;
         }
 
-        .invoice-edit-compact .position-card-title input {
-          min-height: 34px !important;
-          height: 34px !important;
-          font-size: 15px !important;
+        .bm-add-button,
+        .bm-delete-button {
+          height: 36px;
+          border-radius: 6px;
+        }
+
+        .bm-add-button {
+          min-width: 64px;
+          background: #111111;
+          color: var(--bm-lime);
+          padding: 0 12px;
+          font-size: 12px;
+          font-weight: 800;
+        }
+
+        .bm-delete-button {
+          flex: 0 0 32px;
+          width: 32px;
+          height: 32px;
+          background: #fef2f2;
+          color: #dc2626;
+        }
+
+        .bm-position-card {
+          border: 1px solid var(--bm-border);
+          border-radius: 10px;
+          margin-bottom: 10px;
+          background: var(--bm-white);
+          padding: 12px 14px;
+          box-shadow: none;
+        }
+
+        .bm-position-card-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 8px;
+        }
+
+        .bm-position-title {
+          min-width: 0;
+          overflow: hidden;
+          color: var(--bm-text);
+          font-size: 14px;
+          font-weight: 700;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .bm-position-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 72px 96px;
+          gap: 10px;
+        }
+
+        .bm-position-grid > div {
+          min-width: 0;
+        }
+
+        .bm-position-grid input,
+        .bm-position-category {
+          min-height: 40px !important;
+          height: 40px !important;
+          margin-top: 0 !important;
+          margin-bottom: 0 !important;
+        }
+
+        .bm-position-category {
+          margin-top: 10px !important;
+        }
+
+        .bm-editor-summary {
+          width: 100%;
+          max-width: 100%;
+          box-sizing: border-box;
+          border: 0;
+          border-top: 1px solid var(--bm-border);
+          border-radius: 0;
+          margin: 20px 0 16px;
+          background: transparent;
+          padding: 14px 0 0;
+          color: var(--bm-text);
+          font-size: 14px;
+          box-shadow: none;
+        }
+
+        .bm-summary {
+          margin-top: 18px;
+          margin-left: auto;
+          width: 258px;
+          max-width: 100%;
+          font-size: 13px;
+        }
+
+        .bm-summary-row {
+          display: flex;
+          justify-content: space-between;
+          gap: 18px;
+          padding: 5px 0;
+        }
+
+        .bm-editor-summary .bm-summary-row {
+          padding: 3px 0;
+        }
+
+        .bm-summary-total {
+          border-top: 1px solid #e5e7eb;
+          margin-top: 4px;
+          padding-top: 8px;
+          color: #111827;
+          font-weight: 800;
+        }
+
+        .bm-editor-summary .bm-summary-total {
+          font-size: 14px;
+        }
+
+        .bm-btn-primary {
+          width: 100%;
+          min-height: 44px;
+          margin-top: auto;
+          border: none;
+          border-radius: 10px;
+          background: var(--bm-lime);
+          color: #111111;
+          cursor: pointer;
+          font-weight: 700;
+          transition: background-color 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .bm-btn-primary:hover {
+          background: var(--bm-lime-hover);
+          box-shadow: 0 3px 8px rgba(15, 23, 42, 0.14);
+        }
+
+        .bm-btn-primary:disabled {
+          cursor: progress;
+          opacity: 0.72;
+        }
+
+        .bm-save-message {
+          border-radius: 8px;
+          margin-top: 12px;
+          padding: 10px 12px;
+          font-size: 13px;
+          font-weight: 700;
+        }
+
+        .bm-save-ok {
+          background: #ecfdf5;
+          color: #15803d;
+        }
+
+        .bm-save-error {
+          background: #fef2f2;
+          color: #b91c1c;
+        }
+
+        .bm-preview-header {
+          margin-bottom: 66px;
+        }
+
+        .bm-company-name {
+          color: #111827;
+          font-size: 18px;
+          font-weight: 800;
+        }
+
+        .bm-company-sub,
+        .bm-company-meta,
+        .bm-preview-meta,
+        .bm-preview-address,
+        .bm-preview-text,
+        .bm-preview-footer {
+          color: #374151;
+          font-size: 12px;
+          line-height: 1.55;
+        }
+
+        .bm-company-meta {
+          text-align: right;
+        }
+
+        .bm-preview-address {
+          margin-bottom: 40px;
+        }
+
+        .bm-preview-address div {
+          color: #111827;
+          font-weight: 800;
+        }
+
+        .bm-preview-address pre {
+          margin: 4px 0 0;
+          font-family: inherit;
+          white-space: pre-wrap;
+        }
+
+        .bm-preview-title-row {
+          align-items: flex-start;
+          margin-bottom: 26px;
+        }
+
+        .bm-preview-title {
+          margin: 0;
+          color: #111827;
+          font-size: 27px;
+          font-weight: 800;
+          letter-spacing: 0;
+        }
+
+        .bm-preview-sub {
+          color: #6b7280;
+          font-size: 13px;
+          font-weight: 700;
+        }
+
+        .bm-preview-meta {
+          text-align: right;
+        }
+
+        .bm-preview-meta span {
+          color: #111827;
+          font-weight: 800;
+        }
+
+        .bm-items-table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: 20px;
+          color: #111827;
+          font-size: 12px;
+        }
+
+        .bm-items-table th,
+        .bm-items-table td {
+          border-bottom: 1px solid #e5e7eb;
+          padding: 7px 4px;
+        }
+
+        .bm-items-table th {
+          color: #6b7280;
+          font-size: 10px;
+          font-weight: 800;
+          letter-spacing: 0.04em;
+          text-align: left;
+          text-transform: uppercase;
+        }
+
+        .bm-items-table td:nth-child(3),
+        .bm-items-table th:nth-child(3),
+        .bm-items-table td:nth-child(4),
+        .bm-items-table th:nth-child(4),
+        .bm-items-table td:last-child,
+        .bm-items-table th:last-child {
+          text-align: right;
+        }
+
+        .bm-preview-footer {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 26px;
+          border-top: 1px solid #e5e7eb;
+          margin-top: auto;
+          padding-top: 16px;
+          color: #6b7280;
+          font-size: 10px;
+        }
+
+        .bm-preview-footer strong,
+        .bm-preview-footer span {
+          display: block;
+        }
+
+        @media (max-width: 900px) {
+          .bm-shell {
+            flex-direction: column;
+            overflow: auto;
+          }
+
+          .bm-sidebar {
+            flex: none;
+            width: auto;
+            height: auto;
+            border-radius: 12px;
+            overflow: visible;
+          }
+
+          .bm-preview-wrap {
+            flex: none;
+            height: auto;
+            border-radius: 12px;
+            overflow: visible;
+          }
+        }
+
+        @media (max-width: 760px) {
+          .bm-shell {
+            padding: 14px;
+          }
+
+          .bm-basis-grid,
+          .bm-position-grid,
+          .bm-preview-title-row,
+          .bm-preview-footer {
+            grid-template-columns: 1fr;
+          }
+
+          .bm-sidebar {
+            padding: 16px;
+          }
+
+          .bm-preview-wrap {
+            padding: 20px 14px;
+          }
+
+          .bm-preview-page {
+            padding: 28px 22px;
+          }
+
+          .bm-preview-header {
+            flex-direction: column;
+            margin-bottom: 36px;
+          }
+
+          .bm-company-meta,
+          .bm-preview-meta {
+            text-align: left;
+          }
+        }
+
+        .bm-root {
+          --bm-sidebar-width: 460px;
+          --bm-green: #d7f041;
+          --bm-green-hover: #cced35;
+          --bm-dark-preview: #5d5d5d;
+          --bm-border-soft: #ececec;
+          --bm-text-soft: #6b7280;
+          background: #ffffff;
+          font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        .bm-shell {
+          display: flex;
+          height: 100%;
+          min-height: 100%;
+          overflow: hidden;
+          background: #ffffff;
+        }
+
+        .bm-sidebar {
+          flex: 0 0 var(--bm-sidebar-width);
+          width: var(--bm-sidebar-width);
+          height: 100%;
+          min-height: 0;
+          overflow-x: hidden;
+          overflow-y: auto;
+          border-right: 1px solid #e8e8e8;
+          background: #ffffff;
+          padding: 0;
+          box-shadow: none;
+        }
+
+        .bm-sidebar-inner {
+          min-height: 100%;
+          padding: 24px 28px;
+        }
+
+        .bm-sidebar-header {
+          display: block;
+          margin-bottom: 24px;
+        }
+
+        .bm-sidebar-header h2 {
+          margin: 0;
+          color: #111827;
+          font-size: 20px;
+          font-weight: 800;
+          letter-spacing: 0;
+        }
+
+        .bm-back-link {
+          display: inline-flex;
+          margin-bottom: 14px;
+          color: #9ca3af;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          text-decoration: none;
+          text-transform: uppercase;
+        }
+
+        .bm-invoice-id {
+          margin: 5px 0 0;
+          color: #9ca3af;
+          font-size: 13px;
+          font-weight: 600;
+        }
+
+        .bm-section {
+          margin-top: 24px;
+          border-top: 0;
+          padding: 0;
+        }
+
+        .bm-section-title {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin: 0 0 12px;
+          color: #111827;
+          font-size: 14px;
+          font-weight: 800;
+          letter-spacing: 0;
+        }
+
+        .bm-basis-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+        }
+
+        .bm-label {
+          display: block;
+          margin-bottom: 12px;
+          color: #6b7280;
+          font-size: 12px;
+          font-weight: 700;
+        }
+
+        .bm-root input,
+        .bm-root select,
+        .bm-root textarea {
+          width: 100%;
+          box-sizing: border-box;
+          margin-top: 6px;
+          border: 1px solid #e5e7eb !important;
+          border-radius: 16px !important;
+          background: #ffffff !important;
+          color: #111827;
+          font-size: 13px !important;
+          font-weight: 600 !important;
+          outline: none;
+          box-shadow: none !important;
+          transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+        }
+
+        .bm-root input,
+        .bm-root select {
+          height: 36px !important;
+          min-height: 36px !important;
+          padding: 0 12px !important;
+        }
+
+        .bm-root textarea {
+          min-height: 72px !important;
+          padding: 10px 12px !important;
+          resize: vertical;
+        }
+
+        .bm-address-label {
+          font-weight: 500;
+        }
+
+        .bm-address-textarea {
+          font-weight: 400 !important;
+        }
+
+        .bm-root input:hover,
+        .bm-root select:hover,
+        .bm-root textarea:hover,
+        .bm-root input:focus,
+        .bm-root select:focus,
+        .bm-root textarea:focus {
+          border-color: var(--bm-green) !important;
+          box-shadow: 0 0 0 2px rgba(215, 240, 65, 0.32) !important;
+        }
+
+        .bm-action-row {
+          display: flex;
+          gap: 8px;
+          margin-top: 12px;
+        }
+
+        .bm-icon-button {
+          flex: 1;
+          min-height: 34px;
+          border: 0;
+          border-radius: 7px;
+          background: #0f172a;
+          color: #ffffff;
+          cursor: pointer;
+          font-size: 12px;
+          font-weight: 800;
+        }
+
+        .bm-section-head {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          margin-bottom: 12px;
+        }
+
+        .bm-catalog-row {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          min-width: 0;
+        }
+
+        .bm-catalog-select {
+          width: 178px !important;
+          height: 30px !important;
+          min-height: 30px !important;
+          margin-top: 0 !important;
+          border-radius: 16px !important;
+          font-size: 12px !important;
+        }
+
+        .bm-add-button {
+          min-width: 64px;
+          height: 30px;
+          border: 0;
+          border-radius: 7px;
+          background: #0f172a;
+          color: var(--bm-green);
+          cursor: pointer;
+          font-size: 12px;
+          font-weight: 800;
+        }
+
+        .bm-position-card {
+          margin-bottom: 10px;
+          border: 1px solid #edf0f2;
+          border-radius: 22px;
+          background: #ffffff;
+          padding: 13px 14px;
+          box-shadow: 0 3px 10px rgba(15, 23, 42, 0.08);
+        }
+
+        .bm-position-card-head {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) 34px;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 10px;
+        }
+
+        .bm-position-title-input {
+          height: 30px !important;
+          min-height: 30px !important;
+          margin-top: 0 !important;
+          border: 0 !important;
+          border-radius: 15px !important;
+          background: #f7f7f7 !important;
+          padding: 0 12px !important;
+          font-size: 13px !important;
           font-weight: 800 !important;
         }
 
-        .invoice-edit-compact .position-card label,
-        .invoice-edit-compact .position-card p[class*="uppercase"] {
+        .bm-delete-button {
+          width: 34px;
+          height: 34px;
+          border: 0;
+          border-radius: 10px;
+          background: #fff1f1;
+          color: #ef4444;
+          cursor: pointer;
+        }
+
+        .bm-position-grid {
+          display: grid;
+          grid-template-columns: 0.78fr 0.9fr 1fr 1fr;
+          gap: 10px;
+          align-items: end;
+        }
+
+        .bm-mini-label {
+          display: block;
+          margin-bottom: 4px;
+          color: #9ca3af;
+          font-size: 10px;
+          font-weight: 700;
+        }
+
+        .bm-mini-input {
+          height: 30px !important;
+          min-height: 30px !important;
+          margin-top: 0 !important;
+          border: 0 !important;
+          border-radius: 14px !important;
+          background: #f7f7f7 !important;
+          padding: 0 10px !important;
+        }
+
+        .bm-total-field {
+          min-width: 0;
+        }
+
+        .bm-position-total {
+          min-height: 30px;
+          padding-top: 5px;
+          text-align: right;
+          color: #111827;
+          font-size: 15px;
+          font-weight: 800;
+          white-space: nowrap;
+        }
+
+        .bm-editor-summary {
+          margin-top: 14px;
+          border: 1px solid #f0f1f3;
+          border-radius: 22px;
+          background: #fafafa;
+          padding: 14px;
+          font-size: 14px;
+          box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+        }
+
+        .bm-summary-row {
+          display: flex;
+          justify-content: space-between;
+          gap: 18px;
+          margin-bottom: 10px;
+          padding: 0;
+          color: var(--bm-text-soft);
+          font-size: 14px;
+        }
+
+        .bm-summary-total {
+          margin: 0;
+          border-top: 1px solid #e5e7eb;
+          padding-top: 10px;
+          color: #111827;
+          font-size: 18px;
+          font-weight: 800;
+        }
+
+        .bm-editor-summary .bm-summary-total {
+          font-size: 18px;
+        }
+
+        .bm-btn-primary {
+          width: 100%;
+          height: 46px;
+          min-height: 46px;
+          margin-top: 18px;
+          border: 0;
+          border-radius: 24px;
+          background: var(--bm-green);
+          color: #111111;
+          cursor: pointer;
+          font-size: 15px;
+          font-weight: 800;
+        }
+
+        .bm-btn-primary:hover {
+          background: var(--bm-green-hover);
+          box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+        }
+
+        .bm-preview-wrap {
+          display: flex;
+          flex: 1;
+          min-width: 0;
+          height: 100%;
+          flex-direction: column;
+          align-items: center;
+          justify-content: flex-start;
+          overflow: auto;
+          background: var(--bm-dark-preview);
+          padding: 28px;
+        }
+
+        .bm-preview-label {
+          margin-bottom: 10px;
+          color: #d1d5db;
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.1em;
+          text-align: center;
+        }
+
+        .bm-preview-column {
+          width: 746.36px;
+          min-height: 1055.62px;
+          background: transparent;
+          box-shadow: none;
+        }
+
+        .bm-preview-page {
+          display: flex;
+          width: 794px;
+          min-height: 1123px;
+          flex-direction: column;
+          border: 0;
+          border-radius: 0;
+          background: #ffffff;
+          padding: 52px;
+          box-shadow: 0 15px 40px rgba(0, 0, 0, 0.35);
+          transform: scale(0.94);
+          transform-origin: top left;
+        }
+
+        .bm-preview-header {
+          display: flex;
+          justify-content: space-between;
+          gap: 28px;
+          margin-bottom: 0;
+        }
+
+        .bm-sender-line {
+          color: #6b7280;
+          font-size: 12px;
+        }
+
+        .bm-company {
+          color: #111827;
+          text-align: right;
+        }
+
+        .bm-company h1 {
+          margin: 0;
+          font-size: 22px;
+          font-weight: 800;
+          letter-spacing: 0;
+        }
+
+        .bm-company div {
+          margin-top: 10px;
+          color: #374151;
+          font-size: 13px;
+          line-height: 1.55;
+        }
+
+        .bm-company-sample {
+          text-align: right;
+          padding-top: 6px;
+        }
+
+        .bm-company-sample h1 {
+          font-size: 18px;
+          line-height: 1.15;
+          font-weight: 800;
+          letter-spacing: -0.02em;
+        }
+
+        .bm-company-sample > div {
+          display: none;
+        }
+
+        .bm-preview-address {
+          margin: 70px 0 0;
+          color: #111827;
+          font-size: 14px;
+          line-height: 1.45;
+        }
+
+        .bm-preview-address small,
+        .bm-sender-line {
+          display: block;
+          margin-bottom: 12px;
+          color: #111827;
+          font-size: 10px;
+          font-weight: 400;
+          line-height: 1.25;
+          letter-spacing: 0;
+          text-decoration: underline;
+        }
+
+        .bm-receiver-name {
+          font-weight: 400;
+          line-height: 1.45;
+        }
+
+        .bm-preview-title-row {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 28px;
+          margin-top: 96px;
+          margin-bottom: 24px;
+        }
+
+        .bm-preview-title {
+          margin: 0;
+          color: #111827;
+          font-size: 28px;
+          font-weight: 800;
+          letter-spacing: 0;
+        }
+
+        .bm-preview-title-sample {
+          font-size: 18px;
+          line-height: 1.2;
+          font-weight: 800;
+          letter-spacing: -0.02em;
+        }
+
+        .bm-preview-meta {
+          min-width: 230px;
+          color: #374151;
+          font-size: 12px;
+          line-height: 1.55;
+          text-align: right;
+        }
+
+        .bm-preview-meta span {
+          color: #111827;
+          font-weight: 800;
+        }
+
+        .bm-preview-text {
+          color: #111827;
+          font-size: 14px;
+          line-height: 1.7;
+        }
+
+        .bm-items-table {
+          width: 100%;
+          margin-top: 30px;
+          border-collapse: collapse;
+          color: #111827;
+          font-size: 13px;
+        }
+
+        .bm-items-table th {
+          border-bottom: 1px solid #e5e7eb;
+          color: #6b7280;
+          font-size: 12px;
+          font-weight: 800;
+          letter-spacing: 0;
+          padding: 10px 0;
+          text-align: left;
+          text-transform: none;
+        }
+
+        .bm-items-table td {
+          border-bottom: 1px solid #f1f1f1;
+          padding: 12px 0;
+        }
+
+        .bm-items-table th:nth-child(2),
+        .bm-items-table td:nth-child(2),
+        .bm-items-table th:nth-child(3),
+        .bm-items-table td:nth-child(3),
+        .bm-items-table th:nth-child(4),
+        .bm-items-table td:nth-child(4) {
+          text-align: right;
+        }
+
+        .bm-summary {
+          width: 280px;
+          margin-top: 40px;
+          margin-left: auto;
+          font-size: 14px;
+        }
+
+        .bm-preview-footer {
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr;
+          gap: 20px;
+          margin-top: auto;
+          border-top: 1px solid #e5e7eb;
+          padding-top: 18px;
+          color: #6b7280;
+          font-size: 11px;
+          line-height: 1.45;
+        }
+
+        .bm-preview-footer strong,
+        .bm-preview-footer span {
+          display: block;
+        }
+
+        @media (max-width: 900px) {
+          .bm-shell {
+            height: auto;
+            min-height: 100%;
+            flex-direction: column;
+            overflow: auto;
+          }
+
+          .bm-sidebar {
+            flex: none;
+            width: 100%;
+            height: auto;
+            overflow: visible;
+          }
+
+          .bm-preview-wrap {
+            flex: none;
+            height: auto;
+            min-height: 100vh;
+          }
+        }
+
+        @media (max-width: 760px) {
+          .bm-sidebar-inner {
+            padding: 18px;
+          }
+
+          .bm-basis-grid,
+          .bm-position-grid,
+          .bm-preview-title-row,
+          .bm-preview-footer {
+            grid-template-columns: 1fr;
+          }
+
+          .bm-position-total,
+          .bm-preview-meta {
+            text-align: left;
+          }
+        }
+
+        /* Feinschliff Sample Preview */
+        .bm-preview-page .bm-company h1 {
+          font-size: 18px !important;
+          font-weight: 800 !important;
+          line-height: 1.15 !important;
+        }
+
+        .bm-preview-page .bm-company div {
+          display: none !important;
+        }
+
+        .bm-preview-page .bm-sender-line {
+          display: block !important;
+          margin-bottom: 12px !important;
+          color: #111827 !important;
           font-size: 10px !important;
-          color: #9aa4b2 !important;
-          letter-spacing: 0.04em !important;
+          font-weight: 400 !important;
+          line-height: 1.25 !important;
+          letter-spacing: 0 !important;
+          text-decoration: underline !important;
         }
 
-        .invoice-edit-compact .position-card-row {
-          gap: 10px !important;
+        .bm-preview-page .bm-preview-title {
+          font-size: 18px !important;
+          line-height: 1.2 !important;
+          font-weight: 800 !important;
         }
 
+        .bm-preview-title-row {
+          margin-top: 92px !important;
+          align-items: flex-start !important;
+        }
 
-        .invoice-edit-compact input:focus,
-        .invoice-edit-compact select:focus,
-        .invoice-edit-compact textarea:focus {
-          outline: none;
-          border-color: #d9f944;
-          box-shadow: 0 0 0 2px rgba(217, 249, 68, 0.7);
+        /* Adresse links kleiner, nicht fett */
+        .bm-address-textarea,
+        .bm-address-textarea textarea,
+        textarea.bm-address-textarea {
+          font-size: 13px !important;
+          font-weight: 400 !important;
+          line-height: 1.45 !important;
+          color: #111827 !important;
+        }
+
+        /* Label und Feldhöhe sauberer */
+        .bm-address-label {
+          margin-top: 14px !important;
+        }
+
+        .bm-address-textarea {
+          min-height: 74px !important;
+          padding-top: 14px !important;
+        }
+
+        .bm-preview-page {
+          transform: scale(0.95);
+          transform-origin: top center;
         }
       `}</style>
       {positionImportOpen && (
@@ -1090,4 +2257,8 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
       )}
     </div>
   )
+
+  if (!isMounted) return null
+
+  return createPortal(editor, globalThis.document.body)
 }
