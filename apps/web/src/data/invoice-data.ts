@@ -70,19 +70,19 @@ export const documents = [
     status: "Bezahlt",
     issueDate: "2026-05-06T00:00:00.000Z",
     dueDate: "2026-05-20T00:00:00.000Z",
-    amount: 1547,
+    amount: 719.05,
     items: [
       {
         title: "UI-Konzept Dashboard",
         description: "Struktur, Komponenten und visuelle Abstimmung",
         quantity: 1,
-        netPrice: 850
+        netPrice: 420.24
       },
       {
         title: "Frontend-Feinschliff",
         description: "Interaktionen, Abstände und responsive Anpassungen",
-        quantity: 5,
-        netPrice: 90
+        quantity: 4,
+        netPrice: 46
       }
     ]
   },
@@ -98,25 +98,19 @@ export const documents = [
     status: "Offen",
     issueDate: "2026-05-10T00:00:00.000Z",
     dueDate: "2026-05-24T00:00:00.000Z",
-    amount: 2856,
+    amount: 528.99,
     items: [
       {
         title: "Prozessberatung",
         description: "Workshop und Ablaufanalyse",
-        quantity: 8,
-        netPrice: 150
+        quantity: 3,
+        netPrice: 95
       },
       {
         title: "Schnittstellen-Konzept",
         description: "Technische Dokumentation und Integrationsplan",
         quantity: 1,
-        netPrice: 900
-      },
-      {
-        title: "Projektabstimmung",
-        description: "Review, Korrekturen und Übergabe",
-        quantity: 3,
-        netPrice: 100
+        netPrice: 159.53
       }
     ]
   },
@@ -132,19 +126,19 @@ export const documents = [
     status: "Überfällig",
     issueDate: "2026-04-28T00:00:00.000Z",
     dueDate: "2026-05-12T00:00:00.000Z",
-    amount: 714,
+    amount: 1147,
     items: [
       {
         title: "Serverwartung",
         description: "Updates, Prüfung und Fehlerbehebung",
-        quantity: 4,
+        quantity: 6,
         netPrice: 120
       },
       {
         title: "Monitoring Einrichtung",
         description: "Benachrichtigungen und Basis-Monitoring",
         quantity: 1,
-        netPrice: 120
+        netPrice: 243.8655462184874
       }
     ]
   },
@@ -160,25 +154,19 @@ export const documents = [
     status: "Entwurf",
     issueDate: "2026-05-14T00:00:00.000Z",
     dueDate: "2026-05-28T00:00:00.000Z",
-    amount: 2450,
+    amount: 1320,
     items: [
       {
         title: "Corporate Template Set",
         description: "Rechnung, Angebot und Briefpapier",
         quantity: 1,
-        netPrice: 1450
+        netPrice: 950
       },
       {
         title: "Design-Abstimmung",
         description: "Zwei Korrekturrunden",
-        quantity: 5,
-        netPrice: 100
-      },
-      {
-        title: "PDF-Testlauf",
-        description: "Export- und Druckprüfung",
-        quantity: 1,
-        netPrice: 500
+        quantity: 4,
+        netPrice: 80
       }
     ]
   }

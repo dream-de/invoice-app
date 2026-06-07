@@ -46,6 +46,7 @@ type ApiInvoicePosition = {
   title: string
   quantity: unknown
   netPrice: unknown
+  vatRate?: unknown
   description?: string | null
 }
 
@@ -155,6 +156,10 @@ function getPreviewCustomerName(value: string, emptyLabel: string) {
   return formatPreviewCustomerName(value)
 }
 
+function formatTaxRateLabel(value: number) {
+  return Number.isInteger(value) ? String(value) : value.toFixed(2).replace(/0+$/, "").replace(/\.$/, "")
+}
+
 export default function DocumentEditPage({ params }: DocumentEditPageProps) {
   const routeParams = useParams()
   const routeId = routeParams?.id
@@ -186,6 +191,7 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
   const [email, setEmail] = useState("billing@aurora-labs.example")
   const [address, setAddress] = useState("Musterstraße 123\n12345 Musterstadt")
   const [intro, setIntro] = useState(defaultIntro)
+  const [taxRateInput, setTaxRateInput] = useState("19")
 
   const [positions, setPositions] = useState<Position[]>([
     {
@@ -261,6 +267,10 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
         setDueDate(formatDateForInput(invoice.dueDate) || "")
         setIntro(invoice.notes || defaultIntro)
 
+        const firstVatRate = invoice.positions?.find((item) => item.vatRate !== null && item.vatRate !== undefined)?.vatRate
+        const parsedVatRate = parseLocalizedDecimal(firstVatRate, 19)
+        setTaxRateInput(decimalInputValue(parsedVatRate, 19))
+
         // TEMP: Fuer den Sample-Design-Test bleiben die Startpositionen sichtbar.
         // Wenn das Layout final passt, diesen Block wieder aktivieren, damit echte
         // gespeicherte Rechnungspositionen aus der API geladen werden.
@@ -291,7 +301,9 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
     () => positions.reduce((sum, item) => sum + parseLocalizedDecimal(item.qty) * parseLocalizedDecimal(item.price), 0),
     [positions]
   )
-  const tax = net * 0.19
+  const taxRatePercent = Math.max(0, Math.min(100, parseLocalizedDecimal(taxRateInput, 19)))
+  const taxRateLabel = formatTaxRateLabel(taxRatePercent)
+  const tax = net * (taxRatePercent / 100)
   const gross = net + tax
 
   function updatePosition(id: string, field: keyof Position, value: string) {
@@ -493,7 +505,7 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
           customerEmail: email,
           customerAddress: address,
           project,
-          taxRate: 0.19,
+          taxRate: taxRatePercent / 100,
           tip: 0,
           note: intro,
           items: positions.map((item) => ({
@@ -700,12 +712,26 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
           </div>
 
           <div className="bm-editor-summary">
+            <label className="bm-label bm-tax-rate-label">
+              MwSt
+              <Select
+                className="bm-input"
+                value={taxRateInput}
+                onChange={(event) => setTaxRateInput(event.target.value)}
+                options={[
+                  { value: "0", label: "0%" },
+                  { value: "7", label: "7%" },
+                  { value: "19", label: "19%" }
+                ]}
+                aria-label="MwSt"
+              />
+            </label>
             <div className="bm-summary-row">
               <span>{t("documents.edit.totals.net")}</span>
               <span><Currency value={net} /></span>
             </div>
             <div className="bm-summary-row">
-              <span>{t("documents.edit.totals.vat")}</span>
+              <span>MwSt ({taxRateLabel}%)</span>
               <span><Currency value={tax} /></span>
             </div>
             <div className="bm-summary-row bm-summary-total">
@@ -830,7 +856,7 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
                 </div>
 
                 <div className="bm-summary-row">
-                  <span>USt (19%):</span>
+                  <span>USt ({taxRateLabel}%):</span>
                   <span>
                     <Currency value={tax} />
                   </span>
@@ -1184,6 +1210,16 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
           color: var(--bm-text);
           font-size: 14px;
           box-shadow: none;
+        }
+
+        .bm-tax-rate-label {
+          margin-bottom: 10px;
+        }
+
+        .bm-tax-rate-label .bm-input {
+          height: 40px !important;
+          min-height: 40px !important;
+          margin-top: 6px !important;
         }
 
         .bm-summary {
@@ -1718,6 +1754,16 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
           padding: 14px;
           font-size: 14px;
           box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+        }
+
+        .bm-tax-rate-label {
+          margin-bottom: 10px;
+        }
+
+        .bm-tax-rate-label .bm-input {
+          height: 38px !important;
+          min-height: 38px !important;
+          margin-top: 6px !important;
         }
 
         .bm-summary-row {
