@@ -25,7 +25,7 @@ function getAppUrl(request?: Request) {
     return `${url.protocol}//${url.host}`
   }
 
-  return "http://localhost:3000"
+  return "http://localhost:3010"
 }
 
 export async function sendVerificationEmail(input: {

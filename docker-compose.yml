@@ -26,7 +26,7 @@ services:
         condition: service_healthy
     environment:
       NODE_ENV: production
-      PORT: 3000
+      PORT: 3010
       NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-Dream Invoice}
       AUTH_SECRET: ${AUTH_SECRET:?Set AUTH_SECRET in .env}
       AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
@@ -38,11 +38,11 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:-dream_invoice}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-dream_invoice}
       PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
     expose:
-      - "3000"
+      - "3010"
     ports:
-      - "${WEB_PORT:-3000}:3000"
+      - "${WEB_PORT:-3010}:3010"
     healthcheck:
-      test: ["CMD", "node", "-e", "const p=process.env.DREAM_INVOICE_AUTH_PASSWORD; const u=process.env.DREAM_INVOICE_AUTH_USER || 'admin'; const h=p ? { authorization: 'Basic ' + Buffer.from(u + ':' + p).toString('base64') } : {}; fetch('http://127.0.0.1:3000/login', { headers: h }).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      test: ["CMD", "node", "-e", "const p=process.env.DREAM_INVOICE_AUTH_PASSWORD; const u=process.env.DREAM_INVOICE_AUTH_USER || 'admin'; const h=p ? { authorization: 'Basic ' + Buffer.from(u + ':' + p).toString('base64') } : {}; fetch('http://127.0.0.1:3010/login', { headers: h }).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 10s
       timeout: 5s
       retries: 6

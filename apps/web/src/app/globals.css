@@ -115,11 +115,11 @@ main button {
 
 /* Header polish: invoice header alignment */
 .invoice-top-header {
-  height: 88px;
+  height: 94px;
 }
 
 .invoice-top-header-inner {
-  height: 88px;
+  height: 94px;
   display: grid;
   grid-template-columns: 250px minmax(0, 1fr) 270px;
   align-items: center;
@@ -153,7 +153,7 @@ main button {
   width: max-content;
   align-items: center;
   gap: 4px;
-  padding: 4px;
+  padding: 5px;
   border: 1px solid #dfe5ed;
   border-radius: 999px;
   background: #eceff3;
@@ -162,8 +162,8 @@ main button {
 .invoice-main-nav-link {
   white-space: nowrap;
   border-radius: 999px;
-  padding: 8px 22px;
-  font-size: 13px;
+  padding: 10px 24px;
+  font-size: 14px;
   font-weight: 800;
   line-height: 1.2;
   color: #64748b;
@@ -1149,11 +1149,23 @@ main button {
    Gives the product UI a slightly pulled-back feel without changing browser zoom. */
 @media (min-width: 1180px) {
   .invoice-app-zoom {
-    width: 108.695%;
-    min-height: 108.695vh;
-    margin-left: -4.3475%;
-    transform: scale(0.92);
+    width: 100%;
+    min-height: 100vh;
+    margin-left: 0;
+    transform: none;
     transform-origin: top center;
+    zoom: 0.92;
+  }
+}
+
+@supports not (zoom: 1) {
+  @media (min-width: 1180px) {
+    .invoice-app-zoom {
+      width: 108.695%;
+      min-height: 108.695vh;
+      margin-left: -4.3475%;
+      transform: scale(0.92);
+    }
   }
 }
 

@@ -69,7 +69,7 @@ chmod +x scripts/install.sh scripts/status.sh
 The installer creates a private `.env`, pulls the published image `ghcr.io/dream-de/invoice-app:latest`, starts PostgreSQL, and starts the web app. Open the app at:
 
 ```text
-http://SERVER-IP:3000
+http://SERVER-IP:3010
 ```
 
 For the first local HTTP start, deployment Basic Auth is disabled so the setup screen opens directly. Create the first owner account in the browser, then enable deployment protection before exposing the installation:
@@ -147,7 +147,7 @@ pnpm dev:web
 The app will be available at:
 
 ```text
-http://localhost:3000
+http://localhost:3010
 ```
 
 ## Project Documentation
@@ -205,7 +205,7 @@ docker compose pull
 docker compose up -d
 ```
 
-The web app is available on port `3000`. To also start the optional Nginx proxy on port `80`, run:
+The web app is available on port `3010`. To also start the optional Nginx proxy on port `80`, run:
 
 ```bash
 docker compose --profile proxy up -d

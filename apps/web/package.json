@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3000",
+    "dev": "next dev -p 3010",
     "build": "next build",
-    "start": "next start -H 0.0.0.0 -p 3000",
-    "start:demo": "DREAM_INVOICE_DEMO_MODE=true AUTH_COOKIE_SECURE=false next start -H 0.0.0.0 -p 3001",
+    "start": "next start -H 0.0.0.0 -p 3010",
+    "start:demo": "DREAM_INVOICE_DEMO_MODE=true AUTH_COOKIE_SECURE=false next start -H 0.0.0.0 -p 3011",
     "lint": "eslint",
     "test": "tsx --test src/lib/**/*.test.ts",
     "typecheck": "tsc --noEmit"

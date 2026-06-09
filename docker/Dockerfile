@@ -4,7 +4,7 @@ ENV PNPM_HOME="/pnpm"
 ENV COREPACK_HOME="/pnpm/corepack"
 ENV PATH="$PNPM_HOME:$PATH"
 ENV NODE_ENV="production"
-ENV PORT="3000"
+ENV PORT="3010"
 ENV HOSTNAME="0.0.0.0"
 ENV PUPPETEER_SKIP_DOWNLOAD="true"
 ENV PUPPETEER_EXECUTABLE_PATH="/usr/bin/chromium"
@@ -39,11 +39,11 @@ RUN pnpm --filter @dream-invoice/database db:generate
 RUN pnpm --filter @dream-invoice/web build
 RUN rm -rf apps/demo apps/landing-page docker/Demo.Dockerfile docker/LandingPage.Dockerfile docker/public-site.compose.yml docker/nginx/public-site.conf
 
-EXPOSE 3000
+EXPOSE 3010
 
 RUN mkdir -p data "$COREPACK_HOME" && chown dreaminvoice:dreaminvoice data
 
 USER dreaminvoice
 
 ENTRYPOINT ["sh", "docker/scripts/docker-entrypoint.sh"]
-CMD ["pnpm", "--filter", "@dream-invoice/web", "exec", "next", "start", "-H", "0.0.0.0", "-p", "3000"]
+CMD ["pnpm", "--filter", "@dream-invoice/web", "exec", "next", "start", "-H", "0.0.0.0", "-p", "3010"]

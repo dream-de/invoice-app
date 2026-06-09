@@ -40,7 +40,7 @@ After deployment:
 
 ```bash
 docker compose ps
-curl -s -o /dev/null -w "%{http_code} /\n" http://127.0.0.1:3000/
+curl -s -o /dev/null -w "%{http_code} /\n" http://127.0.0.1:3010/
 ```
 
 Then verify login, dashboard, documents, settings, and one PDF export.

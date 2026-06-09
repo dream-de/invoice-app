@@ -365,7 +365,7 @@ export default function DashboardPage() {
   ]
 
   return (
-    <PageShell title="Dashboard" description={t("dashboard.description")}>
+    <PageShell title="Dashboard" description={t("dashboard.description")} hideHeader>
       <div className="space-y-6">
         <DashboardKpiRow items={kpiItems} />
 

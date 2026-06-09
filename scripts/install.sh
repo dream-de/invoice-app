@@ -54,7 +54,7 @@ DREAM_INVOICE_LOGIN_WINDOW_MS=900000
 DREAM_INVOICE_LOGIN_MAX_ATTEMPTS=8
 
 HTTP_PORT=80
-WEB_PORT=3000
+WEB_PORT=3010
 POSTGRES_PORT=127.0.0.1:5432
 
 POSTGRES_USER=dream_invoice
@@ -84,7 +84,7 @@ echo "Status:"
 docker compose ps
 echo
 echo "Open:"
-echo "  http://<your-server-ip>:3000/"
+echo "  http://<your-server-ip>:3010/"
 echo
 if [ "$CREATED_ENV" = "1" ]; then
   echo "Basic Auth is disabled for the first local HTTP start."

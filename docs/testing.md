@@ -48,10 +48,10 @@ pnpm --filter @dream-invoice/database db:deploy
 Use HTTP smoke tests after starting the app:
 
 ```bash
-curl -s -o /dev/null -w "%{http_code} /\n" http://127.0.0.1:3000/
-curl -s -o /dev/null -w "%{http_code} /dashboard\n" http://127.0.0.1:3000/dashboard
-curl -s -o /dev/null -w "%{http_code} /documents\n" http://127.0.0.1:3000/documents
-curl -s -o /dev/null -w "%{http_code} /settings\n" http://127.0.0.1:3000/settings
+curl -s -o /dev/null -w "%{http_code} /\n" http://127.0.0.1:3010/
+curl -s -o /dev/null -w "%{http_code} /dashboard\n" http://127.0.0.1:3010/dashboard
+curl -s -o /dev/null -w "%{http_code} /documents\n" http://127.0.0.1:3010/documents
+curl -s -o /dev/null -w "%{http_code} /settings\n" http://127.0.0.1:3010/settings
 ```
 
 Expected protected routes may redirect to login when no session exists.

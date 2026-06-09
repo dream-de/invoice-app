@@ -35,7 +35,7 @@ The installer creates a local `.env` with generated secrets, pulls the product i
 Open:
 
 ```text
-http://SERVER-IP:3000
+http://SERVER-IP:3010
 ```
 
 Create the first owner account in the browser. After that, the initial setup route closes automatically.

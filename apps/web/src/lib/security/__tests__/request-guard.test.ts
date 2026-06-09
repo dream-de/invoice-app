@@ -121,8 +121,8 @@ describe("request guard", () => {
   it("allows local setup requests through loopback aliases", () => {
     const decision = evaluateRequestGuard({
       method: "POST",
-      url: "http://localhost:3000/api/auth/setup",
-      headers: headers({ origin: "http://127.0.0.1:3000" }),
+      url: "http://localhost:3010/api/auth/setup",
+      headers: headers({ origin: "http://127.0.0.1:3010" }),
       env: {}
     })
 
@@ -132,10 +132,10 @@ describe("request guard", () => {
   it("allows setup requests when the proxy host is the server address", () => {
     const decision = evaluateRequestGuard({
       method: "POST",
-      url: "http://localhost:3000/api/auth/setup",
+      url: "http://localhost:3010/api/auth/setup",
       headers: headers({
-        host: "203.0.113.25:3000",
-        origin: "http://203.0.113.25:3000"
+        host: "203.0.113.25:3010",
+        origin: "http://203.0.113.25:3010"
       }),
       env: {}
     })
