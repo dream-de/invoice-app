@@ -59,6 +59,30 @@ type ActivityRow = [title: string, text: string, time: string, tone: string]
 type UserRow = [name: string, role: string, initials: string, crown: string]
 type IntegrationRow = [name: string, meta: string, color: string]
 type ModuleRow = [title: string, subtitle: string, value: string, status: string]
+type ApiInvoice = {
+  id: string
+  number: string
+  type?: string
+  status: string
+  customer: string
+  grossTotal: number
+  date?: string
+  dueDate?: string
+  createdAt?: string
+}
+type ApiCustomer = {
+  id: string
+  number?: string
+  name: string
+  contact?: string
+  email?: string
+  status?: string
+}
+type PremiumData = {
+  invoices: ApiInvoice[]
+  customers: ApiCustomer[]
+  loaded: boolean
+}
 type ModuleConfig = {
   stats: Array<[value: string, label: string]>
   rows: ModuleRow[]
@@ -243,6 +267,54 @@ const revenue = [820, 980, 1320, 1580, 1190, 1460, 1440, 1900, 2220, 1980, 2240,
 const payments = [520, 650, 1020, 1080, 880, 760, 1060, 1500, 1810, 1600, 1450, 1280, 860]
 const expenses = [80, 180, 310, 430, 290, 360, 390, 530, 520, 580, 610, 640, 510]
 const months = ["Aug", "Sep", "Okt", "Nov", "Dez", "Jan", "Feb", "Maer", "Apr", "Mai", "Jun", "Jul", ""]
+const fallbackApiInvoices: ApiInvoice[] = invoices.map(([number, customer, status, amount, date]) => ({
+  id: number,
+  number,
+  type: number.startsWith("OF-") ? "offer" : "invoice",
+  status,
+  customer,
+  grossTotal: Number(amount.replaceAll(".", "").replace(",", ".").replace(/[^\d.]/g, "")) || 0,
+  date,
+  createdAt: date
+}))
+
+function formatEuro(value: number) {
+  return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(value)
+}
+
+function statusLabel(status: string) {
+  const normalized = status.toLowerCase()
+  if (normalized === "paid") return "Bezahlt"
+  if (normalized === "open" || normalized === "sent") return "Offen"
+  if (normalized === "draft") return "Entwurf"
+  if (normalized === "overdue") return "Ueberfaellig"
+  return status
+}
+
+function isStatus(status: string, expected: "paid" | "open" | "draft" | "overdue") {
+  const normalized = status.toLowerCase()
+  if (expected === "paid") return normalized === "paid" || normalized === "bezahlt"
+  if (expected === "open") return normalized === "open" || normalized === "sent" || normalized === "offen" || normalized === "gesendet"
+  if (expected === "draft") return normalized === "draft" || normalized === "entwurf"
+  return normalized === "overdue" || normalized === "ueberfaellig" || normalized === "überfällig"
+}
+
+function invoiceType(invoice: ApiInvoice) {
+  const normalizedType = String(invoice.type || "").toLowerCase()
+  if (normalizedType.includes("offer") || normalizedType.includes("angebot") || invoice.number.startsWith("OF-")) return "offer"
+  return "invoice"
+}
+
+function invoiceRowsFromData(data: PremiumData): InvoiceRow[] {
+  const source = data.invoices.length ? data.invoices : fallbackApiInvoices
+  return source.slice(0, 5).map((invoice) => [
+    invoice.number,
+    invoice.customer || "Unbekannt",
+    statusLabel(invoice.status),
+    formatEuro(Number(invoice.grossTotal) || 0),
+    String(invoice.date || invoice.createdAt || "-").slice(0, 10)
+  ])
+}
 
 const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
   customers: {
@@ -410,8 +482,23 @@ function Topbar({ mode, onModeChange }: { mode: ThemeMode; onModeChange: (mode: 
   )
 }
 
-function KpiGrid() {
-  return <section className={styles.kpiGrid}>{kpis.map((item) => { const Icon = item.icon; return <article key={item.label} className={`${styles.panel} ${styles.kpiCard}`} data-tone={item.tone}><div className={styles.kpiIcon}><Icon size={22} /></div><div><span>{item.label}</span><strong>{item.value}</strong><small>{item.detail}</small></div><MoreVertical size={17} className={styles.moreIcon} /></article> })}</section>
+function KpiGrid({ data }: { data: PremiumData }) {
+  const source = data.invoices.length ? data.invoices : fallbackApiInvoices
+  const invoiceSource = source.filter((invoice) => invoiceType(invoice) === "invoice")
+  const offerSource = source.filter((invoice) => invoiceType(invoice) === "offer")
+  const openAmount = invoiceSource.filter((invoice) => isStatus(invoice.status, "open")).reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
+  const paidAmount = invoiceSource.filter((invoice) => isStatus(invoice.status, "paid")).reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
+  const overdueAmount = invoiceSource.filter((invoice) => isStatus(invoice.status, "overdue")).reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
+  const offerAmount = offerSource.reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
+  const liveKpis = source.length ? [
+    { label: "Offene Rechnungen", value: formatEuro(openAmount), detail: `${invoiceSource.filter((invoice) => isStatus(invoice.status, "open")).length} Dokumente`, tone: "violet" as Tone, icon: Receipt },
+    { label: "Bezahlt", value: formatEuro(paidAmount), detail: data.loaded ? "Live aus API" : "+18% vs. Vormonat", tone: "green" as Tone, icon: Briefcase },
+    { label: "Ueberfaellig", value: formatEuro(overdueAmount), detail: `${invoiceSource.filter((invoice) => isStatus(invoice.status, "overdue")).length} Dokumente`, tone: "rose" as Tone, icon: AlertCircle },
+    { label: "Angebote", value: formatEuro(offerAmount), detail: `${offerSource.length} Dokumente`, tone: "blue" as Tone, icon: Tag },
+    { label: "Kunden", value: String(data.customers.length || 4), detail: data.loaded ? "Live aus API" : "Fallback-Daten", tone: "amber" as Tone, icon: Users }
+  ] : kpis
+
+  return <section className={styles.kpiGrid}>{liveKpis.map((item) => { const Icon = item.icon; return <article key={item.label} className={`${styles.panel} ${styles.kpiCard}`} data-tone={item.tone}><div className={styles.kpiIcon}><Icon size={22} /></div><div><span>{item.label}</span><strong>{item.value}</strong><small>{item.detail}</small></div><MoreVertical size={17} className={styles.moreIcon} /></article> })}</section>
 }
 
 function RevenueChart() {
@@ -429,8 +516,17 @@ function RevenueChart() {
   )
 }
 
-function StatusPanel() {
-  return <article className={`${styles.panel} ${styles.statusPanel}`}><div className={styles.panelHead}><h2>Rechnungsstatus</h2></div><div className={styles.donutWrap}><div className={styles.donut}><div><strong>4</strong><span>Gesamt</span></div></div><div className={styles.statusLegend}>{[["Bezahlt", "green"], ["Offen", "blue"], ["Ueberfaellig", "rose"], ["Entwurf", "muted"]].map(([label, tone]) => <div key={label}><span data-tone={tone} />{label}<b>1 (25%)</b></div>)}</div></div></article>
+function StatusPanel({ data }: { data: PremiumData }) {
+  const source = (data.invoices.length ? data.invoices : fallbackApiInvoices).filter((invoice) => invoiceType(invoice) === "invoice")
+  const statusItems = [
+    ["Bezahlt", "green", source.filter((invoice) => isStatus(invoice.status, "paid")).length],
+    ["Offen", "blue", source.filter((invoice) => isStatus(invoice.status, "open")).length],
+    ["Ueberfaellig", "rose", source.filter((invoice) => isStatus(invoice.status, "overdue")).length],
+    ["Entwurf", "muted", source.filter((invoice) => isStatus(invoice.status, "draft")).length]
+  ] as const
+  const total = statusItems.reduce((sum, item) => sum + item[2], 0) || source.length || 1
+
+  return <article className={`${styles.panel} ${styles.statusPanel}`}><div className={styles.panelHead}><h2>Rechnungsstatus</h2></div><div className={styles.donutWrap}><div className={styles.donut}><div><strong>{total}</strong><span>Gesamt</span></div></div><div className={styles.statusLegend}>{statusItems.map(([label, tone, count]) => <div key={label}><span data-tone={tone} />{label}<b>{count} ({Math.round((count / total) * 100)}%)</b></div>)}</div></div></article>
 }
 
 function QuickActions() {
@@ -445,8 +541,9 @@ function QuickActions() {
   return <article className={`${styles.panel} ${styles.quickPanel}`}><div className={styles.robot}>AI</div><div className={styles.panelHead}><div><h2>Schnellaktionen</h2><span>Hallo Daniel. Was moechten Sie heute erledigen?</span></div></div><div className={styles.quickGrid}>{actions.map((action) => { const Icon = action.icon; return <Link key={action.label} href={action.href} data-tone={action.tone}><Icon size={19} /><span>{action.label}</span></Link> })}</div></article>
 }
 
-function InvoiceTable() {
-  return <article className={`${styles.panel} ${styles.tablePanel}`}><div className={styles.panelHead}><h2>Kuerzlich erstellte Rechnungen</h2><Link href="/documents">Alle anzeigen</Link></div><div className={styles.tableScroll}><table><thead><tr><th>Rechnung</th><th>Kunde</th><th>Status</th><th>Betrag</th><th>Datum</th></tr></thead><tbody>{invoices.map(([number, customer, status, amount, date]) => <tr key={number}><td>{number}</td><td>{customer}</td><td><span data-status={status}>{status}</span></td><td>{amount}</td><td>{date}</td></tr>)}</tbody></table></div></article>
+function InvoiceTable({ data }: { data: PremiumData }) {
+  const rows = invoiceRowsFromData(data)
+  return <article className={`${styles.panel} ${styles.tablePanel}`}><div className={styles.panelHead}><h2>Kuerzlich erstellte Rechnungen</h2><Link href="/documents">Alle anzeigen</Link></div><div className={styles.tableScroll}><table><thead><tr><th>Rechnung</th><th>Kunde</th><th>Status</th><th>Betrag</th><th>Datum</th></tr></thead><tbody>{rows.map(([number, customer, status, amount, date]) => <tr key={number}><td>{number}</td><td>{customer}</td><td><span data-status={status}>{status}</span></td><td>{amount}</td><td>{date}</td></tr>)}</tbody></table></div></article>
 }
 
 function BarPanel() {
@@ -472,21 +569,47 @@ function IntegrationsPanel() {
   return <article className={`${styles.panel} ${styles.integrationsPanel}`}><h2>Integrationen</h2><div className={styles.integrationsGrid}>{integrations.map(([name, meta, color]) => <div key={name}><span style={{ backgroundColor: color }}>{name.charAt(0)}</span><strong>{name}</strong><small>{meta}</small></div>)}<Link href="/dashboard-v2/integrations"><Grid3X3 size={18} />Mehr anzeigen</Link></div></article>
 }
 
-function DashboardOverview() {
+function DashboardOverview({ data }: { data: PremiumData }) {
   return (
     <>
-      <KpiGrid />
-      <section className={styles.mainGrid}><RevenueChart /><StatusPanel /><QuickActions /></section>
-      <section className={styles.lowerGrid}><InvoiceTable /><BarPanel /><ActivityFeed /></section>
+      <KpiGrid data={data} />
+      <section className={styles.mainGrid}><RevenueChart /><StatusPanel data={data} /><QuickActions /></section>
+      <section className={styles.lowerGrid}><InvoiceTable data={data} /><BarPanel /><ActivityFeed /></section>
       <section className={styles.bottomGrid}><UsersPanel /><LicensePanel /></section>
       <IntegrationsPanel />
     </>
   )
 }
 
-function PremiumModulePage({ view }: { view: Exclude<PremiumView, "dashboard"> }) {
+function moduleRows(view: Exclude<PremiumView, "dashboard">, data: PremiumData): ModuleRow[] {
+  if (view === "customers" && data.customers.length) {
+    return data.customers.slice(0, 5).map((customer) => [
+      customer.name,
+      customer.email || customer.contact || customer.number || "Kundenprofil",
+      customer.status || "Aktiv",
+      "Live"
+    ])
+  }
+
+  if ((view === "invoices" || view === "offers") && data.invoices.length) {
+    return data.invoices
+      .filter((invoice) => view === "offers" ? invoiceType(invoice) === "offer" : invoiceType(invoice) === "invoice")
+      .slice(0, 5)
+      .map((invoice) => [
+        invoice.number,
+        invoice.customer || "Unbekannt",
+        formatEuro(Number(invoice.grossTotal) || 0),
+        statusLabel(invoice.status)
+      ])
+  }
+
+  return moduleContent[view].rows
+}
+
+function PremiumModulePage({ view, data }: { view: Exclude<PremiumView, "dashboard">; data: PremiumData }) {
   const meta = premiumViewMeta[view]
   const content = moduleContent[view]
+  const rows = moduleRows(view, data)
 
   return (
     <section className={styles.modulePage}>
@@ -545,7 +668,7 @@ function PremiumModulePage({ view }: { view: Exclude<PremiumView, "dashboard"> }
         <article className={`${styles.panel} ${styles.moduleTable}`}>
           <div className={styles.panelHead}><h2>{meta.title} Uebersicht</h2><Link href="/dashboard-v2">Zurueck zum Dashboard</Link></div>
           <div className={styles.pipelineList}>
-            {content.rows.map(([title, subtitle, value, status]) => (
+            {rows.map(([title, subtitle, value, status]) => (
               <div key={`${title}-${value}`}>
                 <span><strong>{title}</strong><small>{subtitle}</small></span>
                 <b>{value}</b>
@@ -561,11 +684,47 @@ function PremiumModulePage({ view }: { view: Exclude<PremiumView, "dashboard"> }
 
 export function PremiumWorkspacePage({ view = "dashboard" }: { view?: PremiumView }) {
   const [mode, setMode] = useState<ThemeMode>("dark")
+  const [data, setData] = useState<PremiumData>({ invoices: [], customers: [], loaded: false })
 
   useEffect(() => {
     const savedMode = window.localStorage.getItem("dream-invoice-premium-theme")
     if (savedMode === "light" || savedMode === "dark") {
       setMode(savedMode)
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadPremiumData() {
+      try {
+        const [invoiceResponse, customerResponse] = await Promise.all([
+          fetch("/api/invoice/list", { credentials: "same-origin" }),
+          fetch("/api/customers/list", { credentials: "same-origin" })
+        ])
+        const [invoicePayload, customerPayload] = await Promise.all([
+          invoiceResponse.ok ? invoiceResponse.json() : Promise.resolve([]),
+          customerResponse.ok ? customerResponse.json() : Promise.resolve([])
+        ])
+
+        if (cancelled) return
+
+        setData({
+          invoices: Array.isArray(invoicePayload) ? invoicePayload : [],
+          customers: Array.isArray(customerPayload) ? customerPayload : [],
+          loaded: true
+        })
+      } catch {
+        if (!cancelled) {
+          setData((current) => ({ ...current, loaded: true }))
+        }
+      }
+    }
+
+    loadPremiumData()
+
+    return () => {
+      cancelled = true
     }
   }, [])
 
@@ -579,7 +738,7 @@ export function PremiumWorkspacePage({ view = "dashboard" }: { view?: PremiumVie
       <Sidebar />
       <section className={styles.contentShell}>
         <Topbar mode={mode} onModeChange={handleModeChange} />
-        {view === "dashboard" ? <DashboardOverview /> : <PremiumModulePage view={view} />}
+        {view === "dashboard" ? <DashboardOverview data={data} /> : <PremiumModulePage view={view} data={data} />}
       </section>
     </div>
   )
