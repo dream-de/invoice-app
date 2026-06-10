@@ -1648,6 +1648,21 @@ type SettingsDraft = {
   invoiceNextValue: string
   invoicePadding: string
 }
+type IntegrationDraft = {
+  provider: string
+  mode: string
+  tokenLabel: string
+}
+type AutomationDraft = {
+  rule: string
+  trigger: string
+  action: string
+}
+type ApiDraft = {
+  event: string
+  endpoint: string
+  keyLabel: string
+}
 
 const premiumSettingsAreas: Array<{
   key: string
@@ -1843,6 +1858,21 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     invoiceNextValue: String(rangesSource.find((range) => range.type === "invoice")?.nextValue || 104),
     invoicePadding: String(rangesSource.find((range) => range.type === "invoice")?.padding || 3)
   })
+  const [integrationDraft, setIntegrationDraft] = useState<IntegrationDraft>({
+    provider: integrationsSource[0]?.[0] || "Stripe",
+    mode: "connect",
+    tokenLabel: "Premium Token"
+  })
+  const [automationDraft, setAutomationDraft] = useState<AutomationDraft>({
+    rule: rangesSource[0]?.type || "invoice",
+    trigger: "invoice.created",
+    action: "Benachrichtigung senden"
+  })
+  const [apiDraft, setApiDraft] = useState<ApiDraft>({
+    event: "invoice.created",
+    endpoint: "https://api.example.test/webhooks/dreaminvoice",
+    keyLabel: "Production API Key"
+  })
   const [workflowState, setWorkflowState] = useState<WorkflowState>({ type: "idle", message: "" })
   const [isWorkflowSaving, setIsWorkflowSaving] = useState(false)
 
@@ -1875,6 +1905,60 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
   function updateSettingsDraft(field: keyof SettingsDraft, value: string) {
     setSettingsDraft((current) => ({ ...current, [field]: value }))
     setWorkflowState({ type: "idle", message: "" })
+  }
+
+  function updateIntegrationDraft(field: keyof IntegrationDraft, value: string) {
+    setIntegrationDraft((current) => ({ ...current, [field]: value }))
+    setWorkflowState({ type: "idle", message: "" })
+  }
+
+  function updateAutomationDraft(field: keyof AutomationDraft, value: string) {
+    setAutomationDraft((current) => ({ ...current, [field]: value }))
+    setWorkflowState({ type: "idle", message: "" })
+  }
+
+  function updateApiDraft(field: keyof ApiDraft, value: string) {
+    setApiDraft((current) => ({ ...current, [field]: value }))
+    setWorkflowState({ type: "idle", message: "" })
+  }
+
+  async function runPremiumAction(type: string, action: string, label: string, payload: Record<string, unknown>, successMessage: string) {
+    setIsWorkflowSaving(true)
+    setWorkflowState({ type: "idle", message: "" })
+
+    try {
+      const response = await fetch("/api/premium/actions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ type, action, label, payload })
+      })
+      const result = await response.json()
+
+      if (!response.ok || !result?.ok) {
+        setWorkflowState({ type: "error", message: result?.error || "Premium-Aktion konnte nicht ausgefuehrt werden." })
+        return
+      }
+
+      const notification: NotificationItem = {
+        id: result.event?.id || `premium-action-${Date.now()}`,
+        title: label,
+        message: successMessage,
+        category: type,
+        tone: type === "api" || type === "audit" ? "blue" : "violet",
+        readAt: null
+      }
+
+      onDataChange((current) => ({
+        ...current,
+        notifications: [notification, ...(current.notifications.length ? current.notifications : fallbackNotifications)].slice(0, 20)
+      }))
+      setWorkflowState({ type: "success", message: successMessage })
+    } catch {
+      setWorkflowState({ type: "error", message: "Premium-Action-API konnte nicht erreicht werden." })
+    } finally {
+      setIsWorkflowSaving(false)
+    }
   }
 
   async function savePremiumCustomer() {
@@ -2456,16 +2540,35 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     return (
       <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("integration") || query.includes("verbunden") || query.includes("sync") || query.includes("token")}>
         <div className={styles.panelHead}><div><h2>Integration verbinden</h2><span>Provider auswaehlen und Verbindung simulieren</span></div></div>
-        <form className={styles.workflowForm} action="/dashboard-v2/integrations" method="get">
+        <form
+          className={styles.workflowForm}
+          action="/dashboard-v2/integrations"
+          method="get"
+          onSubmit={(event) => {
+            event.preventDefault()
+            void runPremiumAction("integration", "connect", "Integration verbunden", integrationDraft, `${integrationDraft.provider} wurde fuer ${integrationDraft.mode === "connect" ? "Verbindung" : "Re-Auth"} vorbereitet.`)
+          }}
+        >
           <input type="hidden" name="q" value="Integration verbunden" />
           <input type="hidden" name="theme" value={mode} />
-          <label>Provider<select name="provider" defaultValue={integrationsSource[0]?.[0] || "Stripe"}>{integrationsSource.map(([name]) => <option key={name} value={name}>{name}</option>)}</select></label>
-          <button type="submit">Verbinden</button>
+          <label>Provider<select name="provider" value={integrationDraft.provider} onChange={(event) => updateIntegrationDraft("provider", event.target.value)}>{integrationsSource.map(([name]) => <option key={name} value={name}>{name}</option>)}</select></label>
+          <label>Modus<select name="mode" value={integrationDraft.mode} onChange={(event) => updateIntegrationDraft("mode", event.target.value)}><option value="connect">Neu verbinden</option><option value="reauth">Re-Auth</option><option value="sync">Sync vorbereiten</option></select></label>
+          <label>Token Label<input name="tokenLabel" value={integrationDraft.tokenLabel} onChange={(event) => updateIntegrationDraft("tokenLabel", event.target.value)} /></label>
+          <button type="submit" disabled={isWorkflowSaving}>{isWorkflowSaving ? "Verbindet..." : "Verbinden"}</button>
         </form>
         <div className={styles.workflowActions}>
-          <Link href={withPremiumTheme("/dashboard-v2/integrations?q=Sync%20geprueft", mode)}>Sync pruefen</Link>
-          <Link href={withPremiumTheme("/dashboard-v2/api?q=Token%20vorbereitet", mode)}>Token erneuern</Link>
+          <form action="/dashboard-v2/integrations" method="get" onSubmit={(event) => { event.preventDefault(); void runPremiumAction("integration", "sync.check", "Sync geprueft", integrationDraft, `${integrationDraft.provider} Sync wurde geprueft und ist bereit.`) }}>
+            <input type="hidden" name="q" value="Sync geprueft" />
+            <input type="hidden" name="theme" value={mode} />
+            <button type="submit" disabled={isWorkflowSaving}>Sync pruefen</button>
+          </form>
+          <form action="/dashboard-v2/api" method="get" onSubmit={(event) => { event.preventDefault(); void runPremiumAction("api", "token.prepare", "Token vorbereitet", integrationDraft, `${integrationDraft.tokenLabel} wurde fuer sichere Rotation vorbereitet.`) }}>
+            <input type="hidden" name="q" value="Token vorbereitet" />
+            <input type="hidden" name="theme" value={mode} />
+            <button type="submit" disabled={isWorkflowSaving}>Token erneuern</button>
+          </form>
         </div>
+        {workflowState.message ? <p data-state={workflowState.type}>{workflowState.message}</p> : null}
         {message}
       </article>
     )
@@ -2475,17 +2578,32 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     return (
       <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("workflow") || query.includes("nummernkreis") || query.includes("run")}>
         <div className={styles.panelHead}><div><h2>Workflow testen</h2><span>Regel aus Nummernkreis und Ereignis ausloesen</span></div></div>
-        <form className={styles.workflowForm} action="/dashboard-v2/automation" method="get">
+        <form
+          className={styles.workflowForm}
+          action="/dashboard-v2/automation"
+          method="get"
+          onSubmit={(event) => {
+            event.preventDefault()
+            void runPremiumAction("automation", "workflow.test", "Workflow getestet", automationDraft, `${numberRangeLabel(automationDraft.rule)} Workflow wurde fuer ${automationDraft.trigger} getestet.`)
+          }}
+        >
           <input type="hidden" name="q" value="Workflow getestet" />
           <input type="hidden" name="theme" value={mode} />
-          <label>Regel<select name="rule" defaultValue={rangesSource[0]?.type || "invoice"}>{rangesSource.map((range) => <option key={range.type} value={range.type}>{numberRangeLabel(range.type)}</option>)}</select></label>
-          <button type="submit">Regel testen</button>
+          <label>Regel<select name="rule" value={automationDraft.rule} onChange={(event) => updateAutomationDraft("rule", event.target.value)}>{rangesSource.map((range) => <option key={range.type} value={range.type}>{numberRangeLabel(range.type)}</option>)}</select></label>
+          <label>Ereignis<select name="trigger" value={automationDraft.trigger} onChange={(event) => updateAutomationDraft("trigger", event.target.value)}><option value="invoice.created">Rechnung erstellt</option><option value="payment.received">Zahlung erhalten</option><option value="offer.accepted">Angebot angenommen</option><option value="expense.recorded">Ausgabe erfasst</option></select></label>
+          <label>Aktion<input name="action" value={automationDraft.action} onChange={(event) => updateAutomationDraft("action", event.target.value)} /></label>
+          <button type="submit" disabled={isWorkflowSaving}>{isWorkflowSaving ? "Testet..." : "Regel testen"}</button>
         </form>
         <div className={styles.workflowActions}>
-          <Link href={withPremiumTheme("/dashboard-v2/automation?q=Workflow%20erstellt", mode)}>Workflow erstellen</Link>
+          <form action="/dashboard-v2/automation" method="get" onSubmit={(event) => { event.preventDefault(); void runPremiumAction("automation", "workflow.create", "Workflow erstellt", automationDraft, `${numberRangeLabel(automationDraft.rule)} Workflow wurde erstellt und ist aktivierbar.`) }}>
+            <input type="hidden" name="q" value="Workflow erstellt" />
+            <input type="hidden" name="theme" value={mode} />
+            <button type="submit" disabled={isWorkflowSaving}>Workflow erstellen</button>
+          </form>
           <Link href={withPremiumTheme("/dashboard-v2/audit?q=Workflow", mode)}>Run Verlauf</Link>
           <Link href={withPremiumTheme("/dashboard-v2/automation?q=Nummernkreis%20geprueft", mode)}>Nummernkreise</Link>
         </div>
+        {workflowState.message ? <p data-state={workflowState.type}>{workflowState.message}</p> : null}
         {message}
       </article>
     )
@@ -2495,11 +2613,40 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     return (
       <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("webhook") || query.includes("api") || query.includes("key")}>
         <div className={styles.panelHead}><div><h2>API pruefen</h2><span>Live-Endpoints testen und Webhook vorbereiten</span></div><Link href={withPremiumTheme("/dashboard-v2/audit?q=Webhook%20Logs", mode)}>Logs oeffnen</Link></div>
+        <form
+          className={styles.workflowForm}
+          action="/dashboard-v2/api"
+          method="get"
+          onSubmit={(event) => {
+            event.preventDefault()
+            void runPremiumAction("api", "webhook.create", "Webhook erstellt", apiDraft, `Webhook fuer ${apiDraft.event} wurde vorbereitet.`)
+          }}
+        >
+          <input type="hidden" name="q" value="Webhook erstellt" />
+          <input type="hidden" name="theme" value={mode} />
+          <label>Ereignis<select name="event" value={apiDraft.event} onChange={(event) => updateApiDraft("event", event.target.value)}><option value="invoice.created">invoice.created</option><option value="payment.received">payment.received</option><option value="offer.accepted">offer.accepted</option><option value="customer.created">customer.created</option></select></label>
+          <label className={styles.workflowWideField}>Endpoint<input name="endpoint" value={apiDraft.endpoint} onChange={(event) => updateApiDraft("endpoint", event.target.value)} /></label>
+          <label>Key Label<input name="keyLabel" value={apiDraft.keyLabel} onChange={(event) => updateApiDraft("keyLabel", event.target.value)} /></label>
+          <button type="submit" disabled={isWorkflowSaving}>{isWorkflowSaving ? "Erstellt..." : "Webhook erstellen"}</button>
+        </form>
         <div className={styles.workflowActions}>
-          <Link href={withPremiumTheme("/dashboard-v2/api?q=API%20geprueft", mode)}>API pruefen</Link>
-          <Link href={withPremiumTheme("/dashboard-v2/api?q=Webhook%20erstellt", mode)}>Webhook erstellen</Link>
-          <Link href={withPremiumTheme("/dashboard-v2/api?q=API-Key%20rotiert", mode)}>API-Key rotieren</Link>
+          <form action="/dashboard-v2/api" method="get" onSubmit={(event) => { event.preventDefault(); void runPremiumAction("api", "api.check", "API geprueft", apiDraft, "API-Endpunkte wurden geprueft und sind bereit.") }}>
+            <input type="hidden" name="q" value="API geprueft" />
+            <input type="hidden" name="theme" value={mode} />
+            <button type="submit" disabled={isWorkflowSaving}>API pruefen</button>
+          </form>
+          <form action="/dashboard-v2/api" method="get" onSubmit={(event) => { event.preventDefault(); void runPremiumAction("api", "key.rotate", "API-Key rotiert", apiDraft, `${apiDraft.keyLabel} wurde fuer Rotation vorbereitet.`) }}>
+            <input type="hidden" name="q" value="API-Key rotiert" />
+            <input type="hidden" name="theme" value={mode} />
+            <button type="submit" disabled={isWorkflowSaving}>API-Key rotieren</button>
+          </form>
+          <form action="/dashboard-v2/audit" method="get" onSubmit={(event) => { event.preventDefault(); void runPremiumAction("audit", "webhook.logs", "Webhook Logs", apiDraft, "Webhook Logs wurden gefiltert und geoeffnet.") }}>
+            <input type="hidden" name="q" value="Webhook Logs" />
+            <input type="hidden" name="theme" value={mode} />
+            <button type="submit" disabled={isWorkflowSaving}>Webhook Logs</button>
+          </form>
         </div>
+        {workflowState.message ? <p data-state={workflowState.type}>{workflowState.message}</p> : null}
         {message}
       </article>
     )
@@ -2549,7 +2696,7 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
   if (view === "reports" || view === "audit") {
     const links = view === "reports"
       ? [["Vergleich", "/dashboard-v2/reports?q=Vergleich%20geoeffnet"]]
-      : [["Audit exportieren", "/dashboard-v2/audit?q=Audit%20exportiert"], ["Filter setzen", "/dashboard-v2/audit?q=Audit%20Filter%20aktiv"], ["Ereignis suchen", "/dashboard-v2/audit?q=Ereignis%20gefunden"], ["Webhook Logs", "/dashboard-v2/audit?q=Webhook%20Logs"], ["System", "/dashboard-v2/settings?q=System%20geprueft"]]
+      : [["System", "/dashboard-v2/settings?q=System%20geprueft"]]
 
     return (
       <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.length > 0}>
@@ -2571,6 +2718,30 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
                 <input type="hidden" name="q" value="Vergleich geoeffnet" />
                 <input type="hidden" name="theme" value={mode} />
                 <button type="submit" disabled={isWorkflowSaving}>Finanzbericht</button>
+              </form>
+            </>
+          ) : null}
+          {view === "audit" ? (
+            <>
+              <form action="/dashboard-v2/audit" method="get" onSubmit={(event) => { event.preventDefault(); void runPremiumAction("audit", "audit.export", "Audit exportiert", { filter: searchQuery || "all" }, "Audit Export wurde vorbereitet und protokolliert.") }}>
+                <input type="hidden" name="q" value="Audit exportiert" />
+                <input type="hidden" name="theme" value={mode} />
+                <button type="submit" disabled={isWorkflowSaving}>Audit exportieren</button>
+              </form>
+              <form action="/dashboard-v2/audit" method="get" onSubmit={(event) => { event.preventDefault(); void runPremiumAction("audit", "audit.filter", "Audit Filter aktiv", { filter: "security,system,webhook" }, "Audit Filter zeigt jetzt Security, System und Webhook Ereignisse.") }}>
+                <input type="hidden" name="q" value="Audit Filter aktiv" />
+                <input type="hidden" name="theme" value={mode} />
+                <button type="submit" disabled={isWorkflowSaving}>Filter setzen</button>
+              </form>
+              <form action="/dashboard-v2/audit" method="get" onSubmit={(event) => { event.preventDefault(); void runPremiumAction("audit", "audit.search", "Ereignis gefunden", { query: "premium.action" }, "Ereignissuche wurde ausgefuehrt und passende Eintraege sind markiert.") }}>
+                <input type="hidden" name="q" value="Ereignis gefunden" />
+                <input type="hidden" name="theme" value={mode} />
+                <button type="submit" disabled={isWorkflowSaving}>Ereignis suchen</button>
+              </form>
+              <form action="/dashboard-v2/audit" method="get" onSubmit={(event) => { event.preventDefault(); void runPremiumAction("audit", "webhook.logs", "Webhook Logs", { source: "api" }, "Webhook Logs wurden geoeffnet und fuer Pruefung gefiltert.") }}>
+                <input type="hidden" name="q" value="Webhook Logs" />
+                <input type="hidden" name="theme" value={mode} />
+                <button type="submit" disabled={isWorkflowSaving}>Webhook Logs</button>
               </form>
             </>
           ) : null}
