@@ -256,9 +256,12 @@
   line-height: 1.45;
 }
 
-.upgradeCard button,
-.licensePanel button {
+.upgradeCard a,
+.licensePanel a {
   min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 0;
   border-radius: 8px;
   background: linear-gradient(135deg, #8b5cf6, #6d28d9);
@@ -266,6 +269,7 @@
   cursor: pointer;
   font-size: 13px;
   font-weight: 900;
+  text-decoration: none;
 }
 
 .contentShell {
@@ -344,6 +348,7 @@
 }
 
 .topActions > button,
+.topActions > a,
 .themeToggle,
 .profile {
   min-height: 42px;
@@ -353,11 +358,13 @@
   color: var(--text);
 }
 
-.topActions > button {
+.topActions > button,
+.topActions > a {
   width: 42px;
   display: grid;
   place-items: center;
   cursor: pointer;
+  text-decoration: none;
 }
 
 .bellButton {
@@ -787,7 +794,7 @@
   margin-top: 34px;
 }
 
-.quickGrid button {
+.quickGrid a {
   min-height: 64px;
   display: flex;
   align-items: center;
@@ -799,11 +806,12 @@
   cursor: pointer;
   padding: 10px;
   text-align: left;
+  text-decoration: none;
   font-size: 12px;
   font-weight: 900;
 }
 
-.quickGrid button svg {
+.quickGrid a svg {
   flex: 0 0 auto;
   color: var(--violet-2);
 }
@@ -1001,14 +1009,18 @@
   background: linear-gradient(90deg, #7c3aed, #8b5cf6);
 }
 
-.usersMeta button {
+.usersMeta a {
   min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: color-mix(in srgb, var(--panel-strong) 80%, transparent);
   color: var(--text);
   font-size: 12px;
   font-weight: 900;
+  text-decoration: none;
 }
 
 .userCards {
@@ -1100,7 +1112,7 @@
   font-size: 11px !important;
 }
 
-.licensePanel button {
+.licensePanel a {
   width: 100%;
   display: flex;
   align-items: center;
@@ -1124,7 +1136,7 @@
 }
 
 .integrationsGrid div,
-.integrationsGrid button {
+.integrationsGrid a {
   min-height: 58px;
   display: grid;
   grid-template-columns: 34px minmax(0, 1fr);
@@ -1135,6 +1147,7 @@
   background: color-mix(in srgb, var(--panel-strong) 80%, transparent);
   color: var(--text);
   padding: 10px;
+  text-decoration: none;
 }
 
 .integrationsGrid span {
@@ -1166,7 +1179,7 @@
   font-weight: 800;
 }
 
-.integrationsGrid button {
+.integrationsGrid a {
   grid-template-columns: 24px 1fr;
   cursor: pointer;
   font-size: 12px;
@@ -1214,8 +1227,8 @@
   line-height: 1.55;
 }
 
-.moduleHero button,
-.actionStrip button {
+.moduleHero a,
+.actionStrip a {
   min-height: 44px;
   display: inline-flex;
   align-items: center;
@@ -1229,6 +1242,7 @@
   padding: 0 16px;
   font-size: 13px;
   font-weight: 950;
+  text-decoration: none;
   white-space: nowrap;
 }
 
@@ -1275,7 +1289,7 @@
   gap: 10px;
 }
 
-.actionStrip button {
+.actionStrip a {
   width: 100%;
   min-height: 46px;
   white-space: normal;
