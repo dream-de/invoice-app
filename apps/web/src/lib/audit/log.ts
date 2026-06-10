@@ -17,6 +17,8 @@ export type AuditAction =
   | "invoice.payment.create"
   | "invoice.payment.update"
   | "invoice.payment.delete"
+  | "premium.time.create"
+  | "premium.expense.create"
   | "user.create"
   | "user.delete"
   | "user.update"

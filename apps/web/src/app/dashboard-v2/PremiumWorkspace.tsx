@@ -1606,6 +1606,21 @@ type DocumentDraft = {
   status: string
   note: string
 }
+type TimeDraft = {
+  project: string
+  task: string
+  hours: string
+  rate: string
+  status: string
+}
+type ExpenseDraft = {
+  title: string
+  amount: string
+  category: string
+  project: string
+  vendor: string
+  status: string
+}
 
 function PremiumLicensePanel({ data, mode, searchQuery }: { data: PremiumData; mode: ThemeMode; searchQuery: string }) {
   const limit = userLimitFromData(data)
@@ -1757,6 +1772,21 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     status: "draft",
     note: "Premium-Angebot fuer Pipeline und Freigabe vorbereitet."
   })
+  const [timeDraft, setTimeDraft] = useState<TimeDraft>({
+    project: projectsSource[0]?.name || "Website Redesign",
+    task: "Premium Arbeitszeit",
+    hours: "1.5",
+    rate: "95",
+    status: "billable"
+  })
+  const [expenseDraft, setExpenseDraft] = useState<ExpenseDraft>({
+    title: articlesSource[0]?.name || "Software Lizenz",
+    amount: String(Number(articlesSource[0]?.price || 128).toFixed(2)),
+    category: articlesSource[0]?.category || "Software",
+    project: projectsSource[0]?.name || "Allgemein",
+    vendor: "Premium Lieferant",
+    status: "recorded"
+  })
   const [workflowState, setWorkflowState] = useState<WorkflowState>({ type: "idle", message: "" })
   const [isWorkflowSaving, setIsWorkflowSaving] = useState(false)
 
@@ -1773,6 +1803,16 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
   function updateDocumentDraft(kind: "invoice" | "offer", field: keyof DocumentDraft, value: string) {
     const setter = kind === "invoice" ? setInvoiceDraft : setOfferDraft
     setter((current) => ({ ...current, [field]: value }))
+    setWorkflowState({ type: "idle", message: "" })
+  }
+
+  function updateTimeDraft(field: keyof TimeDraft, value: string) {
+    setTimeDraft((current) => ({ ...current, [field]: value }))
+    setWorkflowState({ type: "idle", message: "" })
+  }
+
+  function updateExpenseDraft(field: keyof ExpenseDraft, value: string) {
+    setExpenseDraft((current) => ({ ...current, [field]: value }))
     setWorkflowState({ type: "idle", message: "" })
   }
 
@@ -1870,10 +1910,80 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     }
   }
 
+  async function savePremiumTime() {
+    setIsWorkflowSaving(true)
+    setWorkflowState({ type: "idle", message: "" })
+
+    try {
+      const response = await fetch("/api/time/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(timeDraft)
+      })
+      const result = await response.json()
+
+      if (!response.ok || !result?.ok) {
+        setWorkflowState({ type: "error", message: result?.error || "Zeit konnte nicht gespeichert werden." })
+        return
+      }
+
+      const entry = result.entry as { project: string; hours: number; amount: number }
+      onDataChange((current) => ({
+        ...current,
+        projects: current.projects.map((project) => project.name === entry.project
+          ? { ...project, progress: `${Math.min(parsePercent(project.progress) + Math.max(Math.round(entry.hours), 1), 100)}%` }
+          : project)
+      }))
+      setWorkflowState({ type: "success", message: `Premium-Zeit gespeichert: ${entry.hours} h / ${formatEuro(Number(entry.amount) || 0)}` })
+    } catch {
+      setWorkflowState({ type: "error", message: "Zeit-API konnte nicht erreicht werden." })
+    } finally {
+      setIsWorkflowSaving(false)
+    }
+  }
+
+  async function savePremiumExpense() {
+    setIsWorkflowSaving(true)
+    setWorkflowState({ type: "idle", message: "" })
+
+    try {
+      const response = await fetch("/api/expenses/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(expenseDraft)
+      })
+      const result = await response.json()
+
+      if (!response.ok || !result?.ok) {
+        setWorkflowState({ type: "error", message: result?.error || "Ausgabe konnte nicht gespeichert werden." })
+        return
+      }
+
+      const expense = result.expense as { id: string; title: string; amount: number; category: string }
+      const article: ApiArticle = {
+        id: expense.id,
+        name: expense.title,
+        category: expense.category,
+        price: Number(expense.amount) || 0,
+        active: true
+      }
+      onDataChange((current) => ({
+        ...current,
+        articles: [article, ...current.articles.filter((item) => item.id !== article.id)]
+      }))
+      setWorkflowState({ type: "success", message: `Premium-Ausgabe gespeichert: ${article.name} / ${formatEuro(Number(article.price) || 0)}` })
+    } catch {
+      setWorkflowState({ type: "error", message: "Ausgaben-API konnte nicht erreicht werden." })
+    } finally {
+      setIsWorkflowSaving(false)
+    }
+  }
+
   if (view === "license") return null
 
   const routeMessages: Array<[matches: boolean, message: string]> = [
     [query.includes("zeit gebucht"), "Zeit wurde vorgemerkt und fuer Abrechnung vorbereitet."],
+    [query.includes("zeit gespeichert"), "Premium-Zeit wurde gespeichert und bleibt im neuen Dashboard-Kontext."],
     [query.includes("timer gestartet"), "Timer wurde gestartet und dem Projekt zugeordnet."],
     [query.includes("freigabe vorbereitet"), "Freigabe wurde vorbereitet und kann in Rechnungen uebernommen werden."],
     [query.includes("kunde vorbereitet"), "Kunde wurde vorbereitet. Fuer Speicherung kann der vollstaendige Kunden-Flow geoeffnet werden."],
@@ -1896,6 +2006,7 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     [query.includes("angebot gespeichert"), "Premium-Angebot wurde gespeichert und bleibt im neuen Dashboard-Kontext."],
     [query.includes("pipeline geprueft"), "Pipeline wurde geprueft und offene Angebote sind markiert."],
     [query.includes("ausgabe erfasst"), "Ausgabe wurde vorgemerkt und fuer DATEV vorbereitet."],
+    [query.includes("ausgabe gespeichert"), "Premium-Ausgabe wurde gespeichert und bleibt im neuen Dashboard-Kontext."],
     [query.includes("beleg hochgeladen"), "Beleg-Upload wurde vorbereitet und kann dem Ausgabenfluss zugeordnet werden."],
     [query.includes("datev vorbereitet"), "DATEV Export wurde vorbereitet."],
     [query.includes("report exportiert"), "Report Export wurde vorbereitet."],
@@ -2014,17 +2125,21 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     return (
       <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("timer") || query.includes("zeit")}>
         <div className={styles.panelHead}><div><h2>Zeit erfassen</h2><span>Timer starten oder abrechenbare Stunden buchen</span></div></div>
-        <form className={styles.workflowForm} action="/dashboard-v2/time" method="get">
-          <input type="hidden" name="q" value="Zeit gebucht" />
+        <form className={styles.workflowForm} action="/dashboard-v2/time" method="get" onSubmit={(event) => { event.preventDefault(); void savePremiumTime() }}>
+          <input type="hidden" name="q" value="Zeit gespeichert" />
           <input type="hidden" name="theme" value={mode} />
-          <label>Projekt<select name="project" defaultValue={projectsSource[0]?.name || "Website Redesign"}>{projectsSource.map((project) => <option key={project.id} value={project.name}>{project.name}</option>)}</select></label>
-          <label>Stunden<input name="hours" defaultValue="1.5" inputMode="decimal" /></label>
-          <button type="submit">Zeit buchen</button>
+          <label>Projekt<select name="project" value={timeDraft.project} onChange={(event) => updateTimeDraft("project", event.target.value)}>{projectsSource.map((project) => <option key={project.id} value={project.name}>{project.name}</option>)}</select></label>
+          <label>Aufgabe<input name="task" value={timeDraft.task} onChange={(event) => updateTimeDraft("task", event.target.value)} /></label>
+          <label>Stunden<input name="hours" value={timeDraft.hours} inputMode="decimal" onChange={(event) => updateTimeDraft("hours", event.target.value)} /></label>
+          <label>Stundensatz<input name="rate" value={timeDraft.rate} inputMode="decimal" onChange={(event) => updateTimeDraft("rate", event.target.value)} /></label>
+          <label>Status<select name="status" value={timeDraft.status} onChange={(event) => updateTimeDraft("status", event.target.value)}><option value="billable">Abrechenbar</option><option value="internal">Intern</option><option value="approved">Freigegeben</option></select></label>
+          <button type="submit" disabled={isWorkflowSaving}>{isWorkflowSaving ? "Speichert..." : "Zeit speichern"}</button>
         </form>
         <div className={styles.workflowActions}>
           <Link href={withPremiumTheme("/dashboard-v2/time?q=Timer%20gestartet", mode)}>Timer starten</Link>
           <Link href={withPremiumTheme("/dashboard-v2/time?q=Freigabe%20vorbereitet", mode)}>Freigabe senden</Link>
         </div>
+        {workflowState.message ? <p data-state={workflowState.type}>{workflowState.message}</p> : null}
         {message}
       </article>
     )
@@ -2034,17 +2149,22 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     return (
       <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("ausgabe") || query.includes("beleg") || query.includes("datev")}>
         <div className={styles.panelHead}><div><h2>Ausgabe erfassen</h2><span>Belegposition vormerken und fuer Export vorbereiten</span></div><Link href={withPremiumTheme("/dashboard-v2/expenses?q=Beleg%20hochgeladen", mode)}>Beleg hochladen</Link></div>
-        <form className={styles.workflowForm} action="/dashboard-v2/expenses" method="get">
-          <input type="hidden" name="q" value="Ausgabe erfasst" />
+        <form className={styles.workflowForm} action="/dashboard-v2/expenses" method="get" onSubmit={(event) => { event.preventDefault(); void savePremiumExpense() }}>
+          <input type="hidden" name="q" value="Ausgabe gespeichert" />
           <input type="hidden" name="theme" value={mode} />
-          <label>Ausgabe<input name="title" defaultValue={articlesSource[0]?.name || "Software Lizenz"} /></label>
-          <label>Betrag<input name="amount" defaultValue={String(Number(articlesSource[0]?.price || 128).toFixed(2))} inputMode="decimal" /></label>
-          <button type="submit">Erfassen</button>
+          <label>Ausgabe<input name="title" value={expenseDraft.title} onChange={(event) => updateExpenseDraft("title", event.target.value)} /></label>
+          <label>Betrag<input name="amount" value={expenseDraft.amount} inputMode="decimal" onChange={(event) => updateExpenseDraft("amount", event.target.value)} /></label>
+          <label>Kategorie<input name="category" value={expenseDraft.category} onChange={(event) => updateExpenseDraft("category", event.target.value)} /></label>
+          <label>Projekt<select name="project" value={expenseDraft.project} onChange={(event) => updateExpenseDraft("project", event.target.value)}>{projectsSource.map((project) => <option key={project.id} value={project.name}>{project.name}</option>)}</select></label>
+          <label>Lieferant<input name="vendor" value={expenseDraft.vendor} onChange={(event) => updateExpenseDraft("vendor", event.target.value)} /></label>
+          <label>Status<select name="status" value={expenseDraft.status} onChange={(event) => updateExpenseDraft("status", event.target.value)}><option value="recorded">Erfasst</option><option value="review">Pruefung</option><option value="exported">Exportiert</option></select></label>
+          <button type="submit" disabled={isWorkflowSaving}>{isWorkflowSaving ? "Speichert..." : "Ausgabe speichern"}</button>
         </form>
         <div className={styles.workflowActions}>
           <Link href={withPremiumTheme("/dashboard-v2/expenses?q=DATEV%20vorbereitet", mode)}>DATEV Export</Link>
           <Link href={withPremiumTheme("/dashboard-v2/expenses?q=DATEV%20vorbereitet", mode)}>Export vormerken</Link>
         </div>
+        {workflowState.message ? <p data-state={workflowState.type}>{workflowState.message}</p> : null}
         {message}
       </article>
     )
