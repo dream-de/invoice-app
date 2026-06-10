@@ -1770,14 +1770,25 @@
   gap: 10px;
 }
 
-.focusList div {
+.focusList a {
   min-height: 54px;
   display: grid;
   gap: 5px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: color-mix(in srgb, var(--panel-strong) 80%, transparent);
+  color: inherit;
   padding: 11px 12px;
+  text-decoration: none;
+  transition: border-color 150ms ease, background 150ms ease, transform 150ms ease;
+}
+
+.focusList a:hover,
+.focusList a:focus-visible {
+  border-color: color-mix(in srgb, var(--violet) 45%, var(--line));
+  background: color-mix(in srgb, var(--panel-strong) 92%, transparent);
+  outline: none;
+  transform: translateY(-1px);
 }
 
 .focusList span {
@@ -1799,14 +1810,16 @@
   gap: 12px;
 }
 
-.moduleTimeline div {
+.moduleTimeline a {
   display: grid;
   grid-template-columns: 30px minmax(0, 1fr);
   gap: 10px;
   align-items: start;
+  color: inherit;
+  text-decoration: none;
 }
 
-.moduleTimeline > div > span {
+.moduleTimeline > a > span {
   width: 30px;
   height: 30px;
   display: grid;

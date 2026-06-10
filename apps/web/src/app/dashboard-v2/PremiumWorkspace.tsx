@@ -1496,7 +1496,7 @@ const premiumActionQueryTerms = [
 
 function isPremiumActionQuery(searchQuery: string) {
   const selection = moduleSelectionLabel(searchQuery).toLowerCase()
-  return premiumActionQueryTerms.some((term) => selection.includes(term))
+  return selection.startsWith("fokus ") || selection.startsWith("aktuell ") || premiumActionQueryTerms.some((term) => selection.includes(term))
 }
 
 function premiumSearchQuery(searchQuery: string) {
@@ -1547,6 +1547,10 @@ function moduleRowHref(view: Exclude<PremiumView, "dashboard">, data: PremiumDat
   }
 
   return `/dashboard-v2/${view}?q=${encodeURIComponent(row[0])}`
+}
+
+function moduleSignalHref(view: Exclude<PremiumView, "dashboard">, label: string, type: "Fokus" | "Aktuell") {
+  return `/dashboard-v2/${view}?q=${encodeURIComponent(`${type} ${label}`)}`
 }
 
 function ModuleSelectionPanel({ data, mode, row, searchQuery, view }: { data: PremiumData; mode: ThemeMode; row: ModuleRow | null; searchQuery: string; view: Exclude<PremiumView, "dashboard"> }) {
@@ -2010,7 +2014,7 @@ function PremiumModulePage({ view, data, mode, searchQuery }: { view: Exclude<Pr
           <div className={styles.panelHead}><h2>Fokus</h2><span>Wichtige Werte</span></div>
           <div className={styles.focusList}>
             {focus.map(([label, value]) => (
-              <div key={label}><span>{label}</span><strong>{value}</strong></div>
+              <Link key={label} href={withPremiumTheme(moduleSignalHref(view, label, "Fokus"), mode)}><span>{label}</span><strong>{value}</strong></Link>
             ))}
           </div>
         </article>
@@ -2019,10 +2023,10 @@ function PremiumModulePage({ view, data, mode, searchQuery }: { view: Exclude<Pr
           <div className={styles.panelHead}><h2>Aktuell</h2><span>Letzte Ereignisse</span></div>
           <div className={styles.moduleTimeline}>
             {timeline.map(([title, text]) => (
-              <div key={title}>
+              <Link key={title} href={withPremiumTheme(moduleSignalHref(view, title, "Aktuell"), mode)}>
                 <span><CheckCircle2 size={14} /></span>
                 <p><strong>{title}</strong><small>{text}</small></p>
-              </div>
+              </Link>
             ))}
           </div>
         </article>
