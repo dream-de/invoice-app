@@ -809,9 +809,9 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     stats: [["14", "Workflows"], ["9", "Aktiv"], ["312", "Runs"]],
     rows: [["Mahnung nach 7 Tagen", "Rechnungen", "9 Runs", "Aktiv"], ["Monatsreport senden", "Berichte", "1 Run", "Geplant"], ["Beleg automatisch taggen", "Ausgaben", "42 Runs", "Aktiv"]],
     focus: [["Gesparte Zeit", "18 h"], ["Fehlerquote", "0,8%"], ["Naechster Run", "Morgen 08:00"]],
-    actions: [["Workflow erstellen", "/dashboard-v2/automation"], ["Regel testen", "/dashboard-v2/notifications"], ["Run Verlauf", "/dashboard-v2/audit"]],
+    actions: [["Workflow erstellen", "/dashboard-v2/automation?q=Rechnungen%20Nummernkreis"], ["Regel testen", "/dashboard-v2/notifications?q=Neue%20Rechnung%20erstellt"], ["Run Verlauf", "/dashboard-v2/audit?q=Neue%20Rechnung%20erstellt"]],
     timeline: [["Mahnlauf ausgefuehrt", "3 Kunden wurden automatisch erinnert."], ["Regel getestet", "Belegtagging erkennt Softwarekosten."], ["Workflow pausiert", "Alter Export wurde deaktiviert."]],
-    primaryHref: "/dashboard-v2/automation"
+    primaryHref: "/dashboard-v2/automation?q=Rechnungen%20Nummernkreis"
   },
   notifications: {
     stats: [["12", "Neu"], ["4", "Wichtig"], ["0", "Kritisch"]],
