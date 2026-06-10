@@ -182,7 +182,7 @@ const sideNav = [
   {
     section: "Extras",
     items: [
-      { label: "Benachrichtigungen", href: "/dashboard-v2/notifications", icon: Bell, badge: "12" },
+      { label: "Benachrichtigungen", href: "/dashboard-v2/notifications", icon: Bell },
       { label: "Aktivitaetsprotokoll", href: "/dashboard-v2/audit", icon: ShieldCheck },
       { label: "API & Webhooks", href: "/dashboard-v2/api", icon: Grid3X3 }
     ]
@@ -657,7 +657,7 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
   },
   license: {
     stats: [["Free", "Tarif"], ["100", "Rechnungen"], ["1 GB", "Speicher"]],
-    rows: [["Benutzerlimit", "5 von 5 verwendet", "Voll", "Limit"], ["Rechnungen pro Monat", "100 von 100", "Voll", "Limit"], ["Speicher", "1 GB von 1 GB", "Voll", "Limit"]],
+    rows: [["Benutzerlimit", "5 von 5 verwendet", "Voll", "Limit"], ["Dokumente im Workspace", "Live geladene Dokumente", "Preview", "Aktiv"], ["Speicher", "Nicht gemessen", "Preview", "Info"]],
     focus: [["Upgrade Vorteil", "Unbegrenzt"], ["Premium Support", "Enthalten"], ["Aktivierung", "Lizenz-Key"]],
     actions: [["Lizenz aktivieren", "/dashboard-v2/license"], ["Upgrade pruefen", "/dashboard-v2/license"], ["Key eingeben", "/dashboard-v2/license"]],
     timeline: [["Limit erreicht", "Kostenloser Plan ist vollstaendig ausgereizt."], ["Upgrade vorbereitet", "Premium schaltet unbegrenzte Benutzer frei."], ["Abrechnung bereit", "Lizenzdaten koennen hinterlegt werden."]],
@@ -734,7 +734,7 @@ function Sidebar({ unreadCount, upgrade, workspace }: { unreadCount: number; upg
     <aside className={styles.sidebar}>
       <div className={styles.logoWrap}><div className={styles.logoMark}>D</div><div><strong>DreamInvoice</strong><span>Premium Edition</span></div></div>
       <button className={styles.workspaceButton} type="button"><span className={styles.workspaceAvatar}>{workspace.initial}</span><span><small>Workspace</small><strong>{workspace.name}</strong></span><ChevronDown size={14} /></button>
-      <nav className={styles.sideSections}>{sideNav.map((group) => <div key={group.section} className={styles.sideSection}><p>{group.section}</p>{group.items.map((item) => { const Icon = item.icon; const isActive = pathname === item.href; const badge = item.label === "Benachrichtigungen" ? unreadCount : Number(item.badge || 0); return <Link key={item.label} href={item.href} className={isActive ? styles.activeSideItem : styles.sideItem}><Icon size={16} /><span>{item.label}</span>{badge > 0 ? <em>{badge}</em> : null}</Link> })}</div>)}</nav>
+      <nav className={styles.sideSections}>{sideNav.map((group) => <div key={group.section} className={styles.sideSection}><p>{group.section}</p>{group.items.map((item) => { const Icon = item.icon; const isActive = pathname === item.href; const badge = item.label === "Benachrichtigungen" ? unreadCount : 0; return <Link key={item.label} href={item.href} className={isActive ? styles.activeSideItem : styles.sideItem}><Icon size={16} /><span>{item.label}</span>{badge > 0 ? <em>{badge}</em> : null}</Link> })}</div>)}</nav>
       <div className={styles.upgradeCard}><Crown size={26} /><strong>{upgrade.title}</strong><span>{upgrade.text}</span><Link href={upgrade.href}>{upgrade.action}</Link></div>
     </aside>
   )
@@ -848,7 +848,8 @@ function UsersPanel({ data }: { data: PremiumData }) {
 
 function LicensePanel({ data }: { data: PremiumData }) {
   const limit = userLimitFromData(data)
-  return <article className={`${styles.panel} ${styles.licensePanel}`}><div className={styles.panelHead}><h2>Lizenzstatus</h2><span className={styles.freeBadge}>{limit.plan}</span></div><div className={styles.licenseGrid}><div><span>Benutzer</span><b>{limit.currentUsers} / {limit.maxUsers}</b></div><div><span>Status</span><b>{limit.isFull ? "Limit erreicht" : "Aktiv"}</b></div><div><span>Speicher</span><b>1 GB / 1 GB</b></div><div><span>Ablaufdatum</span><b>{limit.validUntil ? limit.validUntil.slice(0, 10) : "-"}</b></div></div><Link href="/dashboard-v2/license"><span>Lizenz / Upgrade aktivieren</span><KeyRound size={18} /></Link></article>
+  const documentCount = (data.invoices.length ? data.invoices : fallbackApiInvoices).length
+  return <article className={`${styles.panel} ${styles.licensePanel}`}><div className={styles.panelHead}><h2>Lizenzstatus</h2><span className={styles.freeBadge}>{limit.plan}</span></div><div className={styles.licenseGrid}><div><span>Benutzer</span><b>{limit.currentUsers} / {limit.maxUsers}</b></div><div><span>Status</span><b>{limit.isFull ? "Limit erreicht" : "Aktiv"}</b></div><div><span>Dokumente</span><b>{documentCount}</b></div><div><span>Ablaufdatum</span><b>{limit.validUntil ? limit.validUntil.slice(0, 10) : "-"}</b></div></div><Link href="/dashboard-v2/license"><span>Lizenz / Upgrade aktivieren</span><KeyRound size={18} /></Link></article>
 }
 
 function IntegrationsPanel() {
@@ -957,9 +958,10 @@ function moduleRows(view: Exclude<PremiumView, "dashboard">, data: PremiumData):
     const limit = data.userLimit ?? fallbackUserLimit
     const currentUsers = limit.currentUsers ?? usersSource.length
     const maxUsers = limit.maxUsers ?? fallbackUserLimit.maxUsers ?? 5
+    const documentCount = (data.invoices.length ? data.invoices : fallbackApiInvoices).length
     return [
       ["Benutzerlimit", `${currentUsers} von ${maxUsers} verwendet`, limit.plan || "Free", currentUsers >= maxUsers ? "Limit" : "OK"],
-      ["Rechnungen pro Monat", "100 von 100", "Free Plan", "Limit"],
+      ["Dokumente im Workspace", `${documentCount} geladen`, data.loaded ? "Live" : "Preview", "Aktiv"],
       ["Lizenzablauf", limit.validUntil ? limit.validUntil.slice(0, 10) : "Kein Ablaufdatum", "Status", "Aktiv"]
     ]
   }
@@ -1012,7 +1014,7 @@ function moduleStats(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
 
   if (view === "customers") {
     const activeCustomers = data.customers.filter((customer) => String(customer.status || "").toLowerCase() === "active").length
-    return [[String(data.customers.length || 8), "Kunden"], [String(activeCustomers || 6), "Aktiv"], [data.loaded ? "API" : "Demo", "Datenquelle"]]
+    return [[String(data.customers.length || 8), "Kunden"], [String(data.customers.length ? activeCustomers : 6), "Aktiv"], [data.loaded ? "API" : "Demo", "Datenquelle"]]
   }
 
   if (view === "projects" || view === "time") {
@@ -1168,18 +1170,7 @@ function moduleTimeline(view: Exclude<PremiumView, "dashboard">, data: PremiumDa
 }
 
 function moduleRowHref(view: Exclude<PremiumView, "dashboard">) {
-  if (view === "customers") return "/customers"
-  if (view === "projects" || view === "time") return "/projects"
-  if (view === "invoices" || view === "offers") return "/documents"
-  if (view === "expenses") return "/articles"
-  if (view === "reports") return "/finance/statistics"
-  if (view === "settings") return "/settings"
-  if (view === "users" || view === "license") return "/settings/users"
-  if (view === "integrations") return "/dashboard-v2/integrations"
-  if (view === "automation") return "/settings/reminders"
-  if (view === "notifications") return "/dashboard-v2/notifications"
-  if (view === "audit") return "/dashboard-v2/audit"
-  return "/dashboard-v2/api"
+  return `/dashboard-v2/${view}`
 }
 
 function PremiumModulePage({ view, data, searchQuery }: { view: Exclude<PremiumView, "dashboard">; data: PremiumData; searchQuery: string }) {
