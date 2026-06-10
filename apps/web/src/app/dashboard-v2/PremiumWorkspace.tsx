@@ -1597,6 +1597,15 @@ type ProjectDraft = {
   status: string
   description: string
 }
+type DocumentDraft = {
+  type: "invoice" | "offer"
+  customer: string
+  project: string
+  title: string
+  amount: string
+  status: string
+  note: string
+}
 
 function PremiumLicensePanel({ data, mode, searchQuery }: { data: PremiumData; mode: ThemeMode; searchQuery: string }) {
   const limit = userLimitFromData(data)
@@ -1730,6 +1739,24 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     status: "Aktiv",
     description: "Premium Projektentwurf mit Budget, Kunde und Abrechnungsfluss."
   })
+  const [invoiceDraft, setInvoiceDraft] = useState<DocumentDraft>({
+    type: "invoice",
+    customer: customersSource[0]?.name || "Demo Kunde",
+    project: projectsSource[0]?.name || "Allgemein",
+    title: articlesSource[0]?.name || "Premium Leistung",
+    amount: String(Number(articlesSource[0]?.price || 680).toFixed(2)),
+    status: "draft",
+    note: "Premium-Rechnung mit Kunde, Projekt und Position vorbereitet."
+  })
+  const [offerDraft, setOfferDraft] = useState<DocumentDraft>({
+    type: "offer",
+    customer: customersSource[0]?.name || "Demo Kunde",
+    project: projectsSource[0]?.name || "Allgemein",
+    title: projectsSource[0]?.name || "Premium Angebot",
+    amount: "1320.00",
+    status: "draft",
+    note: "Premium-Angebot fuer Pipeline und Freigabe vorbereitet."
+  })
   const [workflowState, setWorkflowState] = useState<WorkflowState>({ type: "idle", message: "" })
   const [isWorkflowSaving, setIsWorkflowSaving] = useState(false)
 
@@ -1740,6 +1767,12 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
 
   function updateProjectDraft(field: keyof ProjectDraft, value: string) {
     setProjectDraft((current) => ({ ...current, [field]: value }))
+    setWorkflowState({ type: "idle", message: "" })
+  }
+
+  function updateDocumentDraft(kind: "invoice" | "offer", field: keyof DocumentDraft, value: string) {
+    const setter = kind === "invoice" ? setInvoiceDraft : setOfferDraft
+    setter((current) => ({ ...current, [field]: value }))
     setWorkflowState({ type: "idle", message: "" })
   }
 
@@ -1806,6 +1839,37 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     }
   }
 
+  async function savePremiumDocument(kind: "invoice" | "offer") {
+    const draft = kind === "invoice" ? invoiceDraft : offerDraft
+    setIsWorkflowSaving(true)
+    setWorkflowState({ type: "idle", message: "" })
+
+    try {
+      const response = await fetch("/api/documents/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(draft)
+      })
+      const result = await response.json()
+
+      if (!response.ok || !result?.ok) {
+        setWorkflowState({ type: "error", message: result?.error || "Dokument konnte nicht gespeichert werden." })
+        return
+      }
+
+      const document = result.document as ApiInvoice
+      onDataChange((current) => ({
+        ...current,
+        invoices: [document, ...current.invoices.filter((item) => item.id !== document.id)]
+      }))
+      setWorkflowState({ type: "success", message: `${kind === "invoice" ? "Premium-Rechnung" : "Premium-Angebot"} gespeichert: ${document.number}` })
+    } catch {
+      setWorkflowState({ type: "error", message: "Dokument-API konnte nicht erreicht werden." })
+    } finally {
+      setIsWorkflowSaving(false)
+    }
+  }
+
   if (view === "license") return null
 
   const routeMessages: Array<[matches: boolean, message: string]> = [
@@ -1823,11 +1887,13 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     [query.includes("projektliste geoeffnet"), "Premium-Projektliste wurde geoeffnet und bleibt im neuen Dashboard-Kontext."],
     [query.includes("budget geprueft"), "Projektbudget wurde geprueft und die Auslastung ist sichtbar."],
     [query.includes("rechnung vorbereitet"), "Rechnung wurde vorbereitet. Fuer Speicherung kann der vollstaendige Rechnungs-Flow geoeffnet werden."],
-    [query.includes("rechnung neu vorbereitet"), "Neue Premium-Rechnung wurde vorbereitet. Der echte Premium-Editor wird spaeter separat gebaut."],
+    [query.includes("rechnung neu vorbereitet"), "Neue Premium-Rechnung wurde vorbereitet. Der Premium-Editor ist direkt nutzbar."],
+    [query.includes("rechnung gespeichert"), "Premium-Rechnung wurde gespeichert und bleibt im neuen Dashboard-Kontext."],
     [query.includes("dokument geoeffnet"), "Premium-Dokumentansicht wurde vorbereitet. Der echte Premium-Editor wird spaeter separat gebaut."],
     [query.includes("zahlung geprueft"), "Zahlung wurde geprueft und dem Reporting zugeordnet."],
     [query.includes("angebot vorbereitet"), "Angebot wurde vorbereitet. Fuer Speicherung kann der vollstaendige Angebots-Flow geoeffnet werden."],
-    [query.includes("angebot neu vorbereitet"), "Neues Premium-Angebot wurde vorbereitet. Der echte Premium-Editor wird spaeter separat gebaut."],
+    [query.includes("angebot neu vorbereitet"), "Neues Premium-Angebot wurde vorbereitet. Der Premium-Editor ist direkt nutzbar."],
+    [query.includes("angebot gespeichert"), "Premium-Angebot wurde gespeichert und bleibt im neuen Dashboard-Kontext."],
     [query.includes("pipeline geprueft"), "Pipeline wurde geprueft und offene Angebote sind markiert."],
     [query.includes("ausgabe erfasst"), "Ausgabe wurde vorgemerkt und fuer DATEV vorbereitet."],
     [query.includes("beleg hochgeladen"), "Beleg-Upload wurde vorbereitet und kann dem Ausgabenfluss zugeordnet werden."],
@@ -1904,13 +1970,19 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     return (
       <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("rechnung") || query.includes("zahlung") || query.includes("freigabe")}>
         <div className={styles.panelHead}><div><h2>Rechnung vorbereiten</h2><span>Kunde, Projekt und Dokumentfluss vorbereiten</span></div><Link href={withPremiumTheme("/dashboard-v2/invoices?q=Rechnung%20neu%20vorbereitet", mode)}>Premium erstellen</Link></div>
-        <form className={styles.workflowForm} action="/dashboard-v2/invoices" method="get">
-          <input type="hidden" name="q" value="Rechnung vorbereitet" />
+        <form className={styles.workflowForm} action="/dashboard-v2/invoices" method="get" onSubmit={(event) => { event.preventDefault(); void savePremiumDocument("invoice") }}>
+          <input type="hidden" name="q" value="Rechnung gespeichert" />
           <input type="hidden" name="theme" value={mode} />
-          <label>Kunde<select name="customer" defaultValue={customersSource[0]?.name}>{customersSource.map((customer) => <option key={customer.id} value={customer.name}>{customer.name}</option>)}</select></label>
-          <label>Projekt<select name="project" defaultValue={projectsSource[0]?.name || "Allgemein"}>{projectsSource.map((project) => <option key={project.id} value={project.name}>{project.name}</option>)}</select></label>
-          <button type="submit">Vorbereiten</button>
+          <input type="hidden" name="type" value="invoice" />
+          <label>Kunde<select name="customer" value={invoiceDraft.customer} onChange={(event) => updateDocumentDraft("invoice", "customer", event.target.value)}>{customersSource.map((customer) => <option key={customer.id} value={customer.name}>{customer.name}</option>)}</select></label>
+          <label>Projekt<select name="project" value={invoiceDraft.project} onChange={(event) => updateDocumentDraft("invoice", "project", event.target.value)}>{projectsSource.map((project) => <option key={project.id} value={project.name}>{project.name}</option>)}</select></label>
+          <label>Position<input name="title" value={invoiceDraft.title} onChange={(event) => updateDocumentDraft("invoice", "title", event.target.value)} /></label>
+          <label>Betrag netto<input name="amount" value={invoiceDraft.amount} inputMode="decimal" onChange={(event) => updateDocumentDraft("invoice", "amount", event.target.value)} /></label>
+          <label>Status<select name="status" value={invoiceDraft.status} onChange={(event) => updateDocumentDraft("invoice", "status", event.target.value)}><option value="draft">Entwurf</option><option value="open">Offen</option><option value="paid">Bezahlt</option><option value="overdue">Ueberfaellig</option></select></label>
+          <label className={styles.workflowWideField}>Notiz<textarea name="note" rows={3} value={invoiceDraft.note} onChange={(event) => updateDocumentDraft("invoice", "note", event.target.value)} /></label>
+          <button type="submit" disabled={isWorkflowSaving}>{isWorkflowSaving ? "Speichert..." : "Rechnung speichern"}</button>
         </form>
+        {workflowState.message ? <p data-state={workflowState.type}>{workflowState.message}</p> : null}
         {message}
       </article>
     )
@@ -1920,13 +1992,19 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     return (
       <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("angebot") || query.includes("pipeline")}>
         <div className={styles.panelHead}><div><h2>Angebot vorbereiten</h2><span>Pipeline-Dokument mit Kunde und Projekt vorbereiten</span></div><Link href={withPremiumTheme("/dashboard-v2/offers?q=Angebot%20neu%20vorbereitet", mode)}>Premium erstellen</Link></div>
-        <form className={styles.workflowForm} action="/dashboard-v2/offers" method="get">
-          <input type="hidden" name="q" value="Angebot vorbereitet" />
+        <form className={styles.workflowForm} action="/dashboard-v2/offers" method="get" onSubmit={(event) => { event.preventDefault(); void savePremiumDocument("offer") }}>
+          <input type="hidden" name="q" value="Angebot gespeichert" />
           <input type="hidden" name="theme" value={mode} />
-          <label>Kunde<select name="customer" defaultValue={customersSource[0]?.name}>{customersSource.map((customer) => <option key={customer.id} value={customer.name}>{customer.name}</option>)}</select></label>
-          <label>Pipeline<select name="stage" defaultValue="draft"><option value="draft">Entwurf</option><option value="review">Review</option><option value="sent">Versendet</option></select></label>
-          <button type="submit">Vorbereiten</button>
+          <input type="hidden" name="type" value="offer" />
+          <label>Kunde<select name="customer" value={offerDraft.customer} onChange={(event) => updateDocumentDraft("offer", "customer", event.target.value)}>{customersSource.map((customer) => <option key={customer.id} value={customer.name}>{customer.name}</option>)}</select></label>
+          <label>Projekt<select name="project" value={offerDraft.project} onChange={(event) => updateDocumentDraft("offer", "project", event.target.value)}>{projectsSource.map((project) => <option key={project.id} value={project.name}>{project.name}</option>)}</select></label>
+          <label>Position<input name="title" value={offerDraft.title} onChange={(event) => updateDocumentDraft("offer", "title", event.target.value)} /></label>
+          <label>Betrag netto<input name="amount" value={offerDraft.amount} inputMode="decimal" onChange={(event) => updateDocumentDraft("offer", "amount", event.target.value)} /></label>
+          <label>Pipeline<select name="status" value={offerDraft.status} onChange={(event) => updateDocumentDraft("offer", "status", event.target.value)}><option value="draft">Entwurf</option><option value="open">Offen</option><option value="sent">Versendet</option><option value="accepted">Angenommen</option></select></label>
+          <label className={styles.workflowWideField}>Notiz<textarea name="note" rows={3} value={offerDraft.note} onChange={(event) => updateDocumentDraft("offer", "note", event.target.value)} /></label>
+          <button type="submit" disabled={isWorkflowSaving}>{isWorkflowSaving ? "Speichert..." : "Angebot speichern"}</button>
         </form>
+        {workflowState.message ? <p data-state={workflowState.type}>{workflowState.message}</p> : null}
         {message}
       </article>
     )
