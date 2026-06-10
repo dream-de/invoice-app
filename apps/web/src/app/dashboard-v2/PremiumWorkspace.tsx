@@ -1,7 +1,7 @@
 "use client"
 
 import type { ComponentType } from "react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
@@ -411,11 +411,23 @@ function PremiumModulePage({ view }: { view: Exclude<PremiumView, "dashboard"> }
 export function PremiumWorkspacePage({ view = "dashboard" }: { view?: PremiumView }) {
   const [mode, setMode] = useState<ThemeMode>("dark")
 
+  useEffect(() => {
+    const savedMode = window.localStorage.getItem("dream-invoice-premium-theme")
+    if (savedMode === "light" || savedMode === "dark") {
+      setMode(savedMode)
+    }
+  }, [])
+
+  function handleModeChange(nextMode: ThemeMode) {
+    setMode(nextMode)
+    window.localStorage.setItem("dream-invoice-premium-theme", nextMode)
+  }
+
   return (
     <div className={styles.page} data-theme={mode} role="main">
       <Sidebar />
       <section className={styles.contentShell}>
-        <Topbar mode={mode} onModeChange={setMode} />
+        <Topbar mode={mode} onModeChange={handleModeChange} />
         {view === "dashboard" ? <DashboardOverview /> : <PremiumModulePage view={view} />}
       </section>
     </div>
