@@ -310,6 +310,21 @@
   font-weight: 800;
 }
 
+.searchBox input {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  outline: none;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.searchBox input::placeholder {
+  color: var(--faint);
+}
+
 .desktopNav {
   min-width: 0;
   display: flex;
@@ -891,6 +906,11 @@
   color: var(--rose);
 }
 
+.emptyTableCell {
+  color: var(--muted) !important;
+  text-align: center !important;
+}
+
 .barChart {
   height: 176px;
   display: flex;
@@ -1425,6 +1445,10 @@
   white-space: nowrap;
 }
 
+.emptyPipeline {
+  border-style: dashed !important;
+}
+
 @media (max-width: 1480px) {
   .page {
     grid-template-columns: 236px minmax(0, 1fr);
@@ -1543,14 +1567,12 @@
     justify-self: start;
   }
 
-  .profile div,
-  .searchBox span {
+  .profile div {
     display: none;
   }
 
   .searchBox {
-    min-width: 42px;
-    justify-content: center;
+    min-width: 0;
   }
 
   .chartArea {

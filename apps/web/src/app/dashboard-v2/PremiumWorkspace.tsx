@@ -421,6 +421,13 @@ function invoiceRowsFromData(data: PremiumData): InvoiceRow[] {
   ])
 }
 
+function matchesSearch(values: readonly string[], query: string) {
+  const normalizedQuery = query.trim().toLowerCase()
+  if (!normalizedQuery) return true
+
+  return values.some((value) => value.toLowerCase().includes(normalizedQuery))
+}
+
 function parsePercent(value: string) {
   const parsed = Number(value.replace(/[^\d.,]/g, "").replace(",", "."))
   return Number.isFinite(parsed) ? parsed : 0
@@ -580,12 +587,12 @@ function Sidebar() {
   )
 }
 
-function Topbar({ mode, onModeChange }: { mode: ThemeMode; onModeChange: (mode: ThemeMode) => void }) {
+function Topbar({ mode, searchQuery, onModeChange, onSearchChange }: { mode: ThemeMode; searchQuery: string; onModeChange: (mode: ThemeMode) => void; onSearchChange: (value: string) => void }) {
   const pathname = usePathname()
 
   return (
     <header className={styles.topbar}>
-      <div className={styles.searchBox}><Search size={16} /><span>Suche...</span></div>
+      <label className={styles.searchBox}><Search size={16} /><input value={searchQuery} onChange={(event) => onSearchChange(event.target.value)} placeholder="Suche..." aria-label="Premium Suche" /></label>
       <nav className={styles.desktopNav}>{mainNav.map((item) => <Link key={item.label} className={pathname === item.href ? styles.navActive : ""} href={item.href}>{item.label}</Link>)}</nav>
       <div className={styles.topActions}><ThemeToggle mode={mode} onChange={onModeChange} /><Link href="/documents/new" aria-label="Neu"><Plus size={18} /></Link><Link href="/dashboard-v2/notifications" aria-label="Benachrichtigungen" className={styles.bellButton}><Bell size={18} /><span>12</span></Link><Link href="/settings/system" aria-label="Hilfe"><HelpCircle size={18} /></Link><div className={styles.profile}><span>D</span><div><strong>Daniel</strong><small>Administrator</small></div></div></div>
     </header>
@@ -651,9 +658,9 @@ function QuickActions() {
   return <article className={`${styles.panel} ${styles.quickPanel}`}><div className={styles.robot}>AI</div><div className={styles.panelHead}><div><h2>Schnellaktionen</h2><span>Hallo Daniel. Was moechten Sie heute erledigen?</span></div></div><div className={styles.quickGrid}>{actions.map((action) => { const Icon = action.icon; return <Link key={action.label} href={action.href} data-tone={action.tone}><Icon size={19} /><span>{action.label}</span></Link> })}</div></article>
 }
 
-function InvoiceTable({ data }: { data: PremiumData }) {
-  const rows = invoiceRowsFromData(data)
-  return <article className={`${styles.panel} ${styles.tablePanel}`}><div className={styles.panelHead}><h2>Kuerzlich erstellte Rechnungen</h2><Link href="/documents">Alle anzeigen</Link></div><div className={styles.tableScroll}><table><thead><tr><th>Rechnung</th><th>Kunde</th><th>Status</th><th>Betrag</th><th>Datum</th></tr></thead><tbody>{rows.map(([number, customer, status, amount, date]) => <tr key={number}><td>{number}</td><td>{customer}</td><td><span data-status={status}>{status}</span></td><td>{amount}</td><td>{date}</td></tr>)}</tbody></table></div></article>
+function InvoiceTable({ data, searchQuery }: { data: PremiumData; searchQuery: string }) {
+  const rows = invoiceRowsFromData(data).filter((row) => matchesSearch(row, searchQuery))
+  return <article className={`${styles.panel} ${styles.tablePanel}`}><div className={styles.panelHead}><h2>Kuerzlich erstellte Rechnungen</h2><Link href="/documents">Alle anzeigen</Link></div><div className={styles.tableScroll}><table><thead><tr><th>Rechnung</th><th>Kunde</th><th>Status</th><th>Betrag</th><th>Datum</th></tr></thead><tbody>{rows.length ? rows.map(([number, customer, status, amount, date]) => <tr key={number}><td>{number}</td><td>{customer}</td><td><span data-status={status}>{status}</span></td><td>{amount}</td><td>{date}</td></tr>) : <tr><td colSpan={5} className={styles.emptyTableCell}>Keine Treffer</td></tr>}</tbody></table></div></article>
 }
 
 function BarPanel() {
@@ -679,12 +686,12 @@ function IntegrationsPanel() {
   return <article className={`${styles.panel} ${styles.integrationsPanel}`}><h2>Integrationen</h2><div className={styles.integrationsGrid}>{integrations.map(([name, meta, color]) => <div key={name}><span style={{ backgroundColor: color }}>{name.charAt(0)}</span><strong>{name}</strong><small>{meta}</small></div>)}<Link href="/dashboard-v2/integrations"><Grid3X3 size={18} />Mehr anzeigen</Link></div></article>
 }
 
-function DashboardOverview({ data }: { data: PremiumData }) {
+function DashboardOverview({ data, searchQuery }: { data: PremiumData; searchQuery: string }) {
   return (
     <>
       <KpiGrid data={data} />
       <section className={styles.mainGrid}><RevenueChart /><StatusPanel data={data} /><QuickActions /></section>
-      <section className={styles.lowerGrid}><InvoiceTable data={data} /><BarPanel /><ActivityFeed /></section>
+      <section className={styles.lowerGrid}><InvoiceTable data={data} searchQuery={searchQuery} /><BarPanel /><ActivityFeed /></section>
       <section className={styles.bottomGrid}><UsersPanel /><LicensePanel /></section>
       <IntegrationsPanel />
     </>
@@ -902,10 +909,10 @@ function moduleStats(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
   return moduleContent[view].stats
 }
 
-function PremiumModulePage({ view, data }: { view: Exclude<PremiumView, "dashboard">; data: PremiumData }) {
+function PremiumModulePage({ view, data, searchQuery }: { view: Exclude<PremiumView, "dashboard">; data: PremiumData; searchQuery: string }) {
   const meta = premiumViewMeta[view]
   const content = moduleContent[view]
-  const rows = moduleRows(view, data)
+  const rows = moduleRows(view, data).filter((row) => matchesSearch(row, searchQuery))
   const stats = moduleStats(view, data)
 
   return (
@@ -965,13 +972,13 @@ function PremiumModulePage({ view, data }: { view: Exclude<PremiumView, "dashboa
         <article className={`${styles.panel} ${styles.moduleTable}`}>
           <div className={styles.panelHead}><h2>{meta.title} Uebersicht</h2><Link href="/dashboard-v2">Zurueck zum Dashboard</Link></div>
           <div className={styles.pipelineList}>
-            {rows.map(([title, subtitle, value, status]) => (
+            {rows.length ? rows.map(([title, subtitle, value, status]) => (
               <div key={`${title}-${value}`}>
                 <span><strong>{title}</strong><small>{subtitle}</small></span>
                 <b>{value}</b>
                 <em>{status}</em>
               </div>
-            ))}
+            )) : <div className={styles.emptyPipeline}><span><strong>Keine Treffer</strong><small>Suche oder Filter anpassen</small></span><b>-</b><em>Leer</em></div>}
           </div>
         </article>
       </section>
@@ -981,6 +988,7 @@ function PremiumModulePage({ view, data }: { view: Exclude<PremiumView, "dashboa
 
 export function PremiumWorkspacePage({ view = "dashboard" }: { view?: PremiumView }) {
   const [mode, setMode] = useState<ThemeMode>("dark")
+  const [searchQuery, setSearchQuery] = useState("")
   const [data, setData] = useState<PremiumData>({
     invoices: [],
     customers: [],
@@ -1062,8 +1070,8 @@ export function PremiumWorkspacePage({ view = "dashboard" }: { view?: PremiumVie
     <div className={styles.page} data-theme={mode} role="main">
       <Sidebar />
       <section className={styles.contentShell}>
-        <Topbar mode={mode} onModeChange={handleModeChange} />
-        {view === "dashboard" ? <DashboardOverview data={data} /> : <PremiumModulePage view={view} data={data} />}
+        <Topbar mode={mode} searchQuery={searchQuery} onModeChange={handleModeChange} onSearchChange={setSearchQuery} />
+        {view === "dashboard" ? <DashboardOverview data={data} searchQuery={searchQuery} /> : <PremiumModulePage view={view} data={data} searchQuery={searchQuery} />}
       </section>
     </div>
   )
