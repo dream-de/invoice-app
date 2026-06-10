@@ -223,7 +223,7 @@ export default function DashboardV2Page() {
   const [mode, setMode] = useState<ThemeMode>("dark")
 
   return (
-    <main className={styles.page} data-theme={mode}>
+    <div className={styles.page} data-theme={mode} role="main">
       <Sidebar />
       <section className={styles.contentShell}>
         <Topbar mode={mode} onModeChange={setMode} />
@@ -233,6 +233,6 @@ export default function DashboardV2Page() {
         <section className={styles.bottomGrid}><UsersPanel /><LicensePanel /></section>
         <IntegrationsPanel />
       </section>
-    </main>
+    </div>
   )
 }
