@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { Prisma, prisma } from "@dream-invoice/database"
+import { prisma, prismaDbNull } from "@dream-invoice/database"
 import * as QRCode from "qrcode"
 import { createOtpAuthUri, createTwoFactorSecret } from "@/lib/auth/totp"
 import { mapAuthError, requireCurrentUser } from "@/lib/auth/service"
@@ -15,7 +15,7 @@ export async function POST() {
     if (!isDemoMode()) {
       await prisma.user.update({
         where: { id: current.id },
-        data: { twoFactorSecret: secret, twoFactorEnabledAt: null, twoFactorBackupCodes: Prisma.JsonNull }
+        data: { twoFactorSecret: secret, twoFactorEnabledAt: null, twoFactorBackupCodes: prismaDbNull }
       })
     }
     const otpAuthUri = createOtpAuthUri({ email: current.email, secret })

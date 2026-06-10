@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { Prisma, prisma } from "@dream-invoice/database"
+import { prisma, prismaDbNull } from "@dream-invoice/database"
 import { writeAuditLog } from "@/lib/audit/log"
 import { verifyPassword } from "@/lib/auth/password"
 import { mapAuthError, requireCurrentUser } from "@/lib/auth/service"
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
       data: {
         twoFactorSecret: null,
         twoFactorEnabledAt: null,
-        twoFactorBackupCodes: Prisma.JsonNull
+        twoFactorBackupCodes: prismaDbNull
       }
     })
 
