@@ -95,11 +95,49 @@ type ProjectData = {
   progress: string
   budget: string
 }
+type AppUser = {
+  id: string
+  name?: string | null
+  email?: string | null
+  role?: string | null
+  status?: string | null
+}
+type UserLimit = {
+  plan?: string | null
+  maxUsers?: number | null
+  currentUsers?: number | null
+  validUntil?: string | null
+}
+type NotificationItem = {
+  id: string
+  title: string
+  message?: string | null
+  category?: string | null
+  tone?: string | null
+  readAt?: string | null
+}
+type CompanySettings = {
+  company?: string | null
+  email?: string | null
+  city?: string | null
+  country?: string | null
+}
+type NumberRange = {
+  type: string
+  prefix: string
+  nextValue: number
+  padding: number
+}
 type PremiumData = {
   invoices: ApiInvoice[]
   customers: ApiCustomer[]
   articles: ApiArticle[]
   projects: ProjectData[]
+  appUsers: AppUser[]
+  userLimit: UserLimit | null
+  notifications: NotificationItem[]
+  companySettings: CompanySettings | null
+  numberRanges: NumberRange[]
   loaded: boolean
 }
 type ModuleConfig = {
@@ -312,6 +350,38 @@ const fallbackProjects: ProjectData[] = fallbackProjectsData.map((project) => ({
   progress: project.progress,
   budget: project.budget
 }))
+const fallbackAppUsers: AppUser[] = users.map(([name, role], index) => ({
+  id: `fallback-user-${index}`,
+  name,
+  email: `${name.toLowerCase()}@dreaminvoice.local`,
+  role,
+  status: "active"
+}))
+const fallbackUserLimit: UserLimit = {
+  plan: "Free",
+  currentUsers: 5,
+  maxUsers: 5,
+  validUntil: null
+}
+const fallbackNotifications: NotificationItem[] = activities.map(([title, text], index) => ({
+  id: `fallback-notification-${index}`,
+  title,
+  message: text,
+  category: index === 1 ? "payments" : "documents",
+  tone: index === 1 ? "success" : "info",
+  readAt: index > 1 ? new Date().toISOString() : null
+}))
+const fallbackCompanySettings: CompanySettings = {
+  company: "Acme GmbH",
+  email: "office@acme.example",
+  city: "Koeln",
+  country: "Deutschland"
+}
+const fallbackNumberRanges: NumberRange[] = [
+  { type: "invoice", prefix: "RE-%Y-", nextValue: 104, padding: 3 },
+  { type: "offer", prefix: "AN-%Y-", nextValue: 42, padding: 3 },
+  { type: "customer", prefix: "KD-", nextValue: 4, padding: 4 }
+]
 
 function formatEuro(value: number) {
   return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(value)
@@ -624,6 +694,9 @@ function DashboardOverview({ data }: { data: PremiumData }) {
 function moduleRows(view: Exclude<PremiumView, "dashboard">, data: PremiumData): ModuleRow[] {
   const projectsSource = data.projects.length ? data.projects : fallbackProjects
   const articlesSource = data.articles.length ? data.articles : fallbackApiArticles
+  const usersSource = data.appUsers.length ? data.appUsers : fallbackAppUsers
+  const notificationsSource = data.notifications.length ? data.notifications : fallbackNotifications
+  const rangesSource = data.numberRanges.length ? data.numberRanges : fallbackNumberRanges
 
   if (view === "customers" && data.customers.length) {
     return data.customers.slice(0, 5).map((customer) => [
@@ -686,6 +759,70 @@ function moduleRows(view: Exclude<PremiumView, "dashboard">, data: PremiumData):
     ]
   }
 
+  if (view === "settings") {
+    const company = data.companySettings ?? fallbackCompanySettings
+    return [
+      ["Unternehmen", company.company || "Nicht gesetzt", company.email || "E-Mail offen", "Profil"],
+      ["Standort", [company.city, company.country].filter(Boolean).join(", ") || "Nicht gesetzt", "Firmendaten", "Aktiv"],
+      ["Nummernkreise", `${rangesSource.length} Bereiche`, rangesSource.map((range) => range.prefix).slice(0, 2).join(" · "), "Synchron"]
+    ]
+  }
+
+  if (view === "users") {
+    return usersSource.slice(0, 5).map((user) => [
+      user.name || user.email || "Benutzer",
+      user.email || user.role || "Teammitglied",
+      user.role || "member",
+      user.status || "active"
+    ])
+  }
+
+  if (view === "license") {
+    const limit = data.userLimit ?? fallbackUserLimit
+    const currentUsers = limit.currentUsers ?? usersSource.length
+    const maxUsers = limit.maxUsers ?? fallbackUserLimit.maxUsers ?? 5
+    return [
+      ["Benutzerlimit", `${currentUsers} von ${maxUsers} verwendet`, limit.plan || "Free", currentUsers >= maxUsers ? "Limit" : "OK"],
+      ["Rechnungen pro Monat", "100 von 100", "Free Plan", "Limit"],
+      ["Lizenzablauf", limit.validUntil ? limit.validUntil.slice(0, 10) : "Kein Ablaufdatum", "Status", "Aktiv"]
+    ]
+  }
+
+  if (view === "notifications") {
+    return notificationsSource.slice(0, 5).map((item) => [
+      item.title,
+      item.message || item.category || "Systemmeldung",
+      item.category || "Info",
+      item.readAt ? "Gelesen" : "Neu"
+    ])
+  }
+
+  if (view === "automation") {
+    return rangesSource.slice(0, 5).map((range) => [
+      `${range.type} Nummernkreis`,
+      `Prefix ${range.prefix}`,
+      `Naechste ${range.nextValue}`,
+      "Aktiv"
+    ])
+  }
+
+  if (view === "audit") {
+    return notificationsSource.slice(0, 5).map((item) => [
+      item.title,
+      item.message || item.category || "Ereignis",
+      item.readAt ? "Gelesen" : "Neu",
+      item.tone || "Info"
+    ])
+  }
+
+  if (view === "api") {
+    return [
+      ["GET /api/invoice/list", "Rechnungsdaten", data.invoices.length ? "200 OK" : "Auth/Fallback", "Aktiv"],
+      ["GET /api/customers/list", "Kundendaten", data.customers.length ? "200 OK" : "Auth/Fallback", "Aktiv"],
+      ["GET /api/articles/list", "Artikel und Leistungen", data.articles.length ? "200 OK" : "Demo", "Aktiv"]
+    ]
+  }
+
   return moduleContent[view].rows
 }
 
@@ -693,6 +830,9 @@ function moduleStats(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
   const source = data.invoices.length ? data.invoices : fallbackApiInvoices
   const projectsSource = data.projects.length ? data.projects : fallbackProjects
   const articlesSource = data.articles.length ? data.articles : fallbackApiArticles
+  const usersSource = data.appUsers.length ? data.appUsers : fallbackAppUsers
+  const notificationsSource = data.notifications.length ? data.notifications : fallbackNotifications
+  const rangesSource = data.numberRanges.length ? data.numberRanges : fallbackNumberRanges
 
   if (view === "customers") {
     const activeCustomers = data.customers.filter((customer) => String(customer.status || "").toLowerCase() === "active").length
@@ -723,6 +863,40 @@ function moduleStats(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
     const paid = source.filter((invoice) => isStatus(invoice.status, "paid")).reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
     const paidShare = Math.round((paid / Math.max(total, 1)) * 100)
     return [[formatEuro(total), "Gesamtvolumen"], [`${paidShare}%`, "Bezahlt"], [String(source.length), "Dokumente"]]
+  }
+
+  if (view === "settings") {
+    return [[String(rangesSource.length), "Nummernkreise"], [data.companySettings?.company ? "OK" : "Demo", "Firmendaten"], [data.loaded ? "API" : "Demo", "Datenquelle"]]
+  }
+
+  if (view === "users") {
+    const activeUsers = usersSource.filter((user) => String(user.status || "").toLowerCase() === "active").length
+    return [[String(usersSource.length), "Benutzer"], [String(activeUsers), "Aktiv"], [String(new Set(usersSource.map((user) => user.role || "member")).size), "Rollen"]]
+  }
+
+  if (view === "license") {
+    const limit = data.userLimit ?? fallbackUserLimit
+    const currentUsers = limit.currentUsers ?? usersSource.length
+    const maxUsers = limit.maxUsers ?? fallbackUserLimit.maxUsers ?? 5
+    return [[limit.plan || "Free", "Tarif"], [`${currentUsers}/${maxUsers}`, "Benutzer"], [limit.validUntil ? limit.validUntil.slice(0, 10) : "-", "Ablauf"]]
+  }
+
+  if (view === "notifications") {
+    const unread = notificationsSource.filter((item) => !item.readAt).length
+    return [[String(unread), "Neu"], [String(notificationsSource.length), "Gesamt"], [data.loaded ? "API" : "Demo", "Quelle"]]
+  }
+
+  if (view === "automation") {
+    return [[String(rangesSource.length), "Regeln"], [String(rangesSource.filter((range) => range.nextValue > 0).length), "Aktiv"], ["0", "Fehler"]]
+  }
+
+  if (view === "audit") {
+    return [[String(notificationsSource.length), "Events"], [String(notificationsSource.filter((item) => !item.readAt).length), "Offen"], ["30 T", "Aufbewahrung"]]
+  }
+
+  if (view === "api") {
+    const connected = Number(data.invoices.length > 0) + Number(data.customers.length > 0) + Number(data.articles.length > 0)
+    return [[String(connected), "Endpoints"], [data.loaded ? "Bereit" : "Laedt", "Status"], ["V2", "Preview"]]
   }
 
   return moduleContent[view].stats
@@ -812,6 +986,11 @@ export function PremiumWorkspacePage({ view = "dashboard" }: { view?: PremiumVie
     customers: [],
     articles: fallbackApiArticles,
     projects: fallbackProjects,
+    appUsers: fallbackAppUsers,
+    userLimit: fallbackUserLimit,
+    notifications: fallbackNotifications,
+    companySettings: fallbackCompanySettings,
+    numberRanges: fallbackNumberRanges,
     loaded: false
   })
 
@@ -827,15 +1006,23 @@ export function PremiumWorkspacePage({ view = "dashboard" }: { view?: PremiumVie
 
     async function loadPremiumData() {
       try {
-        const [invoiceResponse, customerResponse] = await Promise.all([
+        const [invoiceResponse, customerResponse, articleResponse, userResponse, notificationResponse, companyResponse, rangeResponse] = await Promise.all([
           fetch("/api/invoice/list", { credentials: "same-origin" }),
-          fetch("/api/customers/list", { credentials: "same-origin" })
+          fetch("/api/customers/list", { credentials: "same-origin" }),
+          fetch("/api/articles/list", { credentials: "same-origin" }),
+          fetch("/api/settings/users", { credentials: "same-origin" }),
+          fetch("/api/notifications?limit=8", { credentials: "same-origin" }),
+          fetch("/api/settings/company", { credentials: "same-origin" }),
+          fetch("/api/settings/number-ranges", { credentials: "same-origin" })
         ])
-        const articleResponse = await fetch("/api/articles/list", { credentials: "same-origin" })
-        const [invoicePayload, customerPayload, articlePayload] = await Promise.all([
+        const [invoicePayload, customerPayload, articlePayload, userPayload, notificationPayload, companyPayload, rangePayload] = await Promise.all([
           invoiceResponse.ok ? invoiceResponse.json() : Promise.resolve([]),
           customerResponse.ok ? customerResponse.json() : Promise.resolve([]),
-          articleResponse.ok ? articleResponse.json() : Promise.resolve({ articles: fallbackApiArticles })
+          articleResponse.ok ? articleResponse.json() : Promise.resolve({ articles: fallbackApiArticles }),
+          userResponse.ok ? userResponse.json() : Promise.resolve({ users: fallbackAppUsers, limit: fallbackUserLimit }),
+          notificationResponse.ok ? notificationResponse.json() : Promise.resolve({ notifications: fallbackNotifications }),
+          companyResponse.ok ? companyResponse.json() : Promise.resolve({ settings: fallbackCompanySettings }),
+          rangeResponse.ok ? rangeResponse.json() : Promise.resolve({ ranges: fallbackNumberRanges })
         ])
 
         if (cancelled) return
@@ -845,6 +1032,11 @@ export function PremiumWorkspacePage({ view = "dashboard" }: { view?: PremiumVie
           customers: Array.isArray(customerPayload) ? customerPayload : [],
           articles: Array.isArray(articlePayload?.articles) ? articlePayload.articles : fallbackApiArticles,
           projects: fallbackProjects,
+          appUsers: Array.isArray(userPayload?.users) ? userPayload.users : fallbackAppUsers,
+          userLimit: userPayload?.limit ?? fallbackUserLimit,
+          notifications: Array.isArray(notificationPayload?.notifications) ? notificationPayload.notifications : fallbackNotifications,
+          companySettings: companyPayload?.settings ?? fallbackCompanySettings,
+          numberRanges: Array.isArray(rangePayload?.ranges) ? rangePayload.ranges : fallbackNumberRanges,
           loaded: true
         })
       } catch {
