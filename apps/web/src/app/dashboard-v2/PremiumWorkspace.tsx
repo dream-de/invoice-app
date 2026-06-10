@@ -635,39 +635,39 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     stats: [["18%", "Wachstum"], ["34%", "Marge"], ["12", "Reports"]],
     rows: [["Cashflow Juni", "Umsatz und Ausgaben", "+1.860,00 EUR", "Bereit"], ["Kundenwert", "Top 10 Kunden", "8.420,00 EUR", "Aktuell"], ["Steuerreport", "USt-Voranmeldung", "Pruefen", "Offen"]],
     focus: [["Umsatz YTD", "48.920,00 EUR"], ["Kosten YTD", "18.110,00 EUR"], ["Prognose", "+22%"]],
-    actions: [["Report exportieren", "/finance/statistics"], ["Filter speichern", "/finance/statistics"], ["Vergleich oeffnen", "/finance/statistics"]],
+    actions: [["Report exportieren", "/dashboard-v2/reports"], ["Filter speichern", "/dashboard-v2/reports"], ["Vergleich oeffnen", "/dashboard-v2/reports"]],
     timeline: [["Report erstellt", "Cashflow Juni wurde aktualisiert."], ["Abweichung erkannt", "Ausgaben liegen 8% unter Prognose."], ["Export geplant", "Steuerreport wird Freitag vorbereitet."]],
-    primaryHref: "/finance/statistics"
+    primaryHref: "/dashboard-v2/reports"
   },
   settings: {
     stats: [["9", "Bereiche"], ["3", "Pruefen"], ["100%", "Gesichert"]],
     rows: [["Unternehmen", "Acme GmbH", "Vollstaendig", "Aktiv"], ["Nummernkreise", "RE-2026 und OF-2026", "Synchron", "Aktiv"], ["E-Mail Versand", "SMTP verbunden", "OK", "Aktiv"]],
     focus: [["Portal", "Aktiv"], ["Sprache", "Deutsch"], ["Sicherheit", "2FA empfohlen"]],
-    actions: [["Firma bearbeiten", "/settings/company"], ["Nummernkreis pruefen", "/settings/number-ranges"], ["Portal oeffnen", "/settings/portal"]],
+    actions: [["Firma bearbeiten", "/dashboard-v2/settings"], ["Nummernkreis pruefen", "/dashboard-v2/settings"], ["Portal oeffnen", "/dashboard-v2/settings"]],
     timeline: [["SMTP getestet", "Versandadresse ist erreichbar."], ["Logo aktualisiert", "Premium Branding wurde gespeichert."], ["Backup gesetzt", "Systemeinstellungen wurden versioniert."]],
-    primaryHref: "/settings"
+    primaryHref: "/dashboard-v2/settings"
   },
   users: {
     stats: [["5/5", "Benutzer"], ["3", "Rollen"], ["2FA", "Empfohlen"]],
     rows: users.map(([name, role]) => [name, role, "Aktiv", role === "Administrator" ? "Owner" : "Team"]) as ModuleRow[],
     focus: [["Admin", "Daniel"], ["Lizenzlimit", "5 Benutzer"], ["Letzter Login", "Heute"]],
-    actions: [["Benutzer einladen", "/settings/users"], ["Rolle bearbeiten", "/settings/users"], ["2FA pruefen", "/account/security"]],
+    actions: [["Benutzer einladen", "/dashboard-v2/users"], ["Rolle bearbeiten", "/dashboard-v2/users"], ["2FA pruefen", "/account/security"]],
     timeline: [["Einladung vorbereitet", "Neuer Benutzer kann per E-Mail eingeladen werden."], ["Rolle geaendert", "Sarah ist Manager mit Projektfreigaben."], ["Sicherheitshinweis", "2FA fuer Buchhaltung empfohlen."]],
-    primaryHref: "/settings/users"
+    primaryHref: "/dashboard-v2/users"
   },
   license: {
     stats: [["Free", "Tarif"], ["100", "Rechnungen"], ["1 GB", "Speicher"]],
     rows: [["Benutzerlimit", "5 von 5 verwendet", "Voll", "Limit"], ["Rechnungen pro Monat", "100 von 100", "Voll", "Limit"], ["Speicher", "1 GB von 1 GB", "Voll", "Limit"]],
     focus: [["Upgrade Vorteil", "Unbegrenzt"], ["Premium Support", "Enthalten"], ["Aktivierung", "Lizenz-Key"]],
-    actions: [["Lizenz aktivieren", "/settings/users"], ["Upgrade pruefen", "/settings/users"], ["Key eingeben", "/settings/users"]],
+    actions: [["Lizenz aktivieren", "/dashboard-v2/license"], ["Upgrade pruefen", "/dashboard-v2/license"], ["Key eingeben", "/dashboard-v2/license"]],
     timeline: [["Limit erreicht", "Kostenloser Plan ist vollstaendig ausgereizt."], ["Upgrade vorbereitet", "Premium schaltet unbegrenzte Benutzer frei."], ["Abrechnung bereit", "Lizenzdaten koennen hinterlegt werden."]],
-    primaryHref: "/settings/users"
+    primaryHref: "/dashboard-v2/license"
   },
   integrations: {
     stats: [["6", "Verbunden"], ["2", "Aktion noetig"], ["99%", "Sync"]],
     rows: integrations.slice(0, 4).map(([name, meta]) => [name, meta, "Verbunden", "Aktiv"]) as ModuleRow[],
     focus: [["Zahlungen", "Stripe, PayPal"], ["Buchhaltung", "DATEV"], ["Automation", "Zapier"]],
-    actions: [["Integration verbinden", "/dashboard-v2/integrations"], ["Sync pruefen", "/finance/accounts"], ["Token erneuern", "/settings/system"]],
+    actions: [["Integration verbinden", "/dashboard-v2/integrations"], ["Sync pruefen", "/dashboard-v2/integrations"], ["Token erneuern", "/dashboard-v2/api"]],
     timeline: [["Stripe synchronisiert", "Neue Zahlung wurde automatisch zugeordnet."], ["DATEV Export bereit", "Buchhaltungsdaten sind vorbereitet."], ["Zapier aktiv", "Webhook fuer neue Rechnung feuert korrekt."]],
     primaryHref: "/dashboard-v2/integrations"
   },
@@ -675,17 +675,17 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     stats: [["14", "Workflows"], ["9", "Aktiv"], ["312", "Runs"]],
     rows: [["Mahnung nach 7 Tagen", "Rechnungen", "9 Runs", "Aktiv"], ["Monatsreport senden", "Berichte", "1 Run", "Geplant"], ["Beleg automatisch taggen", "Ausgaben", "42 Runs", "Aktiv"]],
     focus: [["Gesparte Zeit", "18 h"], ["Fehlerquote", "0,8%"], ["Naechster Run", "Morgen 08:00"]],
-    actions: [["Workflow erstellen", "/settings/reminders"], ["Regel testen", "/settings/notifications"], ["Run Verlauf", "/dashboard-v2/audit"]],
+    actions: [["Workflow erstellen", "/dashboard-v2/automation"], ["Regel testen", "/dashboard-v2/notifications"], ["Run Verlauf", "/dashboard-v2/audit"]],
     timeline: [["Mahnlauf ausgefuehrt", "3 Kunden wurden automatisch erinnert."], ["Regel getestet", "Belegtagging erkennt Softwarekosten."], ["Workflow pausiert", "Alter Export wurde deaktiviert."]],
-    primaryHref: "/settings/reminders"
+    primaryHref: "/dashboard-v2/automation"
   },
   notifications: {
     stats: [["12", "Neu"], ["4", "Wichtig"], ["0", "Kritisch"]],
     rows: [["Zahlung erhalten", "Aurora Labs GmbH", "719,05 EUR", "Neu"], ["Rechnung ueberfaellig", "Pixel Perfect Ltd.", "1.147,00 EUR", "Wichtig"], ["Projekt aktualisiert", "Website Redesign", "Phase 2", "Info"]],
     focus: [["Inbox", "12 Meldungen"], ["Heute", "6 Ereignisse"], ["Regeln", "8 aktiv"]],
-    actions: [["Regeln bearbeiten", "/settings/notifications"], ["Alle gelesen", "/dashboard-v2/notifications"], ["Filter setzen", "/settings/notifications"]],
+    actions: [["Regeln bearbeiten", "/dashboard-v2/notifications"], ["Alle gelesen", "/dashboard-v2/notifications"], ["Filter setzen", "/dashboard-v2/notifications"]],
     timeline: [["Push gesendet", "Daniel wurde ueber Zahlung informiert."], ["Regel angewendet", "Ueberfaellige Rechnung markiert."], ["Benachrichtigung geplant", "Tagesbericht wird um 18:00 gesendet."]],
-    primaryHref: "/settings/notifications"
+    primaryHref: "/dashboard-v2/notifications"
   },
   audit: {
     stats: [["248", "Events"], ["0", "Risiken"], ["30 T", "Aufbewahrung"]],
@@ -747,7 +747,7 @@ function Topbar({ mode, profile, searchInputRef, searchQuery, unreadCount, onMod
     <header className={styles.topbar}>
       <label className={styles.searchBox}><Search size={16} /><input ref={searchInputRef} value={searchQuery} onChange={(event) => onSearchChange(event.target.value)} placeholder="Suche..." aria-label="Premium Suche" />{searchQuery ? <button type="button" aria-label="Suche leeren" onClick={() => onSearchChange("")}><X size={15} /></button> : null}</label>
       <nav className={styles.desktopNav}>{mainNav.map((item) => <Link key={item.label} className={pathname === item.href ? styles.navActive : ""} href={item.href}>{item.label}</Link>)}</nav>
-      <div className={styles.topActions}><ThemeToggle mode={mode} onChange={onModeChange} /><Link href="/documents/new" aria-label="Neu"><Plus size={18} /></Link><Link href="/dashboard-v2/notifications" aria-label="Benachrichtigungen" className={styles.bellButton}><Bell size={18} />{unreadCount > 0 ? <span>{unreadCount}</span> : null}</Link><Link href="/settings/system" aria-label="Hilfe"><HelpCircle size={18} /></Link><div className={styles.profile}><span>{profile.initials}</span><div><strong>{profile.name}</strong><small>{profile.role}</small></div></div></div>
+      <div className={styles.topActions}><ThemeToggle mode={mode} onChange={onModeChange} /><Link href="/documents/new" aria-label="Neu"><Plus size={18} /></Link><Link href="/dashboard-v2/notifications" aria-label="Benachrichtigungen" className={styles.bellButton}><Bell size={18} />{unreadCount > 0 ? <span>{unreadCount}</span> : null}</Link><Link href="/dashboard-v2/settings" aria-label="Hilfe"><HelpCircle size={18} /></Link><div className={styles.profile}><span>{profile.initials}</span><div><strong>{profile.name}</strong><small>{profile.role}</small></div></div></div>
     </header>
   )
 }
@@ -824,7 +824,7 @@ function QuickActions({ profile }: { profile: ReturnType<typeof profileFromData>
 
 function InvoiceTable({ data, searchQuery }: { data: PremiumData; searchQuery: string }) {
   const rows = invoiceRowsFromData(data).filter((row) => matchesSearch(row, searchQuery))
-  return <article className={`${styles.panel} ${styles.tablePanel}`}><div className={styles.panelHead}><h2>Kuerzlich erstellte Rechnungen</h2><Link href="/documents">Alle anzeigen</Link></div><div className={styles.tableScroll}><table><thead><tr><th>Rechnung</th><th>Kunde</th><th>Status</th><th>Betrag</th><th>Datum</th></tr></thead><tbody>{rows.length ? rows.map(([number, customer, status, amount, date]) => <tr key={number}><td><Link href="/documents">{number}</Link></td><td>{customer}</td><td><span data-status={status}>{status}</span></td><td>{amount}</td><td>{date}</td></tr>) : <tr><td colSpan={5} className={styles.emptyTableCell}>Keine Treffer</td></tr>}</tbody></table></div></article>
+  return <article className={`${styles.panel} ${styles.tablePanel}`}><div className={styles.panelHead}><h2>Kuerzlich erstellte Rechnungen</h2><Link href="/dashboard-v2/invoices">Alle anzeigen</Link></div><div className={styles.tableScroll}><table><thead><tr><th>Rechnung</th><th>Kunde</th><th>Status</th><th>Betrag</th><th>Datum</th></tr></thead><tbody>{rows.length ? rows.map(([number, customer, status, amount, date]) => <tr key={number}><td><Link href="/documents">{number}</Link></td><td>{customer}</td><td><span data-status={status}>{status}</span></td><td>{amount}</td><td>{date}</td></tr>) : <tr><td colSpan={5} className={styles.emptyTableCell}>Keine Treffer</td></tr>}</tbody></table></div></article>
 }
 
 function BarPanel({ data }: { data: PremiumData }) {
@@ -843,7 +843,7 @@ function UsersPanel({ data }: { data: PremiumData }) {
   const cards = userCardsFromData(data)
   const limit = userLimitFromData(data)
   const usageWidth = Math.min(100, Math.round((limit.currentUsers / Math.max(limit.maxUsers, 1)) * 100))
-  return <article className={`${styles.panel} ${styles.usersPanel}`}><div className={styles.usersMeta}><h2>Benutzer & Rollen</h2><span>{limit.currentUsers}/{limit.maxUsers} Benutzer</span><div><i style={{ width: `${usageWidth}%` }} /></div><Link href="/settings/users">Benutzer verwalten</Link></div><div className={styles.userCards}>{cards.map(([name, role, initials, crown]) => <div key={`${name}-${role}`} className={styles.userCard}><div className={styles.avatar}>{initials}</div>{crown ? <Crown size={15} /> : null}<strong>{name}</strong><span>{role}</span><em>Aktiv</em></div>)}<Link href="/settings/users" className={styles.addUser}><Plus size={24} /><span>Benutzer hinzufuegen</span></Link></div></article>
+  return <article className={`${styles.panel} ${styles.usersPanel}`}><div className={styles.usersMeta}><h2>Benutzer & Rollen</h2><span>{limit.currentUsers}/{limit.maxUsers} Benutzer</span><div><i style={{ width: `${usageWidth}%` }} /></div><Link href="/dashboard-v2/users">Benutzer verwalten</Link></div><div className={styles.userCards}>{cards.map(([name, role, initials, crown]) => <div key={`${name}-${role}`} className={styles.userCard}><div className={styles.avatar}>{initials}</div>{crown ? <Crown size={15} /> : null}<strong>{name}</strong><span>{role}</span><em>Aktiv</em></div>)}<Link href="/dashboard-v2/users" className={styles.addUser}><Plus size={24} /><span>Benutzer hinzufuegen</span></Link></div></article>
 }
 
 function LicensePanel({ data }: { data: PremiumData }) {
