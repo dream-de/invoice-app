@@ -21,6 +21,7 @@
   z-index: 1000;
   min-height: 100vh;
   overflow: auto;
+  overflow-x: hidden;
   display: grid;
   grid-template-columns: 264px minmax(0, 1fr);
   gap: 16px;
@@ -272,6 +273,15 @@
   border-radius: 8px;
   background: color-mix(in srgb, var(--shell) 76%, transparent);
   padding: 14px;
+}
+
+.topbar > *,
+.mainGrid > *,
+.lowerGrid > *,
+.bottomGrid > *,
+.userCards > *,
+.integrationsGrid > * {
+  min-width: 0;
 }
 
 .topbar {
@@ -804,7 +814,18 @@
 .quickGrid [data-tone="rose"] svg { color: var(--rose); }
 
 .tableScroll {
+  max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
+}
+
+.tablePanel {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.barPanel {
+  min-width: 0;
 }
 
 .tablePanel table {
