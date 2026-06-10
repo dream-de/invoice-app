@@ -882,6 +882,15 @@ function premiumThemeHref(path: string, theme: ThemeMode, query: string) {
   return `${path}?${params.toString()}`
 }
 
+function withPremiumTheme(href: string, theme: ThemeMode) {
+  if (!href.startsWith("/dashboard-v2")) return href
+
+  const [path, queryString = ""] = href.split("?")
+  const params = new URLSearchParams(queryString)
+  params.set("theme", theme)
+  return `${path}?${params.toString()}`
+}
+
 function ThemeToggle({ links, mode, onChange }: { links: ThemeLinks; mode: ThemeMode; onChange: (mode: ThemeMode) => void }) {
   return (
     <div className={styles.themeToggle} aria-label="Theme wechseln">
@@ -1484,7 +1493,7 @@ type LicensePanelState =
   | { type: "success"; message: string }
   | { type: "error"; message: string }
 
-function PremiumLicensePanel({ data, searchQuery }: { data: PremiumData; searchQuery: string }) {
+function PremiumLicensePanel({ data, mode, searchQuery }: { data: PremiumData; mode: ThemeMode; searchQuery: string }) {
   const limit = userLimitFromData(data)
   const [licenseKey, setLicenseKey] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -1572,7 +1581,7 @@ function PremiumLicensePanel({ data, searchQuery }: { data: PremiumData; searchQ
               Lizenzdatei hochladen
               <input type="file" accept=".lic,.license,.txt,.json,application/json,text/plain" onChange={handleLicenseFile} />
             </label>
-            <Link href="/dashboard-v2/license?q=Lizenz%20aktiviert">Demo-Key pruefen</Link>
+            <Link href={withPremiumTheme("/dashboard-v2/license?q=Lizenz%20aktiviert", mode)}>Demo-Key pruefen</Link>
             <button type="submit" disabled={isSubmitting}>{isSubmitting ? "Pruefe..." : "Aktivieren"}</button>
           </div>
           {currentState.message ? <p data-state={currentState.type}>{currentState.message}</p> : null}
@@ -1582,14 +1591,14 @@ function PremiumLicensePanel({ data, searchQuery }: { data: PremiumData; searchQ
           <span>Upgrade-Check</span>
           <strong>{limit.currentUsers} / {limit.maxUsers} Benutzer</strong>
           <p>{limit.isFull ? "Limit erreicht. Ein Upgrade ist fuer weitere Benutzer noetig." : `${Math.max(limit.maxUsers - limit.currentUsers, 0)} Benutzerplaetze sind aktuell frei.`}</p>
-          <Link href="/dashboard-v2/users?q=Benutzer">Benutzer verwalten</Link>
+          <Link href={withPremiumTheme("/dashboard-v2/users?q=Benutzer", mode)}>Benutzer verwalten</Link>
         </div>
       </div>
     </article>
   )
 }
 
-function PremiumWorkflowPanel({ view, data, searchQuery }: { view: Exclude<PremiumView, "dashboard">; data: PremiumData; searchQuery: string }) {
+function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude<PremiumView, "dashboard">; data: PremiumData; mode: ThemeMode; searchQuery: string }) {
   const projectsSource = data.projects.length ? data.projects : fallbackProjects
   const articlesSource = data.articles.length ? data.articles : fallbackApiArticles
   const integrationsSource = integrations.length ? integrations : [["Stripe", "Zahlungen", "#635bff"]]
@@ -1623,6 +1632,7 @@ function PremiumWorkflowPanel({ view, data, searchQuery }: { view: Exclude<Premi
         <div className={styles.panelHead}><div><h2>Zeit erfassen</h2><span>Timer starten oder abrechenbare Stunden buchen</span></div></div>
         <form className={styles.workflowForm} action="/dashboard-v2/time" method="get">
           <input type="hidden" name="q" value="Zeit gebucht" />
+          <input type="hidden" name="theme" value={mode} />
           <label>Projekt<select name="project" defaultValue={projectsSource[0]?.name || "Website Redesign"}>{projectsSource.map((project) => <option key={project.id} value={project.name}>{project.name}</option>)}</select></label>
           <label>Stunden<input name="hours" defaultValue="1.5" inputMode="decimal" /></label>
           <button type="submit">Zeit buchen</button>
@@ -1638,6 +1648,7 @@ function PremiumWorkflowPanel({ view, data, searchQuery }: { view: Exclude<Premi
         <div className={styles.panelHead}><div><h2>Ausgabe erfassen</h2><span>Belegposition vormerken und fuer Export vorbereiten</span></div><Link href="/finance/accounts/import">Beleg hochladen</Link></div>
         <form className={styles.workflowForm} action="/dashboard-v2/expenses" method="get">
           <input type="hidden" name="q" value="Ausgabe erfasst" />
+          <input type="hidden" name="theme" value={mode} />
           <label>Ausgabe<input name="title" defaultValue={articlesSource[0]?.name || "Software Lizenz"} /></label>
           <label>Betrag<input name="amount" defaultValue={String(Number(articlesSource[0]?.price || 128).toFixed(2))} inputMode="decimal" /></label>
           <button type="submit">Erfassen</button>
@@ -1653,6 +1664,7 @@ function PremiumWorkflowPanel({ view, data, searchQuery }: { view: Exclude<Premi
         <div className={styles.panelHead}><div><h2>Benutzer einladen</h2><span>API-gestuetzter Invite fuer Rollen und Berechtigungen</span></div><Link href="/account/security">2FA pruefen</Link></div>
         <form className={styles.workflowForm} action="/dashboard-v2/users" method="get">
           <input type="hidden" name="q" value="Benutzer eingeladen" />
+          <input type="hidden" name="theme" value={mode} />
           <label>E-Mail<input name="email" defaultValue="team@example.test" type="email" /></label>
           <label>Rolle<select name="role" defaultValue="user"><option value="user">Mitarbeiter</option><option value="admin">Admin</option></select></label>
           <button type="submit">Einladen</button>
@@ -1667,8 +1679,8 @@ function PremiumWorkflowPanel({ view, data, searchQuery }: { view: Exclude<Premi
       <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("gelesen") || query.includes("regeln")}>
         <div className={styles.panelHead}><div><h2>Benachrichtigungen</h2><span>Inbox und Regeln direkt verarbeiten</span></div></div>
         <div className={styles.workflowActions}>
-          <Link href="/dashboard-v2/notifications?q=Alle%20gelesen">Alle gelesen markieren</Link>
-          <Link href="/dashboard-v2/notifications?q=Filter%20aktiv">Filter setzen</Link>
+          <Link href={withPremiumTheme("/dashboard-v2/notifications?q=Alle%20gelesen", mode)}>Alle gelesen markieren</Link>
+          <Link href={withPremiumTheme("/dashboard-v2/notifications?q=Filter%20aktiv", mode)}>Filter setzen</Link>
         </div>
         {message}
       </article>
@@ -1681,9 +1693,10 @@ function PremiumWorkflowPanel({ view, data, searchQuery }: { view: Exclude<Premi
         <div className={styles.panelHead}><div><h2>Integration verbinden</h2><span>Provider auswaehlen und Verbindung simulieren</span></div></div>
         <form className={styles.workflowForm} action="/dashboard-v2/integrations" method="get">
           <input type="hidden" name="q" value="Integration verbunden" />
+          <input type="hidden" name="theme" value={mode} />
           <label>Provider<select name="provider" defaultValue={integrationsSource[0]?.[0] || "Stripe"}>{integrationsSource.map(([name]) => <option key={name} value={name}>{name}</option>)}</select></label>
           <button type="submit">Verbinden</button>
-          <Link href="/dashboard-v2/api?q=Token">Token pruefen</Link>
+          <Link href={withPremiumTheme("/dashboard-v2/api?q=Token", mode)}>Token pruefen</Link>
         </form>
         {message}
       </article>
@@ -1696,9 +1709,10 @@ function PremiumWorkflowPanel({ view, data, searchQuery }: { view: Exclude<Premi
         <div className={styles.panelHead}><div><h2>Workflow testen</h2><span>Regel aus Nummernkreis und Ereignis ausloesen</span></div></div>
         <form className={styles.workflowForm} action="/dashboard-v2/automation" method="get">
           <input type="hidden" name="q" value="Workflow getestet" />
+          <input type="hidden" name="theme" value={mode} />
           <label>Regel<select name="rule" defaultValue={rangesSource[0]?.type || "invoice"}>{rangesSource.map((range) => <option key={range.type} value={range.type}>{numberRangeLabel(range.type)}</option>)}</select></label>
           <button type="submit">Regel testen</button>
-          <Link href="/dashboard-v2/audit?q=Workflow">Run Verlauf</Link>
+          <Link href={withPremiumTheme("/dashboard-v2/audit?q=Workflow", mode)}>Run Verlauf</Link>
         </form>
         {message}
       </article>
@@ -1708,10 +1722,10 @@ function PremiumWorkflowPanel({ view, data, searchQuery }: { view: Exclude<Premi
   if (view === "api") {
     return (
       <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("webhook") || query.includes("api")}>
-        <div className={styles.panelHead}><div><h2>API pruefen</h2><span>Live-Endpoints testen und Webhook vorbereiten</span></div><Link href="/dashboard-v2/audit?q=Webhook">Logs oeffnen</Link></div>
+        <div className={styles.panelHead}><div><h2>API pruefen</h2><span>Live-Endpoints testen und Webhook vorbereiten</span></div><Link href={withPremiumTheme("/dashboard-v2/audit?q=Webhook", mode)}>Logs oeffnen</Link></div>
         <div className={styles.workflowActions}>
           <Link href="/api/invoice/list">Rechnungs-API pruefen</Link>
-          <Link href="/dashboard-v2/api?q=Webhook%20erstellt">Webhook erstellen</Link>
+          <Link href={withPremiumTheme("/dashboard-v2/api?q=Webhook%20erstellt", mode)}>Webhook erstellen</Link>
         </div>
         {message}
       </article>
@@ -1728,7 +1742,7 @@ function PremiumWorkflowPanel({ view, data, searchQuery }: { view: Exclude<Premi
     return (
       <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.length > 0}>
         <div className={styles.panelHead}><div><h2>{view === "reports" ? "Reports & Export" : view === "settings" ? "Einstellungen oeffnen" : "Audit Aktionen"}</h2><span>Schnelle Wege zu echten Bereichen</span></div></div>
-        <div className={styles.workflowActions}>{links.map(([label, href]) => <Link key={href} href={href}>{label}</Link>)}</div>
+        <div className={styles.workflowActions}>{links.map(([label, href]) => <Link key={href} href={withPremiumTheme(href, mode)}>{label}</Link>)}</div>
         {message}
       </article>
     )
@@ -1737,12 +1751,12 @@ function PremiumWorkflowPanel({ view, data, searchQuery }: { view: Exclude<Premi
   return (
     <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.length > 0}>
       <div className={styles.panelHead}><div><h2>{premiumViewMeta[view].title} Flow</h2><span>Bestehende produktive Bereiche fuer diesen Schritt</span></div></div>
-      <div className={styles.workflowActions}>{moduleContent[view].actions.map(([label, href]) => <Link key={href} href={href}>{label}</Link>)}</div>
+      <div className={styles.workflowActions}>{moduleContent[view].actions.map(([label, href]) => <Link key={href} href={withPremiumTheme(href, mode)}>{label}</Link>)}</div>
     </article>
   )
 }
 
-function PremiumModulePage({ view, data, searchQuery }: { view: Exclude<PremiumView, "dashboard">; data: PremiumData; searchQuery: string }) {
+function PremiumModulePage({ view, data, mode, searchQuery }: { view: Exclude<PremiumView, "dashboard">; data: PremiumData; mode: ThemeMode; searchQuery: string }) {
   const meta = premiumViewMeta[view]
   const content = moduleContent[view]
   const rows = moduleRows(view, data).filter((row) => matchesSearch(row, searchQuery))
@@ -1770,15 +1784,15 @@ function PremiumModulePage({ view, data, searchQuery }: { view: Exclude<PremiumV
         ))}
       </section>
 
-      {view === "license" ? <PremiumLicensePanel data={data} searchQuery={searchQuery} /> : null}
-      <PremiumWorkflowPanel view={view} data={data} searchQuery={searchQuery} />
+      {view === "license" ? <PremiumLicensePanel data={data} mode={mode} searchQuery={searchQuery} /> : null}
+      <PremiumWorkflowPanel view={view} data={data} mode={mode} searchQuery={searchQuery} />
 
       <section className={styles.moduleGrid}>
         <article className={`${styles.panel} ${styles.moduleCard}`}>
           <div className={styles.panelHead}><h2>Schnellzugriff</h2><span>Premium Aktionen</span></div>
           <div className={styles.actionStrip}>
             {content.actions.map(([action, href], index) => (
-              <Link key={action} href={href}>
+              <Link key={action} href={withPremiumTheme(href, mode)}>
                 {index === 0 ? <Plus size={16} /> : index === 1 ? <Search size={16} /> : <BarChart3 size={16} />}
                 {action}
               </Link>
@@ -1945,7 +1959,7 @@ export function PremiumWorkspacePage({ view = "dashboard", initialSearchQuery = 
       <section className={styles.contentShell}>
         <Topbar mode={mode} profile={profile} searchInputRef={searchInputRef} searchQuery={searchQuery} themeLinks={themeLinks} unreadCount={unreadCount} onModeChange={handleModeChange} onSearchChange={setSearchQuery} />
         <CompactNav unreadCount={unreadCount} />
-        {view === "dashboard" ? <DashboardOverview data={data} profile={profile} searchQuery={searchQuery} /> : <><SearchResultsPanel data={data} searchQuery={searchQuery} /><PremiumModulePage view={view} data={data} searchQuery={searchQuery} /></>}
+        {view === "dashboard" ? <DashboardOverview data={data} profile={profile} searchQuery={searchQuery} /> : <><SearchResultsPanel data={data} searchQuery={searchQuery} /><PremiumModulePage view={view} data={data} mode={mode} searchQuery={searchQuery} /></>}
       </section>
     </div>
   )
