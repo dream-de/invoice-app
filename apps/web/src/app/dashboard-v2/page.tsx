@@ -36,6 +36,10 @@ type ThemeMode = "dark" | "light"
 type IconType = ComponentType<{ size?: number; className?: string }>
 type NavItem = { label: string; href: string; icon: IconType; badge?: string }
 type Tone = "violet" | "green" | "rose" | "blue" | "amber"
+type InvoiceRow = [number: string, customer: string, status: string, amount: string, date: string]
+type ActivityRow = [title: string, text: string, time: string, tone: string]
+type UserRow = [name: string, role: string, initials: string, crown: string]
+type IntegrationRow = [name: string, meta: string, color: string]
 
 const mainNav: NavItem[] = [
   { label: "Dashboard", href: "/dashboard-v2", icon: Home },
@@ -78,21 +82,21 @@ const kpis: Array<{ label: string; value: string; detail: string; tone: Tone; ic
   { label: "Ausgaben", value: "528,99 EUR", detail: "+8% vs. Vormonat", tone: "amber", icon: Wallet }
 ]
 
-const invoices = [
+const invoices: InvoiceRow[] = [
   ["OF-2026-5001", "Meridian Studio GmbH", "Entwurf", "1.320,00 EUR", "25.05.2026"],
   ["RE-2026-4999", "Aurora Labs GmbH", "Bezahlt", "719,05 EUR", "23.05.2026"],
   ["RE-2026-4998", "Urban Commerce Inc.", "Bezahlt", "528,99 EUR", "22.05.2026"],
   ["OF-2026-4997", "Pixel Perfect Ltd.", "Ueberfaellig", "1.147,00 EUR", "20.05.2026"]
 ]
 
-const activities = [
+const activities: ActivityRow[] = [
   ["Neue Rechnung erstellt", "OF-2026-5001 fuer Meridian Studio GmbH", "vor 5 Minuten", "blue"],
   ["Zahlung erhalten", "719,05 EUR von Aurora Labs GmbH", "vor 1 Stunde", "green"],
   ["Projekt aktualisiert", "Website Redesign - Phase 2", "vor 3 Stunden", "violet"],
   ["Neuer Kunde hinzugefuegt", "Pixel Perfect Ltd.", "Gestern", "blue"]
 ]
 
-const users = [
+const users: UserRow[] = [
   ["Daniel", "Administrator", "D", "crown"],
   ["Sarah", "Manager", "S", ""],
   ["Michael", "Buchhalter", "M", ""],
@@ -100,7 +104,7 @@ const users = [
   ["Thomas", "Mitarbeiter", "T", ""]
 ]
 
-const integrations = [
+const integrations: IntegrationRow[] = [
   ["Stripe", "Zahlungen", "#635bff"],
   ["PayPal", "Zahlungen", "#0070ba"],
   ["DATEV", "Buchhaltung", "#8cc63f"],

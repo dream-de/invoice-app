@@ -40,9 +40,11 @@ export function LocalizedNavigationShell({
 
   const isLoginPage = currentPathname === "/login" || currentPathname.startsWith("/login/")
   const isPublicAuthPage = isLoginPage || currentPathname.startsWith("/api/auth/verify-email")
+  const isStandalonePreviewPage = currentPathname === "/dashboard-v2" || currentPathname.startsWith("/dashboard-v2/")
+  const shouldBypassShell = isPublicAuthPage || isStandalonePreviewPage
 
   useEffect(() => {
-    if (isPublicAuthPage) {
+    if (shouldBypassShell) {
       hasLoadedCurrentUser.current = false
       setCurrentUser(null)
       return
@@ -74,7 +76,7 @@ export function LocalizedNavigationShell({
     return () => {
       cancelled = true
     }
-  }, [isPublicAuthPage])
+  }, [shouldBypassShell])
 
   const handleLogout = useCallback(async () => {
     if (currentUser?.id === "demo-user") {
@@ -102,7 +104,7 @@ export function LocalizedNavigationShell({
     can("articles:view") ? { href: "/articles", label: t("nav.articles"), icon: "▣" } : null
   ].filter((item): item is { href: string; label: string; icon: string } => Boolean(item))
 
-  if (isPublicAuthPage) return <>{children}</>
+  if (shouldBypassShell) return <>{children}</>
 
   return (
     <NavigationShell
