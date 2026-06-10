@@ -1409,6 +1409,146 @@
   gap: 14px;
 }
 
+.licenseActionPanel {
+  display: grid;
+  gap: 18px;
+}
+
+.licenseActionGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.65fr);
+  gap: 14px;
+}
+
+.licenseKeyForm,
+.licenseUpgradeBox {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel-strong) 78%, transparent);
+  padding: 16px;
+}
+
+.licenseKeyForm[data-active="true"],
+.licenseUpgradeBox[data-active="true"] {
+  border-color: color-mix(in srgb, var(--violet) 66%, var(--line));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--violet) 18%, transparent);
+}
+
+.licenseKeyForm label,
+.licenseUpgradeBox span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.licenseKeyForm textarea {
+  width: 100%;
+  min-height: 96px;
+  resize: vertical;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--shell);
+  color: var(--text);
+  margin-top: 9px;
+  padding: 12px;
+  outline: none;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.licenseKeyForm textarea:focus {
+  border-color: color-mix(in srgb, var(--violet) 70%, var(--line-strong));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--violet) 14%, transparent);
+}
+
+.licenseFormActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.licenseFormActions label,
+.licenseFormActions button,
+.licenseUpgradeBox a {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel-strong) 86%, transparent);
+  color: var(--text);
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 900;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.licenseFormActions button {
+  border-color: transparent;
+  background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+  color: #fff;
+}
+
+.licenseFormActions button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.licenseFormActions input {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.licenseKeyForm p {
+  border-radius: 8px;
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.licenseKeyForm p[data-state="success"] {
+  background: color-mix(in srgb, var(--green) 14%, transparent);
+  color: var(--green);
+}
+
+.licenseKeyForm p[data-state="error"] {
+  background: color-mix(in srgb, var(--rose) 14%, transparent);
+  color: var(--rose);
+}
+
+.licenseUpgradeBox {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+}
+
+.licenseUpgradeBox strong {
+  color: var(--text);
+  font-size: 28px;
+  line-height: 1;
+}
+
+.licenseUpgradeBox p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
 .moduleStatCard {
   min-height: 104px;
   display: grid;
@@ -1713,6 +1853,7 @@
   .bottomGrid,
   .moduleGrid,
   .moduleStatsGrid,
+  .licenseActionGrid,
   .usersPanel {
     grid-template-columns: 1fr;
   }

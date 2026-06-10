@@ -1,6 +1,6 @@
 "use client"
 
-import type { ComponentType, RefObject } from "react"
+import type { ChangeEvent, ComponentType, FormEvent, RefObject } from "react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
@@ -564,7 +564,7 @@ function upgradeSummaryFromData(data: PremiumData): UpgradeSummary {
       title: "Limit erreicht",
       text: `${limit.currentUsers}/${limit.maxUsers} Benutzer aktiv. Upgrade fuer mehr Teammitglieder vorbereiten.`,
       action: "Upgrade pruefen",
-      href: "/dashboard-v2/license"
+      href: "/dashboard-v2/license?q=Upgrade"
     }
   }
 
@@ -572,7 +572,7 @@ function upgradeSummaryFromData(data: PremiumData): UpgradeSummary {
     title: `${limit.plan} aktiv`,
     text: `${limit.maxUsers - limit.currentUsers} Benutzerplaetze verfuegbar. Lizenzstatus und Limits pruefen.`,
     action: "Lizenzstatus",
-    href: "/dashboard-v2/license"
+    href: "/dashboard-v2/license?q=Benutzerlimit"
   }
 }
 
@@ -793,9 +793,9 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     stats: [["Free", "Tarif"], ["100", "Rechnungen"], ["1 GB", "Speicher"]],
     rows: [["Benutzerlimit", "5 von 5 verwendet", "Voll", "Limit"], ["Dokumente im Workspace", "Geladene Dokumente", "Lokal", "Aktiv"], ["Speicher", "Nicht gemessen", "Lokal", "Info"]],
     focus: [["Upgrade Vorteil", "Unbegrenzt"], ["Premium Support", "Enthalten"], ["Aktivierung", "Lizenz-Key"]],
-    actions: [["Lizenz aktivieren", "/dashboard-v2/license"], ["Upgrade pruefen", "/dashboard-v2/license"], ["Key eingeben", "/dashboard-v2/license"]],
+    actions: [["Lizenz aktivieren", "/dashboard-v2/license?q=Lizenz-Key"], ["Upgrade pruefen", "/dashboard-v2/license?q=Upgrade"], ["Key eingeben", "/dashboard-v2/license?q=Lizenz-Key"]],
     timeline: [["Limit erreicht", "Kostenloser Plan ist vollstaendig ausgereizt."], ["Upgrade vorbereitet", "Premium schaltet unbegrenzte Benutzer frei."], ["Abrechnung bereit", "Lizenzdaten koennen hinterlegt werden."]],
-    primaryHref: "/dashboard-v2/license"
+    primaryHref: "/dashboard-v2/license?q=Lizenz-Key"
   },
   integrations: {
     stats: [["6", "Verbunden"], ["2", "Aktion noetig"], ["99%", "Sync"]],
@@ -1154,6 +1154,8 @@ function moduleRows(view: Exclude<PremiumView, "dashboard">, data: PremiumData):
     const documentCount = (data.invoices.length ? data.invoices : fallbackApiInvoices).length
     return [
       ["Benutzerlimit", `${limit.currentUsers} von ${limit.maxUsers} verwendet`, limit.plan, limit.isFull ? "Limit" : "OK"],
+      ["Lizenz-Key", "Aktivierungsformular und Upload", "API bereit", "Aktiv"],
+      ["Upgrade", "Tarif und Benutzerplaetze pruefen", limit.isFull ? "Empfohlen" : "Optional", limit.isFull ? "Noetig" : "Bereit"],
       ["Dokumente im Workspace", `${documentCount} geladen`, dataSourceLabel(data), "Aktiv"],
       ["Lizenzablauf", limit.validUntil ? limit.validUntil.slice(0, 10) : "Kein Ablaufdatum", "Status", limit.isFull ? "Upgrade" : "Aktiv"]
     ]
@@ -1447,6 +1449,110 @@ function moduleRowHref(view: Exclude<PremiumView, "dashboard">, data: PremiumDat
   return `/dashboard-v2/${view}?q=${encodeURIComponent(row[0])}`
 }
 
+type LicensePanelState =
+  | { type: "idle"; message: "" }
+  | { type: "success"; message: string }
+  | { type: "error"; message: string }
+
+function PremiumLicensePanel({ data, searchQuery }: { data: PremiumData; searchQuery: string }) {
+  const limit = userLimitFromData(data)
+  const [licenseKey, setLicenseKey] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [state, setState] = useState<LicensePanelState>({ type: "idle", message: "" })
+  const shouldFocusKey = searchQuery.toLowerCase().includes("lizenz-key")
+  const shouldFocusUpgrade = searchQuery.toLowerCase().includes("upgrade")
+
+  async function handleLicenseFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    try {
+      const content = await file.text()
+      setLicenseKey(content.trim())
+      setState({ type: "success", message: `Lizenzdatei geladen: ${file.name}` })
+    } catch {
+      setState({ type: "error", message: "Lizenzdatei konnte nicht gelesen werden." })
+    } finally {
+      event.target.value = ""
+    }
+  }
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const trimmedKey = licenseKey.trim()
+
+    if (!trimmedKey) {
+      setState({ type: "error", message: "Bitte Lizenzschluessel eintragen." })
+      return
+    }
+
+    setIsSubmitting(true)
+    setState({ type: "idle", message: "" })
+
+    try {
+      const response = await fetch("/api/settings/license/activate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ licenseKey: trimmedKey })
+      })
+      const result = await response.json()
+
+      if (!response.ok || !result?.ok) {
+        setState({ type: "error", message: result?.error || "Lizenz konnte nicht aktiviert werden." })
+        return
+      }
+
+      setLicenseKey("")
+      setState({ type: "success", message: `Lizenz aktiviert: ${result.license?.plan || "Premium"} / ${result.license?.maxUsers || "unbegrenzt"} Benutzer` })
+    } catch {
+      setState({ type: "error", message: "Lizenzserver konnte nicht erreicht werden." })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  return (
+    <article className={`${styles.panel} ${styles.licenseActionPanel}`}>
+      <div className={styles.panelHead}>
+        <div>
+          <h2>Lizenz aktivieren</h2>
+          <span>Key eingeben, Datei hochladen und Limit direkt pruefen</span>
+        </div>
+        <span className={styles.freeBadge}>{limit.plan}</span>
+      </div>
+
+      <div className={styles.licenseActionGrid}>
+        <form onSubmit={handleSubmit} className={styles.licenseKeyForm} data-active={shouldFocusKey}>
+          <label htmlFor="premium-license-key">Lizenzschluessel</label>
+          <textarea
+            id="premium-license-key"
+            value={licenseKey}
+            onChange={(event) => setLicenseKey(event.target.value)}
+            rows={3}
+            placeholder="INV1..."
+            spellCheck={false}
+          />
+          <div className={styles.licenseFormActions}>
+            <label>
+              Lizenzdatei hochladen
+              <input type="file" accept=".lic,.license,.txt,.json,application/json,text/plain" onChange={handleLicenseFile} />
+            </label>
+            <button type="submit" disabled={isSubmitting}>{isSubmitting ? "Pruefe..." : "Aktivieren"}</button>
+          </div>
+          {state.message ? <p data-state={state.type}>{state.message}</p> : null}
+        </form>
+
+        <div className={styles.licenseUpgradeBox} data-active={shouldFocusUpgrade}>
+          <span>Upgrade-Check</span>
+          <strong>{limit.currentUsers} / {limit.maxUsers} Benutzer</strong>
+          <p>{limit.isFull ? "Limit erreicht. Ein Upgrade ist fuer weitere Benutzer noetig." : `${Math.max(limit.maxUsers - limit.currentUsers, 0)} Benutzerplaetze sind aktuell frei.`}</p>
+          <Link href="/dashboard-v2/users?q=Benutzer">Benutzer verwalten</Link>
+        </div>
+      </div>
+    </article>
+  )
+}
+
 function PremiumModulePage({ view, data, searchQuery }: { view: Exclude<PremiumView, "dashboard">; data: PremiumData; searchQuery: string }) {
   const meta = premiumViewMeta[view]
   const content = moduleContent[view]
@@ -1474,6 +1580,8 @@ function PremiumModulePage({ view, data, searchQuery }: { view: Exclude<PremiumV
           </article>
         ))}
       </section>
+
+      {view === "license" ? <PremiumLicensePanel data={data} searchQuery={searchQuery} /> : null}
 
       <section className={styles.moduleGrid}>
         <article className={`${styles.panel} ${styles.moduleCard}`}>
