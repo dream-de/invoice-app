@@ -731,7 +731,7 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     stats: [["18", "Projekte"], ["8", "In Arbeit"], ["74%", "Auslastung"]],
     rows: [["Website Redesign", "Phase 2 aktiv", "78%", "Aktiv"], ["Brand Portal", "Review offen", "42%", "Review"], ["DATEV Export", "Bereit fuer Abnahme", "100%", "Fertig"]],
     focus: [["Abrechenbare Zeit", "126 h"], ["Budget offen", "8.430,00 EUR"], ["Naechster Meilenstein", "Freitag"]],
-    actions: [["Projekt anlegen", "/projects/new"], ["Projektliste", "/dashboard-v2/projects"], ["Budget pruefen", "/dashboard-v2/reports"]],
+    actions: [["Projekt anlegen", "/projects/new"], ["Projektliste", "/projects"], ["Budget pruefen", "/dashboard-v2/projects?q=Budget"]],
     timeline: [["Meilenstein bewegt", "Phase 2 wurde in Review verschoben."], ["Budgetwarnung", "Brand Portal liegt bei 82% des geplanten Budgets."], ["Freigabe erhalten", "DATEV Export kann final abgerechnet werden."]],
     primaryHref: "/projects/new"
   },
@@ -1612,21 +1612,23 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
     ? "Zeit wurde vorgemerkt und fuer Abrechnung vorbereitet."
     : query.includes("kunde vorbereitet")
       ? "Kunde wurde vorbereitet. Fuer Speicherung kann der vollstaendige Kunden-Flow geoeffnet werden."
-      : query.includes("ausgabe erfasst")
-        ? "Ausgabe wurde vorgemerkt und fuer DATEV vorbereitet."
-        : query.includes("benutzer eingeladen")
-          ? "Benutzereinladung wurde vorbereitet."
-          : query.includes("alle gelesen")
-            ? "Alle Benachrichtigungen wurden als gelesen markiert."
-            : query.includes("filter aktiv")
-              ? "Filter aktiv: wichtige Zahlung, Rechnung und Systemmeldungen."
-              : query.includes("integration verbunden")
-                ? "Integration wurde verbunden und fuer Sync vorbereitet."
-                : query.includes("workflow getestet")
-                  ? "Workflow wurde erfolgreich getestet."
-                  : query.includes("webhook erstellt")
-                    ? "Webhook wurde fuer invoice.created vorbereitet."
-                    : ""
+      : query.includes("projekt vorbereitet")
+        ? "Projekt wurde vorbereitet. Fuer Speicherung kann der vollstaendige Projekt-Flow geoeffnet werden."
+        : query.includes("ausgabe erfasst")
+          ? "Ausgabe wurde vorgemerkt und fuer DATEV vorbereitet."
+          : query.includes("benutzer eingeladen")
+            ? "Benutzereinladung wurde vorbereitet."
+            : query.includes("alle gelesen")
+              ? "Alle Benachrichtigungen wurden als gelesen markiert."
+              : query.includes("filter aktiv")
+                ? "Filter aktiv: wichtige Zahlung, Rechnung und Systemmeldungen."
+                : query.includes("integration verbunden")
+                  ? "Integration wurde verbunden und fuer Sync vorbereitet."
+                  : query.includes("workflow getestet")
+                    ? "Workflow wurde erfolgreich getestet."
+                    : query.includes("webhook erstellt")
+                      ? "Webhook wurde fuer invoice.created vorbereitet."
+                      : ""
   const message = routeMessage ? <p data-state="success">{routeMessage}</p> : null
 
   if (view === "customers") {
@@ -1638,6 +1640,22 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
           <input type="hidden" name="theme" value={mode} />
           <label>Kunde<input name="name" defaultValue={customersSource[0]?.name || "Neuer Kunde"} /></label>
           <label>Status<select name="status" defaultValue="active"><option value="active">Aktiv</option><option value="open">Offen</option><option value="inactive">Inaktiv</option></select></label>
+          <button type="submit">Vorbereiten</button>
+        </form>
+        {message}
+      </article>
+    )
+  }
+
+  if (view === "projects") {
+    return (
+      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("projekt") || query.includes("budget")}>
+        <div className={styles.panelHead}><div><h2>Projekt anlegen</h2><span>Projekt vorbereiten und Budget direkt pruefen</span></div><Link href="/projects/new">Vollstaendig anlegen</Link></div>
+        <form className={styles.workflowForm} action="/dashboard-v2/projects" method="get">
+          <input type="hidden" name="q" value="Projekt vorbereitet" />
+          <input type="hidden" name="theme" value={mode} />
+          <label>Projekt<input name="name" defaultValue={projectsSource[0]?.name || "Neues Projekt"} /></label>
+          <label>Kunde<select name="customer" defaultValue={projectsSource[0]?.customer || customersSource[0]?.name}>{customersSource.map((customer) => <option key={customer.id} value={customer.name}>{customer.name}</option>)}</select></label>
           <button type="submit">Vorbereiten</button>
         </form>
         {message}
