@@ -421,6 +421,40 @@ function invoiceRowsFromData(data: PremiumData): InvoiceRow[] {
   ])
 }
 
+function notificationRows(data: PremiumData): ActivityRow[] {
+  const source = data.notifications.length ? data.notifications : fallbackNotifications
+  return source.slice(0, 4).map((item, index) => [
+    item.title,
+    item.message || item.category || "Systemmeldung",
+    item.readAt ? "Gelesen" : index === 0 ? "Neu" : "Heute",
+    item.tone === "success" ? "green" : item.tone === "warning" ? "rose" : "blue"
+  ])
+}
+
+function userCardsFromData(data: PremiumData): UserRow[] {
+  const source = data.appUsers.length ? data.appUsers : fallbackAppUsers
+  return source.slice(0, 5).map((user, index) => {
+    const name = user.name || user.email?.split("@")[0] || "Benutzer"
+    const role = user.role || "Team"
+    return [name, role, name.charAt(0).toUpperCase(), index === 0 ? "crown" : ""]
+  })
+}
+
+function userLimitFromData(data: PremiumData) {
+  const source = data.appUsers.length ? data.appUsers : fallbackAppUsers
+  const limit = data.userLimit ?? fallbackUserLimit
+  const currentUsers = limit.currentUsers ?? source.length
+  const maxUsers = limit.maxUsers ?? fallbackUserLimit.maxUsers ?? 5
+
+  return {
+    currentUsers,
+    maxUsers,
+    plan: limit.plan || fallbackUserLimit.plan || "Free",
+    validUntil: limit.validUntil ?? null,
+    isFull: currentUsers >= maxUsers
+  }
+}
+
 function matchesSearch(values: readonly string[], query: string) {
   const normalizedQuery = query.trim().toLowerCase()
   if (!normalizedQuery) return true
@@ -587,14 +621,14 @@ function Sidebar() {
   )
 }
 
-function Topbar({ mode, searchQuery, onModeChange, onSearchChange }: { mode: ThemeMode; searchQuery: string; onModeChange: (mode: ThemeMode) => void; onSearchChange: (value: string) => void }) {
+function Topbar({ mode, searchQuery, unreadCount, onModeChange, onSearchChange }: { mode: ThemeMode; searchQuery: string; unreadCount: number; onModeChange: (mode: ThemeMode) => void; onSearchChange: (value: string) => void }) {
   const pathname = usePathname()
 
   return (
     <header className={styles.topbar}>
       <label className={styles.searchBox}><Search size={16} /><input value={searchQuery} onChange={(event) => onSearchChange(event.target.value)} placeholder="Suche..." aria-label="Premium Suche" /></label>
       <nav className={styles.desktopNav}>{mainNav.map((item) => <Link key={item.label} className={pathname === item.href ? styles.navActive : ""} href={item.href}>{item.label}</Link>)}</nav>
-      <div className={styles.topActions}><ThemeToggle mode={mode} onChange={onModeChange} /><Link href="/documents/new" aria-label="Neu"><Plus size={18} /></Link><Link href="/dashboard-v2/notifications" aria-label="Benachrichtigungen" className={styles.bellButton}><Bell size={18} /><span>12</span></Link><Link href="/settings/system" aria-label="Hilfe"><HelpCircle size={18} /></Link><div className={styles.profile}><span>D</span><div><strong>Daniel</strong><small>Administrator</small></div></div></div>
+      <div className={styles.topActions}><ThemeToggle mode={mode} onChange={onModeChange} /><Link href="/documents/new" aria-label="Neu"><Plus size={18} /></Link><Link href="/dashboard-v2/notifications" aria-label="Benachrichtigungen" className={styles.bellButton}><Bell size={18} />{unreadCount > 0 ? <span>{unreadCount}</span> : null}</Link><Link href="/settings/system" aria-label="Hilfe"><HelpCircle size={18} /></Link><div className={styles.profile}><span>D</span><div><strong>Daniel</strong><small>Administrator</small></div></div></div>
     </header>
   )
 }
@@ -670,16 +704,21 @@ function BarPanel() {
   return <article className={`${styles.panel} ${styles.barPanel}`}><div className={styles.panelHead}><h2>Einnahmen & Ausgaben</h2><button type="button">Monatlich <ChevronDown size={14} /></button></div><div className={styles.barChart}>{labels.map((label, index) => <div key={label} className={styles.barGroup}><div><span className={styles.incomeBar} style={{ height: `${income[index] / 13}px` }} /><span className={styles.spendBar} style={{ height: `${spend[index] / 13}px` }} /></div><small>{label}</small></div>)}</div><div className={styles.legend}><span data-color="violet">Einnahmen</span><span data-color="amber">Ausgaben</span></div></article>
 }
 
-function ActivityFeed() {
-  return <article className={`${styles.panel} ${styles.activityPanel}`}><div className={styles.panelHead}><h2>Aktivitaetsfeed</h2><Link href="/settings/audit">Alle anzeigen</Link></div><div className={styles.activityList}>{activities.map(([title, text, time, tone]) => <div key={title} className={styles.activityItem}><span data-tone={tone}><CheckCircle2 size={14} /></span><div><strong>{title}</strong><p>{text}</p></div><time>{time}</time></div>)}</div></article>
+function ActivityFeed({ data }: { data: PremiumData }) {
+  const rows = notificationRows(data)
+  return <article className={`${styles.panel} ${styles.activityPanel}`}><div className={styles.panelHead}><h2>Aktivitaetsfeed</h2><Link href="/dashboard-v2/audit">Alle anzeigen</Link></div><div className={styles.activityList}>{rows.map(([title, text, time, tone]) => <div key={`${title}-${time}`} className={styles.activityItem}><span data-tone={tone}><CheckCircle2 size={14} /></span><div><strong>{title}</strong><p>{text}</p></div><time>{time}</time></div>)}</div></article>
 }
 
-function UsersPanel() {
-  return <article className={`${styles.panel} ${styles.usersPanel}`}><div className={styles.usersMeta}><h2>Benutzer & Rollen</h2><span>5/5 kostenlose Benutzer</span><div><i /></div><Link href="/settings/users">Benutzer verwalten</Link></div><div className={styles.userCards}>{users.map(([name, role, initials, crown]) => <div key={name} className={styles.userCard}><div className={styles.avatar}>{initials}</div>{crown ? <Crown size={15} /> : null}<strong>{name}</strong><span>{role}</span><em>Aktiv</em></div>)}<Link href="/settings/users" className={styles.addUser}><Plus size={24} /><span>Benutzer hinzufuegen</span></Link></div></article>
+function UsersPanel({ data }: { data: PremiumData }) {
+  const cards = userCardsFromData(data)
+  const limit = userLimitFromData(data)
+  const usageWidth = Math.min(100, Math.round((limit.currentUsers / Math.max(limit.maxUsers, 1)) * 100))
+  return <article className={`${styles.panel} ${styles.usersPanel}`}><div className={styles.usersMeta}><h2>Benutzer & Rollen</h2><span>{limit.currentUsers}/{limit.maxUsers} Benutzer</span><div><i style={{ width: `${usageWidth}%` }} /></div><Link href="/settings/users">Benutzer verwalten</Link></div><div className={styles.userCards}>{cards.map(([name, role, initials, crown]) => <div key={`${name}-${role}`} className={styles.userCard}><div className={styles.avatar}>{initials}</div>{crown ? <Crown size={15} /> : null}<strong>{name}</strong><span>{role}</span><em>Aktiv</em></div>)}<Link href="/settings/users" className={styles.addUser}><Plus size={24} /><span>Benutzer hinzufuegen</span></Link></div></article>
 }
 
-function LicensePanel() {
-  return <article className={`${styles.panel} ${styles.licensePanel}`}><div className={styles.panelHead}><h2>Lizenzstatus</h2><span className={styles.freeBadge}>Kostenlos</span></div><div className={styles.licenseGrid}><div><span>Benutzer</span><b>5 / 5</b></div><div><span>Rechnungen / Monat</span><b>100 / 100</b></div><div><span>Speicher</span><b>1 GB / 1 GB</b></div><div><span>Ablaufdatum</span><b>-</b></div></div><Link href="/settings/users"><span>Lizenz / Upgrade aktivieren</span><KeyRound size={18} /></Link></article>
+function LicensePanel({ data }: { data: PremiumData }) {
+  const limit = userLimitFromData(data)
+  return <article className={`${styles.panel} ${styles.licensePanel}`}><div className={styles.panelHead}><h2>Lizenzstatus</h2><span className={styles.freeBadge}>{limit.plan}</span></div><div className={styles.licenseGrid}><div><span>Benutzer</span><b>{limit.currentUsers} / {limit.maxUsers}</b></div><div><span>Status</span><b>{limit.isFull ? "Limit erreicht" : "Aktiv"}</b></div><div><span>Speicher</span><b>1 GB / 1 GB</b></div><div><span>Ablaufdatum</span><b>{limit.validUntil ? limit.validUntil.slice(0, 10) : "-"}</b></div></div><Link href="/settings/users"><span>Lizenz / Upgrade aktivieren</span><KeyRound size={18} /></Link></article>
 }
 
 function IntegrationsPanel() {
@@ -691,8 +730,8 @@ function DashboardOverview({ data, searchQuery }: { data: PremiumData; searchQue
     <>
       <KpiGrid data={data} />
       <section className={styles.mainGrid}><RevenueChart /><StatusPanel data={data} /><QuickActions /></section>
-      <section className={styles.lowerGrid}><InvoiceTable data={data} searchQuery={searchQuery} /><BarPanel /><ActivityFeed /></section>
-      <section className={styles.bottomGrid}><UsersPanel /><LicensePanel /></section>
+      <section className={styles.lowerGrid}><InvoiceTable data={data} searchQuery={searchQuery} /><BarPanel /><ActivityFeed data={data} /></section>
+      <section className={styles.bottomGrid}><UsersPanel data={data} /><LicensePanel data={data} /></section>
       <IntegrationsPanel />
     </>
   )
@@ -1086,7 +1125,7 @@ export function PremiumWorkspacePage({ view = "dashboard" }: { view?: PremiumVie
     <div className={styles.page} data-theme={mode} role="main">
       <Sidebar />
       <section className={styles.contentShell}>
-        <Topbar mode={mode} searchQuery={searchQuery} onModeChange={handleModeChange} onSearchChange={setSearchQuery} />
+        <Topbar mode={mode} searchQuery={searchQuery} unreadCount={(data.notifications.length ? data.notifications : fallbackNotifications).filter((item) => !item.readAt).length} onModeChange={handleModeChange} onSearchChange={setSearchQuery} />
         {view === "dashboard" ? <DashboardOverview data={data} searchQuery={searchQuery} /> : <PremiumModulePage view={view} data={data} searchQuery={searchQuery} />}
       </section>
     </div>
