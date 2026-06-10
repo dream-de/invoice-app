@@ -779,9 +779,9 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     stats: [["9", "Bereiche"], ["3", "Pruefen"], ["100%", "Gesichert"]],
     rows: [["Unternehmen", "Acme GmbH", "Vollstaendig", "Aktiv"], ["Nummernkreise", "RE-2026 und OF-2026", "Synchron", "Aktiv"], ["E-Mail Versand", "SMTP verbunden", "OK", "Aktiv"]],
     focus: [["Portal", "Aktiv"], ["Sprache", "Deutsch"], ["Sicherheit", "2FA empfohlen"]],
-    actions: [["Firma bearbeiten", "/settings/company"], ["Nummernkreis pruefen", "/settings/number-ranges"], ["Portal oeffnen", "/settings/portal"]],
+    actions: [["Firma bearbeiten", "/dashboard-v2/settings?q=Firma%20geprueft"], ["Nummernkreis pruefen", "/dashboard-v2/settings?q=Nummernkreis%20geprueft"], ["Portal oeffnen", "/dashboard-v2/settings?q=Portal%20geoeffnet"]],
     timeline: [["SMTP getestet", "Versandadresse ist erreichbar."], ["Logo aktualisiert", "Premium Branding wurde gespeichert."], ["Backup gesetzt", "Systemeinstellungen wurden versioniert."]],
-    primaryHref: "/settings/company"
+    primaryHref: "/dashboard-v2/settings?q=Firma%20geprueft"
   },
   users: {
     stats: [["5/5", "Benutzer"], ["3", "Rollen"], ["2FA", "Empfohlen"]],
@@ -795,7 +795,7 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     stats: [["Free", "Tarif"], ["100", "Rechnungen"], ["1 GB", "Speicher"]],
     rows: [["Benutzerlimit", "5 von 5 verwendet", "Voll", "Limit"], ["Dokumente im Workspace", "Geladene Dokumente", "Lokal", "Aktiv"], ["Speicher", "Nicht gemessen", "Lokal", "Info"]],
     focus: [["Upgrade Vorteil", "Unbegrenzt"], ["Premium Support", "Enthalten"], ["Aktivierung", "Lizenz-Key"]],
-    actions: [["Lizenz aktivieren", "/dashboard-v2/license?q=Lizenz-Key"], ["Demo-Key pruefen", "/dashboard-v2/license?q=Lizenz%20aktiviert"], ["Benutzerlimit", "/dashboard-v2/users?q=Benutzer"]],
+    actions: [["Lizenz aktivieren", "/dashboard-v2/license?q=Lizenz-Key"], ["Demo-Key pruefen", "/dashboard-v2/license?q=Lizenz%20aktiviert"], ["Benutzerlimit", "/dashboard-v2/license?q=Benutzerlimit"]],
     timeline: [["Limit erreicht", "Kostenloser Plan ist vollstaendig ausgereizt."], ["Upgrade vorbereitet", "Premium schaltet unbegrenzte Benutzer frei."], ["Abrechnung bereit", "Lizenzdaten koennen hinterlegt werden."]],
     primaryHref: "/dashboard-v2/license?q=Lizenz-Key"
   },
@@ -920,7 +920,7 @@ function Topbar({ mode, profile, searchInputRef, searchQuery, themeLinks, unread
     <header className={styles.topbar}>
       <label className={styles.searchBox}><Search size={16} /><input ref={searchInputRef} value={searchQuery} onChange={(event) => onSearchChange(event.target.value)} placeholder="Suche..." aria-label="Premium Suche" />{searchQuery ? <button type="button" aria-label="Suche leeren" onClick={() => onSearchChange("")}><X size={15} /></button> : null}</label>
       <nav className={styles.desktopNav}>{mainNav.map((item) => { const isActive = pathname === item.href; return <Link key={item.label} className={isActive ? styles.navActive : ""} aria-current={isActive ? "page" : undefined} href={withPremiumTheme(item.href, mode)}>{item.label}</Link> })}</nav>
-      <div className={styles.topActions}><ThemeToggle links={themeLinks} mode={mode} onChange={onModeChange} /><Link href={withPremiumTheme("/dashboard-v2/invoices?q=Rechnung%20vorbereitet", mode)} aria-label="Neu"><Plus size={18} /></Link><Link href={withPremiumTheme("/dashboard-v2/notifications?q=Alle%20gelesen", mode)} aria-label="Benachrichtigungen" className={styles.bellButton}><Bell size={18} />{unreadCount > 0 ? <span>{unreadCount}</span> : null}</Link><Link href={withPremiumTheme("/dashboard-v2/settings?q=Portal", mode)} aria-label="Hilfe"><HelpCircle size={18} /></Link><div className={styles.profile}><span>{profile.initials}</span><div><strong>{profile.name}</strong><small>{profile.role}</small></div></div></div>
+      <div className={styles.topActions}><ThemeToggle links={themeLinks} mode={mode} onChange={onModeChange} /><Link href={withPremiumTheme("/dashboard-v2/invoices?q=Rechnung%20vorbereitet", mode)} aria-label="Neu"><Plus size={18} /></Link><Link href={withPremiumTheme("/dashboard-v2/notifications?q=Alle%20gelesen", mode)} aria-label="Benachrichtigungen" className={styles.bellButton}><Bell size={18} />{unreadCount > 0 ? <span>{unreadCount}</span> : null}</Link><Link href={withPremiumTheme("/dashboard-v2/settings?q=Portal%20geoeffnet", mode)} aria-label="Hilfe"><HelpCircle size={18} /></Link><div className={styles.profile}><span>{profile.initials}</span><div><strong>{profile.name}</strong><small>{profile.role}</small></div></div></div>
     </header>
   )
 }
@@ -1500,10 +1500,16 @@ function PremiumLicensePanel({ data, mode, searchQuery }: { data: PremiumData; m
   const [state, setState] = useState<LicensePanelState>({ type: "idle", message: "" })
   const normalizedQuery = searchQuery.toLowerCase()
   const shouldFocusKey = normalizedQuery.includes("lizenz-key") || normalizedQuery.includes("lizenz aktiviert")
-  const shouldFocusUpgrade = normalizedQuery.includes("upgrade")
+  const shouldFocusUpgrade = normalizedQuery.includes("upgrade") || normalizedQuery.includes("benutzerlimit")
   const routeMessage = normalizedQuery.includes("lizenz aktiviert")
     ? "Demo-Lizenz wurde geprueft. Der Aktivierungsweg ist bereit."
-    : ""
+    : normalizedQuery.includes("lizenz-key")
+      ? "Lizenzschluessel-Eingabe ist bereit."
+      : normalizedQuery.includes("benutzerlimit")
+        ? "Benutzerlimit wurde geprueft. Upgrade-Optionen sind vorbereitet."
+        : normalizedQuery.includes("upgrade")
+          ? "Upgrade-Check ist bereit. Benutzerlimit und Tarif koennen erweitert werden."
+          : ""
   const currentState = state.message ? state : routeMessage ? { type: "success" as const, message: routeMessage } : state
 
   async function handleLicenseFile(event: ChangeEvent<HTMLInputElement>) {
@@ -1591,7 +1597,7 @@ function PremiumLicensePanel({ data, mode, searchQuery }: { data: PremiumData; m
           <span>Upgrade-Check</span>
           <strong>{limit.currentUsers} / {limit.maxUsers} Benutzer</strong>
           <p>{limit.isFull ? "Limit erreicht. Ein Upgrade ist fuer weitere Benutzer noetig." : `${Math.max(limit.maxUsers - limit.currentUsers, 0)} Benutzerplaetze sind aktuell frei.`}</p>
-          <Link href={withPremiumTheme("/dashboard-v2/users?q=Benutzer", mode)}>Benutzer verwalten</Link>
+          <Link href={withPremiumTheme("/dashboard-v2/users?q=Benutzer%20eingeladen", mode)}>Benutzer verwalten</Link>
         </div>
       </div>
     </article>
@@ -1624,6 +1630,10 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
     [query.includes("datev vorbereitet"), "DATEV Export wurde vorbereitet."],
     [query.includes("report exportiert"), "Report Export wurde vorbereitet."],
     [query.includes("vergleich geoeffnet"), "Vergleich wurde geoeffnet und fuer den Export vorbereitet."],
+    [query.includes("firma geprueft"), "Firmeneinstellungen wurden geprueft und sind bereit."],
+    [query.includes("nummernkreis geprueft"), "Nummernkreis wurde geprueft und ist synchron."],
+    [query.includes("portal geoeffnet"), "Portal wurde geoeffnet und fuer Kundenfreigaben vorbereitet."],
+    [query.includes("system geprueft"), "Systemeinstellungen wurden geprueft."],
     [query.includes("benutzer eingeladen"), "Benutzereinladung wurde vorbereitet."],
     [query.includes("rolle vorbereitet"), "Rollenverwaltung wurde vorbereitet."],
     [query.includes("regeln aktualisiert"), "Benachrichtigungsregeln wurden aktualisiert."],
@@ -1841,7 +1851,7 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
     const links = view === "reports"
       ? [["Dokumentexport", "/dashboard-v2/reports?q=Report%20exportiert"], ["DATEV Export", "/dashboard-v2/reports?q=DATEV%20vorbereitet"], ["Vergleich", "/dashboard-v2/reports?q=Vergleich%20geoeffnet"]]
       : view === "settings"
-        ? [["Firma", "/settings/company"], ["Nummernkreise", "/settings/number-ranges"], ["Portal", "/settings/portal"]]
+        ? [["Firma", "/dashboard-v2/settings?q=Firma%20geprueft"], ["Nummernkreise", "/dashboard-v2/settings?q=Nummernkreis%20geprueft"], ["Portal", "/dashboard-v2/settings?q=Portal%20geoeffnet"], ["System", "/dashboard-v2/settings?q=System%20geprueft"]]
         : [["Audit exportieren", "/dashboard-v2/audit?q=Audit%20exportiert"], ["Filter setzen", "/dashboard-v2/audit?q=Audit%20Filter%20aktiv"], ["Ereignis suchen", "/dashboard-v2/audit?q=Ereignis%20gefunden"], ["Webhook Logs", "/dashboard-v2/audit?q=Webhook%20Logs"], ["System", "/settings/system"]]
 
     return (
