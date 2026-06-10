@@ -497,6 +497,22 @@ function userLimitFromData(data: PremiumData) {
   }
 }
 
+function userStatusLabel(value?: string | null) {
+  const normalized = String(value || "").toLowerCase()
+  if (normalized === "active") return "Aktiv"
+  if (normalized === "inactive") return "Inaktiv"
+  if (normalized === "invited" || normalized === "pending") return "Eingeladen"
+  return value || "Aktiv"
+}
+
+function numberRangeLabel(type: string) {
+  const normalized = type.toLowerCase()
+  if (normalized.includes("invoice")) return "Rechnungen"
+  if (normalized.includes("offer")) return "Angebote"
+  if (normalized.includes("customer")) return "Kunden"
+  return type.charAt(0).toUpperCase() + type.slice(1)
+}
+
 function dataSourceLabel(data: PremiumData) {
   return data.loaded ? "Live" : "Lokal"
 }
@@ -972,10 +988,11 @@ function moduleRows(view: Exclude<PremiumView, "dashboard">, data: PremiumData):
 
   if (view === "settings") {
     const company = data.companySettings ?? fallbackCompanySettings
+    const primaryRange = rangesSource[0]
     return [
-      ["Unternehmen", company.company || "Nicht gesetzt", company.email || "E-Mail offen", "Profil"],
-      ["Standort", [company.city, company.country].filter(Boolean).join(", ") || "Nicht gesetzt", "Firmendaten", "Aktiv"],
-      ["Nummernkreise", `${rangesSource.length} Bereiche`, rangesSource.map((range) => range.prefix).slice(0, 2).join(" · "), "Synchron"]
+      ["Unternehmen", company.company || "Nicht gesetzt", company.email || "E-Mail offen", data.loaded ? "Synchron" : "Lokal"],
+      ["Standort", [company.city, company.country].filter(Boolean).join(", ") || "Nicht gesetzt", "Firmendaten", company.company ? "Aktiv" : "Pruefen"],
+      ["Nummernkreise", `${rangesSource.length} Bereiche`, primaryRange ? `${numberRangeLabel(primaryRange.type)} ab ${primaryRange.nextValue}` : "Nicht gesetzt", rangesSource.length ? "Synchron" : "Pruefen"]
     ]
   }
 
@@ -984,19 +1001,17 @@ function moduleRows(view: Exclude<PremiumView, "dashboard">, data: PremiumData):
       user.name || user.email || "Benutzer",
       user.email || user.role || "Teammitglied",
       user.role || "member",
-      user.status || "active"
+      userStatusLabel(user.status)
     ])
   }
 
   if (view === "license") {
-    const limit = data.userLimit ?? fallbackUserLimit
-    const currentUsers = limit.currentUsers ?? usersSource.length
-    const maxUsers = limit.maxUsers ?? fallbackUserLimit.maxUsers ?? 5
+    const limit = userLimitFromData(data)
     const documentCount = (data.invoices.length ? data.invoices : fallbackApiInvoices).length
     return [
-      ["Benutzerlimit", `${currentUsers} von ${maxUsers} verwendet`, limit.plan || "Free", currentUsers >= maxUsers ? "Limit" : "OK"],
+      ["Benutzerlimit", `${limit.currentUsers} von ${limit.maxUsers} verwendet`, limit.plan, limit.isFull ? "Limit" : "OK"],
       ["Dokumente im Workspace", `${documentCount} geladen`, dataSourceLabel(data), "Aktiv"],
-      ["Lizenzablauf", limit.validUntil ? limit.validUntil.slice(0, 10) : "Kein Ablaufdatum", "Status", "Aktiv"]
+      ["Lizenzablauf", limit.validUntil ? limit.validUntil.slice(0, 10) : "Kein Ablaufdatum", "Status", limit.isFull ? "Upgrade" : "Aktiv"]
     ]
   }
 
@@ -1011,17 +1026,17 @@ function moduleRows(view: Exclude<PremiumView, "dashboard">, data: PremiumData):
 
   if (view === "automation") {
     const rows: ModuleRow[] = rangesSource.slice(0, 5).map((range) => [
-      `${range.type} Nummernkreis`,
+      `${numberRangeLabel(range.type)} Nummernkreis`,
       `Prefix ${range.prefix}`,
-      `Naechste ${range.nextValue}`,
+      `Naechste ${String(range.nextValue).padStart(range.padding, "0")}`,
       "Aktiv"
     ])
-    return rows.length ? rows : [["Benachrichtigungsregeln", "Systemmeldungen", `${notificationsSource.length} Ereignisse`, "Bereit"]]
+    return rows.length ? rows : [["Benachrichtigungsregeln", "Systemmeldungen", `${notificationsSource.length} Ereignisse`, notificationsSource.length ? "Bereit" : "Pruefen"]]
   }
 
   if (view === "audit") {
     return notificationsSource.slice(0, 5).map((item) => [
-      item.category || item.title,
+      item.title,
       item.message || item.category || "Ereignis",
       item.readAt ? "Gelesen" : "Offen",
       notificationStatus(item)
@@ -1029,11 +1044,15 @@ function moduleRows(view: Exclude<PremiumView, "dashboard">, data: PremiumData):
   }
 
   if (view === "api") {
-    return [
-      ["GET /api/invoice/list", "Rechnungsdaten", data.invoices.length ? "200 OK" : dataSourceLabel(data), "Aktiv"],
-      ["GET /api/customers/list", "Kundendaten", data.customers.length ? "200 OK" : dataSourceLabel(data), "Aktiv"],
-      ["GET /api/articles/list", "Artikel und Leistungen", data.articles.length ? "200 OK" : dataSourceLabel(data), "Aktiv"]
+    const apiRows: ModuleRow[] = [
+      ["GET /api/invoice/list", "Rechnungsdaten", data.invoices.length ? `${data.invoices.length} Datensaetze` : dataSourceLabel(data), data.loaded ? "Aktiv" : "Lokal"],
+      ["GET /api/customers/list", "Kundendaten", data.customers.length ? `${data.customers.length} Datensaetze` : dataSourceLabel(data), data.loaded ? "Aktiv" : "Lokal"],
+      ["GET /api/articles/list", "Artikel und Leistungen", articlesSource.length ? `${articlesSource.length} Datensaetze` : dataSourceLabel(data), "Aktiv"],
+      ["GET /api/settings/users", "Benutzer und Lizenz", `${usersSource.length} Benutzer`, "Aktiv"],
+      ["GET /api/settings/number-ranges", "Automatisierung", `${rangesSource.length} Nummernkreise`, "Aktiv"]
     ]
+
+    return apiRows
   }
 
   return moduleContent[view].rows
@@ -1090,19 +1109,19 @@ function moduleStats(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
   }
 
   if (view === "settings") {
-    return [[String(rangesSource.length), "Nummernkreise"], [data.companySettings?.company ? "OK" : "Lokal", "Firmendaten"], [dataSourceLabel(data), "Datenquelle"]]
+    const company = data.companySettings ?? fallbackCompanySettings
+    return [[String(rangesSource.length), "Nummernkreise"], [company.company ? "OK" : "Pruefen", "Firmendaten"], [dataSourceLabel(data), "Datenquelle"]]
   }
 
   if (view === "users") {
     const activeUsers = usersSource.filter((user) => String(user.status || "").toLowerCase() === "active").length
-    return [[String(usersSource.length), "Benutzer"], [String(activeUsers), "Aktiv"], [String(new Set(usersSource.map((user) => user.role || "member")).size), "Rollen"]]
+    const limit = userLimitFromData(data)
+    return [[String(usersSource.length), "Benutzer"], [String(activeUsers), "Aktiv"], [`${limit.currentUsers}/${limit.maxUsers}`, "Lizenz"]]
   }
 
   if (view === "license") {
-    const limit = data.userLimit ?? fallbackUserLimit
-    const currentUsers = limit.currentUsers ?? usersSource.length
-    const maxUsers = limit.maxUsers ?? fallbackUserLimit.maxUsers ?? 5
-    return [[limit.plan || "Free", "Tarif"], [`${currentUsers}/${maxUsers}`, "Benutzer"], [limit.validUntil ? limit.validUntil.slice(0, 10) : "-", "Ablauf"]]
+    const limit = userLimitFromData(data)
+    return [[limit.plan, "Tarif"], [`${limit.currentUsers}/${limit.maxUsers}`, "Benutzer"], [limit.isFull ? "Upgrade" : "OK", "Status"]]
   }
 
   if (view === "notifications") {
@@ -1113,17 +1132,22 @@ function moduleStats(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
 
   if (view === "automation") {
     const activeRules = rangesSource.filter((range) => range.nextValue > 0).length
-    return [[String(rangesSource.length), "Regeln"], [String(activeRules), "Aktiv"], [dataSourceLabel(data), "Quelle"]]
+    const nextValueTotal = rangesSource.reduce((sum, range) => sum + range.nextValue, 0)
+    return [[String(rangesSource.length), "Regeln"], [String(activeRules), "Aktiv"], [String(nextValueTotal), "Naechste Werte"]]
   }
 
   if (view === "audit") {
     const openEvents = notificationsSource.filter((item) => !item.readAt).length
-    return [[String(notificationsSource.length), "Events"], [String(openEvents), "Offen"], ["Bereit", "Status"]]
+    const readEvents = notificationsSource.length - openEvents
+    return [[String(notificationsSource.length), "Events"], [String(openEvents), "Offen"], [String(readEvents), "Gelesen"]]
   }
 
   if (view === "api") {
-    const connected = Number(data.invoices.length > 0) + Number(data.customers.length > 0) + Number(data.articles.length > 0)
-    return [[String(connected), "Endpoints"], [data.loaded ? "Bereit" : "Lokal", "Status"], ["Dashboard V2", "Version"]]
+    return [
+      ["5", "Endpoints"],
+      [data.loaded ? "Bereit" : "Lokal", "Status"],
+      [dataSourceLabel(data), "Datenquelle"]
+    ]
   }
 
   return []
@@ -1188,12 +1212,19 @@ function moduleFocus(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
 
   if (view === "settings") {
     const company = data.companySettings ?? fallbackCompanySettings
-    return [["Firma", company.company || "Nicht gesetzt"], ["Nummernkreise", String(rangesSource.length)], ["Status", data.loaded ? "Synchron" : "Lokal"]]
+    const primaryRange = rangesSource[0]
+    return [["Firma", company.company || "Nicht gesetzt"], ["Nummernkreise", String(rangesSource.length)], ["Naechster Bereich", primaryRange ? numberRangeLabel(primaryRange.type) : "Nicht gesetzt"]]
   }
 
-  if (view === "users" || view === "license") {
+  if (view === "users") {
     const limit = userLimitFromData(data)
-    return [["Benutzer", `${limit.currentUsers}/${limit.maxUsers}`], ["Tarif", limit.plan], ["Status", limit.isFull ? "Limit erreicht" : "Aktiv"]]
+    const firstAdmin = usersSource.find((user) => String(user.role || "").toLowerCase().includes("admin")) ?? usersSource[0]
+    return [["Benutzer", `${limit.currentUsers}/${limit.maxUsers}`], ["Admin", firstAdmin?.name || firstAdmin?.email || "Team"], ["Status", limit.isFull ? "Limit erreicht" : "Aktiv"]]
+  }
+
+  if (view === "license") {
+    const limit = userLimitFromData(data)
+    return [["Tarif", limit.plan], ["Benutzer", `${limit.currentUsers}/${limit.maxUsers}`], ["Status", limit.isFull ? "Upgrade sinnvoll" : "Aktiv"]]
   }
 
   if (view === "notifications") {
@@ -1209,12 +1240,12 @@ function moduleFocus(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
 
   if (view === "automation") {
     const activeRules = rangesSource.filter((range) => range.nextValue > 0).length
-    return [["Regeln", String(rangesSource.length)], ["Aktiv", String(activeRules)], ["Naechster Lauf", rangesSource[0] ? `${rangesSource[0].type} ${rangesSource[0].nextValue}` : "Bereit"]]
+    const primaryRange = rangesSource[0]
+    return [["Regeln", String(rangesSource.length)], ["Aktiv", String(activeRules)], ["Naechster Lauf", primaryRange ? `${numberRangeLabel(primaryRange.type)} ${String(primaryRange.nextValue).padStart(primaryRange.padding, "0")}` : "Bereit"]]
   }
 
   if (view === "api") {
-    const connected = Number(data.invoices.length > 0) + Number(data.customers.length > 0) + Number(data.articles.length > 0)
-    return [["Endpoints", String(connected)], ["Status", data.loaded ? "Bereit" : "Lokal"], ["Version", "Dashboard V2"]]
+    return [["Endpoints", "5"], ["Status", data.loaded ? "Bereit" : "Lokal"], ["Datenquelle", dataSourceLabel(data)]]
   }
 
   return []
