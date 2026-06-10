@@ -1024,6 +1024,95 @@ function moduleStats(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
   return moduleContent[view].stats
 }
 
+function moduleFocus(view: Exclude<PremiumView, "dashboard">, data: PremiumData) {
+  const source = data.invoices.length ? data.invoices : fallbackApiInvoices
+  const projectsSource = data.projects.length ? data.projects : fallbackProjects
+  const articlesSource = data.articles.length ? data.articles : fallbackApiArticles
+  const usersSource = data.appUsers.length ? data.appUsers : fallbackAppUsers
+  const notificationsSource = data.notifications.length ? data.notifications : fallbackNotifications
+  const rangesSource = data.numberRanges.length ? data.numberRanges : fallbackNumberRanges
+  const invoiceSource = source.filter((invoice) => invoiceType(invoice) === "invoice")
+  const offerSource = source.filter((invoice) => invoiceType(invoice) === "offer")
+  const paidTotal = invoiceSource.filter((invoice) => isStatus(invoice.status, "paid")).reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
+  const openTotal = invoiceSource.filter((invoice) => isStatus(invoice.status, "open") || isStatus(invoice.status, "overdue")).reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
+
+  if (view === "customers") {
+    const firstCustomer = data.customers[0]
+    return [["Kunden gesamt", String(data.customers.length || 4)], ["Top Kontakt", firstCustomer?.name || fallbackCompanySettings.company || "Acme GmbH"], ["Datenquelle", data.loaded ? "API" : "Demo"]]
+  }
+
+  if (view === "projects" || view === "time") {
+    const avgProgress = Math.round(projectsSource.reduce((sum, project) => sum + parsePercent(project.progress), 0) / Math.max(projectsSource.length, 1))
+    return [["Aktive Projekte", String(projectsSource.filter((project) => project.status === "Aktiv").length)], ["Durchschnitt", `${avgProgress}%`], ["Naechstes Projekt", projectsSource[0]?.name || "Projekt anlegen"]]
+  }
+
+  if (view === "invoices") {
+    return [["Offene Forderungen", formatEuro(openTotal)], ["Zahlungseingang", formatEuro(paidTotal)], ["Dokumente", String(invoiceSource.length)]]
+  }
+
+  if (view === "offers") {
+    const offerTotal = offerSource.reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
+    return [["Pipeline", formatEuro(offerTotal)], ["Angebote", String(offerSource.length)], ["Naechster Schritt", offerSource[0]?.customer || "Angebot erstellen"]]
+  }
+
+  if (view === "expenses") {
+    const activeArticles = articlesSource.filter((article) => article.active !== false)
+    return [["Aktive Positionen", String(activeArticles.length)], ["Listenwert", formatEuro(activeArticles.reduce((sum, article) => sum + Number(article.price || 0), 0))], ["Top Kategorie", activeArticles[0]?.category || "Leistung"]]
+  }
+
+  if (view === "reports") {
+    const total = source.reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
+    const paidShare = Math.round((paidTotal / Math.max(total, 1)) * 100)
+    return [["Gesamtvolumen", formatEuro(total)], ["Bezahlt", `${paidShare}%`], ["Dokumente", String(source.length)]]
+  }
+
+  if (view === "settings") {
+    const company = data.companySettings ?? fallbackCompanySettings
+    return [["Firma", company.company || "Nicht gesetzt"], ["Nummernkreise", String(rangesSource.length)], ["Status", data.loaded ? "Synchron" : "Demo"]]
+  }
+
+  if (view === "users" || view === "license") {
+    const limit = userLimitFromData(data)
+    return [["Benutzer", `${limit.currentUsers}/${limit.maxUsers}`], ["Tarif", limit.plan], ["Status", limit.isFull ? "Limit erreicht" : "Aktiv"]]
+  }
+
+  if (view === "notifications" || view === "audit") {
+    const unread = notificationsSource.filter((item) => !item.readAt).length
+    return [["Neue Ereignisse", String(unread)], ["Gesamt", String(notificationsSource.length)], ["Letzte Meldung", notificationsSource[0]?.title || "Keine Meldung"]]
+  }
+
+  if (view === "automation") {
+    return [["Regeln", String(rangesSource.length)], ["Aktiv", String(rangesSource.filter((range) => range.nextValue > 0).length)], ["Naechster Lauf", rangesSource[0] ? `${rangesSource[0].type} ${rangesSource[0].nextValue}` : "Bereit"]]
+  }
+
+  if (view === "api") {
+    const connected = Number(data.invoices.length > 0) + Number(data.customers.length > 0) + Number(data.articles.length > 0)
+    return [["Endpoints", String(connected)], ["Status", data.loaded ? "Bereit" : "Laedt"], ["Version", "V2 Preview"]]
+  }
+
+  return moduleContent[view].focus
+}
+
+function moduleTimeline(view: Exclude<PremiumView, "dashboard">, data: PremiumData) {
+  const notificationsSource = data.notifications.length ? data.notifications : fallbackNotifications
+  const rows = moduleRows(view, data)
+  const liveItems = notificationsSource.slice(0, 3).map((item) => [
+    item.title,
+    item.message || item.category || "Systemmeldung"
+  ] as [string, string])
+
+  if (view === "notifications" || view === "audit") return liveItems.length ? liveItems : moduleContent[view].timeline
+
+  if (rows.length) {
+    return rows.slice(0, 3).map(([title, subtitle, value, status]) => [
+      title,
+      `${subtitle} · ${value} · ${status}`
+    ] as [string, string])
+  }
+
+  return moduleContent[view].timeline
+}
+
 function moduleRowHref(view: Exclude<PremiumView, "dashboard">) {
   if (view === "customers") return "/customers"
   if (view === "projects" || view === "time") return "/projects"
@@ -1044,6 +1133,8 @@ function PremiumModulePage({ view, data, searchQuery }: { view: Exclude<PremiumV
   const content = moduleContent[view]
   const rows = moduleRows(view, data).filter((row) => matchesSearch(row, searchQuery))
   const stats = moduleStats(view, data)
+  const focus = moduleFocus(view, data)
+  const timeline = moduleTimeline(view, data)
   const rowHref = moduleRowHref(view)
 
   return (
@@ -1082,7 +1173,7 @@ function PremiumModulePage({ view, data, searchQuery }: { view: Exclude<PremiumV
         <article className={`${styles.panel} ${styles.moduleCard}`}>
           <div className={styles.panelHead}><h2>Fokus</h2><span>Wichtige Werte</span></div>
           <div className={styles.focusList}>
-            {content.focus.map(([label, value]) => (
+            {focus.map(([label, value]) => (
               <div key={label}><span>{label}</span><strong>{value}</strong></div>
             ))}
           </div>
@@ -1091,7 +1182,7 @@ function PremiumModulePage({ view, data, searchQuery }: { view: Exclude<PremiumV
         <article className={`${styles.panel} ${styles.timelinePanel}`}>
           <div className={styles.panelHead}><h2>Aktuell</h2><span>Letzte Ereignisse</span></div>
           <div className={styles.moduleTimeline}>
-            {content.timeline.map(([title, text]) => (
+            {timeline.map(([title, text]) => (
               <div key={title}>
                 <span><CheckCircle2 size={14} /></span>
                 <p><strong>{title}</strong><small>{text}</small></p>
