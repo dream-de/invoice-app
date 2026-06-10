@@ -738,7 +738,7 @@ function Sidebar({ unreadCount, upgrade, workspace }: { unreadCount: number; upg
     <aside className={styles.sidebar}>
       <div className={styles.logoWrap}><div className={styles.logoMark}>D</div><div><strong>DreamInvoice</strong><span>Premium Edition</span></div></div>
       <button className={styles.workspaceButton} type="button"><span className={styles.workspaceAvatar}>{workspace.initial}</span><span><small>Workspace</small><strong>{workspace.name}</strong></span><ChevronDown size={14} /></button>
-      <nav className={styles.sideSections}>{sideNav.map((group) => <div key={group.section} className={styles.sideSection}><p>{group.section}</p>{group.items.map((item) => { const Icon = item.icon; const isActive = pathname === item.href; const badge = item.label === "Benachrichtigungen" ? unreadCount : 0; return <Link key={item.label} href={item.href} className={isActive ? styles.activeSideItem : styles.sideItem}><Icon size={16} /><span>{item.label}</span>{badge > 0 ? <em>{badge}</em> : null}</Link> })}</div>)}</nav>
+      <nav className={styles.sideSections}>{sideNav.map((group) => <div key={group.section} className={styles.sideSection}><p>{group.section}</p>{group.items.map((item) => { const Icon = item.icon; const isActive = pathname === item.href; const badge = item.label === "Benachrichtigungen" ? unreadCount : 0; return <Link key={item.label} href={item.href} aria-current={isActive ? "page" : undefined} className={isActive ? styles.activeSideItem : styles.sideItem}><Icon size={16} /><span>{item.label}</span>{badge > 0 ? <em>{badge}</em> : null}</Link> })}</div>)}</nav>
       <div className={styles.upgradeCard}><Crown size={26} /><strong>{upgrade.title}</strong><span>{upgrade.text}</span><Link href={upgrade.href}>{upgrade.action}</Link></div>
     </aside>
   )
@@ -750,7 +750,7 @@ function Topbar({ mode, profile, searchInputRef, searchQuery, unreadCount, onMod
   return (
     <header className={styles.topbar}>
       <label className={styles.searchBox}><Search size={16} /><input ref={searchInputRef} value={searchQuery} onChange={(event) => onSearchChange(event.target.value)} placeholder="Suche..." aria-label="Premium Suche" />{searchQuery ? <button type="button" aria-label="Suche leeren" onClick={() => onSearchChange("")}><X size={15} /></button> : null}</label>
-      <nav className={styles.desktopNav}>{mainNav.map((item) => <Link key={item.label} className={pathname === item.href ? styles.navActive : ""} href={item.href}>{item.label}</Link>)}</nav>
+      <nav className={styles.desktopNav}>{mainNav.map((item) => { const isActive = pathname === item.href; return <Link key={item.label} className={isActive ? styles.navActive : ""} aria-current={isActive ? "page" : undefined} href={item.href}>{item.label}</Link> })}</nav>
       <div className={styles.topActions}><ThemeToggle mode={mode} onChange={onModeChange} /><Link href="/documents/new" aria-label="Neu"><Plus size={18} /></Link><Link href="/dashboard-v2/notifications" aria-label="Benachrichtigungen" className={styles.bellButton}><Bell size={18} />{unreadCount > 0 ? <span>{unreadCount}</span> : null}</Link><Link href="/dashboard-v2/settings" aria-label="Hilfe"><HelpCircle size={18} /></Link><div className={styles.profile}><span>{profile.initials}</span><div><strong>{profile.name}</strong><small>{profile.role}</small></div></div></div>
     </header>
   )
@@ -940,6 +940,15 @@ function moduleRows(view: Exclude<PremiumView, "dashboard">, data: PremiumData):
     ]
   }
 
+  if (view === "integrations") {
+    return integrations.slice(0, 5).map(([name, meta]) => [
+      name,
+      meta,
+      "Verbunden",
+      "Aktiv"
+    ])
+  }
+
   if (view === "settings") {
     const company = data.companySettings ?? fallbackCompanySettings
     return [
@@ -1008,7 +1017,7 @@ function moduleRows(view: Exclude<PremiumView, "dashboard">, data: PremiumData):
   return moduleContent[view].rows
 }
 
-function moduleStats(view: Exclude<PremiumView, "dashboard">, data: PremiumData) {
+function moduleStats(view: Exclude<PremiumView, "dashboard">, data: PremiumData): ModuleConfig["stats"] {
   const source = data.invoices.length ? data.invoices : fallbackApiInvoices
   const projectsSource = data.projects.length ? data.projects : fallbackProjects
   const articlesSource = data.articles.length ? data.articles : fallbackApiArticles
@@ -1047,6 +1056,10 @@ function moduleStats(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
     return [[formatEuro(total), "Gesamtvolumen"], [`${paidShare}%`, "Bezahlt"], [String(source.length), "Dokumente"]]
   }
 
+  if (view === "integrations") {
+    return [[String(integrations.length), "Integrationen"], [String(new Set(integrations.map(([, meta]) => meta)).size), "Bereiche"], ["Bereit", "Status"]]
+  }
+
   if (view === "settings") {
     return [[String(rangesSource.length), "Nummernkreise"], [data.companySettings?.company ? "OK" : "Lokal", "Firmendaten"], [dataSourceLabel(data), "Datenquelle"]]
   }
@@ -1081,10 +1094,10 @@ function moduleStats(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
     return [[String(connected), "Endpoints"], [data.loaded ? "Bereit" : "Lokal", "Status"], ["Dashboard V2", "Version"]]
   }
 
-  return moduleContent[view].stats
+  return []
 }
 
-function moduleFocus(view: Exclude<PremiumView, "dashboard">, data: PremiumData) {
+function moduleFocus(view: Exclude<PremiumView, "dashboard">, data: PremiumData): ModuleConfig["focus"] {
   const source = data.invoices.length ? data.invoices : fallbackApiInvoices
   const projectsSource = data.projects.length ? data.projects : fallbackProjects
   const articlesSource = data.articles.length ? data.articles : fallbackApiArticles
@@ -1126,6 +1139,12 @@ function moduleFocus(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
     return [["Gesamtvolumen", formatEuro(total)], ["Bezahlt", `${paidShare}%`], ["Dokumente", String(source.length)]]
   }
 
+  if (view === "integrations") {
+    const categories = Array.from(new Set(integrations.map(([, meta]) => meta)))
+    const categorySummary = categories.length > 2 ? `${categories.slice(0, 2).join(", ")} +${categories.length - 2}` : categories.join(", ")
+    return [["Verbunden", String(integrations.length)], ["Bereiche", categorySummary], ["Status", "Bereit"]]
+  }
+
   if (view === "settings") {
     const company = data.companySettings ?? fallbackCompanySettings
     return [["Firma", company.company || "Nicht gesetzt"], ["Nummernkreise", String(rangesSource.length)], ["Status", data.loaded ? "Synchron" : "Lokal"]]
@@ -1150,7 +1169,7 @@ function moduleFocus(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
     return [["Endpoints", String(connected)], ["Status", data.loaded ? "Bereit" : "Lokal"], ["Version", "Dashboard V2"]]
   }
 
-  return moduleContent[view].focus
+  return []
 }
 
 function moduleTimeline(view: Exclude<PremiumView, "dashboard">, data: PremiumData) {
