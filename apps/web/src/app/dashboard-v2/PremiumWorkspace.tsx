@@ -651,13 +651,17 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
   }
 }
 
-function linePoints(values: number[], height: number) {
-  const max = Math.max(...values)
+function chartCoordinates(values: number[], height: number, maxValue: number) {
+  const max = Math.max(maxValue, 1)
   return values.map((value, index) => {
     const x = (index / (values.length - 1)) * 100
     const y = height - (value / max) * (height - 12) - 4
-    return `${x},${y}`
-  }).join(" ")
+    return { x, y }
+  })
+}
+
+function linePoints(values: number[], height: number, maxValue: number) {
+  return chartCoordinates(values, height, maxValue).map((point) => `${point.x},${point.y}`).join(" ")
 }
 
 function ThemeToggle({ mode, onChange }: { mode: ThemeMode; onChange: (mode: ThemeMode) => void }) {
@@ -716,16 +720,25 @@ function KpiGrid({ data }: { data: PremiumData }) {
 function RevenueChart({ data }: { data: PremiumData }) {
   const chartHeight = 155
   const series = useMemo(() => buildMonthlySeries(data), [data])
-  const revenuePoints = useMemo(() => linePoints(series.revenue, chartHeight), [series.revenue])
-  const paymentPoints = useMemo(() => linePoints(series.payments, chartHeight), [series.payments])
-  const expensePoints = useMemo(() => linePoints(series.expenses, chartHeight), [series.expenses])
+  const chartMax = useMemo(() => Math.max(...series.revenue, ...series.payments, ...series.expenses, 1), [series.expenses, series.payments, series.revenue])
+  const revenueCoordinates = useMemo(() => chartCoordinates(series.revenue, chartHeight, chartMax), [chartMax, series.revenue])
+  const paymentCoordinates = useMemo(() => chartCoordinates(series.payments, chartHeight, chartMax), [chartMax, series.payments])
+  const expenseCoordinates = useMemo(() => chartCoordinates(series.expenses, chartHeight, chartMax), [chartMax, series.expenses])
+  const revenuePoints = useMemo(() => linePoints(series.revenue, chartHeight, chartMax), [chartMax, series.revenue])
+  const paymentPoints = useMemo(() => linePoints(series.payments, chartHeight, chartMax), [chartMax, series.payments])
+  const expensePoints = useMemo(() => linePoints(series.expenses, chartHeight, chartMax), [chartMax, series.expenses])
   const latestIndex = Math.max(series.labels.length - 1, 0)
+  const chartMarkers = [
+    { tone: "violet", point: revenueCoordinates[latestIndex] },
+    { tone: "green", point: paymentCoordinates[latestIndex] },
+    { tone: "amber", point: expenseCoordinates[latestIndex] }
+  ]
 
   return (
     <article className={`${styles.panel} ${styles.revenuePanel}`}>
       <div className={styles.panelHead}><div><h2>Umsatzuebersicht</h2><span>Umsaetze, Zahlungen und Ausgaben</span></div><button type="button">Letzte 12 Monate <ChevronDown size={14} /></button></div>
       <div className={styles.legend}><span data-color="violet">Umsatz</span><span data-color="green">Zahlungen</span><span data-color="amber">Ausgaben</span></div>
-      <div className={styles.chartArea}><svg viewBox={`0 0 100 ${chartHeight}`} preserveAspectRatio="none" aria-label="Umsatzdiagramm"><polyline points={revenuePoints} className={styles.revenueLine} /><polyline points={paymentPoints} className={styles.paymentLine} /><polyline points={expensePoints} className={styles.expenseLine} />{[0, 1, 2].map((index) => <circle key={index} cx="58.3" cy={index === 0 ? "45" : index === 1 ? "72" : "118"} r="1.8" className={styles.chartDot} />)}</svg><div className={styles.chartTooltip}><strong>{series.labels[latestIndex]} {series.years[latestIndex]}</strong><span><i />Umsatz <b>{formatEuro(series.revenue[latestIndex] || 0)}</b></span><span><i />Zahlungen <b>{formatEuro(series.payments[latestIndex] || 0)}</b></span><span><i />Ausgaben <b>{formatEuro(series.expenses[latestIndex] || 0)}</b></span></div><div className={styles.monthLabels}>{series.labels.map((month, index) => <span key={`${month}-${index}`}>{month}</span>)}</div></div>
+      <div className={styles.chartArea}><svg viewBox={`0 0 100 ${chartHeight}`} preserveAspectRatio="none" aria-label="Umsatzdiagramm"><polyline points={revenuePoints} className={styles.revenueLine} /><polyline points={paymentPoints} className={styles.paymentLine} /><polyline points={expensePoints} className={styles.expenseLine} />{chartMarkers.map(({ tone, point }) => point ? <circle key={tone} cx={point.x} cy={point.y} r="1.8" className={styles.chartDot} data-tone={tone} /> : null)}</svg><div className={styles.chartTooltip}><strong>{series.labels[latestIndex]} {series.years[latestIndex]}</strong><span><i />Umsatz <b>{formatEuro(series.revenue[latestIndex] || 0)}</b></span><span><i />Zahlungen <b>{formatEuro(series.payments[latestIndex] || 0)}</b></span><span><i />Ausgaben <b>{formatEuro(series.expenses[latestIndex] || 0)}</b></span></div><div className={styles.monthLabels}>{series.labels.map((month, index) => <span key={`${month}-${index}`}>{month}</span>)}</div></div>
     </article>
   )
 }

@@ -656,6 +656,9 @@
 .paymentLine { stroke: #34d399; }
 .expenseLine { stroke: #f59e0b; }
 .chartDot { fill: var(--panel-strong); stroke: #fff; stroke-width: 0.8; }
+.chartDot[data-tone="violet"] { stroke: #8b5cf6; }
+.chartDot[data-tone="green"] { stroke: #34d399; }
+.chartDot[data-tone="amber"] { stroke: #f59e0b; }
 
 .chartTooltip {
   position: absolute;
