@@ -1579,6 +1579,24 @@ type LicensePanelState =
   | { type: "idle"; message: "" }
   | { type: "success"; message: string }
   | { type: "error"; message: string }
+type WorkflowState =
+  | { type: "idle"; message: "" }
+  | { type: "success"; message: string }
+  | { type: "error"; message: string }
+type CustomerDraft = {
+  name: string
+  contact: string
+  email: string
+  status: string
+  city: string
+}
+type ProjectDraft = {
+  name: string
+  customer: string
+  budget: string
+  status: string
+  description: string
+}
 
 function PremiumLicensePanel({ data, mode, searchQuery }: { data: PremiumData; mode: ThemeMode; searchQuery: string }) {
   const limit = userLimitFromData(data)
@@ -1691,13 +1709,102 @@ function PremiumLicensePanel({ data, mode, searchQuery }: { data: PremiumData; m
   )
 }
 
-function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude<PremiumView, "dashboard">; data: PremiumData; mode: ThemeMode; searchQuery: string }) {
+function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: { view: Exclude<PremiumView, "dashboard">; data: PremiumData; mode: ThemeMode; searchQuery: string; onDataChange: (updater: (current: PremiumData) => PremiumData) => void }) {
   const customersSource = data.customers.length ? data.customers : fallbackApiCustomers
   const projectsSource = data.projects.length ? data.projects : fallbackProjects
   const articlesSource = data.articles.length ? data.articles : fallbackApiArticles
   const integrationsSource = integrations.length ? integrations : [["Stripe", "Zahlungen", "#635bff"]]
   const rangesSource = data.numberRanges.length ? data.numberRanges : fallbackNumberRanges
   const query = searchQuery.toLowerCase()
+  const [customerDraft, setCustomerDraft] = useState<CustomerDraft>({
+    name: customersSource[0]?.name || "Neuer Premium Kunde",
+    contact: customersSource[0]?.contact || "Daniel Kontakt",
+    email: customersSource[0]?.email || "kontakt@example.test",
+    status: "active",
+    city: "Koeln"
+  })
+  const [projectDraft, setProjectDraft] = useState<ProjectDraft>({
+    name: projectsSource[0]?.name || "Neues Premium Projekt",
+    customer: projectsSource[0]?.customer || customersSource[0]?.name || "Demo Kunde",
+    budget: "12000",
+    status: "Aktiv",
+    description: "Premium Projektentwurf mit Budget, Kunde und Abrechnungsfluss."
+  })
+  const [workflowState, setWorkflowState] = useState<WorkflowState>({ type: "idle", message: "" })
+  const [isWorkflowSaving, setIsWorkflowSaving] = useState(false)
+
+  function updateCustomerDraft(field: keyof CustomerDraft, value: string) {
+    setCustomerDraft((current) => ({ ...current, [field]: value }))
+    setWorkflowState({ type: "idle", message: "" })
+  }
+
+  function updateProjectDraft(field: keyof ProjectDraft, value: string) {
+    setProjectDraft((current) => ({ ...current, [field]: value }))
+    setWorkflowState({ type: "idle", message: "" })
+  }
+
+  async function savePremiumCustomer() {
+    setIsWorkflowSaving(true)
+    setWorkflowState({ type: "idle", message: "" })
+
+    try {
+      const response = await fetch("/api/customers/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...customerDraft,
+          country: "Deutschland"
+        })
+      })
+      const result = await response.json()
+
+      if (!response.ok || !result?.ok) {
+        setWorkflowState({ type: "error", message: result?.error || "Kunde konnte nicht gespeichert werden." })
+        return
+      }
+
+      const customer = result.customer as ApiCustomer
+      onDataChange((current) => ({
+        ...current,
+        customers: [customer, ...current.customers.filter((item) => item.id !== customer.id)]
+      }))
+      setWorkflowState({ type: "success", message: `Premium-Kunde gespeichert: ${customer.name}` })
+    } catch {
+      setWorkflowState({ type: "error", message: "Kunden-API konnte nicht erreicht werden." })
+    } finally {
+      setIsWorkflowSaving(false)
+    }
+  }
+
+  async function savePremiumProject() {
+    setIsWorkflowSaving(true)
+    setWorkflowState({ type: "idle", message: "" })
+
+    try {
+      const response = await fetch("/api/projects/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(projectDraft)
+      })
+      const result = await response.json()
+
+      if (!response.ok || !result?.ok) {
+        setWorkflowState({ type: "error", message: result?.error || "Projekt konnte nicht gespeichert werden." })
+        return
+      }
+
+      const project = result.project as ProjectData
+      onDataChange((current) => ({
+        ...current,
+        projects: [project, ...current.projects.filter((item) => item.id !== project.id)]
+      }))
+      setWorkflowState({ type: "success", message: `Premium-Projekt gespeichert: ${project.name}` })
+    } catch {
+      setWorkflowState({ type: "error", message: "Projekt-API konnte nicht erreicht werden." })
+    } finally {
+      setIsWorkflowSaving(false)
+    }
+  }
 
   if (view === "license") return null
 
@@ -1706,11 +1813,13 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
     [query.includes("timer gestartet"), "Timer wurde gestartet und dem Projekt zugeordnet."],
     [query.includes("freigabe vorbereitet"), "Freigabe wurde vorbereitet und kann in Rechnungen uebernommen werden."],
     [query.includes("kunde vorbereitet"), "Kunde wurde vorbereitet. Fuer Speicherung kann der vollstaendige Kunden-Flow geoeffnet werden."],
-    [query.includes("kunde neu vorbereitet"), "Neuer Premium-Kunde wurde vorbereitet. Der echte Premium-Editor wird spaeter separat gebaut."],
+    [query.includes("kunde neu vorbereitet"), "Neuer Premium-Kunde wurde vorbereitet. Der Premium-Editor ist direkt nutzbar."],
+    [query.includes("kunde gespeichert"), "Premium-Kunde wurde gespeichert und bleibt im neuen Dashboard-Kontext."],
     [query.includes("kundenliste geoeffnet"), "Premium-Kundenliste wurde geoeffnet und bleibt im neuen Dashboard-Kontext."],
     [query.includes("segment geprueft"), "Kundensegment wurde geprueft und fuer die Ansicht markiert."],
     [query.includes("projekt vorbereitet"), "Projekt wurde vorbereitet. Fuer Speicherung kann der vollstaendige Projekt-Flow geoeffnet werden."],
-    [query.includes("projekt neu vorbereitet"), "Neues Premium-Projekt wurde vorbereitet. Der echte Premium-Editor wird spaeter separat gebaut."],
+    [query.includes("projekt neu vorbereitet"), "Neues Premium-Projekt wurde vorbereitet. Der Premium-Editor ist direkt nutzbar."],
+    [query.includes("projekt gespeichert"), "Premium-Projekt wurde gespeichert und bleibt im neuen Dashboard-Kontext."],
     [query.includes("projektliste geoeffnet"), "Premium-Projektliste wurde geoeffnet und bleibt im neuen Dashboard-Kontext."],
     [query.includes("budget geprueft"), "Projektbudget wurde geprueft und die Auslastung ist sichtbar."],
     [query.includes("rechnung vorbereitet"), "Rechnung wurde vorbereitet. Fuer Speicherung kann der vollstaendige Rechnungs-Flow geoeffnet werden."],
@@ -1755,13 +1864,17 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
     return (
       <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("kunde") || query.includes("segment")}>
         <div className={styles.panelHead}><div><h2>Kunde anlegen</h2><span>Kontakt im Premium-Flow vorbereiten</span></div><Link href={withPremiumTheme("/dashboard-v2/customers?q=Kunde%20neu%20vorbereitet", mode)}>Premium vorbereiten</Link></div>
-        <form className={styles.workflowForm} action="/dashboard-v2/customers" method="get">
-          <input type="hidden" name="q" value="Kunde vorbereitet" />
+        <form className={styles.workflowForm} action="/dashboard-v2/customers" method="get" onSubmit={(event) => { event.preventDefault(); void savePremiumCustomer() }}>
+          <input type="hidden" name="q" value="Kunde gespeichert" />
           <input type="hidden" name="theme" value={mode} />
-          <label>Kunde<input name="name" defaultValue={customersSource[0]?.name || "Neuer Kunde"} /></label>
-          <label>Status<select name="status" defaultValue="active"><option value="active">Aktiv</option><option value="open">Offen</option><option value="inactive">Inaktiv</option></select></label>
-          <button type="submit">Vorbereiten</button>
+          <label>Kunde<input name="name" value={customerDraft.name} onChange={(event) => updateCustomerDraft("name", event.target.value)} /></label>
+          <label>E-Mail<input name="email" type="email" value={customerDraft.email} onChange={(event) => updateCustomerDraft("email", event.target.value)} /></label>
+          <label>Kontakt<input name="contact" value={customerDraft.contact} onChange={(event) => updateCustomerDraft("contact", event.target.value)} /></label>
+          <label>Stadt<input name="city" value={customerDraft.city} onChange={(event) => updateCustomerDraft("city", event.target.value)} /></label>
+          <label>Status<select name="status" value={customerDraft.status} onChange={(event) => updateCustomerDraft("status", event.target.value)}><option value="active">Aktiv</option><option value="open">Offen</option><option value="inactive">Inaktiv</option></select></label>
+          <button type="submit" disabled={isWorkflowSaving}>{isWorkflowSaving ? "Speichert..." : "Kunde speichern"}</button>
         </form>
+        {workflowState.message ? <p data-state={workflowState.type}>{workflowState.message}</p> : null}
         {message}
       </article>
     )
@@ -1771,13 +1884,17 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
     return (
       <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("projekt") || query.includes("budget")}>
         <div className={styles.panelHead}><div><h2>Projekt anlegen</h2><span>Projekt vorbereiten und Budget direkt pruefen</span></div><Link href={withPremiumTheme("/dashboard-v2/projects?q=Projekt%20neu%20vorbereitet", mode)}>Premium vorbereiten</Link></div>
-        <form className={styles.workflowForm} action="/dashboard-v2/projects" method="get">
-          <input type="hidden" name="q" value="Projekt vorbereitet" />
+        <form className={styles.workflowForm} action="/dashboard-v2/projects" method="get" onSubmit={(event) => { event.preventDefault(); void savePremiumProject() }}>
+          <input type="hidden" name="q" value="Projekt gespeichert" />
           <input type="hidden" name="theme" value={mode} />
-          <label>Projekt<input name="name" defaultValue={projectsSource[0]?.name || "Neues Projekt"} /></label>
-          <label>Kunde<select name="customer" defaultValue={projectsSource[0]?.customer || customersSource[0]?.name}>{customersSource.map((customer) => <option key={customer.id} value={customer.name}>{customer.name}</option>)}</select></label>
-          <button type="submit">Vorbereiten</button>
+          <label>Projekt<input name="name" value={projectDraft.name} onChange={(event) => updateProjectDraft("name", event.target.value)} /></label>
+          <label>Kunde<select name="customer" value={projectDraft.customer} onChange={(event) => updateProjectDraft("customer", event.target.value)}>{customersSource.map((customer) => <option key={customer.id} value={customer.name}>{customer.name}</option>)}</select></label>
+          <label>Budget<input name="budget" value={projectDraft.budget} inputMode="decimal" onChange={(event) => updateProjectDraft("budget", event.target.value)} /></label>
+          <label>Status<select name="status" value={projectDraft.status} onChange={(event) => updateProjectDraft("status", event.target.value)}><option value="Planung">Planung</option><option value="Aktiv">Aktiv</option><option value="Review">Review</option><option value="Fertig">Fertig</option></select></label>
+          <label className={styles.workflowWideField}>Beschreibung<textarea name="description" rows={3} value={projectDraft.description} onChange={(event) => updateProjectDraft("description", event.target.value)} /></label>
+          <button type="submit" disabled={isWorkflowSaving}>{isWorkflowSaving ? "Speichert..." : "Projekt speichern"}</button>
         </form>
+        {workflowState.message ? <p data-state={workflowState.type}>{workflowState.message}</p> : null}
         {message}
       </article>
     )
@@ -1962,7 +2079,7 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
   return null
 }
 
-function PremiumModulePage({ view, data, mode, searchQuery }: { view: Exclude<PremiumView, "dashboard">; data: PremiumData; mode: ThemeMode; searchQuery: string }) {
+function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { view: Exclude<PremiumView, "dashboard">; data: PremiumData; mode: ThemeMode; searchQuery: string; onDataChange: (updater: (current: PremiumData) => PremiumData) => void }) {
   const meta = premiumViewMeta[view]
   const content = moduleContent[view]
   const allRows = moduleRows(view, data)
@@ -1994,7 +2111,7 @@ function PremiumModulePage({ view, data, mode, searchQuery }: { view: Exclude<Pr
       </section>
 
       {view === "license" ? <PremiumLicensePanel data={data} mode={mode} searchQuery={searchQuery} /> : null}
-      <PremiumWorkflowPanel view={view} data={data} mode={mode} searchQuery={searchQuery} />
+      <PremiumWorkflowPanel view={view} data={data} mode={mode} searchQuery={searchQuery} onDataChange={onDataChange} />
       <ModuleSelectionPanel view={view} data={data} mode={mode} row={selectedRow} searchQuery={searchQuery} />
 
       <section className={styles.moduleGrid}>
@@ -2169,7 +2286,7 @@ export function PremiumWorkspacePage({ view = "dashboard", initialSearchQuery = 
       <section className={styles.contentShell}>
         <Topbar mode={mode} profile={profile} searchInputRef={searchInputRef} searchQuery={searchQuery} themeLinks={themeLinks} unreadCount={unreadCount} onModeChange={handleModeChange} onSearchChange={setSearchQuery} />
         <CompactNav mode={mode} unreadCount={unreadCount} />
-        {view === "dashboard" ? <DashboardOverview data={data} mode={mode} profile={profile} searchQuery={searchQuery} /> : <><SearchResultsPanel data={data} mode={mode} searchQuery={premiumSearchQuery(searchQuery)} /><PremiumModulePage view={view} data={data} mode={mode} searchQuery={searchQuery} /></>}
+        {view === "dashboard" ? <DashboardOverview data={data} mode={mode} profile={profile} searchQuery={searchQuery} /> : <><SearchResultsPanel data={data} mode={mode} searchQuery={premiumSearchQuery(searchQuery)} /><PremiumModulePage view={view} data={data} mode={mode} searchQuery={searchQuery} onDataChange={setData} /></>}
       </section>
     </div>
   )
