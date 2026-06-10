@@ -801,9 +801,9 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     stats: [["6", "Verbunden"], ["2", "Aktion noetig"], ["99%", "Sync"]],
     rows: integrations.slice(0, 4).map(([name, meta]) => [name, meta, "Verbunden", "Aktiv"]) as ModuleRow[],
     focus: [["Zahlungen", "Stripe, PayPal"], ["Buchhaltung", "DATEV"], ["Automation", "Zapier"]],
-    actions: [["Integration verbinden", "/dashboard-v2/integrations"], ["Sync pruefen", "/dashboard-v2/integrations"], ["Token erneuern", "/dashboard-v2/api"]],
+    actions: [["Integration verbinden", "/dashboard-v2/integrations?q=Stripe"], ["Sync pruefen", "/dashboard-v2/integrations?q=Verbunden"], ["Token erneuern", "/dashboard-v2/api?q=Rechnungsdaten"]],
     timeline: [["Stripe synchronisiert", "Neue Zahlung wurde automatisch zugeordnet."], ["DATEV Export bereit", "Buchhaltungsdaten sind vorbereitet."], ["Zapier aktiv", "Webhook fuer neue Rechnung feuert korrekt."]],
-    primaryHref: "/dashboard-v2/integrations"
+    primaryHref: "/dashboard-v2/integrations?q=Stripe"
   },
   automation: {
     stats: [["14", "Workflows"], ["9", "Aktiv"], ["312", "Runs"]],
