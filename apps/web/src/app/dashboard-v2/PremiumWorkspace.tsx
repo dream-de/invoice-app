@@ -1489,8 +1489,13 @@ function PremiumLicensePanel({ data, searchQuery }: { data: PremiumData; searchQ
   const [licenseKey, setLicenseKey] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [state, setState] = useState<LicensePanelState>({ type: "idle", message: "" })
-  const shouldFocusKey = searchQuery.toLowerCase().includes("lizenz-key")
-  const shouldFocusUpgrade = searchQuery.toLowerCase().includes("upgrade")
+  const normalizedQuery = searchQuery.toLowerCase()
+  const shouldFocusKey = normalizedQuery.includes("lizenz-key") || normalizedQuery.includes("lizenz aktiviert")
+  const shouldFocusUpgrade = normalizedQuery.includes("upgrade")
+  const routeMessage = normalizedQuery.includes("lizenz aktiviert")
+    ? "Demo-Lizenz wurde geprueft. Der Aktivierungsweg ist bereit."
+    : ""
+  const currentState = state.message ? state : routeMessage ? { type: "success" as const, message: routeMessage } : state
 
   async function handleLicenseFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
@@ -1567,9 +1572,10 @@ function PremiumLicensePanel({ data, searchQuery }: { data: PremiumData; searchQ
               Lizenzdatei hochladen
               <input type="file" accept=".lic,.license,.txt,.json,application/json,text/plain" onChange={handleLicenseFile} />
             </label>
+            <Link href="/dashboard-v2/license?q=Lizenz%20aktiviert">Demo-Key pruefen</Link>
             <button type="submit" disabled={isSubmitting}>{isSubmitting ? "Pruefe..." : "Aktivieren"}</button>
           </div>
-          {state.message ? <p data-state={state.type}>{state.message}</p> : null}
+          {currentState.message ? <p data-state={currentState.type}>{currentState.message}</p> : null}
         </form>
 
         <div className={styles.licenseUpgradeBox} data-active={shouldFocusUpgrade}>

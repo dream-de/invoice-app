@@ -1477,6 +1477,7 @@
 }
 
 .licenseFormActions label,
+.licenseFormActions a,
 .licenseFormActions button,
 .licenseUpgradeBox a {
   min-height: 40px;
