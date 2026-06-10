@@ -1444,7 +1444,7 @@ function moduleRowHref(view: Exclude<PremiumView, "dashboard">, data: PremiumDat
     return article ? `/dashboard-v2/expenses?q=${encodeURIComponent(article.name)}` : "/dashboard-v2/expenses"
   }
 
-  return `/dashboard-v2/${view}`
+  return `/dashboard-v2/${view}?q=${encodeURIComponent(row[0])}`
 }
 
 function PremiumModulePage({ view, data, searchQuery }: { view: Exclude<PremiumView, "dashboard">; data: PremiumData; searchQuery: string }) {
