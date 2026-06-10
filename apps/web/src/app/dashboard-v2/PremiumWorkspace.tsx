@@ -1763,7 +1763,9 @@ function PremiumLicensePanel({ data, mode, searchQuery }: { data: PremiumData; m
       </div>
 
       <div className={styles.licenseActionGrid}>
-        <form onSubmit={handleSubmit} className={styles.licenseKeyForm} data-active={shouldFocusKey}>
+        <form action="/dashboard-v2/license" method="get" onSubmit={handleSubmit} className={styles.licenseKeyForm} data-active={shouldFocusKey}>
+          <input type="hidden" name="q" value="Lizenz-Key" />
+          <input type="hidden" name="theme" value={mode} />
           <label htmlFor="premium-license-key">Lizenzschluessel</label>
           <textarea
             id="premium-license-key"
