@@ -1432,6 +1432,18 @@ function moduleRowHref(view: Exclude<PremiumView, "dashboard">, data: PremiumDat
     return documentHrefForNumber(data, row[0])
   }
 
+  if (view === "time") {
+    const projectsSource = data.projects.length ? data.projects : fallbackProjects
+    const project = projectsSource.find((item) => item.name === row[0])
+    return project ? `/dashboard-v2/time?q=${encodeURIComponent(project.name)}` : "/dashboard-v2/time"
+  }
+
+  if (view === "expenses") {
+    const articlesSource = data.articles.length ? data.articles : fallbackApiArticles
+    const article = articlesSource.find((item) => item.name === row[0])
+    return article ? `/dashboard-v2/expenses?q=${encodeURIComponent(article.name)}` : "/dashboard-v2/expenses"
+  }
+
   return `/dashboard-v2/${view}`
 }
 
