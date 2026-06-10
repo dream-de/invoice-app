@@ -997,17 +997,17 @@ function RevenueChart({ data, mode }: { data: PremiumData; mode: ThemeMode }) {
   )
 }
 
-function StatusPanel({ data }: { data: PremiumData }) {
+function StatusPanel({ data, mode }: { data: PremiumData; mode: ThemeMode }) {
   const source = (data.invoices.length ? data.invoices : fallbackApiInvoices).filter((invoice) => invoiceType(invoice) === "invoice")
   const statusItems = [
-    ["Bezahlt", "green", source.filter((invoice) => isStatus(invoice.status, "paid")).length],
-    ["Offen", "blue", source.filter((invoice) => isStatus(invoice.status, "open")).length],
-    ["Ueberfaellig", "rose", source.filter((invoice) => isStatus(invoice.status, "overdue")).length],
-    ["Entwurf", "muted", source.filter((invoice) => isStatus(invoice.status, "draft")).length]
+    ["Bezahlt", "green", source.filter((invoice) => isStatus(invoice.status, "paid")).length, "/dashboard-v2/invoices?q=Bezahlt"],
+    ["Offen", "blue", source.filter((invoice) => isStatus(invoice.status, "open")).length, "/dashboard-v2/invoices?q=Offen"],
+    ["Ueberfaellig", "rose", source.filter((invoice) => isStatus(invoice.status, "overdue")).length, "/dashboard-v2/invoices?q=Ueberfaellig"],
+    ["Entwurf", "muted", source.filter((invoice) => isStatus(invoice.status, "draft")).length, "/dashboard-v2/invoices?q=Entwurf"]
   ] as const
   const total = statusItems.reduce((sum, item) => sum + item[2], 0) || source.length || 1
 
-  return <article className={`${styles.panel} ${styles.statusPanel}`}><div className={styles.panelHead}><h2>Rechnungsstatus</h2></div><div className={styles.donutWrap}><div className={styles.donut}><div><strong>{total}</strong><span>Gesamt</span></div></div><div className={styles.statusLegend}>{statusItems.map(([label, tone, count]) => <div key={label}><span data-tone={tone} />{label}<b>{count} ({Math.round((count / total) * 100)}%)</b></div>)}</div></div></article>
+  return <article className={`${styles.panel} ${styles.statusPanel}`}><div className={styles.panelHead}><h2>Rechnungsstatus</h2></div><div className={styles.donutWrap}><Link href={withPremiumTheme("/dashboard-v2/invoices", mode)} className={styles.donut}><div><strong>{total}</strong><span>Gesamt</span></div></Link><div className={styles.statusLegend}>{statusItems.map(([label, tone, count, href]) => <Link key={label} href={withPremiumTheme(href, mode)}><span data-tone={tone} />{label}<b>{count} ({Math.round((count / total) * 100)}%)</b></Link>)}</div></div></article>
 }
 
 function QuickActions({ mode, profile }: { mode: ThemeMode; profile: ReturnType<typeof profileFromData> }) {
@@ -1024,7 +1024,7 @@ function QuickActions({ mode, profile }: { mode: ThemeMode; profile: ReturnType<
 
 function InvoiceTable({ data, mode, searchQuery }: { data: PremiumData; mode: ThemeMode; searchQuery: string }) {
   const rows = invoiceRowsFromData(data).filter((row) => matchesSearch(row, searchQuery))
-  return <article className={`${styles.panel} ${styles.tablePanel}`}><div className={styles.panelHead}><h2>Kuerzlich erstellte Rechnungen</h2><Link href={withPremiumTheme("/dashboard-v2/invoices", mode)}>Alle anzeigen</Link></div><div className={styles.tableScroll}><table><thead><tr><th>Rechnung</th><th>Kunde</th><th>Status</th><th>Betrag</th><th>Datum</th></tr></thead><tbody>{rows.length ? rows.map(([number, customer, status, amount, date]) => <tr key={number}><td><Link href={documentHrefForNumber(data, number)}>{number}</Link></td><td>{customer}</td><td><span data-status={status}>{status}</span></td><td>{amount}</td><td>{date}</td></tr>) : <tr><td colSpan={5} className={styles.emptyTableCell}>Keine Treffer</td></tr>}</tbody></table></div></article>
+  return <article className={`${styles.panel} ${styles.tablePanel}`}><div className={styles.panelHead}><h2>Kuerzlich erstellte Rechnungen</h2><Link href={withPremiumTheme("/dashboard-v2/invoices", mode)}>Alle anzeigen</Link></div><div className={styles.tableScroll}><table><thead><tr><th>Rechnung</th><th>Kunde</th><th>Status</th><th>Betrag</th><th>Datum</th></tr></thead><tbody>{rows.length ? rows.map(([number, customer, status, amount, date]) => <tr key={number}><td><Link href={withPremiumTheme(`/dashboard-v2/invoices?q=${encodeURIComponent(number)}`, mode)}>{number}</Link></td><td>{customer}</td><td><Link href={withPremiumTheme(`/dashboard-v2/invoices?q=${encodeURIComponent(status)}`, mode)} data-status={status}>{status}</Link></td><td>{amount}</td><td>{date}</td></tr>) : <tr><td colSpan={5} className={styles.emptyTableCell}>Keine Treffer</td></tr>}</tbody></table></div></article>
 }
 
 function BarPanel({ data, mode }: { data: PremiumData; mode: ThemeMode }) {
@@ -1036,14 +1036,14 @@ function BarPanel({ data, mode }: { data: PremiumData; mode: ThemeMode }) {
 
 function ActivityFeed({ data, mode }: { data: PremiumData; mode: ThemeMode }) {
   const rows = notificationRows(data)
-  return <article className={`${styles.panel} ${styles.activityPanel}`}><div className={styles.panelHead}><h2>Aktivitaetsfeed</h2><Link href={withPremiumTheme("/dashboard-v2/audit?q=Ereignis%20gefunden", mode)}>Alle anzeigen</Link></div><div className={styles.activityList}>{rows.map(([title, text, time, tone]) => <div key={`${title}-${time}`} className={styles.activityItem}><span data-tone={tone}><CheckCircle2 size={14} /></span><div><strong>{title}</strong><p>{text}</p></div><time>{time}</time></div>)}</div></article>
+  return <article className={`${styles.panel} ${styles.activityPanel}`}><div className={styles.panelHead}><h2>Aktivitaetsfeed</h2><Link href={withPremiumTheme("/dashboard-v2/audit?q=Ereignis%20gefunden", mode)}>Alle anzeigen</Link></div><div className={styles.activityList}>{rows.map(([title, text, time, tone]) => <Link key={`${title}-${time}`} href={withPremiumTheme(`/dashboard-v2/audit?q=${encodeURIComponent(title)}`, mode)} className={styles.activityItem}><span data-tone={tone}><CheckCircle2 size={14} /></span><div><strong>{title}</strong><p>{text}</p></div><time>{time}</time></Link>)}</div></article>
 }
 
 function UsersPanel({ data, mode }: { data: PremiumData; mode: ThemeMode }) {
   const cards = userCardsFromData(data)
   const limit = userLimitFromData(data)
   const usageWidth = Math.min(100, Math.round((limit.currentUsers / Math.max(limit.maxUsers, 1)) * 100))
-  return <article className={`${styles.panel} ${styles.usersPanel}`}><div className={styles.usersMeta}><h2>Benutzer & Rollen</h2><span>{limit.currentUsers}/{limit.maxUsers} Benutzer</span><div><i style={{ width: `${usageWidth}%` }} /></div><Link href={withPremiumTheme("/dashboard-v2/users?q=Benutzer%20eingeladen", mode)}>Benutzer verwalten</Link></div><div className={styles.userCards}>{cards.map(([name, role, initials, crown]) => <div key={`${name}-${role}`} className={styles.userCard}><div className={styles.avatar}>{initials}</div>{crown ? <Crown size={15} /> : null}<strong>{name}</strong><span>{role}</span><em>Aktiv</em></div>)}<Link href={withPremiumTheme("/dashboard-v2/users?q=Benutzer%20eingeladen", mode)} className={styles.addUser}><Plus size={24} /><span>Benutzer hinzufuegen</span></Link></div></article>
+  return <article className={`${styles.panel} ${styles.usersPanel}`}><div className={styles.usersMeta}><h2>Benutzer & Rollen</h2><span>{limit.currentUsers}/{limit.maxUsers} Benutzer</span><div><i style={{ width: `${usageWidth}%` }} /></div><Link href={withPremiumTheme("/dashboard-v2/users?q=Benutzer%20eingeladen", mode)}>Benutzer verwalten</Link></div><div className={styles.userCards}>{cards.map(([name, role, initials, crown]) => <Link key={`${name}-${role}`} href={withPremiumTheme(`/dashboard-v2/users?q=${encodeURIComponent(name)}`, mode)} className={styles.userCard}><div className={styles.avatar}>{initials}</div>{crown ? <Crown size={15} /> : null}<strong>{name}</strong><span>{role}</span><em>Aktiv</em></Link>)}<Link href={withPremiumTheme("/dashboard-v2/users?q=Benutzer%20eingeladen", mode)} className={styles.addUser}><Plus size={24} /><span>Benutzer hinzufuegen</span></Link></div></article>
 }
 
 function LicensePanel({ data, mode }: { data: PremiumData; mode: ThemeMode }) {
@@ -1053,7 +1053,7 @@ function LicensePanel({ data, mode }: { data: PremiumData; mode: ThemeMode }) {
 }
 
 function IntegrationsPanel({ mode }: { mode: ThemeMode }) {
-  return <article className={`${styles.panel} ${styles.integrationsPanel}`}><h2>Integrationen</h2><div className={styles.integrationsGrid}>{integrations.map(([name, meta, color]) => <div key={name}><span style={{ backgroundColor: color }}>{name.charAt(0)}</span><strong>{name}</strong><small>{meta}</small></div>)}<Link href={withPremiumTheme("/dashboard-v2/integrations?q=Integration%20verbunden", mode)}><Grid3X3 size={18} />Mehr anzeigen</Link></div></article>
+  return <article className={`${styles.panel} ${styles.integrationsPanel}`}><h2>Integrationen</h2><div className={styles.integrationsGrid}>{integrations.map(([name, meta, color]) => <Link key={name} href={withPremiumTheme(`/dashboard-v2/integrations?q=${encodeURIComponent(name)}`, mode)}><span style={{ backgroundColor: color }}>{name.charAt(0)}</span><strong>{name}</strong><small>{meta}</small></Link>)}<Link href={withPremiumTheme("/dashboard-v2/integrations?q=Integration%20verbunden", mode)} className={styles.moreIntegrationLink}><Grid3X3 size={18} />Mehr anzeigen</Link></div></article>
 }
 
 function SearchResultsPanel({ data, mode, searchQuery }: { data: PremiumData; mode: ThemeMode; searchQuery: string }) {
@@ -1086,7 +1086,7 @@ function DashboardOverview({ data, mode, profile, searchQuery }: { data: Premium
     <>
       <KpiGrid data={data} mode={mode} />
       <SearchResultsPanel data={data} mode={mode} searchQuery={effectiveSearchQuery} />
-      <section className={styles.mainGrid}><RevenueChart data={data} mode={mode} /><StatusPanel data={data} /><QuickActions mode={mode} profile={profile} /></section>
+      <section className={styles.mainGrid}><RevenueChart data={data} mode={mode} /><StatusPanel data={data} mode={mode} /><QuickActions mode={mode} profile={profile} /></section>
       <section className={styles.lowerGrid}><InvoiceTable data={data} mode={mode} searchQuery={effectiveSearchQuery} /><BarPanel data={data} mode={mode} /><ActivityFeed data={data} mode={mode} /></section>
       <section className={styles.bottomGrid}><UsersPanel data={data} mode={mode} /><LicensePanel data={data} mode={mode} /></section>
       <IntegrationsPanel mode={mode} />
