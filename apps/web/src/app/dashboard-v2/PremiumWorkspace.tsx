@@ -900,15 +900,15 @@ function ThemeToggle({ links, mode, onChange }: { links: ThemeLinks; mode: Theme
   )
 }
 
-function Sidebar({ unreadCount, upgrade, workspace }: { unreadCount: number; upgrade: UpgradeSummary; workspace: ReturnType<typeof workspaceFromData> }) {
+function Sidebar({ mode, unreadCount, upgrade, workspace }: { mode: ThemeMode; unreadCount: number; upgrade: UpgradeSummary; workspace: ReturnType<typeof workspaceFromData> }) {
   const pathname = usePathname()
 
   return (
     <aside className={styles.sidebar}>
       <div className={styles.logoWrap}><div className={styles.logoMark}>D</div><div><strong>DreamInvoice</strong><span>Premium Edition</span></div></div>
-      <Link className={styles.workspaceButton} href="/dashboard-v2/settings"><span className={styles.workspaceAvatar}>{workspace.initial}</span><span><small>Workspace</small><strong>{workspace.name}</strong></span><ChevronDown size={14} /></Link>
-      <nav className={styles.sideSections}>{sideNav.map((group) => <div key={group.section} className={styles.sideSection}><p>{group.section}</p>{group.items.map((item) => { const Icon = item.icon; const isActive = pathname === item.href; const badge = item.label === "Benachrichtigungen" ? unreadCount : 0; return <Link key={item.label} href={item.href} aria-current={isActive ? "page" : undefined} className={isActive ? styles.activeSideItem : styles.sideItem}><Icon size={16} /><span>{item.label}</span>{badge > 0 ? <em>{badge}</em> : null}</Link> })}</div>)}</nav>
-      <div className={styles.upgradeCard}><Crown size={26} /><strong>{upgrade.title}</strong><span>{upgrade.text}</span><Link href={upgrade.href}>{upgrade.action}</Link></div>
+      <Link className={styles.workspaceButton} href={withPremiumTheme("/dashboard-v2/settings", mode)}><span className={styles.workspaceAvatar}>{workspace.initial}</span><span><small>Workspace</small><strong>{workspace.name}</strong></span><ChevronDown size={14} /></Link>
+      <nav className={styles.sideSections}>{sideNav.map((group) => <div key={group.section} className={styles.sideSection}><p>{group.section}</p>{group.items.map((item) => { const Icon = item.icon; const isActive = pathname === item.href; const badge = item.label === "Benachrichtigungen" ? unreadCount : 0; return <Link key={item.label} href={withPremiumTheme(item.href, mode)} aria-current={isActive ? "page" : undefined} className={isActive ? styles.activeSideItem : styles.sideItem}><Icon size={16} /><span>{item.label}</span>{badge > 0 ? <em>{badge}</em> : null}</Link> })}</div>)}</nav>
+      <div className={styles.upgradeCard}><Crown size={26} /><strong>{upgrade.title}</strong><span>{upgrade.text}</span><Link href={withPremiumTheme(upgrade.href, mode)}>{upgrade.action}</Link></div>
     </aside>
   )
 }
@@ -919,13 +919,13 @@ function Topbar({ mode, profile, searchInputRef, searchQuery, themeLinks, unread
   return (
     <header className={styles.topbar}>
       <label className={styles.searchBox}><Search size={16} /><input ref={searchInputRef} value={searchQuery} onChange={(event) => onSearchChange(event.target.value)} placeholder="Suche..." aria-label="Premium Suche" />{searchQuery ? <button type="button" aria-label="Suche leeren" onClick={() => onSearchChange("")}><X size={15} /></button> : null}</label>
-      <nav className={styles.desktopNav}>{mainNav.map((item) => { const isActive = pathname === item.href; return <Link key={item.label} className={isActive ? styles.navActive : ""} aria-current={isActive ? "page" : undefined} href={item.href}>{item.label}</Link> })}</nav>
-      <div className={styles.topActions}><ThemeToggle links={themeLinks} mode={mode} onChange={onModeChange} /><Link href="/dashboard-v2/invoices?q=Rechnung%20vorbereitet" aria-label="Neu"><Plus size={18} /></Link><Link href="/dashboard-v2/notifications?q=Alle%20gelesen" aria-label="Benachrichtigungen" className={styles.bellButton}><Bell size={18} />{unreadCount > 0 ? <span>{unreadCount}</span> : null}</Link><Link href="/dashboard-v2/settings?q=Portal" aria-label="Hilfe"><HelpCircle size={18} /></Link><div className={styles.profile}><span>{profile.initials}</span><div><strong>{profile.name}</strong><small>{profile.role}</small></div></div></div>
+      <nav className={styles.desktopNav}>{mainNav.map((item) => { const isActive = pathname === item.href; return <Link key={item.label} className={isActive ? styles.navActive : ""} aria-current={isActive ? "page" : undefined} href={withPremiumTheme(item.href, mode)}>{item.label}</Link> })}</nav>
+      <div className={styles.topActions}><ThemeToggle links={themeLinks} mode={mode} onChange={onModeChange} /><Link href={withPremiumTheme("/dashboard-v2/invoices?q=Rechnung%20vorbereitet", mode)} aria-label="Neu"><Plus size={18} /></Link><Link href={withPremiumTheme("/dashboard-v2/notifications?q=Alle%20gelesen", mode)} aria-label="Benachrichtigungen" className={styles.bellButton}><Bell size={18} />{unreadCount > 0 ? <span>{unreadCount}</span> : null}</Link><Link href={withPremiumTheme("/dashboard-v2/settings?q=Portal", mode)} aria-label="Hilfe"><HelpCircle size={18} /></Link><div className={styles.profile}><span>{profile.initials}</span><div><strong>{profile.name}</strong><small>{profile.role}</small></div></div></div>
     </header>
   )
 }
 
-function CompactNav({ unreadCount }: { unreadCount: number }) {
+function CompactNav({ mode, unreadCount }: { mode: ThemeMode; unreadCount: number }) {
   const pathname = usePathname()
   const compactItems: NavItem[] = [
     mainNav[0],
@@ -946,13 +946,13 @@ function CompactNav({ unreadCount }: { unreadCount: number }) {
         const isActive = pathname === item.href
         const badge = item.label === "Benachrichtigungen" ? unreadCount : 0
 
-        return <Link key={item.href} href={item.href} aria-current={isActive ? "page" : undefined} className={isActive ? styles.compactNavActive : ""}><Icon size={16} /><span>{item.label}</span>{badge > 0 ? <em>{badge}</em> : null}</Link>
+        return <Link key={item.href} href={withPremiumTheme(item.href, mode)} aria-current={isActive ? "page" : undefined} className={isActive ? styles.compactNavActive : ""}><Icon size={16} /><span>{item.label}</span>{badge > 0 ? <em>{badge}</em> : null}</Link>
       })}
     </nav>
   )
 }
 
-function KpiGrid({ data }: { data: PremiumData }) {
+function KpiGrid({ data, mode }: { data: PremiumData; mode: ThemeMode }) {
   const source = data.invoices.length ? data.invoices : fallbackApiInvoices
   const invoiceSource = source.filter((invoice) => invoiceType(invoice) === "invoice")
   const offerSource = source.filter((invoice) => invoiceType(invoice) === "offer")
@@ -968,10 +968,10 @@ function KpiGrid({ data }: { data: PremiumData }) {
     { label: "Kunden", value: String(data.customers.length || 4), detail: data.loaded ? "Live synchronisiert" : "Lokale Daten", tone: "amber" as Tone, icon: Users, href: "/dashboard-v2/customers?q=Segment%20geprueft" }
   ] : kpis.map((item) => ({ ...item, href: item.label === "Angebote" ? "/dashboard-v2/offers?q=Angebot%20vorbereitet" : item.label === "Ausgaben" ? "/dashboard-v2/expenses?q=Ausgabe%20erfasst" : "/dashboard-v2/invoices?q=Rechnung%20vorbereitet" }))
 
-  return <section className={styles.kpiGrid}>{liveKpis.map((item) => { const Icon = item.icon; return <Link key={item.label} href={item.href} className={`${styles.panel} ${styles.kpiCard}`} data-tone={item.tone}><div className={styles.kpiIcon}><Icon size={22} /></div><div><span>{item.label}</span><strong>{item.value}</strong><small>{item.detail}</small></div><MoreVertical size={17} className={styles.moreIcon} /></Link> })}</section>
+  return <section className={styles.kpiGrid}>{liveKpis.map((item) => { const Icon = item.icon; return <Link key={item.label} href={withPremiumTheme(item.href, mode)} className={`${styles.panel} ${styles.kpiCard}`} data-tone={item.tone}><div className={styles.kpiIcon}><Icon size={22} /></div><div><span>{item.label}</span><strong>{item.value}</strong><small>{item.detail}</small></div><MoreVertical size={17} className={styles.moreIcon} /></Link> })}</section>
 }
 
-function RevenueChart({ data }: { data: PremiumData }) {
+function RevenueChart({ data, mode }: { data: PremiumData; mode: ThemeMode }) {
   const chartHeight = 155
   const series = useMemo(() => buildMonthlySeries(data), [data])
   const chartMax = useMemo(() => Math.max(...series.revenue, ...series.payments, ...series.expenses, 1), [series.expenses, series.payments, series.revenue])
@@ -990,7 +990,7 @@ function RevenueChart({ data }: { data: PremiumData }) {
 
   return (
     <article className={`${styles.panel} ${styles.revenuePanel}`}>
-      <div className={styles.panelHead}><div><h2>Umsatzuebersicht</h2><span>Umsaetze, Zahlungen und Ausgaben</span></div><Link href="/dashboard-v2/reports?q=Vergleich%20geoeffnet">Letzte 12 Monate <ChevronDown size={14} /></Link></div>
+      <div className={styles.panelHead}><div><h2>Umsatzuebersicht</h2><span>Umsaetze, Zahlungen und Ausgaben</span></div><Link href={withPremiumTheme("/dashboard-v2/reports?q=Vergleich%20geoeffnet", mode)}>Letzte 12 Monate <ChevronDown size={14} /></Link></div>
       <div className={styles.legend}><span data-color="violet">Umsatz</span><span data-color="green">Zahlungen</span><span data-color="amber">Ausgaben</span></div>
       <div className={styles.chartArea}><svg viewBox={`0 0 100 ${chartHeight}`} preserveAspectRatio="none" aria-label="Umsatzdiagramm"><polyline points={revenuePoints} className={styles.revenueLine} /><polyline points={paymentPoints} className={styles.paymentLine} /><polyline points={expensePoints} className={styles.expenseLine} />{chartMarkers.map(({ tone, point }) => point ? <circle key={tone} cx={point.x} cy={point.y} r="1.8" className={styles.chartDot} data-tone={tone} /> : null)}</svg><div className={styles.chartTooltip}><strong>{series.labels[latestIndex]} {series.years[latestIndex]}</strong><span><i />Umsatz <b>{formatEuro(series.revenue[latestIndex] || 0)}</b></span><span><i />Zahlungen <b>{formatEuro(series.payments[latestIndex] || 0)}</b></span><span><i />Ausgaben <b>{formatEuro(series.expenses[latestIndex] || 0)}</b></span></div><div className={styles.monthLabels}>{series.labels.map((month, index) => <span key={`${month}-${index}`}>{month}</span>)}</div></div>
     </article>
@@ -1010,7 +1010,7 @@ function StatusPanel({ data }: { data: PremiumData }) {
   return <article className={`${styles.panel} ${styles.statusPanel}`}><div className={styles.panelHead}><h2>Rechnungsstatus</h2></div><div className={styles.donutWrap}><div className={styles.donut}><div><strong>{total}</strong><span>Gesamt</span></div></div><div className={styles.statusLegend}>{statusItems.map(([label, tone, count]) => <div key={label}><span data-tone={tone} />{label}<b>{count} ({Math.round((count / total) * 100)}%)</b></div>)}</div></div></article>
 }
 
-function QuickActions({ profile }: { profile: ReturnType<typeof profileFromData> }) {
+function QuickActions({ mode, profile }: { mode: ThemeMode; profile: ReturnType<typeof profileFromData> }) {
   const actions: Array<{ label: string; icon: IconType; tone: string; href: string }> = [
     { label: "Neue Rechnung", icon: FileText, tone: "violet", href: "/dashboard-v2/invoices?q=Rechnung%20vorbereitet" },
     { label: "Neuer Kunde", icon: UserPlus, tone: "blue", href: "/dashboard-v2/customers?q=Kunde%20vorbereitet" },
@@ -1019,55 +1019,55 @@ function QuickActions({ profile }: { profile: ReturnType<typeof profileFromData>
     { label: "Zeiterfassung starten", icon: Clock3, tone: "rose", href: "/dashboard-v2/time?q=Timer%20gestartet" },
     { label: "Ausgabe erfassen", icon: Wallet, tone: "green", href: "/dashboard-v2/expenses?q=Ausgabe%20erfasst" }
   ]
-  return <article className={`${styles.panel} ${styles.quickPanel}`}><div className={styles.robot}>AI</div><div className={styles.panelHead}><div><h2>Schnellaktionen</h2><span>Hallo {profile.name}. Was moechten Sie heute erledigen?</span></div></div><div className={styles.quickGrid}>{actions.map((action) => { const Icon = action.icon; return <Link key={action.label} href={action.href} data-tone={action.tone}><Icon size={19} /><span>{action.label}</span></Link> })}</div></article>
+  return <article className={`${styles.panel} ${styles.quickPanel}`}><div className={styles.robot}>AI</div><div className={styles.panelHead}><div><h2>Schnellaktionen</h2><span>Hallo {profile.name}. Was moechten Sie heute erledigen?</span></div></div><div className={styles.quickGrid}>{actions.map((action) => { const Icon = action.icon; return <Link key={action.label} href={withPremiumTheme(action.href, mode)} data-tone={action.tone}><Icon size={19} /><span>{action.label}</span></Link> })}</div></article>
 }
 
-function InvoiceTable({ data, searchQuery }: { data: PremiumData; searchQuery: string }) {
+function InvoiceTable({ data, mode, searchQuery }: { data: PremiumData; mode: ThemeMode; searchQuery: string }) {
   const rows = invoiceRowsFromData(data).filter((row) => matchesSearch(row, searchQuery))
-  return <article className={`${styles.panel} ${styles.tablePanel}`}><div className={styles.panelHead}><h2>Kuerzlich erstellte Rechnungen</h2><Link href="/dashboard-v2/invoices">Alle anzeigen</Link></div><div className={styles.tableScroll}><table><thead><tr><th>Rechnung</th><th>Kunde</th><th>Status</th><th>Betrag</th><th>Datum</th></tr></thead><tbody>{rows.length ? rows.map(([number, customer, status, amount, date]) => <tr key={number}><td><Link href={documentHrefForNumber(data, number)}>{number}</Link></td><td>{customer}</td><td><span data-status={status}>{status}</span></td><td>{amount}</td><td>{date}</td></tr>) : <tr><td colSpan={5} className={styles.emptyTableCell}>Keine Treffer</td></tr>}</tbody></table></div></article>
+  return <article className={`${styles.panel} ${styles.tablePanel}`}><div className={styles.panelHead}><h2>Kuerzlich erstellte Rechnungen</h2><Link href={withPremiumTheme("/dashboard-v2/invoices", mode)}>Alle anzeigen</Link></div><div className={styles.tableScroll}><table><thead><tr><th>Rechnung</th><th>Kunde</th><th>Status</th><th>Betrag</th><th>Datum</th></tr></thead><tbody>{rows.length ? rows.map(([number, customer, status, amount, date]) => <tr key={number}><td><Link href={documentHrefForNumber(data, number)}>{number}</Link></td><td>{customer}</td><td><span data-status={status}>{status}</span></td><td>{amount}</td><td>{date}</td></tr>) : <tr><td colSpan={5} className={styles.emptyTableCell}>Keine Treffer</td></tr>}</tbody></table></div></article>
 }
 
-function BarPanel({ data }: { data: PremiumData }) {
+function BarPanel({ data, mode }: { data: PremiumData; mode: ThemeMode }) {
   const series = useMemo(() => buildMonthlySeries(data), [data])
   const maxValue = Math.max(...series.revenue, ...series.expenses, 1)
 
-  return <article className={`${styles.panel} ${styles.barPanel}`}><div className={styles.panelHead}><h2>Einnahmen & Ausgaben</h2><Link href="/dashboard-v2/reports?q=Vergleich%20geoeffnet">Monatlich <ChevronDown size={14} /></Link></div><div className={styles.barChart}>{series.labels.map((label, index) => <div key={label} className={styles.barGroup}><div><span className={styles.incomeBar} style={{ height: `${Math.max(18, (series.revenue[index] / maxValue) * 122)}px` }} /><span className={styles.spendBar} style={{ height: `${Math.max(12, (series.expenses[index] / maxValue) * 122)}px` }} /></div><small>{label}</small></div>)}</div><div className={styles.legend}><span data-color="violet">Einnahmen</span><span data-color="amber">Ausgaben</span></div></article>
+  return <article className={`${styles.panel} ${styles.barPanel}`}><div className={styles.panelHead}><h2>Einnahmen & Ausgaben</h2><Link href={withPremiumTheme("/dashboard-v2/reports?q=Vergleich%20geoeffnet", mode)}>Monatlich <ChevronDown size={14} /></Link></div><div className={styles.barChart}>{series.labels.map((label, index) => <div key={label} className={styles.barGroup}><div><span className={styles.incomeBar} style={{ height: `${Math.max(18, (series.revenue[index] / maxValue) * 122)}px` }} /><span className={styles.spendBar} style={{ height: `${Math.max(12, (series.expenses[index] / maxValue) * 122)}px` }} /></div><small>{label}</small></div>)}</div><div className={styles.legend}><span data-color="violet">Einnahmen</span><span data-color="amber">Ausgaben</span></div></article>
 }
 
-function ActivityFeed({ data }: { data: PremiumData }) {
+function ActivityFeed({ data, mode }: { data: PremiumData; mode: ThemeMode }) {
   const rows = notificationRows(data)
-  return <article className={`${styles.panel} ${styles.activityPanel}`}><div className={styles.panelHead}><h2>Aktivitaetsfeed</h2><Link href="/dashboard-v2/audit?q=Ereignis%20gefunden">Alle anzeigen</Link></div><div className={styles.activityList}>{rows.map(([title, text, time, tone]) => <div key={`${title}-${time}`} className={styles.activityItem}><span data-tone={tone}><CheckCircle2 size={14} /></span><div><strong>{title}</strong><p>{text}</p></div><time>{time}</time></div>)}</div></article>
+  return <article className={`${styles.panel} ${styles.activityPanel}`}><div className={styles.panelHead}><h2>Aktivitaetsfeed</h2><Link href={withPremiumTheme("/dashboard-v2/audit?q=Ereignis%20gefunden", mode)}>Alle anzeigen</Link></div><div className={styles.activityList}>{rows.map(([title, text, time, tone]) => <div key={`${title}-${time}`} className={styles.activityItem}><span data-tone={tone}><CheckCircle2 size={14} /></span><div><strong>{title}</strong><p>{text}</p></div><time>{time}</time></div>)}</div></article>
 }
 
-function UsersPanel({ data }: { data: PremiumData }) {
+function UsersPanel({ data, mode }: { data: PremiumData; mode: ThemeMode }) {
   const cards = userCardsFromData(data)
   const limit = userLimitFromData(data)
   const usageWidth = Math.min(100, Math.round((limit.currentUsers / Math.max(limit.maxUsers, 1)) * 100))
-  return <article className={`${styles.panel} ${styles.usersPanel}`}><div className={styles.usersMeta}><h2>Benutzer & Rollen</h2><span>{limit.currentUsers}/{limit.maxUsers} Benutzer</span><div><i style={{ width: `${usageWidth}%` }} /></div><Link href="/dashboard-v2/users?q=Benutzer%20eingeladen">Benutzer verwalten</Link></div><div className={styles.userCards}>{cards.map(([name, role, initials, crown]) => <div key={`${name}-${role}`} className={styles.userCard}><div className={styles.avatar}>{initials}</div>{crown ? <Crown size={15} /> : null}<strong>{name}</strong><span>{role}</span><em>Aktiv</em></div>)}<Link href="/dashboard-v2/users?q=Benutzer%20eingeladen" className={styles.addUser}><Plus size={24} /><span>Benutzer hinzufuegen</span></Link></div></article>
+  return <article className={`${styles.panel} ${styles.usersPanel}`}><div className={styles.usersMeta}><h2>Benutzer & Rollen</h2><span>{limit.currentUsers}/{limit.maxUsers} Benutzer</span><div><i style={{ width: `${usageWidth}%` }} /></div><Link href={withPremiumTheme("/dashboard-v2/users?q=Benutzer%20eingeladen", mode)}>Benutzer verwalten</Link></div><div className={styles.userCards}>{cards.map(([name, role, initials, crown]) => <div key={`${name}-${role}`} className={styles.userCard}><div className={styles.avatar}>{initials}</div>{crown ? <Crown size={15} /> : null}<strong>{name}</strong><span>{role}</span><em>Aktiv</em></div>)}<Link href={withPremiumTheme("/dashboard-v2/users?q=Benutzer%20eingeladen", mode)} className={styles.addUser}><Plus size={24} /><span>Benutzer hinzufuegen</span></Link></div></article>
 }
 
-function LicensePanel({ data }: { data: PremiumData }) {
+function LicensePanel({ data, mode }: { data: PremiumData; mode: ThemeMode }) {
   const limit = userLimitFromData(data)
   const documentCount = (data.invoices.length ? data.invoices : fallbackApiInvoices).length
-  return <article className={`${styles.panel} ${styles.licensePanel}`}><div className={styles.panelHead}><h2>Lizenzstatus</h2><span className={styles.freeBadge}>{limit.plan}</span></div><div className={styles.licenseGrid}><div><span>Benutzer</span><b>{limit.currentUsers} / {limit.maxUsers}</b></div><div><span>Status</span><b>{limit.isFull ? "Limit erreicht" : "Aktiv"}</b></div><div><span>Dokumente</span><b>{documentCount}</b></div><div><span>Ablaufdatum</span><b>{limit.validUntil ? limit.validUntil.slice(0, 10) : "-"}</b></div></div><Link href="/dashboard-v2/license?q=Lizenz-Key"><span>Lizenz / Upgrade aktivieren</span><KeyRound size={18} /></Link></article>
+  return <article className={`${styles.panel} ${styles.licensePanel}`}><div className={styles.panelHead}><h2>Lizenzstatus</h2><span className={styles.freeBadge}>{limit.plan}</span></div><div className={styles.licenseGrid}><div><span>Benutzer</span><b>{limit.currentUsers} / {limit.maxUsers}</b></div><div><span>Status</span><b>{limit.isFull ? "Limit erreicht" : "Aktiv"}</b></div><div><span>Dokumente</span><b>{documentCount}</b></div><div><span>Ablaufdatum</span><b>{limit.validUntil ? limit.validUntil.slice(0, 10) : "-"}</b></div></div><Link href={withPremiumTheme("/dashboard-v2/license?q=Lizenz-Key", mode)}><span>Lizenz / Upgrade aktivieren</span><KeyRound size={18} /></Link></article>
 }
 
-function IntegrationsPanel() {
-  return <article className={`${styles.panel} ${styles.integrationsPanel}`}><h2>Integrationen</h2><div className={styles.integrationsGrid}>{integrations.map(([name, meta, color]) => <div key={name}><span style={{ backgroundColor: color }}>{name.charAt(0)}</span><strong>{name}</strong><small>{meta}</small></div>)}<Link href="/dashboard-v2/integrations?q=Integration%20verbunden"><Grid3X3 size={18} />Mehr anzeigen</Link></div></article>
+function IntegrationsPanel({ mode }: { mode: ThemeMode }) {
+  return <article className={`${styles.panel} ${styles.integrationsPanel}`}><h2>Integrationen</h2><div className={styles.integrationsGrid}>{integrations.map(([name, meta, color]) => <div key={name}><span style={{ backgroundColor: color }}>{name.charAt(0)}</span><strong>{name}</strong><small>{meta}</small></div>)}<Link href={withPremiumTheme("/dashboard-v2/integrations?q=Integration%20verbunden", mode)}><Grid3X3 size={18} />Mehr anzeigen</Link></div></article>
 }
 
-function SearchResultsPanel({ data, searchQuery }: { data: PremiumData; searchQuery: string }) {
+function SearchResultsPanel({ data, mode, searchQuery }: { data: PremiumData; mode: ThemeMode; searchQuery: string }) {
   const results = globalSearchResults(data, searchQuery)
   if (!searchQuery.trim()) return null
 
   return (
     <article className={`${styles.panel} ${styles.searchResultsPanel}`}>
-      <div className={styles.panelHead}><div><h2>Suchtreffer</h2><span>{results.length ? `${results.length} Treffer fuer "${searchQuery}"` : `Keine Treffer fuer "${searchQuery}"`}</span></div><Link href="/dashboard-v2">Dashboard</Link></div>
+      <div className={styles.panelHead}><div><h2>Suchtreffer</h2><span>{results.length ? `${results.length} Treffer fuer "${searchQuery}"` : `Keine Treffer fuer "${searchQuery}"`}</span></div><Link href={withPremiumTheme("/dashboard-v2", mode)}>Dashboard</Link></div>
       {results.length ? (
         <div className={styles.searchResultsGrid}>
           {results.map((result) => {
             const Icon = result.icon
-            return <Link key={`${result.href}-${result.title}`} href={result.href}><span><Icon size={17} /></span><strong>{result.title}</strong><small>{result.subtitle}</small></Link>
+            return <Link key={`${result.href}-${result.title}`} href={withPremiumTheme(result.href, mode)}><span><Icon size={17} /></span><strong>{result.title}</strong><small>{result.subtitle}</small></Link>
           })}
         </div>
       ) : (
@@ -1077,15 +1077,15 @@ function SearchResultsPanel({ data, searchQuery }: { data: PremiumData; searchQu
   )
 }
 
-function DashboardOverview({ data, profile, searchQuery }: { data: PremiumData; profile: ReturnType<typeof profileFromData>; searchQuery: string }) {
+function DashboardOverview({ data, mode, profile, searchQuery }: { data: PremiumData; mode: ThemeMode; profile: ReturnType<typeof profileFromData>; searchQuery: string }) {
   return (
     <>
-      <KpiGrid data={data} />
-      <SearchResultsPanel data={data} searchQuery={searchQuery} />
-      <section className={styles.mainGrid}><RevenueChart data={data} /><StatusPanel data={data} /><QuickActions profile={profile} /></section>
-      <section className={styles.lowerGrid}><InvoiceTable data={data} searchQuery={searchQuery} /><BarPanel data={data} /><ActivityFeed data={data} /></section>
-      <section className={styles.bottomGrid}><UsersPanel data={data} /><LicensePanel data={data} /></section>
-      <IntegrationsPanel />
+      <KpiGrid data={data} mode={mode} />
+      <SearchResultsPanel data={data} mode={mode} searchQuery={searchQuery} />
+      <section className={styles.mainGrid}><RevenueChart data={data} mode={mode} /><StatusPanel data={data} /><QuickActions mode={mode} profile={profile} /></section>
+      <section className={styles.lowerGrid}><InvoiceTable data={data} mode={mode} searchQuery={searchQuery} /><BarPanel data={data} mode={mode} /><ActivityFeed data={data} mode={mode} /></section>
+      <section className={styles.bottomGrid}><UsersPanel data={data} mode={mode} /><LicensePanel data={data} mode={mode} /></section>
+      <IntegrationsPanel mode={mode} />
     </>
   )
 }
@@ -1872,7 +1872,7 @@ function PremiumModulePage({ view, data, mode, searchQuery }: { view: Exclude<Pr
           <h1>{meta.title}</h1>
           <p>{meta.description}</p>
         </div>
-        <Link href={content.primaryHref}><Plus size={18} />{meta.primary}</Link>
+        <Link href={withPremiumTheme(content.primaryHref, mode)}><Plus size={18} />{meta.primary}</Link>
       </article>
 
       <section className={styles.moduleStatsGrid}>
@@ -1922,10 +1922,10 @@ function PremiumModulePage({ view, data, mode, searchQuery }: { view: Exclude<Pr
         </article>
 
         <article className={`${styles.panel} ${styles.moduleTable}`}>
-          <div className={styles.panelHead}><h2>{meta.title} Uebersicht</h2><Link href="/dashboard-v2">Zurueck zum Dashboard</Link></div>
+          <div className={styles.panelHead}><h2>{meta.title} Uebersicht</h2><Link href={withPremiumTheme("/dashboard-v2", mode)}>Zurueck zum Dashboard</Link></div>
           <div className={styles.pipelineList}>
             {rows.length ? rows.map(([title, subtitle, value, status]) => (
-              <Link key={`${title}-${value}`} href={moduleRowHref(view, data, [title, subtitle, value, status])} className={styles.pipelineRow}>
+              <Link key={`${title}-${value}`} href={withPremiumTheme(moduleRowHref(view, data, [title, subtitle, value, status]), mode)} className={styles.pipelineRow}>
                 <span><strong>{title}</strong><small>{subtitle}</small></span>
                 <b>{value}</b>
                 <em>{status}</em>
@@ -2055,11 +2055,11 @@ export function PremiumWorkspacePage({ view = "dashboard", initialSearchQuery = 
 
   return (
     <div className={styles.page} data-theme={mode} role="main">
-      <Sidebar unreadCount={unreadCount} upgrade={upgrade} workspace={workspace} />
+      <Sidebar mode={mode} unreadCount={unreadCount} upgrade={upgrade} workspace={workspace} />
       <section className={styles.contentShell}>
         <Topbar mode={mode} profile={profile} searchInputRef={searchInputRef} searchQuery={searchQuery} themeLinks={themeLinks} unreadCount={unreadCount} onModeChange={handleModeChange} onSearchChange={setSearchQuery} />
-        <CompactNav unreadCount={unreadCount} />
-        {view === "dashboard" ? <DashboardOverview data={data} profile={profile} searchQuery={searchQuery} /> : <><SearchResultsPanel data={data} searchQuery={searchQuery} /><PremiumModulePage view={view} data={data} mode={mode} searchQuery={searchQuery} /></>}
+        <CompactNav mode={mode} unreadCount={unreadCount} />
+        {view === "dashboard" ? <DashboardOverview data={data} mode={mode} profile={profile} searchQuery={searchQuery} /> : <><SearchResultsPanel data={data} mode={mode} searchQuery={searchQuery} /><PremiumModulePage view={view} data={data} mode={mode} searchQuery={searchQuery} /></>}
       </section>
     </div>
   )
