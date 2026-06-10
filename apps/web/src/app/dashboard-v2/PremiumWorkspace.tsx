@@ -787,7 +787,7 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     stats: [["5/5", "Benutzer"], ["3", "Rollen"], ["2FA", "Empfohlen"]],
     rows: users.map(([name, role]) => [name, role, "Aktiv", role === "Administrator" ? "Owner" : "Team"]) as ModuleRow[],
     focus: [["Admin", "Daniel"], ["Lizenzlimit", "5 Benutzer"], ["Letzter Login", "Heute"]],
-    actions: [["Benutzer einladen", "/dashboard-v2/users?q=Benutzer%20einladen"], ["Rolle bearbeiten", "/dashboard-v2/users?q=Rolle"], ["2FA pruefen", "/account/security"]],
+    actions: [["Benutzer einladen", "/dashboard-v2/users?q=Benutzer%20einladen"], ["Rolle bearbeiten", "/settings/users"], ["2FA pruefen", "/account/security"]],
     timeline: [["Einladung vorbereitet", "Neuer Benutzer kann per E-Mail eingeladen werden."], ["Rolle geaendert", "Sarah ist Manager mit Projektfreigaben."], ["Sicherheitshinweis", "2FA fuer Buchhaltung empfohlen."]],
     primaryHref: "/dashboard-v2/users?q=Benutzer%20einladen"
   },
@@ -795,7 +795,7 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     stats: [["Free", "Tarif"], ["100", "Rechnungen"], ["1 GB", "Speicher"]],
     rows: [["Benutzerlimit", "5 von 5 verwendet", "Voll", "Limit"], ["Dokumente im Workspace", "Geladene Dokumente", "Lokal", "Aktiv"], ["Speicher", "Nicht gemessen", "Lokal", "Info"]],
     focus: [["Upgrade Vorteil", "Unbegrenzt"], ["Premium Support", "Enthalten"], ["Aktivierung", "Lizenz-Key"]],
-    actions: [["Lizenz aktivieren", "/dashboard-v2/license?q=Lizenz-Key"], ["Upgrade pruefen", "/dashboard-v2/license?q=Upgrade"], ["Key eingeben", "/dashboard-v2/license?q=Lizenz-Key"]],
+    actions: [["Lizenz aktivieren", "/dashboard-v2/license?q=Lizenz-Key"], ["Demo-Key pruefen", "/dashboard-v2/license?q=Lizenz%20aktiviert"], ["Benutzerlimit", "/dashboard-v2/users?q=Benutzer"]],
     timeline: [["Limit erreicht", "Kostenloser Plan ist vollstaendig ausgereizt."], ["Upgrade vorbereitet", "Premium schaltet unbegrenzte Benutzer frei."], ["Abrechnung bereit", "Lizenzdaten koennen hinterlegt werden."]],
     primaryHref: "/dashboard-v2/license?q=Lizenz-Key"
   },
@@ -1630,17 +1630,19 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
                       ? "Vergleich wurde geoeffnet und fuer den Export vorbereitet."
                       : query.includes("benutzer eingeladen")
                         ? "Benutzereinladung wurde vorbereitet."
-                        : query.includes("alle gelesen")
-                          ? "Alle Benachrichtigungen wurden als gelesen markiert."
-                          : query.includes("filter aktiv")
-                            ? "Filter aktiv: wichtige Zahlung, Rechnung und Systemmeldungen."
-                            : query.includes("integration verbunden")
-                              ? "Integration wurde verbunden und fuer Sync vorbereitet."
-                              : query.includes("workflow getestet")
-                                ? "Workflow wurde erfolgreich getestet."
-                                : query.includes("webhook erstellt")
-                                  ? "Webhook wurde fuer invoice.created vorbereitet."
-                                  : ""
+                        : query.includes("rolle vorbereitet")
+                          ? "Rollenverwaltung wurde vorbereitet."
+                          : query.includes("alle gelesen")
+                            ? "Alle Benachrichtigungen wurden als gelesen markiert."
+                            : query.includes("filter aktiv")
+                              ? "Filter aktiv: wichtige Zahlung, Rechnung und Systemmeldungen."
+                              : query.includes("integration verbunden")
+                                ? "Integration wurde verbunden und fuer Sync vorbereitet."
+                                : query.includes("workflow getestet")
+                                  ? "Workflow wurde erfolgreich getestet."
+                                  : query.includes("webhook erstellt")
+                                    ? "Webhook wurde fuer invoice.created vorbereitet."
+                                    : ""
   const message = routeMessage ? <p data-state="success">{routeMessage}</p> : null
 
   if (view === "customers") {
@@ -1758,6 +1760,11 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
           <label>Rolle<select name="role" defaultValue="user"><option value="user">Mitarbeiter</option><option value="admin">Admin</option></select></label>
           <button type="submit">Einladen</button>
         </form>
+        <div className={styles.workflowActions}>
+          <Link href="/settings/users">Rollen verwalten</Link>
+          <Link href="/account/security">2FA pruefen</Link>
+          <Link href={withPremiumTheme("/dashboard-v2/users?q=Rolle%20vorbereitet", mode)}>Rolle vormerken</Link>
+        </div>
         {message}
       </article>
     )
