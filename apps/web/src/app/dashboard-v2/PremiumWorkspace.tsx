@@ -440,6 +440,34 @@ function userCardsFromData(data: PremiumData): UserRow[] {
   })
 }
 
+function initialsFromName(value: string) {
+  const parts = value.trim().split(/\s+/).filter(Boolean)
+  if (!parts.length) return "D"
+  return parts.slice(0, 2).map((part) => part.charAt(0).toUpperCase()).join("")
+}
+
+function workspaceFromData(data: PremiumData) {
+  const company = data.companySettings ?? fallbackCompanySettings
+  const name = company.company || fallbackCompanySettings.company || "DreamInvoice"
+
+  return {
+    name,
+    initial: initialsFromName(name).charAt(0)
+  }
+}
+
+function profileFromData(data: PremiumData) {
+  const user = (data.appUsers.length ? data.appUsers : fallbackAppUsers)[0]
+  const name = user?.name || user?.email?.split("@")[0] || "Daniel"
+  const role = user?.role || "Administrator"
+
+  return {
+    name,
+    role,
+    initials: initialsFromName(name)
+  }
+}
+
 function userLimitFromData(data: PremiumData) {
   const source = data.appUsers.length ? data.appUsers : fallbackAppUsers
   const limit = data.userLimit ?? fallbackUserLimit
@@ -673,27 +701,27 @@ function ThemeToggle({ mode, onChange }: { mode: ThemeMode; onChange: (mode: The
   )
 }
 
-function Sidebar() {
+function Sidebar({ workspace }: { workspace: ReturnType<typeof workspaceFromData> }) {
   const pathname = usePathname()
 
   return (
     <aside className={styles.sidebar}>
       <div className={styles.logoWrap}><div className={styles.logoMark}>D</div><div><strong>DreamInvoice</strong><span>Premium Edition</span></div></div>
-      <button className={styles.workspaceButton} type="button"><span className={styles.workspaceAvatar}>A</span><span><small>Workspace</small><strong>Acme GmbH</strong></span><ChevronDown size={14} /></button>
+      <button className={styles.workspaceButton} type="button"><span className={styles.workspaceAvatar}>{workspace.initial}</span><span><small>Workspace</small><strong>{workspace.name}</strong></span><ChevronDown size={14} /></button>
       <nav className={styles.sideSections}>{sideNav.map((group) => <div key={group.section} className={styles.sideSection}><p>{group.section}</p>{group.items.map((item) => { const Icon = item.icon; const isActive = pathname === item.href; return <Link key={item.label} href={item.href} className={isActive ? styles.activeSideItem : styles.sideItem}><Icon size={16} /><span>{item.label}</span>{item.badge ? <em>{item.badge}</em> : null}</Link> })}</div>)}</nav>
       <div className={styles.upgradeCard}><Crown size={26} /><strong>Upgrade & Skalieren</strong><span>Erweiterte Funktionen und unbegrenzte Benutzer</span><Link href="/settings/users">Lizenz aktivieren</Link></div>
     </aside>
   )
 }
 
-function Topbar({ mode, searchQuery, unreadCount, onModeChange, onSearchChange }: { mode: ThemeMode; searchQuery: string; unreadCount: number; onModeChange: (mode: ThemeMode) => void; onSearchChange: (value: string) => void }) {
+function Topbar({ mode, profile, searchQuery, unreadCount, onModeChange, onSearchChange }: { mode: ThemeMode; profile: ReturnType<typeof profileFromData>; searchQuery: string; unreadCount: number; onModeChange: (mode: ThemeMode) => void; onSearchChange: (value: string) => void }) {
   const pathname = usePathname()
 
   return (
     <header className={styles.topbar}>
       <label className={styles.searchBox}><Search size={16} /><input value={searchQuery} onChange={(event) => onSearchChange(event.target.value)} placeholder="Suche..." aria-label="Premium Suche" /></label>
       <nav className={styles.desktopNav}>{mainNav.map((item) => <Link key={item.label} className={pathname === item.href ? styles.navActive : ""} href={item.href}>{item.label}</Link>)}</nav>
-      <div className={styles.topActions}><ThemeToggle mode={mode} onChange={onModeChange} /><Link href="/documents/new" aria-label="Neu"><Plus size={18} /></Link><Link href="/dashboard-v2/notifications" aria-label="Benachrichtigungen" className={styles.bellButton}><Bell size={18} />{unreadCount > 0 ? <span>{unreadCount}</span> : null}</Link><Link href="/settings/system" aria-label="Hilfe"><HelpCircle size={18} /></Link><div className={styles.profile}><span>D</span><div><strong>Daniel</strong><small>Administrator</small></div></div></div>
+      <div className={styles.topActions}><ThemeToggle mode={mode} onChange={onModeChange} /><Link href="/documents/new" aria-label="Neu"><Plus size={18} /></Link><Link href="/dashboard-v2/notifications" aria-label="Benachrichtigungen" className={styles.bellButton}><Bell size={18} />{unreadCount > 0 ? <span>{unreadCount}</span> : null}</Link><Link href="/settings/system" aria-label="Hilfe"><HelpCircle size={18} /></Link><div className={styles.profile}><span>{profile.initials}</span><div><strong>{profile.name}</strong><small>{profile.role}</small></div></div></div>
     </header>
   )
 }
@@ -756,7 +784,7 @@ function StatusPanel({ data }: { data: PremiumData }) {
   return <article className={`${styles.panel} ${styles.statusPanel}`}><div className={styles.panelHead}><h2>Rechnungsstatus</h2></div><div className={styles.donutWrap}><div className={styles.donut}><div><strong>{total}</strong><span>Gesamt</span></div></div><div className={styles.statusLegend}>{statusItems.map(([label, tone, count]) => <div key={label}><span data-tone={tone} />{label}<b>{count} ({Math.round((count / total) * 100)}%)</b></div>)}</div></div></article>
 }
 
-function QuickActions() {
+function QuickActions({ profile }: { profile: ReturnType<typeof profileFromData> }) {
   const actions: Array<{ label: string; icon: IconType; tone: string; href: string }> = [
     { label: "Neue Rechnung", icon: FileText, tone: "violet", href: "/documents/new" },
     { label: "Neuer Kunde", icon: UserPlus, tone: "blue", href: "/customers/new" },
@@ -765,7 +793,7 @@ function QuickActions() {
     { label: "Zeiterfassung starten", icon: Clock3, tone: "rose", href: "/dashboard-v2/time" },
     { label: "Ausgabe erfassen", icon: Wallet, tone: "green", href: "/finance/accounts" }
   ]
-  return <article className={`${styles.panel} ${styles.quickPanel}`}><div className={styles.robot}>AI</div><div className={styles.panelHead}><div><h2>Schnellaktionen</h2><span>Hallo Daniel. Was moechten Sie heute erledigen?</span></div></div><div className={styles.quickGrid}>{actions.map((action) => { const Icon = action.icon; return <Link key={action.label} href={action.href} data-tone={action.tone}><Icon size={19} /><span>{action.label}</span></Link> })}</div></article>
+  return <article className={`${styles.panel} ${styles.quickPanel}`}><div className={styles.robot}>AI</div><div className={styles.panelHead}><div><h2>Schnellaktionen</h2><span>Hallo {profile.name}. Was moechten Sie heute erledigen?</span></div></div><div className={styles.quickGrid}>{actions.map((action) => { const Icon = action.icon; return <Link key={action.label} href={action.href} data-tone={action.tone}><Icon size={19} /><span>{action.label}</span></Link> })}</div></article>
 }
 
 function InvoiceTable({ data, searchQuery }: { data: PremiumData; searchQuery: string }) {
@@ -801,11 +829,11 @@ function IntegrationsPanel() {
   return <article className={`${styles.panel} ${styles.integrationsPanel}`}><h2>Integrationen</h2><div className={styles.integrationsGrid}>{integrations.map(([name, meta, color]) => <div key={name}><span style={{ backgroundColor: color }}>{name.charAt(0)}</span><strong>{name}</strong><small>{meta}</small></div>)}<Link href="/dashboard-v2/integrations"><Grid3X3 size={18} />Mehr anzeigen</Link></div></article>
 }
 
-function DashboardOverview({ data, searchQuery }: { data: PremiumData; searchQuery: string }) {
+function DashboardOverview({ data, profile, searchQuery }: { data: PremiumData; profile: ReturnType<typeof profileFromData>; searchQuery: string }) {
   return (
     <>
       <KpiGrid data={data} />
-      <section className={styles.mainGrid}><RevenueChart data={data} /><StatusPanel data={data} /><QuickActions /></section>
+      <section className={styles.mainGrid}><RevenueChart data={data} /><StatusPanel data={data} /><QuickActions profile={profile} /></section>
       <section className={styles.lowerGrid}><InvoiceTable data={data} searchQuery={searchQuery} /><BarPanel data={data} /><ActivityFeed data={data} /></section>
       <section className={styles.bottomGrid}><UsersPanel data={data} /><LicensePanel data={data} /></section>
       <IntegrationsPanel />
@@ -1288,12 +1316,15 @@ export function PremiumWorkspacePage({ view = "dashboard" }: { view?: PremiumVie
     window.localStorage.setItem("dream-invoice-premium-theme", nextMode)
   }
 
+  const workspace = workspaceFromData(data)
+  const profile = profileFromData(data)
+
   return (
     <div className={styles.page} data-theme={mode} role="main">
-      <Sidebar />
+      <Sidebar workspace={workspace} />
       <section className={styles.contentShell}>
-        <Topbar mode={mode} searchQuery={searchQuery} unreadCount={(data.notifications.length ? data.notifications : fallbackNotifications).filter((item) => !item.readAt).length} onModeChange={handleModeChange} onSearchChange={setSearchQuery} />
-        {view === "dashboard" ? <DashboardOverview data={data} searchQuery={searchQuery} /> : <PremiumModulePage view={view} data={data} searchQuery={searchQuery} />}
+        <Topbar mode={mode} profile={profile} searchQuery={searchQuery} unreadCount={(data.notifications.length ? data.notifications : fallbackNotifications).filter((item) => !item.readAt).length} onModeChange={handleModeChange} onSearchChange={setSearchQuery} />
+        {view === "dashboard" ? <DashboardOverview data={data} profile={profile} searchQuery={searchQuery} /> : <PremiumModulePage view={view} data={data} searchQuery={searchQuery} />}
       </section>
     </div>
   )
