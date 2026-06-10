@@ -323,7 +323,7 @@ const integrations: IntegrationRow[] = [
 const revenue = [820, 980, 1320, 1580, 1190, 1460, 1440, 1900, 2220, 1980, 2240, 1730, 1750]
 const payments = [520, 650, 1020, 1080, 880, 760, 1060, 1500, 1810, 1600, 1450, 1280, 860]
 const expenses = [80, 180, 310, 430, 290, 360, 390, 530, 520, 580, 610, 640, 510]
-const months = ["Aug", "Sep", "Okt", "Nov", "Dez", "Jan", "Feb", "Maer", "Apr", "Mai", "Jun", "Jul", ""]
+const monthLabels = ["Jan", "Feb", "Maer", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"]
 const fallbackApiInvoices: ApiInvoice[] = invoices.map(([number, customer, status, amount, date]) => ({
   id: number,
   number,
@@ -465,6 +465,67 @@ function matchesSearch(values: readonly string[], query: string) {
 function parsePercent(value: string) {
   const parsed = Number(value.replace(/[^\d.,]/g, "").replace(",", "."))
   return Number.isFinite(parsed) ? parsed : 0
+}
+
+function parseInvoiceDate(value?: string) {
+  if (!value) return null
+  const isoDate = new Date(value)
+  if (!Number.isNaN(isoDate.getTime())) return isoDate
+  const dateMatch = value.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/)
+  if (!dateMatch) return null
+  const parsed = new Date(Number(dateMatch[3]), Number(dateMatch[2]) - 1, Number(dateMatch[1]))
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+function monthKey(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`
+}
+
+function buildMonthlySeries(data: PremiumData) {
+  const source = data.invoices.length ? data.invoices : fallbackApiInvoices
+  const parsedDates = source
+    .map((invoice) => parseInvoiceDate(invoice.date || invoice.createdAt || invoice.dueDate))
+    .filter((date): date is Date => Boolean(date))
+  const latestDate = parsedDates.length
+    ? new Date(Math.max(...parsedDates.map((date) => date.getTime())))
+    : new Date(2026, 6, 1)
+
+  const buckets = Array.from({ length: 6 }, (_, index) => {
+    const date = new Date(latestDate.getFullYear(), latestDate.getMonth() - (5 - index), 1)
+    return {
+      key: monthKey(date),
+      label: monthLabels[date.getMonth()],
+      revenue: 0,
+      payments: 0,
+      expenses: 0
+    }
+  })
+  const bucketMap = new Map(buckets.map((bucket) => [bucket.key, bucket]))
+
+  for (const invoice of source) {
+    const date = parseInvoiceDate(invoice.date || invoice.createdAt || invoice.dueDate)
+    if (!date) continue
+    const bucket = bucketMap.get(monthKey(date))
+    if (!bucket) continue
+    const amount = Number(invoice.grossTotal || 0)
+    if (invoiceType(invoice) === "offer") {
+      bucket.revenue += amount * 0.45
+      continue
+    }
+    bucket.revenue += amount
+    bucket.expenses += amount * 0.32
+    if (isStatus(invoice.status, "paid")) {
+      bucket.payments += amount
+    }
+  }
+
+  return {
+    labels: buckets.map((bucket) => bucket.label),
+    years: buckets.map((bucket) => Number(bucket.key.slice(0, 4))),
+    revenue: buckets.map((bucket, index) => Math.round(bucket.revenue || revenue[index] || 0)),
+    payments: buckets.map((bucket, index) => Math.round(bucket.payments || payments[index] || 0)),
+    expenses: buckets.map((bucket, index) => Math.round(bucket.expenses || expenses[index] || 0))
+  }
 }
 
 const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
@@ -652,17 +713,19 @@ function KpiGrid({ data }: { data: PremiumData }) {
   return <section className={styles.kpiGrid}>{liveKpis.map((item) => { const Icon = item.icon; return <article key={item.label} className={`${styles.panel} ${styles.kpiCard}`} data-tone={item.tone}><div className={styles.kpiIcon}><Icon size={22} /></div><div><span>{item.label}</span><strong>{item.value}</strong><small>{item.detail}</small></div><MoreVertical size={17} className={styles.moreIcon} /></article> })}</section>
 }
 
-function RevenueChart() {
+function RevenueChart({ data }: { data: PremiumData }) {
   const chartHeight = 155
-  const revenuePoints = useMemo(() => linePoints(revenue, chartHeight), [])
-  const paymentPoints = useMemo(() => linePoints(payments, chartHeight), [])
-  const expensePoints = useMemo(() => linePoints(expenses, chartHeight), [])
+  const series = useMemo(() => buildMonthlySeries(data), [data])
+  const revenuePoints = useMemo(() => linePoints(series.revenue, chartHeight), [series.revenue])
+  const paymentPoints = useMemo(() => linePoints(series.payments, chartHeight), [series.payments])
+  const expensePoints = useMemo(() => linePoints(series.expenses, chartHeight), [series.expenses])
+  const latestIndex = Math.max(series.labels.length - 1, 0)
 
   return (
     <article className={`${styles.panel} ${styles.revenuePanel}`}>
       <div className={styles.panelHead}><div><h2>Umsatzuebersicht</h2><span>Umsaetze, Zahlungen und Ausgaben</span></div><button type="button">Letzte 12 Monate <ChevronDown size={14} /></button></div>
       <div className={styles.legend}><span data-color="violet">Umsatz</span><span data-color="green">Zahlungen</span><span data-color="amber">Ausgaben</span></div>
-      <div className={styles.chartArea}><svg viewBox={`0 0 100 ${chartHeight}`} preserveAspectRatio="none" aria-label="Umsatzdiagramm"><polyline points={revenuePoints} className={styles.revenueLine} /><polyline points={paymentPoints} className={styles.paymentLine} /><polyline points={expensePoints} className={styles.expenseLine} />{[0, 1, 2].map((index) => <circle key={index} cx="58.3" cy={index === 0 ? "45" : index === 1 ? "72" : "118"} r="1.8" className={styles.chartDot} />)}</svg><div className={styles.chartTooltip}><strong>April 2026</strong><span><i />Umsatz <b>1.820,00 EUR</b></span><span><i />Zahlungen <b>1.450,00 EUR</b></span><span><i />Ausgaben <b>680,00 EUR</b></span></div><div className={styles.monthLabels}>{months.map((month, index) => <span key={`${month}-${index}`}>{month}</span>)}</div></div>
+      <div className={styles.chartArea}><svg viewBox={`0 0 100 ${chartHeight}`} preserveAspectRatio="none" aria-label="Umsatzdiagramm"><polyline points={revenuePoints} className={styles.revenueLine} /><polyline points={paymentPoints} className={styles.paymentLine} /><polyline points={expensePoints} className={styles.expenseLine} />{[0, 1, 2].map((index) => <circle key={index} cx="58.3" cy={index === 0 ? "45" : index === 1 ? "72" : "118"} r="1.8" className={styles.chartDot} />)}</svg><div className={styles.chartTooltip}><strong>{series.labels[latestIndex]} {series.years[latestIndex]}</strong><span><i />Umsatz <b>{formatEuro(series.revenue[latestIndex] || 0)}</b></span><span><i />Zahlungen <b>{formatEuro(series.payments[latestIndex] || 0)}</b></span><span><i />Ausgaben <b>{formatEuro(series.expenses[latestIndex] || 0)}</b></span></div><div className={styles.monthLabels}>{series.labels.map((month, index) => <span key={`${month}-${index}`}>{month}</span>)}</div></div>
     </article>
   )
 }
@@ -697,11 +760,11 @@ function InvoiceTable({ data, searchQuery }: { data: PremiumData; searchQuery: s
   return <article className={`${styles.panel} ${styles.tablePanel}`}><div className={styles.panelHead}><h2>Kuerzlich erstellte Rechnungen</h2><Link href="/documents">Alle anzeigen</Link></div><div className={styles.tableScroll}><table><thead><tr><th>Rechnung</th><th>Kunde</th><th>Status</th><th>Betrag</th><th>Datum</th></tr></thead><tbody>{rows.length ? rows.map(([number, customer, status, amount, date]) => <tr key={number}><td><Link href="/documents">{number}</Link></td><td>{customer}</td><td><span data-status={status}>{status}</span></td><td>{amount}</td><td>{date}</td></tr>) : <tr><td colSpan={5} className={styles.emptyTableCell}>Keine Treffer</td></tr>}</tbody></table></div></article>
 }
 
-function BarPanel() {
-  const income = [720, 1150, 860, 1000, 1260, 980]
-  const spend = [360, 460, 420, 610, 680, 520]
-  const labels = ["Feb", "Maer", "Apr", "Mai", "Jun", "Jul"]
-  return <article className={`${styles.panel} ${styles.barPanel}`}><div className={styles.panelHead}><h2>Einnahmen & Ausgaben</h2><button type="button">Monatlich <ChevronDown size={14} /></button></div><div className={styles.barChart}>{labels.map((label, index) => <div key={label} className={styles.barGroup}><div><span className={styles.incomeBar} style={{ height: `${income[index] / 13}px` }} /><span className={styles.spendBar} style={{ height: `${spend[index] / 13}px` }} /></div><small>{label}</small></div>)}</div><div className={styles.legend}><span data-color="violet">Einnahmen</span><span data-color="amber">Ausgaben</span></div></article>
+function BarPanel({ data }: { data: PremiumData }) {
+  const series = useMemo(() => buildMonthlySeries(data), [data])
+  const maxValue = Math.max(...series.revenue, ...series.expenses, 1)
+
+  return <article className={`${styles.panel} ${styles.barPanel}`}><div className={styles.panelHead}><h2>Einnahmen & Ausgaben</h2><button type="button">Monatlich <ChevronDown size={14} /></button></div><div className={styles.barChart}>{series.labels.map((label, index) => <div key={label} className={styles.barGroup}><div><span className={styles.incomeBar} style={{ height: `${Math.max(18, (series.revenue[index] / maxValue) * 122)}px` }} /><span className={styles.spendBar} style={{ height: `${Math.max(12, (series.expenses[index] / maxValue) * 122)}px` }} /></div><small>{label}</small></div>)}</div><div className={styles.legend}><span data-color="violet">Einnahmen</span><span data-color="amber">Ausgaben</span></div></article>
 }
 
 function ActivityFeed({ data }: { data: PremiumData }) {
@@ -729,8 +792,8 @@ function DashboardOverview({ data, searchQuery }: { data: PremiumData; searchQue
   return (
     <>
       <KpiGrid data={data} />
-      <section className={styles.mainGrid}><RevenueChart /><StatusPanel data={data} /><QuickActions /></section>
-      <section className={styles.lowerGrid}><InvoiceTable data={data} searchQuery={searchQuery} /><BarPanel /><ActivityFeed data={data} /></section>
+      <section className={styles.mainGrid}><RevenueChart data={data} /><StatusPanel data={data} /><QuickActions /></section>
+      <section className={styles.lowerGrid}><InvoiceTable data={data} searchQuery={searchQuery} /><BarPanel data={data} /><ActivityFeed data={data} /></section>
       <section className={styles.bottomGrid}><UsersPanel data={data} /><LicensePanel data={data} /></section>
       <IntegrationsPanel />
     </>
