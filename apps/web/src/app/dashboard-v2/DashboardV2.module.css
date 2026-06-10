@@ -1553,6 +1553,111 @@
   line-height: 1.45;
 }
 
+.workflowPanel {
+  display: grid;
+  gap: 14px;
+}
+
+.workflowPanel[data-active="true"] {
+  border-color: color-mix(in srgb, var(--violet) 58%, var(--line));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--violet) 14%, transparent);
+}
+
+.workflowForm {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(160px, 0.8fr) auto;
+  align-items: end;
+  gap: 12px;
+}
+
+.workflowForm label {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.workflowForm input,
+.workflowForm select {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--shell);
+  color: var(--text);
+  padding: 0 12px;
+  outline: none;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.workflowForm input:focus,
+.workflowForm select:focus {
+  border-color: color-mix(in srgb, var(--violet) 70%, var(--line-strong));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--violet) 14%, transparent);
+}
+
+.workflowForm button,
+.workflowForm a,
+.workflowActions button,
+.workflowActions a,
+.workflowPanel .panelHead a {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #8b5cf6, #4f46e5);
+  color: #fff;
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 950;
+  text-decoration: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.workflowForm a,
+.workflowActions a,
+.workflowPanel .panelHead a {
+  border-color: var(--line);
+  background: color-mix(in srgb, var(--panel-strong) 86%, transparent);
+  color: var(--text);
+}
+
+.workflowForm button:disabled,
+.workflowActions button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.workflowActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.workflowPanel p {
+  border-radius: 8px;
+  margin: 0;
+  padding: 10px 12px;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.workflowPanel p[data-state="success"] {
+  background: color-mix(in srgb, var(--green) 14%, transparent);
+  color: var(--green);
+}
+
+.workflowPanel p[data-state="error"] {
+  background: color-mix(in srgb, var(--rose) 14%, transparent);
+  color: var(--rose);
+}
+
 .moduleStatCard {
   min-height: 104px;
   display: grid;
@@ -1858,6 +1963,7 @@
   .moduleGrid,
   .moduleStatsGrid,
   .licenseActionGrid,
+  .workflowForm,
   .usersPanel {
     grid-template-columns: 1fr;
   }

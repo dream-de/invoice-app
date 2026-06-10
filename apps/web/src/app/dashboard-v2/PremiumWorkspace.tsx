@@ -755,23 +755,23 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     stats: [["126 h", "Erfasst"], ["34 h", "Abrechenbar"], ["91%", "Freigegeben"]],
     rows: [["Website Redesign", "Daniel und Sarah", "18:40 h", "Laeuft"], ["Brand Portal", "Julia", "07:15 h", "Pruefung"], ["Support Retainer", "Thomas", "04:30 h", "Bereit"]],
     focus: [["Aktiver Timer", "01:24:18"], ["Heute erfasst", "6:45 h"], ["Nicht abgerechnet", "34 h"]],
-    actions: [["Timer starten", "/dashboard-v2/time"], ["Zeit buchen", "/dashboard-v2/time"], ["Freigabe senden", "/dashboard-v2/invoices"]],
+    actions: [["Timer starten", "/dashboard-v2/time?q=Timer%20starten"], ["Zeit buchen", "/dashboard-v2/time?q=Zeit%20buchen"], ["Freigabe senden", "/dashboard-v2/invoices?q=Freigabe"]],
     timeline: [["Timer gestartet", "Daniel arbeitet an Website Redesign."], ["Zeit freigegeben", "Sarahs Eintrag wurde fuer Abrechnung markiert."], ["Monatsabschluss", "Mai-Zeiten sind bereit fuer Rechnungen."]],
-    primaryHref: "/dashboard-v2/time"
+    primaryHref: "/dashboard-v2/time?q=Timer%20starten"
   },
   expenses: {
     stats: [["528,99", "Ausgaben"], ["12", "Belege"], ["100%", "Zuordnung"]],
     rows: [["Adobe Creative Cloud", "Software", "71,39 EUR", "Bezahlt"], ["Hetzner Cloud", "Hosting", "43,20 EUR", "Verbucht"], ["DB Reise", "Projektkosten", "128,40 EUR", "Pruefung"]],
     focus: [["Monatliches Budget", "2.000,00 EUR"], ["Erstattungen offen", "214,20 EUR"], ["DATEV bereit", "10 Belege"]],
-    actions: [["Ausgabe erfassen", "/finance/accounts"], ["Beleg hochladen", "/finance/accounts/import"], ["Export starten", "/dashboard-v2/reports"]],
+    actions: [["Ausgabe erfassen", "/dashboard-v2/expenses?q=Ausgabe%20erfassen"], ["Beleg hochladen", "/finance/accounts/import"], ["Export starten", "/api/finance/datev-export"]],
     timeline: [["Beleg erkannt", "OCR hat Kategorie und Betrag automatisch gesetzt."], ["Kostenstelle gesetzt", "Hosting wurde Projekt Website Redesign zugeordnet."], ["Export vorbereitet", "10 Belege sind DATEV-kompatibel."]],
-    primaryHref: "/finance/accounts"
+    primaryHref: "/dashboard-v2/expenses?q=Ausgabe%20erfassen"
   },
   reports: {
     stats: [["18%", "Wachstum"], ["34%", "Marge"], ["12", "Reports"]],
     rows: [["Cashflow Juni", "Umsatz und Ausgaben", "+1.860,00 EUR", "Bereit"], ["Kundenwert", "Top 10 Kunden", "8.420,00 EUR", "Aktuell"], ["Steuerreport", "USt-Voranmeldung", "Pruefen", "Offen"]],
     focus: [["Umsatz YTD", "48.920,00 EUR"], ["Kosten YTD", "18.110,00 EUR"], ["Prognose", "+22%"]],
-    actions: [["Report exportieren", "/dashboard-v2/reports"], ["Filter speichern", "/dashboard-v2/reports"], ["Vergleich oeffnen", "/dashboard-v2/reports"]],
+    actions: [["Report exportieren", "/api/documents/export"], ["DATEV Export", "/api/finance/datev-export"], ["Vergleich oeffnen", "/dashboard-v2/reports?q=Vergleich"]],
     timeline: [["Report erstellt", "Cashflow Juni wurde aktualisiert."], ["Abweichung erkannt", "Ausgaben liegen 8% unter Prognose."], ["Export geplant", "Steuerreport wird Freitag vorbereitet."]],
     primaryHref: "/dashboard-v2/reports"
   },
@@ -787,9 +787,9 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     stats: [["5/5", "Benutzer"], ["3", "Rollen"], ["2FA", "Empfohlen"]],
     rows: users.map(([name, role]) => [name, role, "Aktiv", role === "Administrator" ? "Owner" : "Team"]) as ModuleRow[],
     focus: [["Admin", "Daniel"], ["Lizenzlimit", "5 Benutzer"], ["Letzter Login", "Heute"]],
-    actions: [["Benutzer einladen", "/dashboard-v2/users"], ["Rolle bearbeiten", "/dashboard-v2/users"], ["2FA pruefen", "/dashboard-v2/settings"]],
+    actions: [["Benutzer einladen", "/dashboard-v2/users?q=Benutzer%20einladen"], ["Rolle bearbeiten", "/dashboard-v2/users?q=Rolle"], ["2FA pruefen", "/account/security"]],
     timeline: [["Einladung vorbereitet", "Neuer Benutzer kann per E-Mail eingeladen werden."], ["Rolle geaendert", "Sarah ist Manager mit Projektfreigaben."], ["Sicherheitshinweis", "2FA fuer Buchhaltung empfohlen."]],
-    primaryHref: "/dashboard-v2/users"
+    primaryHref: "/dashboard-v2/users?q=Benutzer%20einladen"
   },
   license: {
     stats: [["Free", "Tarif"], ["100", "Rechnungen"], ["1 GB", "Speicher"]],
@@ -819,25 +819,25 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     stats: [["12", "Neu"], ["4", "Wichtig"], ["0", "Kritisch"]],
     rows: [["Zahlung erhalten", "Aurora Labs GmbH", "719,05 EUR", "Neu"], ["Rechnung ueberfaellig", "Pixel Perfect Ltd.", "1.147,00 EUR", "Wichtig"], ["Projekt aktualisiert", "Website Redesign", "Phase 2", "Info"]],
     focus: [["Inbox", "12 Meldungen"], ["Heute", "6 Ereignisse"], ["Regeln", "8 aktiv"]],
-    actions: [["Regeln bearbeiten", "/dashboard-v2/notifications"], ["Alle gelesen", "/dashboard-v2/notifications"], ["Filter setzen", "/dashboard-v2/notifications"]],
+    actions: [["Regeln bearbeiten", "/dashboard-v2/notifications?q=Regeln"], ["Alle gelesen", "/dashboard-v2/notifications?q=Alle%20gelesen"], ["Filter setzen", "/dashboard-v2/notifications?q=Filter"]],
     timeline: [["Push gesendet", "Daniel wurde ueber Zahlung informiert."], ["Regel angewendet", "Ueberfaellige Rechnung markiert."], ["Benachrichtigung geplant", "Tagesbericht wird um 18:00 gesendet."]],
-    primaryHref: "/dashboard-v2/notifications"
+    primaryHref: "/dashboard-v2/notifications?q=Alle%20gelesen"
   },
   audit: {
     stats: [["248", "Events"], ["0", "Risiken"], ["30 T", "Aufbewahrung"]],
     rows: [["Daniel", "Rechnung exportiert", "OF-2026-5001", "Heute"], ["Sarah", "Kunde bearbeitet", "Aurora Labs", "Heute"], ["System", "Webhook ausgeliefert", "invoice.created", "Gestern"]],
     focus: [["Sicherheitsstatus", "Gruen"], ["Letzter Export", "Heute"], ["Admin Aktionen", "14"]],
-    actions: [["Audit exportieren", "/dashboard-v2/audit"], ["Filter setzen", "/dashboard-v2/audit"], ["Ereignis suchen", "/dashboard-v2/audit"]],
+    actions: [["Audit exportieren", "/dashboard-v2/audit?q=Export"], ["Filter setzen", "/dashboard-v2/audit?q=Filter"], ["Ereignis suchen", "/dashboard-v2/audit?q=Suche"]],
     timeline: [["Export protokolliert", "PDF-Download wurde im Audit gespeichert."], ["Zugriff erlaubt", "Sarah hat Kundenprofil geoeffnet."], ["Webhook signiert", "Event wurde erfolgreich ausgeliefert."]],
-    primaryHref: "/dashboard-v2/audit"
+    primaryHref: "/dashboard-v2/audit?q=Export"
   },
   api: {
     stats: [["3", "Keys"], ["8", "Webhooks"], ["99.9%", "Uptime"]],
     rows: [["invoice.created", "Webhook", "200 OK", "Aktiv"], ["payment.received", "Webhook", "200 OK", "Aktiv"], ["customer.updated", "Webhook", "Retry 1", "Pruefung"]],
     focus: [["Rate Limit", "18% genutzt"], ["Letzter Fehler", "Gestern"], ["Signaturen", "Aktiv"]],
-    actions: [["Webhook erstellen", "/dashboard-v2/api"], ["API-Key rotieren", "/dashboard-v2/api"], ["Logs oeffnen", "/dashboard-v2/audit"]],
+    actions: [["Webhook erstellen", "/dashboard-v2/api?q=Webhook"], ["API-Key rotieren", "/dashboard-v2/api?q=API-Key"], ["Logs oeffnen", "/dashboard-v2/audit?q=Webhook"]],
     timeline: [["Webhook ausgeliefert", "invoice.created wurde in 184 ms bestaetigt."], ["Key rotiert", "Alter Schluessel wurde deaktiviert."], ["Retry geplant", "customer.updated wird erneut gesendet."]],
-    primaryHref: "/dashboard-v2/api"
+    primaryHref: "/dashboard-v2/api?q=Webhook"
   }
 }
 
@@ -1583,6 +1583,159 @@ function PremiumLicensePanel({ data, searchQuery }: { data: PremiumData; searchQ
   )
 }
 
+function PremiumWorkflowPanel({ view, data, searchQuery }: { view: Exclude<PremiumView, "dashboard">; data: PremiumData; searchQuery: string }) {
+  const projectsSource = data.projects.length ? data.projects : fallbackProjects
+  const articlesSource = data.articles.length ? data.articles : fallbackApiArticles
+  const integrationsSource = integrations.length ? integrations : [["Stripe", "Zahlungen", "#635bff"]]
+  const rangesSource = data.numberRanges.length ? data.numberRanges : fallbackNumberRanges
+  const query = searchQuery.toLowerCase()
+
+  if (view === "license") return null
+
+  const routeMessage = query.includes("zeit gebucht")
+    ? "Zeit wurde vorgemerkt und fuer Abrechnung vorbereitet."
+    : query.includes("ausgabe erfasst")
+      ? "Ausgabe wurde vorgemerkt und fuer DATEV vorbereitet."
+      : query.includes("benutzer eingeladen")
+        ? "Benutzereinladung wurde vorbereitet."
+        : query.includes("alle gelesen")
+          ? "Alle Benachrichtigungen wurden als gelesen markiert."
+          : query.includes("filter aktiv")
+            ? "Filter aktiv: wichtige Zahlung, Rechnung und Systemmeldungen."
+            : query.includes("integration verbunden")
+              ? "Integration wurde verbunden und fuer Sync vorbereitet."
+              : query.includes("workflow getestet")
+                ? "Workflow wurde erfolgreich getestet."
+                : query.includes("webhook erstellt")
+                  ? "Webhook wurde fuer invoice.created vorbereitet."
+                  : ""
+  const message = routeMessage ? <p data-state="success">{routeMessage}</p> : null
+
+  if (view === "time") {
+    return (
+      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("timer") || query.includes("zeit")}>
+        <div className={styles.panelHead}><div><h2>Zeit erfassen</h2><span>Timer starten oder abrechenbare Stunden buchen</span></div></div>
+        <form className={styles.workflowForm} action="/dashboard-v2/time" method="get">
+          <input type="hidden" name="q" value="Zeit gebucht" />
+          <label>Projekt<select name="project" defaultValue={projectsSource[0]?.name || "Website Redesign"}>{projectsSource.map((project) => <option key={project.id} value={project.name}>{project.name}</option>)}</select></label>
+          <label>Stunden<input name="hours" defaultValue="1.5" inputMode="decimal" /></label>
+          <button type="submit">Zeit buchen</button>
+        </form>
+        {message}
+      </article>
+    )
+  }
+
+  if (view === "expenses") {
+    return (
+      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("ausgabe")}>
+        <div className={styles.panelHead}><div><h2>Ausgabe erfassen</h2><span>Belegposition vormerken und fuer Export vorbereiten</span></div><Link href="/finance/accounts/import">Beleg hochladen</Link></div>
+        <form className={styles.workflowForm} action="/dashboard-v2/expenses" method="get">
+          <input type="hidden" name="q" value="Ausgabe erfasst" />
+          <label>Ausgabe<input name="title" defaultValue={articlesSource[0]?.name || "Software Lizenz"} /></label>
+          <label>Betrag<input name="amount" defaultValue={String(Number(articlesSource[0]?.price || 128).toFixed(2))} inputMode="decimal" /></label>
+          <button type="submit">Erfassen</button>
+        </form>
+        {message}
+      </article>
+    )
+  }
+
+  if (view === "users") {
+    return (
+      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("benutzer")}>
+        <div className={styles.panelHead}><div><h2>Benutzer einladen</h2><span>API-gestuetzter Invite fuer Rollen und Berechtigungen</span></div><Link href="/account/security">2FA pruefen</Link></div>
+        <form className={styles.workflowForm} action="/dashboard-v2/users" method="get">
+          <input type="hidden" name="q" value="Benutzer eingeladen" />
+          <label>E-Mail<input name="email" defaultValue="team@example.test" type="email" /></label>
+          <label>Rolle<select name="role" defaultValue="user"><option value="user">Mitarbeiter</option><option value="admin">Admin</option></select></label>
+          <button type="submit">Einladen</button>
+        </form>
+        {message}
+      </article>
+    )
+  }
+
+  if (view === "notifications") {
+    return (
+      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("gelesen") || query.includes("regeln")}>
+        <div className={styles.panelHead}><div><h2>Benachrichtigungen</h2><span>Inbox und Regeln direkt verarbeiten</span></div></div>
+        <div className={styles.workflowActions}>
+          <Link href="/dashboard-v2/notifications?q=Alle%20gelesen">Alle gelesen markieren</Link>
+          <Link href="/dashboard-v2/notifications?q=Filter%20aktiv">Filter setzen</Link>
+        </div>
+        {message}
+      </article>
+    )
+  }
+
+  if (view === "integrations") {
+    return (
+      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("stripe") || query.includes("verbunden")}>
+        <div className={styles.panelHead}><div><h2>Integration verbinden</h2><span>Provider auswaehlen und Verbindung simulieren</span></div></div>
+        <form className={styles.workflowForm} action="/dashboard-v2/integrations" method="get">
+          <input type="hidden" name="q" value="Integration verbunden" />
+          <label>Provider<select name="provider" defaultValue={integrationsSource[0]?.[0] || "Stripe"}>{integrationsSource.map(([name]) => <option key={name} value={name}>{name}</option>)}</select></label>
+          <button type="submit">Verbinden</button>
+          <Link href="/dashboard-v2/api?q=Token">Token pruefen</Link>
+        </form>
+        {message}
+      </article>
+    )
+  }
+
+  if (view === "automation") {
+    return (
+      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("workflow") || query.includes("nummernkreis")}>
+        <div className={styles.panelHead}><div><h2>Workflow testen</h2><span>Regel aus Nummernkreis und Ereignis ausloesen</span></div></div>
+        <form className={styles.workflowForm} action="/dashboard-v2/automation" method="get">
+          <input type="hidden" name="q" value="Workflow getestet" />
+          <label>Regel<select name="rule" defaultValue={rangesSource[0]?.type || "invoice"}>{rangesSource.map((range) => <option key={range.type} value={range.type}>{numberRangeLabel(range.type)}</option>)}</select></label>
+          <button type="submit">Regel testen</button>
+          <Link href="/dashboard-v2/audit?q=Workflow">Run Verlauf</Link>
+        </form>
+        {message}
+      </article>
+    )
+  }
+
+  if (view === "api") {
+    return (
+      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("webhook") || query.includes("api")}>
+        <div className={styles.panelHead}><div><h2>API pruefen</h2><span>Live-Endpoints testen und Webhook vorbereiten</span></div><Link href="/dashboard-v2/audit?q=Webhook">Logs oeffnen</Link></div>
+        <div className={styles.workflowActions}>
+          <Link href="/api/invoice/list">Rechnungs-API pruefen</Link>
+          <Link href="/dashboard-v2/api?q=Webhook%20erstellt">Webhook erstellen</Link>
+        </div>
+        {message}
+      </article>
+    )
+  }
+
+  if (view === "reports" || view === "audit" || view === "settings") {
+    const links = view === "reports"
+      ? [["Dokumentexport", "/api/documents/export"], ["DATEV Export", "/api/finance/datev-export"], ["Vergleich", "/dashboard-v2/reports?q=Vergleich"]]
+      : view === "settings"
+        ? [["Firma", "/settings/company"], ["Nummernkreise", "/settings/number-ranges"], ["Portal", "/settings/portal"]]
+        : [["Audit exportieren", "/dashboard-v2/audit?q=Export"], ["Webhook Logs", "/dashboard-v2/audit?q=Webhook"], ["System", "/settings/system"]]
+
+    return (
+      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.length > 0}>
+        <div className={styles.panelHead}><div><h2>{view === "reports" ? "Reports & Export" : view === "settings" ? "Einstellungen oeffnen" : "Audit Aktionen"}</h2><span>Schnelle Wege zu echten Bereichen</span></div></div>
+        <div className={styles.workflowActions}>{links.map(([label, href]) => <Link key={href} href={href}>{label}</Link>)}</div>
+        {message}
+      </article>
+    )
+  }
+
+  return (
+    <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.length > 0}>
+      <div className={styles.panelHead}><div><h2>{premiumViewMeta[view].title} Flow</h2><span>Bestehende produktive Bereiche fuer diesen Schritt</span></div></div>
+      <div className={styles.workflowActions}>{moduleContent[view].actions.map(([label, href]) => <Link key={href} href={href}>{label}</Link>)}</div>
+    </article>
+  )
+}
+
 function PremiumModulePage({ view, data, searchQuery }: { view: Exclude<PremiumView, "dashboard">; data: PremiumData; searchQuery: string }) {
   const meta = premiumViewMeta[view]
   const content = moduleContent[view]
@@ -1612,6 +1765,7 @@ function PremiumModulePage({ view, data, searchQuery }: { view: Exclude<PremiumV
       </section>
 
       {view === "license" ? <PremiumLicensePanel data={data} searchQuery={searchQuery} /> : null}
+      <PremiumWorkflowPanel view={view} data={data} searchQuery={searchQuery} />
 
       <section className={styles.moduleGrid}>
         <article className={`${styles.panel} ${styles.moduleCard}`}>
