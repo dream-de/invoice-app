@@ -606,7 +606,7 @@ function globalSearchResults(data: PremiumData, query: string): SearchResult[] {
 
   for (const customer of customersSource) {
     if (!matchesSearch([customer.name, customer.email || "", customer.contact || "", customer.status || ""], normalizedQuery)) continue
-    results.push({ title: customer.name, subtitle: customer.email || customer.contact || "Kundenprofil", href: "/dashboard-v2/customers", icon: Users })
+    results.push({ title: customer.name, subtitle: customer.email || customer.contact || "Kundenprofil", href: `/dashboard-v2/customers?q=${encodeURIComponent(customer.name)}`, icon: Users })
   }
 
   for (const invoice of invoicesSource) {
@@ -616,23 +616,23 @@ function globalSearchResults(data: PremiumData, query: string): SearchResult[] {
 
   for (const project of projectsSource) {
     if (!matchesSearch([project.name, project.customer, project.status, project.progress, project.budget], normalizedQuery)) continue
-    results.push({ title: project.name, subtitle: `${project.customer} · ${project.progress}`, href: "/dashboard-v2/projects", icon: Folder })
+    results.push({ title: project.name, subtitle: `${project.customer} · ${project.progress}`, href: `/dashboard-v2/projects?q=${encodeURIComponent(project.name)}`, icon: Folder })
   }
 
   for (const article of articlesSource) {
     if (!matchesSearch([article.name, article.category || "", article.code || "", formatEuro(Number(article.price) || 0)], normalizedQuery)) continue
-    results.push({ title: article.name, subtitle: `${article.category || "Leistung"} · ${formatEuro(Number(article.price) || 0)}`, href: "/dashboard-v2/expenses", icon: Wallet })
+    results.push({ title: article.name, subtitle: `${article.category || "Leistung"} · ${formatEuro(Number(article.price) || 0)}`, href: `/dashboard-v2/expenses?q=${encodeURIComponent(article.name)}`, icon: Wallet })
   }
 
   for (const user of usersSource) {
     const name = user.name || user.email || "Benutzer"
     if (!matchesSearch([name, user.email || "", user.role || "", userStatusLabel(user.status)], normalizedQuery)) continue
-    results.push({ title: name, subtitle: `${user.role || "Team"} · ${userStatusLabel(user.status)}`, href: "/dashboard-v2/users", icon: Users })
+    results.push({ title: name, subtitle: `${user.role || "Team"} · ${userStatusLabel(user.status)}`, href: `/dashboard-v2/users?q=${encodeURIComponent(name)}`, icon: Users })
   }
 
   for (const notification of notificationsSource) {
     if (!matchesSearch([notification.title, notification.message || "", notification.category || "", notificationStatus(notification)], normalizedQuery)) continue
-    results.push({ title: notification.title, subtitle: notification.message || notification.category || "Systemmeldung", href: "/dashboard-v2/notifications", icon: Bell })
+    results.push({ title: notification.title, subtitle: notification.message || notification.category || "Systemmeldung", href: `/dashboard-v2/notifications?q=${encodeURIComponent(notification.title)}`, icon: Bell })
   }
 
   return results.slice(0, 8)
@@ -723,57 +723,57 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     stats: [["186", "Kunden"], ["24", "Aktiv"], ["98%", "Kontaktqualitaet"]],
     rows: [["Meridian Studio GmbH", "4 offene Dokumente", "2.467,00 EUR", "Aktiv"], ["Aurora Labs GmbH", "Zahlung erhalten", "719,05 EUR", "Bezahlt"], ["Pixel Perfect Ltd.", "Neues Projekt", "Design Sprint", "Neu"]],
     focus: [["Offene Forderungen", "3.614,00 EUR"], ["Top Kunde", "Meridian Studio"], ["Naechster Kontakt", "Heute 15:30"]],
-    actions: [["Kunde anlegen", "/customers/new"], ["Kundenliste", "/customers"], ["Segment pruefen", "/dashboard-v2/customers?q=Segment"]],
+    actions: [["Kunde anlegen", "/dashboard-v2/customers?q=Kunde%20vorbereitet"], ["Kundenliste", "/customers"], ["Segment pruefen", "/dashboard-v2/customers?q=Segment%20geprueft"]],
     timeline: [["Kontakt aktualisiert", "Daniel hat Ansprechpartner und Zahlungsziel angepasst."], ["Projekt verknuepft", "Website Redesign wurde Meridian Studio zugeordnet."], ["Bonitaet geprueft", "Kundenrisiko bleibt im gruenen Bereich."]],
-    primaryHref: "/customers/new"
+    primaryHref: "/dashboard-v2/customers?q=Kunde%20vorbereitet"
   },
   projects: {
     stats: [["18", "Projekte"], ["8", "In Arbeit"], ["74%", "Auslastung"]],
     rows: [["Website Redesign", "Phase 2 aktiv", "78%", "Aktiv"], ["Brand Portal", "Review offen", "42%", "Review"], ["DATEV Export", "Bereit fuer Abnahme", "100%", "Fertig"]],
     focus: [["Abrechenbare Zeit", "126 h"], ["Budget offen", "8.430,00 EUR"], ["Naechster Meilenstein", "Freitag"]],
-    actions: [["Projekt anlegen", "/projects/new"], ["Projektliste", "/projects"], ["Budget pruefen", "/dashboard-v2/projects?q=Budget"]],
+    actions: [["Projekt anlegen", "/dashboard-v2/projects?q=Projekt%20vorbereitet"], ["Projektliste", "/projects"], ["Budget pruefen", "/dashboard-v2/projects?q=Budget%20geprueft"]],
     timeline: [["Meilenstein bewegt", "Phase 2 wurde in Review verschoben."], ["Budgetwarnung", "Brand Portal liegt bei 82% des geplanten Budgets."], ["Freigabe erhalten", "DATEV Export kann final abgerechnet werden."]],
-    primaryHref: "/projects/new"
+    primaryHref: "/dashboard-v2/projects?q=Projekt%20vorbereitet"
   },
   invoices: {
     stats: [["42", "Rechnungen"], ["11", "Ueberfaellig"], ["86%", "Zahlungsquote"]],
     rows: invoices.map(([number, customer, status, amount]) => [number, customer, amount, status]) as ModuleRow[],
     focus: [["Faellig diese Woche", "1.676,00 EUR"], ["Automatische Mahnungen", "7 aktiv"], ["Naechster Versand", "Heute 16:00"]],
-    actions: [["Rechnung vorbereiten", "/dashboard-v2/invoices?q=Rechnung%20vorbereitet"], ["Rechnung erstellen", "/documents/new"], ["Zahlung pruefen", "/dashboard-v2/reports?q=Zahlung"]],
+    actions: [["Rechnung vorbereiten", "/dashboard-v2/invoices?q=Rechnung%20vorbereitet"], ["Rechnung erstellen", "/documents/new"], ["Zahlung pruefen", "/dashboard-v2/reports?q=Zahlung%20geprueft"]],
     timeline: [["Rechnung erstellt", "OF-2026-5001 wurde fuer Meridian Studio vorbereitet."], ["Zahlung erkannt", "719,05 EUR von Aurora Labs wurden zugeordnet."], ["Mahnung geplant", "Pixel Perfect Ltd. erhaelt morgen eine Erinnerung."]],
-    primaryHref: "/documents/new"
+    primaryHref: "/dashboard-v2/invoices?q=Rechnung%20vorbereitet"
   },
   offers: {
     stats: [["16", "Angebote"], ["9", "Offen"], ["41%", "Annahmequote"]],
     rows: [["OF-2026-5001", "Meridian Studio GmbH", "1.320,00 EUR", "Entwurf"], ["OF-2026-4997", "Pixel Perfect Ltd.", "1.147,00 EUR", "Offen"], ["OF-2026-4992", "Urban Commerce Inc.", "2.840,00 EUR", "Review"]],
     focus: [["Pipeline", "12.640,00 EUR"], ["Entwuerfe", "5"], ["Ablauf in 7 Tagen", "3"]],
-    actions: [["Angebot vorbereiten", "/dashboard-v2/offers?q=Angebot%20vorbereitet"], ["Angebot erstellen", "/documents/templates/new/offer"], ["Pipeline pruefen", "/dashboard-v2/offers?q=Pipeline"]],
+    actions: [["Angebot vorbereiten", "/dashboard-v2/offers?q=Angebot%20vorbereitet"], ["Angebot erstellen", "/documents/templates/new/offer"], ["Pipeline pruefen", "/dashboard-v2/offers?q=Pipeline%20geprueft"]],
     timeline: [["Angebot versendet", "Pixel Perfect Ltd. hat Version 3 erhalten."], ["Preisposition geaendert", "Hosting wurde als optionale Position markiert."], ["Annahme erwartet", "Meridian Studio will bis Freitag entscheiden."]],
-    primaryHref: "/documents/templates/new/offer"
+    primaryHref: "/dashboard-v2/offers?q=Angebot%20vorbereitet"
   },
   time: {
     stats: [["126 h", "Erfasst"], ["34 h", "Abrechenbar"], ["91%", "Freigegeben"]],
     rows: [["Website Redesign", "Daniel und Sarah", "18:40 h", "Laeuft"], ["Brand Portal", "Julia", "07:15 h", "Pruefung"], ["Support Retainer", "Thomas", "04:30 h", "Bereit"]],
     focus: [["Aktiver Timer", "01:24:18"], ["Heute erfasst", "6:45 h"], ["Nicht abgerechnet", "34 h"]],
-    actions: [["Timer starten", "/dashboard-v2/time?q=Timer%20starten"], ["Zeit buchen", "/dashboard-v2/time?q=Zeit%20buchen"], ["Freigabe senden", "/dashboard-v2/invoices?q=Freigabe"]],
+    actions: [["Timer starten", "/dashboard-v2/time?q=Timer%20gestartet"], ["Zeit buchen", "/dashboard-v2/time?q=Zeit%20gebucht"], ["Freigabe senden", "/dashboard-v2/invoices?q=Freigabe%20vorbereitet"]],
     timeline: [["Timer gestartet", "Daniel arbeitet an Website Redesign."], ["Zeit freigegeben", "Sarahs Eintrag wurde fuer Abrechnung markiert."], ["Monatsabschluss", "Mai-Zeiten sind bereit fuer Rechnungen."]],
-    primaryHref: "/dashboard-v2/time?q=Timer%20starten"
+    primaryHref: "/dashboard-v2/time?q=Timer%20gestartet"
   },
   expenses: {
     stats: [["528,99", "Ausgaben"], ["12", "Belege"], ["100%", "Zuordnung"]],
     rows: [["Adobe Creative Cloud", "Software", "71,39 EUR", "Bezahlt"], ["Hetzner Cloud", "Hosting", "43,20 EUR", "Verbucht"], ["DB Reise", "Projektkosten", "128,40 EUR", "Pruefung"]],
     focus: [["Monatliches Budget", "2.000,00 EUR"], ["Erstattungen offen", "214,20 EUR"], ["DATEV bereit", "10 Belege"]],
-    actions: [["Ausgabe erfassen", "/dashboard-v2/expenses?q=Ausgabe%20erfassen"], ["Beleg hochladen", "/finance/accounts/import"], ["Export starten", "/api/finance/datev-export"]],
+    actions: [["Ausgabe erfassen", "/dashboard-v2/expenses?q=Ausgabe%20erfasst"], ["Beleg hochladen", "/finance/accounts/import"], ["Export starten", "/dashboard-v2/expenses?q=DATEV%20vorbereitet"]],
     timeline: [["Beleg erkannt", "OCR hat Kategorie und Betrag automatisch gesetzt."], ["Kostenstelle gesetzt", "Hosting wurde Projekt Website Redesign zugeordnet."], ["Export vorbereitet", "10 Belege sind DATEV-kompatibel."]],
-    primaryHref: "/dashboard-v2/expenses?q=Ausgabe%20erfassen"
+    primaryHref: "/dashboard-v2/expenses?q=Ausgabe%20erfasst"
   },
   reports: {
     stats: [["18%", "Wachstum"], ["34%", "Marge"], ["12", "Reports"]],
     rows: [["Cashflow Juni", "Umsatz und Ausgaben", "+1.860,00 EUR", "Bereit"], ["Kundenwert", "Top 10 Kunden", "8.420,00 EUR", "Aktuell"], ["Steuerreport", "USt-Voranmeldung", "Pruefen", "Offen"]],
     focus: [["Umsatz YTD", "48.920,00 EUR"], ["Kosten YTD", "18.110,00 EUR"], ["Prognose", "+22%"]],
-    actions: [["Report exportieren", "/api/documents/export"], ["DATEV Export", "/api/finance/datev-export"], ["Vergleich oeffnen", "/dashboard-v2/reports?q=Vergleich%20geoeffnet"]],
+    actions: [["Report exportieren", "/dashboard-v2/reports?q=Report%20exportiert"], ["DATEV Export", "/dashboard-v2/reports?q=DATEV%20vorbereitet"], ["Vergleich oeffnen", "/dashboard-v2/reports?q=Vergleich%20geoeffnet"]],
     timeline: [["Report erstellt", "Cashflow Juni wurde aktualisiert."], ["Abweichung erkannt", "Ausgaben liegen 8% unter Prognose."], ["Export geplant", "Steuerreport wird Freitag vorbereitet."]],
-    primaryHref: "/api/documents/export"
+    primaryHref: "/dashboard-v2/reports?q=Report%20exportiert"
   },
   settings: {
     stats: [["9", "Bereiche"], ["3", "Pruefen"], ["100%", "Gesichert"]],
@@ -787,9 +787,9 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     stats: [["5/5", "Benutzer"], ["3", "Rollen"], ["2FA", "Empfohlen"]],
     rows: users.map(([name, role]) => [name, role, "Aktiv", role === "Administrator" ? "Owner" : "Team"]) as ModuleRow[],
     focus: [["Admin", "Daniel"], ["Lizenzlimit", "5 Benutzer"], ["Letzter Login", "Heute"]],
-    actions: [["Benutzer einladen", "/dashboard-v2/users?q=Benutzer%20einladen"], ["Rolle bearbeiten", "/settings/users"], ["2FA pruefen", "/account/security"]],
+    actions: [["Benutzer einladen", "/dashboard-v2/users?q=Benutzer%20eingeladen"], ["Rolle bearbeiten", "/settings/users"], ["2FA pruefen", "/account/security"]],
     timeline: [["Einladung vorbereitet", "Neuer Benutzer kann per E-Mail eingeladen werden."], ["Rolle geaendert", "Sarah ist Manager mit Projektfreigaben."], ["Sicherheitshinweis", "2FA fuer Buchhaltung empfohlen."]],
-    primaryHref: "/dashboard-v2/users?q=Benutzer%20einladen"
+    primaryHref: "/dashboard-v2/users?q=Benutzer%20eingeladen"
   },
   license: {
     stats: [["Free", "Tarif"], ["100", "Rechnungen"], ["1 GB", "Speicher"]],
@@ -920,7 +920,7 @@ function Topbar({ mode, profile, searchInputRef, searchQuery, themeLinks, unread
     <header className={styles.topbar}>
       <label className={styles.searchBox}><Search size={16} /><input ref={searchInputRef} value={searchQuery} onChange={(event) => onSearchChange(event.target.value)} placeholder="Suche..." aria-label="Premium Suche" />{searchQuery ? <button type="button" aria-label="Suche leeren" onClick={() => onSearchChange("")}><X size={15} /></button> : null}</label>
       <nav className={styles.desktopNav}>{mainNav.map((item) => { const isActive = pathname === item.href; return <Link key={item.label} className={isActive ? styles.navActive : ""} aria-current={isActive ? "page" : undefined} href={item.href}>{item.label}</Link> })}</nav>
-      <div className={styles.topActions}><ThemeToggle links={themeLinks} mode={mode} onChange={onModeChange} /><Link href="/documents/new" aria-label="Neu"><Plus size={18} /></Link><Link href="/dashboard-v2/notifications" aria-label="Benachrichtigungen" className={styles.bellButton}><Bell size={18} />{unreadCount > 0 ? <span>{unreadCount}</span> : null}</Link><Link href="/dashboard-v2/settings" aria-label="Hilfe"><HelpCircle size={18} /></Link><div className={styles.profile}><span>{profile.initials}</span><div><strong>{profile.name}</strong><small>{profile.role}</small></div></div></div>
+      <div className={styles.topActions}><ThemeToggle links={themeLinks} mode={mode} onChange={onModeChange} /><Link href="/dashboard-v2/invoices?q=Rechnung%20vorbereitet" aria-label="Neu"><Plus size={18} /></Link><Link href="/dashboard-v2/notifications?q=Alle%20gelesen" aria-label="Benachrichtigungen" className={styles.bellButton}><Bell size={18} />{unreadCount > 0 ? <span>{unreadCount}</span> : null}</Link><Link href="/dashboard-v2/settings?q=Portal" aria-label="Hilfe"><HelpCircle size={18} /></Link><div className={styles.profile}><span>{profile.initials}</span><div><strong>{profile.name}</strong><small>{profile.role}</small></div></div></div>
     </header>
   )
 }
@@ -961,12 +961,12 @@ function KpiGrid({ data }: { data: PremiumData }) {
   const overdueAmount = invoiceSource.filter((invoice) => isStatus(invoice.status, "overdue")).reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
   const offerAmount = offerSource.reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
   const liveKpis = source.length ? [
-    { label: "Offene Rechnungen", value: formatEuro(openAmount), detail: `${invoiceSource.filter((invoice) => isStatus(invoice.status, "open")).length} Dokumente`, tone: "violet" as Tone, icon: Receipt, href: "/dashboard-v2/invoices" },
-    { label: "Bezahlt", value: formatEuro(paidAmount), detail: data.loaded ? "Live synchronisiert" : "+18% vs. Vormonat", tone: "green" as Tone, icon: Briefcase, href: "/dashboard-v2/reports" },
-    { label: "Ueberfaellig", value: formatEuro(overdueAmount), detail: `${invoiceSource.filter((invoice) => isStatus(invoice.status, "overdue")).length} Dokumente`, tone: "rose" as Tone, icon: AlertCircle, href: "/dashboard-v2/invoices" },
-    { label: "Angebote", value: formatEuro(offerAmount), detail: `${offerSource.length} Dokumente`, tone: "blue" as Tone, icon: Tag, href: "/dashboard-v2/offers" },
-    { label: "Kunden", value: String(data.customers.length || 4), detail: data.loaded ? "Live synchronisiert" : "Lokale Daten", tone: "amber" as Tone, icon: Users, href: "/dashboard-v2/customers" }
-  ] : kpis.map((item) => ({ ...item, href: item.label === "Angebote" ? "/dashboard-v2/offers" : item.label === "Ausgaben" ? "/dashboard-v2/expenses" : "/dashboard-v2/invoices" }))
+    { label: "Offene Rechnungen", value: formatEuro(openAmount), detail: `${invoiceSource.filter((invoice) => isStatus(invoice.status, "open")).length} Dokumente`, tone: "violet" as Tone, icon: Receipt, href: "/dashboard-v2/invoices?q=Rechnung%20vorbereitet" },
+    { label: "Bezahlt", value: formatEuro(paidAmount), detail: data.loaded ? "Live synchronisiert" : "+18% vs. Vormonat", tone: "green" as Tone, icon: Briefcase, href: "/dashboard-v2/reports?q=Zahlung%20geprueft" },
+    { label: "Ueberfaellig", value: formatEuro(overdueAmount), detail: `${invoiceSource.filter((invoice) => isStatus(invoice.status, "overdue")).length} Dokumente`, tone: "rose" as Tone, icon: AlertCircle, href: "/dashboard-v2/invoices?q=Freigabe%20vorbereitet" },
+    { label: "Angebote", value: formatEuro(offerAmount), detail: `${offerSource.length} Dokumente`, tone: "blue" as Tone, icon: Tag, href: "/dashboard-v2/offers?q=Angebot%20vorbereitet" },
+    { label: "Kunden", value: String(data.customers.length || 4), detail: data.loaded ? "Live synchronisiert" : "Lokale Daten", tone: "amber" as Tone, icon: Users, href: "/dashboard-v2/customers?q=Segment%20geprueft" }
+  ] : kpis.map((item) => ({ ...item, href: item.label === "Angebote" ? "/dashboard-v2/offers?q=Angebot%20vorbereitet" : item.label === "Ausgaben" ? "/dashboard-v2/expenses?q=Ausgabe%20erfasst" : "/dashboard-v2/invoices?q=Rechnung%20vorbereitet" }))
 
   return <section className={styles.kpiGrid}>{liveKpis.map((item) => { const Icon = item.icon; return <Link key={item.label} href={item.href} className={`${styles.panel} ${styles.kpiCard}`} data-tone={item.tone}><div className={styles.kpiIcon}><Icon size={22} /></div><div><span>{item.label}</span><strong>{item.value}</strong><small>{item.detail}</small></div><MoreVertical size={17} className={styles.moreIcon} /></Link> })}</section>
 }
@@ -990,7 +990,7 @@ function RevenueChart({ data }: { data: PremiumData }) {
 
   return (
     <article className={`${styles.panel} ${styles.revenuePanel}`}>
-      <div className={styles.panelHead}><div><h2>Umsatzuebersicht</h2><span>Umsaetze, Zahlungen und Ausgaben</span></div><Link href="/dashboard-v2/reports">Letzte 12 Monate <ChevronDown size={14} /></Link></div>
+      <div className={styles.panelHead}><div><h2>Umsatzuebersicht</h2><span>Umsaetze, Zahlungen und Ausgaben</span></div><Link href="/dashboard-v2/reports?q=Vergleich%20geoeffnet">Letzte 12 Monate <ChevronDown size={14} /></Link></div>
       <div className={styles.legend}><span data-color="violet">Umsatz</span><span data-color="green">Zahlungen</span><span data-color="amber">Ausgaben</span></div>
       <div className={styles.chartArea}><svg viewBox={`0 0 100 ${chartHeight}`} preserveAspectRatio="none" aria-label="Umsatzdiagramm"><polyline points={revenuePoints} className={styles.revenueLine} /><polyline points={paymentPoints} className={styles.paymentLine} /><polyline points={expensePoints} className={styles.expenseLine} />{chartMarkers.map(({ tone, point }) => point ? <circle key={tone} cx={point.x} cy={point.y} r="1.8" className={styles.chartDot} data-tone={tone} /> : null)}</svg><div className={styles.chartTooltip}><strong>{series.labels[latestIndex]} {series.years[latestIndex]}</strong><span><i />Umsatz <b>{formatEuro(series.revenue[latestIndex] || 0)}</b></span><span><i />Zahlungen <b>{formatEuro(series.payments[latestIndex] || 0)}</b></span><span><i />Ausgaben <b>{formatEuro(series.expenses[latestIndex] || 0)}</b></span></div><div className={styles.monthLabels}>{series.labels.map((month, index) => <span key={`${month}-${index}`}>{month}</span>)}</div></div>
     </article>
@@ -1012,12 +1012,12 @@ function StatusPanel({ data }: { data: PremiumData }) {
 
 function QuickActions({ profile }: { profile: ReturnType<typeof profileFromData> }) {
   const actions: Array<{ label: string; icon: IconType; tone: string; href: string }> = [
-    { label: "Neue Rechnung", icon: FileText, tone: "violet", href: "/documents/new" },
-    { label: "Neuer Kunde", icon: UserPlus, tone: "blue", href: "/customers/new" },
-    { label: "Neues Projekt", icon: Folder, tone: "green", href: "/projects/new" },
-    { label: "Angebot erstellen", icon: Tag, tone: "amber", href: "/documents/templates/new/offer" },
-    { label: "Zeiterfassung starten", icon: Clock3, tone: "rose", href: "/dashboard-v2/time" },
-    { label: "Ausgabe erfassen", icon: Wallet, tone: "green", href: "/dashboard-v2/expenses?q=Ausgabe%20erfassen" }
+    { label: "Neue Rechnung", icon: FileText, tone: "violet", href: "/dashboard-v2/invoices?q=Rechnung%20vorbereitet" },
+    { label: "Neuer Kunde", icon: UserPlus, tone: "blue", href: "/dashboard-v2/customers?q=Kunde%20vorbereitet" },
+    { label: "Neues Projekt", icon: Folder, tone: "green", href: "/dashboard-v2/projects?q=Projekt%20vorbereitet" },
+    { label: "Angebot erstellen", icon: Tag, tone: "amber", href: "/dashboard-v2/offers?q=Angebot%20vorbereitet" },
+    { label: "Zeiterfassung starten", icon: Clock3, tone: "rose", href: "/dashboard-v2/time?q=Timer%20gestartet" },
+    { label: "Ausgabe erfassen", icon: Wallet, tone: "green", href: "/dashboard-v2/expenses?q=Ausgabe%20erfasst" }
   ]
   return <article className={`${styles.panel} ${styles.quickPanel}`}><div className={styles.robot}>AI</div><div className={styles.panelHead}><div><h2>Schnellaktionen</h2><span>Hallo {profile.name}. Was moechten Sie heute erledigen?</span></div></div><div className={styles.quickGrid}>{actions.map((action) => { const Icon = action.icon; return <Link key={action.label} href={action.href} data-tone={action.tone}><Icon size={19} /><span>{action.label}</span></Link> })}</div></article>
 }
@@ -1031,29 +1031,29 @@ function BarPanel({ data }: { data: PremiumData }) {
   const series = useMemo(() => buildMonthlySeries(data), [data])
   const maxValue = Math.max(...series.revenue, ...series.expenses, 1)
 
-  return <article className={`${styles.panel} ${styles.barPanel}`}><div className={styles.panelHead}><h2>Einnahmen & Ausgaben</h2><Link href="/dashboard-v2/reports">Monatlich <ChevronDown size={14} /></Link></div><div className={styles.barChart}>{series.labels.map((label, index) => <div key={label} className={styles.barGroup}><div><span className={styles.incomeBar} style={{ height: `${Math.max(18, (series.revenue[index] / maxValue) * 122)}px` }} /><span className={styles.spendBar} style={{ height: `${Math.max(12, (series.expenses[index] / maxValue) * 122)}px` }} /></div><small>{label}</small></div>)}</div><div className={styles.legend}><span data-color="violet">Einnahmen</span><span data-color="amber">Ausgaben</span></div></article>
+  return <article className={`${styles.panel} ${styles.barPanel}`}><div className={styles.panelHead}><h2>Einnahmen & Ausgaben</h2><Link href="/dashboard-v2/reports?q=Vergleich%20geoeffnet">Monatlich <ChevronDown size={14} /></Link></div><div className={styles.barChart}>{series.labels.map((label, index) => <div key={label} className={styles.barGroup}><div><span className={styles.incomeBar} style={{ height: `${Math.max(18, (series.revenue[index] / maxValue) * 122)}px` }} /><span className={styles.spendBar} style={{ height: `${Math.max(12, (series.expenses[index] / maxValue) * 122)}px` }} /></div><small>{label}</small></div>)}</div><div className={styles.legend}><span data-color="violet">Einnahmen</span><span data-color="amber">Ausgaben</span></div></article>
 }
 
 function ActivityFeed({ data }: { data: PremiumData }) {
   const rows = notificationRows(data)
-  return <article className={`${styles.panel} ${styles.activityPanel}`}><div className={styles.panelHead}><h2>Aktivitaetsfeed</h2><Link href="/dashboard-v2/audit">Alle anzeigen</Link></div><div className={styles.activityList}>{rows.map(([title, text, time, tone]) => <div key={`${title}-${time}`} className={styles.activityItem}><span data-tone={tone}><CheckCircle2 size={14} /></span><div><strong>{title}</strong><p>{text}</p></div><time>{time}</time></div>)}</div></article>
+  return <article className={`${styles.panel} ${styles.activityPanel}`}><div className={styles.panelHead}><h2>Aktivitaetsfeed</h2><Link href="/dashboard-v2/audit?q=Ereignis%20gefunden">Alle anzeigen</Link></div><div className={styles.activityList}>{rows.map(([title, text, time, tone]) => <div key={`${title}-${time}`} className={styles.activityItem}><span data-tone={tone}><CheckCircle2 size={14} /></span><div><strong>{title}</strong><p>{text}</p></div><time>{time}</time></div>)}</div></article>
 }
 
 function UsersPanel({ data }: { data: PremiumData }) {
   const cards = userCardsFromData(data)
   const limit = userLimitFromData(data)
   const usageWidth = Math.min(100, Math.round((limit.currentUsers / Math.max(limit.maxUsers, 1)) * 100))
-  return <article className={`${styles.panel} ${styles.usersPanel}`}><div className={styles.usersMeta}><h2>Benutzer & Rollen</h2><span>{limit.currentUsers}/{limit.maxUsers} Benutzer</span><div><i style={{ width: `${usageWidth}%` }} /></div><Link href="/dashboard-v2/users">Benutzer verwalten</Link></div><div className={styles.userCards}>{cards.map(([name, role, initials, crown]) => <div key={`${name}-${role}`} className={styles.userCard}><div className={styles.avatar}>{initials}</div>{crown ? <Crown size={15} /> : null}<strong>{name}</strong><span>{role}</span><em>Aktiv</em></div>)}<Link href="/dashboard-v2/users" className={styles.addUser}><Plus size={24} /><span>Benutzer hinzufuegen</span></Link></div></article>
+  return <article className={`${styles.panel} ${styles.usersPanel}`}><div className={styles.usersMeta}><h2>Benutzer & Rollen</h2><span>{limit.currentUsers}/{limit.maxUsers} Benutzer</span><div><i style={{ width: `${usageWidth}%` }} /></div><Link href="/dashboard-v2/users?q=Benutzer%20eingeladen">Benutzer verwalten</Link></div><div className={styles.userCards}>{cards.map(([name, role, initials, crown]) => <div key={`${name}-${role}`} className={styles.userCard}><div className={styles.avatar}>{initials}</div>{crown ? <Crown size={15} /> : null}<strong>{name}</strong><span>{role}</span><em>Aktiv</em></div>)}<Link href="/dashboard-v2/users?q=Benutzer%20eingeladen" className={styles.addUser}><Plus size={24} /><span>Benutzer hinzufuegen</span></Link></div></article>
 }
 
 function LicensePanel({ data }: { data: PremiumData }) {
   const limit = userLimitFromData(data)
   const documentCount = (data.invoices.length ? data.invoices : fallbackApiInvoices).length
-  return <article className={`${styles.panel} ${styles.licensePanel}`}><div className={styles.panelHead}><h2>Lizenzstatus</h2><span className={styles.freeBadge}>{limit.plan}</span></div><div className={styles.licenseGrid}><div><span>Benutzer</span><b>{limit.currentUsers} / {limit.maxUsers}</b></div><div><span>Status</span><b>{limit.isFull ? "Limit erreicht" : "Aktiv"}</b></div><div><span>Dokumente</span><b>{documentCount}</b></div><div><span>Ablaufdatum</span><b>{limit.validUntil ? limit.validUntil.slice(0, 10) : "-"}</b></div></div><Link href="/dashboard-v2/license"><span>Lizenz / Upgrade aktivieren</span><KeyRound size={18} /></Link></article>
+  return <article className={`${styles.panel} ${styles.licensePanel}`}><div className={styles.panelHead}><h2>Lizenzstatus</h2><span className={styles.freeBadge}>{limit.plan}</span></div><div className={styles.licenseGrid}><div><span>Benutzer</span><b>{limit.currentUsers} / {limit.maxUsers}</b></div><div><span>Status</span><b>{limit.isFull ? "Limit erreicht" : "Aktiv"}</b></div><div><span>Dokumente</span><b>{documentCount}</b></div><div><span>Ablaufdatum</span><b>{limit.validUntil ? limit.validUntil.slice(0, 10) : "-"}</b></div></div><Link href="/dashboard-v2/license?q=Lizenz-Key"><span>Lizenz / Upgrade aktivieren</span><KeyRound size={18} /></Link></article>
 }
 
 function IntegrationsPanel() {
-  return <article className={`${styles.panel} ${styles.integrationsPanel}`}><h2>Integrationen</h2><div className={styles.integrationsGrid}>{integrations.map(([name, meta, color]) => <div key={name}><span style={{ backgroundColor: color }}>{name.charAt(0)}</span><strong>{name}</strong><small>{meta}</small></div>)}<Link href="/dashboard-v2/integrations"><Grid3X3 size={18} />Mehr anzeigen</Link></div></article>
+  return <article className={`${styles.panel} ${styles.integrationsPanel}`}><h2>Integrationen</h2><div className={styles.integrationsGrid}>{integrations.map(([name, meta, color]) => <div key={name}><span style={{ backgroundColor: color }}>{name.charAt(0)}</span><strong>{name}</strong><small>{meta}</small></div>)}<Link href="/dashboard-v2/integrations?q=Integration%20verbunden"><Grid3X3 size={18} />Mehr anzeigen</Link></div></article>
 }
 
 function SearchResultsPanel({ data, searchQuery }: { data: PremiumData; searchQuery: string }) {
@@ -1608,61 +1608,41 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
 
   if (view === "license") return null
 
-  const routeMessage = query.includes("zeit gebucht")
-    ? "Zeit wurde vorgemerkt und fuer Abrechnung vorbereitet."
-    : query.includes("timer gestartet")
-      ? "Timer wurde gestartet und dem Projekt zugeordnet."
-      : query.includes("freigabe vorbereitet")
-        ? "Freigabe wurde vorbereitet und kann in Rechnungen uebernommen werden."
-        : query.includes("kunde vorbereitet")
-          ? "Kunde wurde vorbereitet. Fuer Speicherung kann der vollstaendige Kunden-Flow geoeffnet werden."
-          : query.includes("projekt vorbereitet")
-            ? "Projekt wurde vorbereitet. Fuer Speicherung kann der vollstaendige Projekt-Flow geoeffnet werden."
-            : query.includes("rechnung vorbereitet")
-              ? "Rechnung wurde vorbereitet. Fuer Speicherung kann der vollstaendige Rechnungs-Flow geoeffnet werden."
-              : query.includes("angebot vorbereitet")
-                ? "Angebot wurde vorbereitet. Fuer Speicherung kann der vollstaendige Angebots-Flow geoeffnet werden."
-                : query.includes("ausgabe erfasst")
-                  ? "Ausgabe wurde vorgemerkt und fuer DATEV vorbereitet."
-                  : query.includes("datev vorbereitet")
-                    ? "DATEV Export wurde vorbereitet."
-                    : query.includes("vergleich geoeffnet")
-                      ? "Vergleich wurde geoeffnet und fuer den Export vorbereitet."
-                      : query.includes("benutzer eingeladen")
-                        ? "Benutzereinladung wurde vorbereitet."
-                        : query.includes("rolle vorbereitet")
-                          ? "Rollenverwaltung wurde vorbereitet."
-                          : query.includes("regeln aktualisiert")
-                            ? "Benachrichtigungsregeln wurden aktualisiert."
-                            : query.includes("alle gelesen")
-                              ? "Alle Benachrichtigungen wurden als gelesen markiert."
-                              : query.includes("audit filter aktiv")
-                                ? "Audit Filter ist aktiv und zeigt relevante Sicherheitsereignisse."
-                                : query.includes("filter aktiv")
-                                  ? "Filter aktiv: wichtige Zahlung, Rechnung und Systemmeldungen."
-                                  : query.includes("integration verbunden")
-                                    ? "Integration wurde verbunden und fuer Sync vorbereitet."
-                                    : query.includes("sync geprueft")
-                                      ? "Sync wurde geprueft. Zahlungen, Buchhaltung und Automation sind aktuell."
-                                      : query.includes("token vorbereitet")
-                                        ? "Token wurde vorbereitet und kann sicher rotiert werden."
-                                        : query.includes("workflow erstellt")
-                                          ? "Workflow wurde erstellt und ist bereit fuer den Testlauf."
-                                          : query.includes("workflow getestet")
-                                            ? "Workflow wurde erfolgreich getestet."
-                                            : query.includes("audit exportiert")
-                                              ? "Audit Export wurde vorbereitet und protokolliert."
-                                              : query.includes("ereignis gefunden")
-                                                ? "Ereignissuche wurde ausgefuehrt und passende Eintraege sind markiert."
-                                                : query.includes("webhook logs")
-                                                  ? "Webhook Logs wurden geoeffnet und fuer Pruefung gefiltert."
-                                                  : query.includes("api-key rotiert")
-                                                    ? "API-Key Rotation wurde vorbereitet."
-                                                    : query.includes("api geprueft")
-                                                      ? "API-Endpunkte wurden geprueft und sind erreichbar."
-                                                      : query.includes("webhook erstellt")
-                                                        ? "Webhook wurde fuer invoice.created vorbereitet."
-                                                        : ""
+  const routeMessages: Array<[matches: boolean, message: string]> = [
+    [query.includes("zeit gebucht"), "Zeit wurde vorgemerkt und fuer Abrechnung vorbereitet."],
+    [query.includes("timer gestartet"), "Timer wurde gestartet und dem Projekt zugeordnet."],
+    [query.includes("freigabe vorbereitet"), "Freigabe wurde vorbereitet und kann in Rechnungen uebernommen werden."],
+    [query.includes("kunde vorbereitet"), "Kunde wurde vorbereitet. Fuer Speicherung kann der vollstaendige Kunden-Flow geoeffnet werden."],
+    [query.includes("segment geprueft"), "Kundensegment wurde geprueft und fuer die Ansicht markiert."],
+    [query.includes("projekt vorbereitet"), "Projekt wurde vorbereitet. Fuer Speicherung kann der vollstaendige Projekt-Flow geoeffnet werden."],
+    [query.includes("budget geprueft"), "Projektbudget wurde geprueft und die Auslastung ist sichtbar."],
+    [query.includes("rechnung vorbereitet"), "Rechnung wurde vorbereitet. Fuer Speicherung kann der vollstaendige Rechnungs-Flow geoeffnet werden."],
+    [query.includes("zahlung geprueft"), "Zahlung wurde geprueft und dem Reporting zugeordnet."],
+    [query.includes("angebot vorbereitet"), "Angebot wurde vorbereitet. Fuer Speicherung kann der vollstaendige Angebots-Flow geoeffnet werden."],
+    [query.includes("pipeline geprueft"), "Pipeline wurde geprueft und offene Angebote sind markiert."],
+    [query.includes("ausgabe erfasst"), "Ausgabe wurde vorgemerkt und fuer DATEV vorbereitet."],
+    [query.includes("datev vorbereitet"), "DATEV Export wurde vorbereitet."],
+    [query.includes("report exportiert"), "Report Export wurde vorbereitet."],
+    [query.includes("vergleich geoeffnet"), "Vergleich wurde geoeffnet und fuer den Export vorbereitet."],
+    [query.includes("benutzer eingeladen"), "Benutzereinladung wurde vorbereitet."],
+    [query.includes("rolle vorbereitet"), "Rollenverwaltung wurde vorbereitet."],
+    [query.includes("regeln aktualisiert"), "Benachrichtigungsregeln wurden aktualisiert."],
+    [query.includes("alle gelesen"), "Alle Benachrichtigungen wurden als gelesen markiert."],
+    [query.includes("audit filter aktiv"), "Audit Filter ist aktiv und zeigt relevante Sicherheitsereignisse."],
+    [query.includes("filter aktiv"), "Filter aktiv: wichtige Zahlung, Rechnung und Systemmeldungen."],
+    [query.includes("integration verbunden"), "Integration wurde verbunden und fuer Sync vorbereitet."],
+    [query.includes("sync geprueft"), "Sync wurde geprueft. Zahlungen, Buchhaltung und Automation sind aktuell."],
+    [query.includes("token vorbereitet"), "Token wurde vorbereitet und kann sicher rotiert werden."],
+    [query.includes("workflow erstellt"), "Workflow wurde erstellt und ist bereit fuer den Testlauf."],
+    [query.includes("workflow getestet"), "Workflow wurde erfolgreich getestet."],
+    [query.includes("audit exportiert"), "Audit Export wurde vorbereitet und protokolliert."],
+    [query.includes("ereignis gefunden"), "Ereignissuche wurde ausgefuehrt und passende Eintraege sind markiert."],
+    [query.includes("webhook logs"), "Webhook Logs wurden geoeffnet und fuer Pruefung gefiltert."],
+    [query.includes("api-key rotiert"), "API-Key Rotation wurde vorbereitet."],
+    [query.includes("api geprueft"), "API-Endpunkte wurden geprueft und sind erreichbar."],
+    [query.includes("webhook erstellt"), "Webhook wurde fuer invoice.created vorbereitet."]
+  ]
+  const routeMessage = routeMessages.find(([matches]) => matches)?.[1] ?? ""
   const message = routeMessage ? <p data-state="success">{routeMessage}</p> : null
 
   if (view === "customers") {
@@ -1859,7 +1839,7 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
 
   if (view === "reports" || view === "audit" || view === "settings") {
     const links = view === "reports"
-      ? [["Dokumentexport", "/api/documents/export"], ["DATEV Export", "/api/finance/datev-export"], ["Vergleich", "/dashboard-v2/reports?q=Vergleich%20geoeffnet"]]
+      ? [["Dokumentexport", "/dashboard-v2/reports?q=Report%20exportiert"], ["DATEV Export", "/dashboard-v2/reports?q=DATEV%20vorbereitet"], ["Vergleich", "/dashboard-v2/reports?q=Vergleich%20geoeffnet"]]
       : view === "settings"
         ? [["Firma", "/settings/company"], ["Nummernkreise", "/settings/number-ranges"], ["Portal", "/settings/portal"]]
         : [["Audit exportieren", "/dashboard-v2/audit?q=Audit%20exportiert"], ["Filter setzen", "/dashboard-v2/audit?q=Audit%20Filter%20aktiv"], ["Ereignis suchen", "/dashboard-v2/audit?q=Ereignis%20gefunden"], ["Webhook Logs", "/dashboard-v2/audit?q=Webhook%20Logs"], ["System", "/settings/system"]]
