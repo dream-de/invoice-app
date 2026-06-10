@@ -872,6 +872,82 @@
 .quickGrid [data-tone="amber"] svg { color: var(--amber); }
 .quickGrid [data-tone="rose"] svg { color: var(--rose); }
 
+.searchResultsPanel {
+  margin-bottom: 14px;
+}
+
+.searchResultsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.searchResultsGrid a {
+  min-height: 72px;
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  column-gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel-strong) 82%, transparent);
+  color: var(--text);
+  padding: 11px;
+  text-decoration: none;
+  transition: border-color 150ms ease, transform 150ms ease, background 150ms ease;
+}
+
+.searchResultsGrid a:hover,
+.searchResultsGrid a:focus-visible {
+  border-color: color-mix(in srgb, var(--violet) 48%, var(--line));
+  background: color-mix(in srgb, var(--panel-strong) 92%, transparent);
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.searchResultsGrid span {
+  grid-row: 1 / 3;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: rgba(124, 58, 237, 0.14);
+  color: var(--violet-2);
+}
+
+.searchResultsGrid strong,
+.searchResultsGrid small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.searchResultsGrid strong {
+  font-size: 13px;
+}
+
+.searchResultsGrid small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.emptySearchResult {
+  min-height: 58px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 8px;
+  color: var(--muted);
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 850;
+}
+
 .tableScroll {
   max-width: 100%;
   min-width: 0;
@@ -1530,6 +1606,10 @@
   .integrationsGrid {
     grid-template-columns: repeat(4, minmax(130px, 1fr));
   }
+
+  .searchResultsGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 1180px) {
@@ -1565,6 +1645,10 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .searchResultsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .mainGrid,
   .lowerGrid,
   .bottomGrid,
@@ -1596,6 +1680,7 @@
 
   .kpiGrid,
   .quickGrid,
+  .searchResultsGrid,
   .userCards,
   .integrationsGrid {
     grid-template-columns: 1fr;

@@ -4,7 +4,7 @@ import type { ComponentType, RefObject } from "react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { articles as fallbackArticlesData, projects as fallbackProjectsData } from "@/data/invoice-data"
+import { articles as fallbackArticlesData, customers as fallbackCustomersData, projects as fallbackProjectsData } from "@/data/invoice-data"
 import {
   AlertCircle,
   BarChart3,
@@ -148,6 +148,12 @@ type ModuleConfig = {
   actions: Array<[label: string, href: string]>
   timeline: Array<[title: string, text: string]>
   primaryHref: string
+}
+type SearchResult = {
+  title: string
+  subtitle: string
+  href: string
+  icon: IconType
 }
 type UpgradeSummary = {
   title: string
@@ -340,6 +346,13 @@ const fallbackApiInvoices: ApiInvoice[] = invoices.map(([number, customer, statu
   grossTotal: Number(amount.replaceAll(".", "").replace(",", ".").replace(/[^\d.]/g, "")) || 0,
   date,
   createdAt: date
+}))
+const fallbackApiCustomers: ApiCustomer[] = fallbackCustomersData.map((customer) => ({
+  id: customer.id,
+  name: customer.name,
+  contact: customer.contact,
+  email: customer.email,
+  status: customer.status
 }))
 const fallbackApiArticles: ApiArticle[] = fallbackArticlesData.map((article) => ({
   id: article.id,
@@ -541,6 +554,59 @@ function matchesSearch(values: readonly string[], query: string) {
   if (!normalizedQuery) return true
 
   return values.some((value) => value.toLowerCase().includes(normalizedQuery))
+}
+
+function globalSearchResults(data: PremiumData, query: string): SearchResult[] {
+  const normalizedQuery = query.trim()
+  if (!normalizedQuery) return []
+
+  const navItems = [...mainNav, ...sideNav.flatMap((group) => group.items)]
+  const uniqueNavItems = Array.from(new Map(navItems.map((item) => [item.href, item])).values())
+  const customersSource = data.customers.length ? data.customers : fallbackApiCustomers
+  const invoicesSource = data.invoices.length ? data.invoices : fallbackApiInvoices
+  const articlesSource = data.articles.length ? data.articles : fallbackApiArticles
+  const projectsSource = data.projects.length ? data.projects : fallbackProjects
+  const usersSource = data.appUsers.length ? data.appUsers : fallbackAppUsers
+  const notificationsSource = data.notifications.length ? data.notifications : fallbackNotifications
+  const results: SearchResult[] = []
+
+  for (const item of uniqueNavItems) {
+    if (!matchesSearch([item.label, item.href], normalizedQuery)) continue
+    results.push({ title: item.label, subtitle: "Premium Bereich", href: item.href, icon: item.icon })
+  }
+
+  for (const customer of customersSource) {
+    if (!matchesSearch([customer.name, customer.email || "", customer.contact || "", customer.status || ""], normalizedQuery)) continue
+    results.push({ title: customer.name, subtitle: customer.email || customer.contact || "Kundenprofil", href: "/dashboard-v2/customers", icon: Users })
+  }
+
+  for (const invoice of invoicesSource) {
+    if (!matchesSearch([invoice.number, invoice.customer, statusLabel(invoice.status), formatEuro(Number(invoice.grossTotal) || 0)], normalizedQuery)) continue
+    results.push({ title: invoice.number, subtitle: `${invoice.customer} · ${formatEuro(Number(invoice.grossTotal) || 0)}`, href: invoiceType(invoice) === "offer" ? "/dashboard-v2/offers" : "/dashboard-v2/invoices", icon: FileText })
+  }
+
+  for (const project of projectsSource) {
+    if (!matchesSearch([project.name, project.customer, project.status, project.progress, project.budget], normalizedQuery)) continue
+    results.push({ title: project.name, subtitle: `${project.customer} · ${project.progress}`, href: "/dashboard-v2/projects", icon: Folder })
+  }
+
+  for (const article of articlesSource) {
+    if (!matchesSearch([article.name, article.category || "", article.code || "", formatEuro(Number(article.price) || 0)], normalizedQuery)) continue
+    results.push({ title: article.name, subtitle: `${article.category || "Leistung"} · ${formatEuro(Number(article.price) || 0)}`, href: "/dashboard-v2/expenses", icon: Wallet })
+  }
+
+  for (const user of usersSource) {
+    const name = user.name || user.email || "Benutzer"
+    if (!matchesSearch([name, user.email || "", user.role || "", userStatusLabel(user.status)], normalizedQuery)) continue
+    results.push({ title: name, subtitle: `${user.role || "Team"} · ${userStatusLabel(user.status)}`, href: "/dashboard-v2/users", icon: Users })
+  }
+
+  for (const notification of notificationsSource) {
+    if (!matchesSearch([notification.title, notification.message || "", notification.category || "", notificationStatus(notification)], normalizedQuery)) continue
+    results.push({ title: notification.title, subtitle: notification.message || notification.category || "Systemmeldung", href: "/dashboard-v2/notifications", icon: Bell })
+  }
+
+  return results.slice(0, 8)
 }
 
 function parsePercent(value: string) {
@@ -897,10 +963,32 @@ function IntegrationsPanel() {
   return <article className={`${styles.panel} ${styles.integrationsPanel}`}><h2>Integrationen</h2><div className={styles.integrationsGrid}>{integrations.map(([name, meta, color]) => <div key={name}><span style={{ backgroundColor: color }}>{name.charAt(0)}</span><strong>{name}</strong><small>{meta}</small></div>)}<Link href="/dashboard-v2/integrations"><Grid3X3 size={18} />Mehr anzeigen</Link></div></article>
 }
 
+function SearchResultsPanel({ data, searchQuery }: { data: PremiumData; searchQuery: string }) {
+  const results = globalSearchResults(data, searchQuery)
+  if (!searchQuery.trim()) return null
+
+  return (
+    <article className={`${styles.panel} ${styles.searchResultsPanel}`}>
+      <div className={styles.panelHead}><div><h2>Suchtreffer</h2><span>{results.length ? `${results.length} Treffer fuer "${searchQuery}"` : `Keine Treffer fuer "${searchQuery}"`}</span></div><Link href="/dashboard-v2">Dashboard</Link></div>
+      {results.length ? (
+        <div className={styles.searchResultsGrid}>
+          {results.map((result) => {
+            const Icon = result.icon
+            return <Link key={`${result.href}-${result.title}`} href={result.href}><span><Icon size={17} /></span><strong>{result.title}</strong><small>{result.subtitle}</small></Link>
+          })}
+        </div>
+      ) : (
+        <div className={styles.emptySearchResult}><Search size={18} /><span>Suchbegriff pruefen oder einen anderen Bereich oeffnen.</span></div>
+      )}
+    </article>
+  )
+}
+
 function DashboardOverview({ data, profile, searchQuery }: { data: PremiumData; profile: ReturnType<typeof profileFromData>; searchQuery: string }) {
   return (
     <>
       <KpiGrid data={data} />
+      <SearchResultsPanel data={data} searchQuery={searchQuery} />
       <section className={styles.mainGrid}><RevenueChart data={data} /><StatusPanel data={data} /><QuickActions profile={profile} /></section>
       <section className={styles.lowerGrid}><InvoiceTable data={data} searchQuery={searchQuery} /><BarPanel data={data} /><ActivityFeed data={data} /></section>
       <section className={styles.bottomGrid}><UsersPanel data={data} /><LicensePanel data={data} /></section>
@@ -1355,9 +1443,9 @@ function PremiumModulePage({ view, data, searchQuery }: { view: Exclude<PremiumV
   )
 }
 
-export function PremiumWorkspacePage({ view = "dashboard" }: { view?: PremiumView }) {
+export function PremiumWorkspacePage({ view = "dashboard", initialSearchQuery = "" }: { view?: PremiumView; initialSearchQuery?: string }) {
   const [mode, setMode] = useState<ThemeMode>("dark")
-  const [searchQuery, setSearchQuery] = useState("")
+  const [searchQuery, setSearchQuery] = useState(initialSearchQuery)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const [data, setData] = useState<PremiumData>({
     invoices: [],
