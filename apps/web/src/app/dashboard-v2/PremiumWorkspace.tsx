@@ -1017,7 +1017,7 @@ function QuickActions({ profile }: { profile: ReturnType<typeof profileFromData>
     { label: "Neues Projekt", icon: Folder, tone: "green", href: "/projects/new" },
     { label: "Angebot erstellen", icon: Tag, tone: "amber", href: "/documents/templates/new/offer" },
     { label: "Zeiterfassung starten", icon: Clock3, tone: "rose", href: "/dashboard-v2/time" },
-    { label: "Ausgabe erfassen", icon: Wallet, tone: "green", href: "/finance/accounts" }
+    { label: "Ausgabe erfassen", icon: Wallet, tone: "green", href: "/dashboard-v2/expenses?q=Ausgabe%20erfassen" }
   ]
   return <article className={`${styles.panel} ${styles.quickPanel}`}><div className={styles.robot}>AI</div><div className={styles.panelHead}><div><h2>Schnellaktionen</h2><span>Hallo {profile.name}. Was moechten Sie heute erledigen?</span></div></div><div className={styles.quickGrid}>{actions.map((action) => { const Icon = action.icon; return <Link key={action.label} href={action.href} data-tone={action.tone}><Icon size={19} /><span>{action.label}</span></Link> })}</div></article>
 }
@@ -1610,29 +1610,35 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
 
   const routeMessage = query.includes("zeit gebucht")
     ? "Zeit wurde vorgemerkt und fuer Abrechnung vorbereitet."
-    : query.includes("kunde vorbereitet")
-      ? "Kunde wurde vorbereitet. Fuer Speicherung kann der vollstaendige Kunden-Flow geoeffnet werden."
-      : query.includes("projekt vorbereitet")
-        ? "Projekt wurde vorbereitet. Fuer Speicherung kann der vollstaendige Projekt-Flow geoeffnet werden."
-        : query.includes("rechnung vorbereitet")
-          ? "Rechnung wurde vorbereitet. Fuer Speicherung kann der vollstaendige Rechnungs-Flow geoeffnet werden."
-          : query.includes("angebot vorbereitet")
-            ? "Angebot wurde vorbereitet. Fuer Speicherung kann der vollstaendige Angebots-Flow geoeffnet werden."
-            : query.includes("ausgabe erfasst")
-              ? "Ausgabe wurde vorgemerkt und fuer DATEV vorbereitet."
-              : query.includes("benutzer eingeladen")
-                ? "Benutzereinladung wurde vorbereitet."
-                : query.includes("alle gelesen")
-                  ? "Alle Benachrichtigungen wurden als gelesen markiert."
-                  : query.includes("filter aktiv")
-                    ? "Filter aktiv: wichtige Zahlung, Rechnung und Systemmeldungen."
-                    : query.includes("integration verbunden")
-                      ? "Integration wurde verbunden und fuer Sync vorbereitet."
-                      : query.includes("workflow getestet")
-                        ? "Workflow wurde erfolgreich getestet."
-                        : query.includes("webhook erstellt")
-                          ? "Webhook wurde fuer invoice.created vorbereitet."
-                          : ""
+    : query.includes("timer gestartet")
+      ? "Timer wurde gestartet und dem Projekt zugeordnet."
+      : query.includes("freigabe vorbereitet")
+        ? "Freigabe wurde vorbereitet und kann in Rechnungen uebernommen werden."
+        : query.includes("kunde vorbereitet")
+          ? "Kunde wurde vorbereitet. Fuer Speicherung kann der vollstaendige Kunden-Flow geoeffnet werden."
+          : query.includes("projekt vorbereitet")
+            ? "Projekt wurde vorbereitet. Fuer Speicherung kann der vollstaendige Projekt-Flow geoeffnet werden."
+            : query.includes("rechnung vorbereitet")
+              ? "Rechnung wurde vorbereitet. Fuer Speicherung kann der vollstaendige Rechnungs-Flow geoeffnet werden."
+              : query.includes("angebot vorbereitet")
+                ? "Angebot wurde vorbereitet. Fuer Speicherung kann der vollstaendige Angebots-Flow geoeffnet werden."
+                : query.includes("ausgabe erfasst")
+                  ? "Ausgabe wurde vorgemerkt und fuer DATEV vorbereitet."
+                  : query.includes("datev vorbereitet")
+                    ? "DATEV Export wurde vorbereitet."
+                    : query.includes("benutzer eingeladen")
+                      ? "Benutzereinladung wurde vorbereitet."
+                      : query.includes("alle gelesen")
+                        ? "Alle Benachrichtigungen wurden als gelesen markiert."
+                        : query.includes("filter aktiv")
+                          ? "Filter aktiv: wichtige Zahlung, Rechnung und Systemmeldungen."
+                          : query.includes("integration verbunden")
+                            ? "Integration wurde verbunden und fuer Sync vorbereitet."
+                            : query.includes("workflow getestet")
+                              ? "Workflow wurde erfolgreich getestet."
+                              : query.includes("webhook erstellt")
+                                ? "Webhook wurde fuer invoice.created vorbereitet."
+                                : ""
   const message = routeMessage ? <p data-state="success">{routeMessage}</p> : null
 
   if (view === "customers") {
@@ -1710,6 +1716,10 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
           <label>Stunden<input name="hours" defaultValue="1.5" inputMode="decimal" /></label>
           <button type="submit">Zeit buchen</button>
         </form>
+        <div className={styles.workflowActions}>
+          <Link href={withPremiumTheme("/dashboard-v2/time?q=Timer%20gestartet", mode)}>Timer starten</Link>
+          <Link href={withPremiumTheme("/dashboard-v2/time?q=Freigabe%20vorbereitet", mode)}>Freigabe senden</Link>
+        </div>
         {message}
       </article>
     )
@@ -1726,6 +1736,10 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
           <label>Betrag<input name="amount" defaultValue={String(Number(articlesSource[0]?.price || 128).toFixed(2))} inputMode="decimal" /></label>
           <button type="submit">Erfassen</button>
         </form>
+        <div className={styles.workflowActions}>
+          <Link href="/api/finance/datev-export">DATEV Export</Link>
+          <Link href={withPremiumTheme("/dashboard-v2/expenses?q=DATEV%20vorbereitet", mode)}>Export vormerken</Link>
+        </div>
         {message}
       </article>
     )
