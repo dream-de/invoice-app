@@ -326,7 +326,8 @@
   color: var(--faint);
 }
 
-.searchBox button {
+.searchBox button,
+.searchBox a {
   flex: 0 0 auto;
   width: 26px;
   height: 26px;
@@ -339,9 +340,17 @@
   cursor: pointer;
 }
 
-.searchBox button:hover {
+.searchBox button:hover,
+.searchBox a:hover {
   color: var(--text);
   background: color-mix(in srgb, var(--violet) 16%, var(--panel-strong));
+}
+
+.searchBox button svg,
+.searchBox button svg *,
+.searchBox a svg,
+.searchBox a svg * {
+  pointer-events: none;
 }
 
 .desktopNav {
