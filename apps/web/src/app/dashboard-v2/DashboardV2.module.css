@@ -1667,6 +1667,10 @@
   gap: 10px;
 }
 
+.workflowActions form {
+  display: inline-flex;
+}
+
 .settingsAreaGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

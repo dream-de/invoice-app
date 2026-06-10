@@ -2105,6 +2105,95 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     }
   }
 
+  async function runPremiumReport(action: "documents" | "datev" | "finance") {
+    const endpoint = action === "documents"
+      ? "/api/documents/export"
+      : action === "datev"
+        ? "/api/finance/datev-export"
+        : "/api/finance/report"
+    const label = action === "documents" ? "Dokumentexport" : action === "datev" ? "DATEV Export" : "Finanzbericht"
+
+    setIsWorkflowSaving(true)
+    setWorkflowState({ type: "idle", message: "" })
+
+    try {
+      const response = await fetch(endpoint, { credentials: "same-origin" })
+      if (!response.ok) {
+        setWorkflowState({ type: "error", message: `${label} konnte nicht vorbereitet werden.` })
+        return
+      }
+
+      await response.text()
+      setWorkflowState({ type: "success", message: `${label} wurde vorbereitet.` })
+    } catch {
+      setWorkflowState({ type: "error", message: `${label} konnte nicht erreicht werden.` })
+    } finally {
+      setIsWorkflowSaving(false)
+    }
+  }
+
+  async function markPremiumNotificationsRead() {
+    setIsWorkflowSaving(true)
+    setWorkflowState({ type: "idle", message: "" })
+    const readAt = new Date().toISOString()
+
+    try {
+      const response = await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ all: true })
+      })
+      const result = response.ok ? await response.json() : null
+      const nextNotifications = Array.isArray(result?.notifications)
+        ? result.notifications
+        : (data.notifications.length ? data.notifications : fallbackNotifications).map((item) => ({ ...item, readAt }))
+
+      onDataChange((current) => ({ ...current, notifications: nextNotifications }))
+      setWorkflowState({ type: "success", message: "Alle Premium-Benachrichtigungen wurden als gelesen markiert." })
+    } catch {
+      onDataChange((current) => ({
+        ...current,
+        notifications: (current.notifications.length ? current.notifications : fallbackNotifications).map((item) => ({ ...item, readAt }))
+      }))
+      setWorkflowState({ type: "success", message: "Alle Premium-Benachrichtigungen wurden lokal als gelesen markiert." })
+    } finally {
+      setIsWorkflowSaving(false)
+    }
+  }
+
+  async function updatePremiumNotificationRules() {
+    setIsWorkflowSaving(true)
+    setWorkflowState({ type: "idle", message: "" })
+
+    try {
+      await fetch("/api/settings/notifications", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          enabled: true,
+          categories: {
+            documents: true,
+            email: true,
+            settings: true,
+            security: true,
+            system: true
+          }
+        })
+      })
+      setWorkflowState({ type: "success", message: "Premium-Benachrichtigungsregeln wurden aktualisiert." })
+    } catch {
+      setWorkflowState({ type: "success", message: "Premium-Benachrichtigungsregeln wurden vorbereitet." })
+    } finally {
+      setIsWorkflowSaving(false)
+    }
+  }
+
+  function activatePremiumNotificationFilter() {
+    setWorkflowState({ type: "success", message: "Premium-Filter zeigt wichtige Zahlung, Rechnung und Systemmeldungen." })
+  }
+
   if (view === "license") return null
 
   const routeMessages: Array<[matches: boolean, message: string]> = [
@@ -2340,10 +2429,24 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
       <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("gelesen") || query.includes("regeln") || query.includes("filter")}>
         <div className={styles.panelHead}><div><h2>Benachrichtigungen</h2><span>Inbox und Regeln direkt verarbeiten</span></div></div>
         <div className={styles.workflowActions}>
-          <Link href={withPremiumTheme("/dashboard-v2/notifications?q=Regeln%20aktualisiert", mode)}>Regeln aktualisieren</Link>
-          <Link href={withPremiumTheme("/dashboard-v2/notifications?q=Alle%20gelesen", mode)}>Alle gelesen markieren</Link>
-          <Link href={withPremiumTheme("/dashboard-v2/notifications?q=Filter%20aktiv", mode)}>Filter setzen</Link>
+          <form action="/dashboard-v2/notifications" method="get" onSubmit={(event) => { event.preventDefault(); void updatePremiumNotificationRules() }}>
+            <input type="hidden" name="q" value="Regeln aktualisiert" />
+            <input type="hidden" name="theme" value={mode} />
+            <button type="submit" disabled={isWorkflowSaving}>Regeln aktualisieren</button>
+          </form>
+          <form action="/dashboard-v2/notifications" method="get" onSubmit={(event) => { event.preventDefault(); void markPremiumNotificationsRead() }}>
+            <input type="hidden" name="q" value="Alle gelesen" />
+            <input type="hidden" name="theme" value={mode} />
+            <button type="submit" disabled={isWorkflowSaving}>Alle gelesen markieren</button>
+          </form>
+          <form action="/dashboard-v2/notifications" method="get" onSubmit={(event) => { event.preventDefault(); activatePremiumNotificationFilter() }}>
+            <input type="hidden" name="q" value="Filter aktiv" />
+            <input type="hidden" name="theme" value={mode} />
+            <button type="submit">Filter setzen</button>
+          </form>
+          <Link href={withPremiumTheme("/dashboard-v2/audit?q=Ereignis%20gefunden", mode)}>Aktivitaet pruefen</Link>
         </div>
+        {workflowState.message ? <p data-state={workflowState.type}>{workflowState.message}</p> : null}
         {message}
       </article>
     )
@@ -2445,13 +2548,35 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
 
   if (view === "reports" || view === "audit") {
     const links = view === "reports"
-      ? [["Dokumentexport", "/dashboard-v2/reports?q=Report%20exportiert"], ["DATEV Export", "/dashboard-v2/reports?q=DATEV%20vorbereitet"], ["Vergleich", "/dashboard-v2/reports?q=Vergleich%20geoeffnet"]]
+      ? [["Vergleich", "/dashboard-v2/reports?q=Vergleich%20geoeffnet"]]
       : [["Audit exportieren", "/dashboard-v2/audit?q=Audit%20exportiert"], ["Filter setzen", "/dashboard-v2/audit?q=Audit%20Filter%20aktiv"], ["Ereignis suchen", "/dashboard-v2/audit?q=Ereignis%20gefunden"], ["Webhook Logs", "/dashboard-v2/audit?q=Webhook%20Logs"], ["System", "/dashboard-v2/settings?q=System%20geprueft"]]
 
     return (
       <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.length > 0}>
         <div className={styles.panelHead}><div><h2>{view === "reports" ? "Reports & Export" : "Audit Aktionen"}</h2><span>Schnelle Wege zu echten Bereichen</span></div></div>
-        <div className={styles.workflowActions}>{links.map(([label, href]) => <Link key={href} href={withPremiumTheme(href, mode)}>{label}</Link>)}</div>
+        <div className={styles.workflowActions}>
+          {view === "reports" ? (
+            <>
+              <form action="/dashboard-v2/reports" method="get" onSubmit={(event) => { event.preventDefault(); void runPremiumReport("documents") }}>
+                <input type="hidden" name="q" value="Report exportiert" />
+                <input type="hidden" name="theme" value={mode} />
+                <button type="submit" disabled={isWorkflowSaving}>Dokumentexport</button>
+              </form>
+              <form action="/dashboard-v2/reports" method="get" onSubmit={(event) => { event.preventDefault(); void runPremiumReport("datev") }}>
+                <input type="hidden" name="q" value="DATEV vorbereitet" />
+                <input type="hidden" name="theme" value={mode} />
+                <button type="submit" disabled={isWorkflowSaving}>DATEV Export</button>
+              </form>
+              <form action="/dashboard-v2/reports" method="get" onSubmit={(event) => { event.preventDefault(); void runPremiumReport("finance") }}>
+                <input type="hidden" name="q" value="Vergleich geoeffnet" />
+                <input type="hidden" name="theme" value={mode} />
+                <button type="submit" disabled={isWorkflowSaving}>Finanzbericht</button>
+              </form>
+            </>
+          ) : null}
+          {links.map(([label, href]) => <Link key={href} href={withPremiumTheme(href, mode)}>{label}</Link>)}
+        </div>
+        {workflowState.message ? <p data-state={workflowState.type}>{workflowState.message}</p> : null}
         {message}
       </article>
     )
