@@ -1234,46 +1234,126 @@
 
 .moduleGrid {
   display: grid;
-  grid-template-columns: minmax(260px, 0.7fr) minmax(260px, 0.7fr) minmax(0, 1.4fr);
+  grid-template-columns: minmax(240px, 0.58fr) minmax(240px, 0.58fr) minmax(260px, 0.72fr) minmax(0, 1.4fr);
   gap: 14px;
 }
 
 .moduleCard,
-.moduleTable {
+.moduleTable,
+.timelinePanel {
   min-width: 0;
 }
 
-.moduleStats {
+.moduleStatsGrid {
   display: grid;
-  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
 }
 
-.moduleStats div {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--panel-strong) 80%, transparent);
-  padding: 13px;
+.moduleStatCard {
+  min-height: 104px;
+  display: grid;
+  align-content: center;
+  gap: 8px;
+  overflow: hidden;
 }
 
-.moduleStats strong {
+.moduleStatCard strong {
   color: var(--text);
-  font-size: 24px;
+  font-size: clamp(26px, 3vw, 40px);
   line-height: 1;
 }
 
-.moduleStats span {
+.moduleStatCard span {
   color: var(--muted);
   font-size: 12px;
-  font-weight: 850;
+  font-weight: 900;
 }
 
 .actionStrip {
   display: grid;
   gap: 10px;
+}
+
+.actionStrip button {
+  width: 100%;
+  min-height: 46px;
+  white-space: normal;
+}
+
+.focusList {
+  display: grid;
+  gap: 10px;
+}
+
+.focusList div {
+  min-height: 54px;
+  display: grid;
+  gap: 5px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel-strong) 80%, transparent);
+  padding: 11px 12px;
+}
+
+.focusList span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.focusList strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.moduleTimeline {
+  display: grid;
+  gap: 12px;
+}
+
+.moduleTimeline div {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.moduleTimeline > div > span {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: rgba(22, 199, 132, 0.13);
+  color: var(--green);
+}
+
+.moduleTimeline p {
+  min-width: 0;
+  margin: 0;
+}
+
+.moduleTimeline strong,
+.moduleTimeline small {
+  display: block;
+}
+
+.moduleTimeline strong {
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.moduleTimeline small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 760;
+  line-height: 1.35;
 }
 
 .pipelineList {
@@ -1283,10 +1363,10 @@
 
 .pipelineList div {
   min-height: 64px;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: color-mix(in srgb, var(--panel-strong) 80%, transparent);
@@ -1295,11 +1375,14 @@
 
 .pipelineList strong,
 .pipelineList small,
-.pipelineList b {
+.pipelineList b,
+.pipelineList em {
   display: block;
 }
 
 .pipelineList strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
   color: var(--text);
   font-size: 13px;
 }
@@ -1314,6 +1397,17 @@
 .pipelineList b {
   color: var(--text);
   font-size: 13px;
+  white-space: nowrap;
+}
+
+.pipelineList em {
+  border-radius: 999px;
+  background: rgba(124, 58, 237, 0.14);
+  color: var(--violet-2);
+  padding: 5px 9px;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 950;
   white-space: nowrap;
 }
 
@@ -1383,6 +1477,7 @@
   .lowerGrid,
   .bottomGrid,
   .moduleGrid,
+  .moduleStatsGrid,
   .usersPanel {
     grid-template-columns: 1fr;
   }
@@ -1418,6 +1513,20 @@
     min-height: 0;
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .moduleHero h1 {
+    font-size: 34px;
+  }
+
+  .pipelineList div {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .pipelineList b,
+  .pipelineList em {
+    justify-self: start;
   }
 
   .profile div,
