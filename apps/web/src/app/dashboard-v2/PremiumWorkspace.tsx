@@ -4,6 +4,7 @@ import type { ComponentType } from "react"
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { articles as fallbackArticlesData, projects as fallbackProjectsData } from "@/data/invoice-data"
 import {
   AlertCircle,
   BarChart3,
@@ -78,9 +79,27 @@ type ApiCustomer = {
   email?: string
   status?: string
 }
+type ApiArticle = {
+  id: string
+  name: string
+  code?: string
+  category?: string | null
+  price?: number
+  active?: boolean
+}
+type ProjectData = {
+  id: string
+  name: string
+  customer: string
+  status: string
+  progress: string
+  budget: string
+}
 type PremiumData = {
   invoices: ApiInvoice[]
   customers: ApiCustomer[]
+  articles: ApiArticle[]
+  projects: ProjectData[]
   loaded: boolean
 }
 type ModuleConfig = {
@@ -277,6 +296,22 @@ const fallbackApiInvoices: ApiInvoice[] = invoices.map(([number, customer, statu
   date,
   createdAt: date
 }))
+const fallbackApiArticles: ApiArticle[] = fallbackArticlesData.map((article) => ({
+  id: article.id,
+  name: article.name,
+  code: article.code,
+  category: article.category,
+  price: Number(article.price) || 0,
+  active: article.status !== "inactive"
+}))
+const fallbackProjects: ProjectData[] = fallbackProjectsData.map((project) => ({
+  id: project.id,
+  name: project.name,
+  customer: project.customer,
+  status: project.status,
+  progress: project.progress,
+  budget: project.budget
+}))
 
 function formatEuro(value: number) {
   return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(value)
@@ -314,6 +349,11 @@ function invoiceRowsFromData(data: PremiumData): InvoiceRow[] {
     formatEuro(Number(invoice.grossTotal) || 0),
     String(invoice.date || invoice.createdAt || "-").slice(0, 10)
   ])
+}
+
+function parsePercent(value: string) {
+  const parsed = Number(value.replace(/[^\d.,]/g, "").replace(",", "."))
+  return Number.isFinite(parsed) ? parsed : 0
 }
 
 const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
@@ -582,6 +622,9 @@ function DashboardOverview({ data }: { data: PremiumData }) {
 }
 
 function moduleRows(view: Exclude<PremiumView, "dashboard">, data: PremiumData): ModuleRow[] {
+  const projectsSource = data.projects.length ? data.projects : fallbackProjects
+  const articlesSource = data.articles.length ? data.articles : fallbackApiArticles
+
   if (view === "customers" && data.customers.length) {
     return data.customers.slice(0, 5).map((customer) => [
       customer.name,
@@ -603,13 +646,93 @@ function moduleRows(view: Exclude<PremiumView, "dashboard">, data: PremiumData):
       ])
   }
 
+  if (view === "projects") {
+    return projectsSource.slice(0, 5).map((project) => [
+      project.name,
+      project.customer,
+      project.progress,
+      project.status
+    ])
+  }
+
+  if (view === "time") {
+    return projectsSource.slice(0, 5).map((project) => [
+      project.name,
+      `${project.customer} · ${project.budget}`,
+      project.progress,
+      project.status
+    ])
+  }
+
+  if (view === "expenses") {
+    return articlesSource.slice(0, 5).map((article) => [
+      article.name,
+      article.category || "Leistung",
+      formatEuro(Number(article.price) || 0),
+      article.active === false ? "Inaktiv" : "Aktiv"
+    ])
+  }
+
+  if (view === "reports") {
+    const source = data.invoices.length ? data.invoices : fallbackApiInvoices
+    const invoiceTotal = source.filter((invoice) => invoiceType(invoice) === "invoice").reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
+    const offerTotal = source.filter((invoice) => invoiceType(invoice) === "offer").reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
+    const paidTotal = source.filter((invoice) => isStatus(invoice.status, "paid")).reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
+
+    return [
+      ["Rechnungsumsatz", "Alle Rechnungen", formatEuro(invoiceTotal), "Live"],
+      ["Angebotspipeline", "Offene Angebote und Entwuerfe", formatEuro(offerTotal), "Live"],
+      ["Zahlungseingang", "Bezahlt markierte Rechnungen", formatEuro(paidTotal), "Live"]
+    ]
+  }
+
   return moduleContent[view].rows
+}
+
+function moduleStats(view: Exclude<PremiumView, "dashboard">, data: PremiumData) {
+  const source = data.invoices.length ? data.invoices : fallbackApiInvoices
+  const projectsSource = data.projects.length ? data.projects : fallbackProjects
+  const articlesSource = data.articles.length ? data.articles : fallbackApiArticles
+
+  if (view === "customers") {
+    const activeCustomers = data.customers.filter((customer) => String(customer.status || "").toLowerCase() === "active").length
+    return [[String(data.customers.length || 8), "Kunden"], [String(activeCustomers || 6), "Aktiv"], [data.loaded ? "API" : "Demo", "Datenquelle"]]
+  }
+
+  if (view === "projects" || view === "time") {
+    const avgProgress = Math.round(projectsSource.reduce((sum, project) => sum + parsePercent(project.progress), 0) / Math.max(projectsSource.length, 1))
+    return [[String(projectsSource.length), "Projekte"], [String(projectsSource.filter((project) => project.status === "Aktiv").length), "Aktiv"], [`${avgProgress}%`, "Fortschritt"]]
+  }
+
+  if (view === "invoices") {
+    const invoiceSource = source.filter((invoice) => invoiceType(invoice) === "invoice")
+    return [[String(invoiceSource.length), "Rechnungen"], [String(invoiceSource.filter((invoice) => isStatus(invoice.status, "overdue")).length), "Ueberfaellig"], [formatEuro(invoiceSource.reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)), "Volumen"]]
+  }
+
+  if (view === "offers") {
+    const offerSource = source.filter((invoice) => invoiceType(invoice) === "offer")
+    return [[String(offerSource.length), "Angebote"], [formatEuro(offerSource.reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)), "Pipeline"], [data.loaded ? "API" : "Demo", "Datenquelle"]]
+  }
+
+  if (view === "expenses") {
+    return [[String(articlesSource.length), "Artikel"], [String(articlesSource.filter((article) => article.active !== false).length), "Aktiv"], [formatEuro(articlesSource.reduce((sum, article) => sum + Number(article.price || 0), 0)), "Listenwert"]]
+  }
+
+  if (view === "reports") {
+    const total = source.reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
+    const paid = source.filter((invoice) => isStatus(invoice.status, "paid")).reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
+    const paidShare = Math.round((paid / Math.max(total, 1)) * 100)
+    return [[formatEuro(total), "Gesamtvolumen"], [`${paidShare}%`, "Bezahlt"], [String(source.length), "Dokumente"]]
+  }
+
+  return moduleContent[view].stats
 }
 
 function PremiumModulePage({ view, data }: { view: Exclude<PremiumView, "dashboard">; data: PremiumData }) {
   const meta = premiumViewMeta[view]
   const content = moduleContent[view]
   const rows = moduleRows(view, data)
+  const stats = moduleStats(view, data)
 
   return (
     <section className={styles.modulePage}>
@@ -623,7 +746,7 @@ function PremiumModulePage({ view, data }: { view: Exclude<PremiumView, "dashboa
       </article>
 
       <section className={styles.moduleStatsGrid}>
-        {content.stats.map(([value, label]) => (
+        {stats.map(([value, label]) => (
           <article key={`${label}-${value}`} className={`${styles.panel} ${styles.moduleStatCard}`}>
             <strong>{value}</strong>
             <span>{label}</span>
@@ -684,7 +807,13 @@ function PremiumModulePage({ view, data }: { view: Exclude<PremiumView, "dashboa
 
 export function PremiumWorkspacePage({ view = "dashboard" }: { view?: PremiumView }) {
   const [mode, setMode] = useState<ThemeMode>("dark")
-  const [data, setData] = useState<PremiumData>({ invoices: [], customers: [], loaded: false })
+  const [data, setData] = useState<PremiumData>({
+    invoices: [],
+    customers: [],
+    articles: fallbackApiArticles,
+    projects: fallbackProjects,
+    loaded: false
+  })
 
   useEffect(() => {
     const savedMode = window.localStorage.getItem("dream-invoice-premium-theme")
@@ -702,9 +831,11 @@ export function PremiumWorkspacePage({ view = "dashboard" }: { view?: PremiumVie
           fetch("/api/invoice/list", { credentials: "same-origin" }),
           fetch("/api/customers/list", { credentials: "same-origin" })
         ])
-        const [invoicePayload, customerPayload] = await Promise.all([
+        const articleResponse = await fetch("/api/articles/list", { credentials: "same-origin" })
+        const [invoicePayload, customerPayload, articlePayload] = await Promise.all([
           invoiceResponse.ok ? invoiceResponse.json() : Promise.resolve([]),
-          customerResponse.ok ? customerResponse.json() : Promise.resolve([])
+          customerResponse.ok ? customerResponse.json() : Promise.resolve([]),
+          articleResponse.ok ? articleResponse.json() : Promise.resolve({ articles: fallbackApiArticles })
         ])
 
         if (cancelled) return
@@ -712,6 +843,8 @@ export function PremiumWorkspacePage({ view = "dashboard" }: { view?: PremiumVie
         setData({
           invoices: Array.isArray(invoicePayload) ? invoicePayload : [],
           customers: Array.isArray(customerPayload) ? customerPayload : [],
+          articles: Array.isArray(articlePayload?.articles) ? articlePayload.articles : fallbackApiArticles,
+          projects: fallbackProjects,
           loaded: true
         })
       } catch {
