@@ -1066,6 +1066,7 @@ function DashboardOverview({ data, mode, profile, searchQuery }: { data: Premium
 
   return (
     <>
+      <h1 className={styles.visuallyHidden}>Dashboard</h1>
       <KpiGrid data={data} mode={mode} />
       <SearchResultsPanel data={data} mode={mode} searchQuery={effectiveSearchQuery} />
       <section className={styles.mainGrid}><RevenueChart data={data} mode={mode} /><StatusPanel data={data} mode={mode} /><QuickActions mode={mode} profile={profile} /></section>

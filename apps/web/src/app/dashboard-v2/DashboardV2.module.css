@@ -57,6 +57,16 @@
   box-sizing: border-box;
 }
 
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .page button,
 .page a {
   font: inherit;
@@ -815,14 +825,24 @@
 }
 
 .statusLegend a {
+  min-height: 34px;
   display: grid;
   grid-template-columns: 10px 1fr auto;
   align-items: center;
   gap: 8px;
+  border-radius: 8px;
   color: var(--muted);
+  padding: 7px 8px;
   font-size: 12px;
   font-weight: 850;
   text-decoration: none;
+}
+
+.statusLegend a:hover,
+.statusLegend a:focus-visible {
+  background: color-mix(in srgb, var(--panel-strong) 70%, transparent);
+  color: var(--text);
+  outline: none;
 }
 
 .statusLegend span {
@@ -2193,11 +2213,14 @@
     font-size: 34px;
   }
 
+  .pipelineRow,
   .pipelineList div {
     grid-template-columns: 1fr;
     align-items: start;
   }
 
+  .pipelineRow b,
+  .pipelineRow em,
   .pipelineList b,
   .pipelineList em {
     justify-self: start;
