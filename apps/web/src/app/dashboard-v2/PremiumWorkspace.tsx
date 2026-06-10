@@ -445,12 +445,6 @@ function documentHrefForInvoice(invoice: ApiInvoice) {
   return `/documents/${fallbackDocument?.id || invoice.id || invoice.number}`
 }
 
-function documentHrefForNumber(data: PremiumData, number: string) {
-  const source = data.invoices.length ? data.invoices : fallbackApiInvoices
-  const invoice = source.find((item) => item.number === number)
-  return invoice ? documentHrefForInvoice(invoice) : "/documents"
-}
-
 function invoiceRowsFromData(data: PremiumData): InvoiceRow[] {
   const source = data.invoices.length ? data.invoices : fallbackApiInvoices
   return source.slice(0, 5).map((invoice) => [
@@ -739,7 +733,7 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     stats: [["42", "Rechnungen"], ["11", "Ueberfaellig"], ["86%", "Zahlungsquote"]],
     rows: invoices.map(([number, customer, status, amount]) => [number, customer, amount, status]) as ModuleRow[],
     focus: [["Faellig diese Woche", "1.676,00 EUR"], ["Automatische Mahnungen", "7 aktiv"], ["Naechster Versand", "Heute 16:00"]],
-    actions: [["Rechnung vorbereiten", "/dashboard-v2/invoices?q=Rechnung%20vorbereitet"], ["Rechnung erstellen", "/documents/new"], ["Zahlung pruefen", "/dashboard-v2/reports?q=Zahlung%20geprueft"]],
+    actions: [["Rechnung vorbereiten", "/dashboard-v2/invoices?q=Rechnung%20vorbereitet"], ["Rechnung erstellen", "/dashboard-v2/invoices?q=Rechnung%20neu%20vorbereitet"], ["Zahlung pruefen", "/dashboard-v2/reports?q=Zahlung%20geprueft"]],
     timeline: [["Rechnung erstellt", "OF-2026-5001 wurde fuer Meridian Studio vorbereitet."], ["Zahlung erkannt", "719,05 EUR von Aurora Labs wurden zugeordnet."], ["Mahnung geplant", "Pixel Perfect Ltd. erhaelt morgen eine Erinnerung."]],
     primaryHref: "/dashboard-v2/invoices?q=Rechnung%20vorbereitet"
   },
@@ -747,7 +741,7 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     stats: [["16", "Angebote"], ["9", "Offen"], ["41%", "Annahmequote"]],
     rows: [["OF-2026-5001", "Meridian Studio GmbH", "1.320,00 EUR", "Entwurf"], ["OF-2026-4997", "Pixel Perfect Ltd.", "1.147,00 EUR", "Offen"], ["OF-2026-4992", "Urban Commerce Inc.", "2.840,00 EUR", "Review"]],
     focus: [["Pipeline", "12.640,00 EUR"], ["Entwuerfe", "5"], ["Ablauf in 7 Tagen", "3"]],
-    actions: [["Angebot vorbereiten", "/dashboard-v2/offers?q=Angebot%20vorbereitet"], ["Angebot erstellen", "/documents/templates/new/offer"], ["Pipeline pruefen", "/dashboard-v2/offers?q=Pipeline%20geprueft"]],
+    actions: [["Angebot vorbereiten", "/dashboard-v2/offers?q=Angebot%20vorbereitet"], ["Angebot erstellen", "/dashboard-v2/offers?q=Angebot%20neu%20vorbereitet"], ["Pipeline pruefen", "/dashboard-v2/offers?q=Pipeline%20geprueft"]],
     timeline: [["Angebot versendet", "Pixel Perfect Ltd. hat Version 3 erhalten."], ["Preisposition geaendert", "Hosting wurde als optionale Position markiert."], ["Annahme erwartet", "Meridian Studio will bis Freitag entscheiden."]],
     primaryHref: "/dashboard-v2/offers?q=Angebot%20vorbereitet"
   },
@@ -1469,12 +1463,17 @@ const premiumActionQueryTerms = [
   "timer gestartet",
   "freigabe vorbereitet",
   "kunde vorbereitet",
+  "kunde neu vorbereitet",
   "segment geprueft",
   "projekt vorbereitet",
+  "projekt neu vorbereitet",
   "budget geprueft",
   "rechnung vorbereitet",
+  "rechnung neu vorbereitet",
+  "dokument geoeffnet",
   "zahlung geprueft",
   "angebot vorbereitet",
+  "angebot neu vorbereitet",
   "pipeline geprueft",
   "ausgabe erfasst",
   "beleg hochgeladen",
@@ -1565,7 +1564,7 @@ function ModuleSelectionPanel({ data, mode, row, searchQuery, view }: { data: Pr
   if (!selection) return null
   if (!row && !isPremiumActionQuery(selection)) return null
 
-  const detailHref = row && (view === "invoices" || view === "offers") ? documentHrefForNumber(data, row[0]) : null
+  const detailHref = row && (view === "invoices" || view === "offers") ? `/dashboard-v2/${view}?q=Dokument%20geoeffnet` : null
 
   return (
     <article className={`${styles.panel} ${styles.selectionPanel}`}>
@@ -1575,7 +1574,7 @@ function ModuleSelectionPanel({ data, mode, row, searchQuery, view }: { data: Pr
         <small>{row ? `${row[1]} · ${row[2]} · ${row[3]}` : "Premium Aktion wurde vorbereitet und ist im aktuellen Bereich markiert."}</small>
       </div>
       <div>
-        {detailHref ? <Link href={detailHref}>Dokument oeffnen</Link> : null}
+        {detailHref ? <Link href={withPremiumTheme(detailHref, mode)}>Dokument oeffnen</Link> : null}
         <Link href={withPremiumTheme(`/dashboard-v2/${view}`, mode)}>Auswahl leeren</Link>
       </div>
     </article>
@@ -1713,12 +1712,17 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
     [query.includes("timer gestartet"), "Timer wurde gestartet und dem Projekt zugeordnet."],
     [query.includes("freigabe vorbereitet"), "Freigabe wurde vorbereitet und kann in Rechnungen uebernommen werden."],
     [query.includes("kunde vorbereitet"), "Kunde wurde vorbereitet. Fuer Speicherung kann der vollstaendige Kunden-Flow geoeffnet werden."],
+    [query.includes("kunde neu vorbereitet"), "Neuer Premium-Kunde wurde vorbereitet. Der echte Premium-Editor wird spaeter separat gebaut."],
     [query.includes("segment geprueft"), "Kundensegment wurde geprueft und fuer die Ansicht markiert."],
     [query.includes("projekt vorbereitet"), "Projekt wurde vorbereitet. Fuer Speicherung kann der vollstaendige Projekt-Flow geoeffnet werden."],
+    [query.includes("projekt neu vorbereitet"), "Neues Premium-Projekt wurde vorbereitet. Der echte Premium-Editor wird spaeter separat gebaut."],
     [query.includes("budget geprueft"), "Projektbudget wurde geprueft und die Auslastung ist sichtbar."],
     [query.includes("rechnung vorbereitet"), "Rechnung wurde vorbereitet. Fuer Speicherung kann der vollstaendige Rechnungs-Flow geoeffnet werden."],
+    [query.includes("rechnung neu vorbereitet"), "Neue Premium-Rechnung wurde vorbereitet. Der echte Premium-Editor wird spaeter separat gebaut."],
+    [query.includes("dokument geoeffnet"), "Premium-Dokumentansicht wurde vorbereitet. Der echte Premium-Editor wird spaeter separat gebaut."],
     [query.includes("zahlung geprueft"), "Zahlung wurde geprueft und dem Reporting zugeordnet."],
     [query.includes("angebot vorbereitet"), "Angebot wurde vorbereitet. Fuer Speicherung kann der vollstaendige Angebots-Flow geoeffnet werden."],
+    [query.includes("angebot neu vorbereitet"), "Neues Premium-Angebot wurde vorbereitet. Der echte Premium-Editor wird spaeter separat gebaut."],
     [query.includes("pipeline geprueft"), "Pipeline wurde geprueft und offene Angebote sind markiert."],
     [query.includes("ausgabe erfasst"), "Ausgabe wurde vorgemerkt und fuer DATEV vorbereitet."],
     [query.includes("beleg hochgeladen"), "Beleg-Upload wurde vorbereitet und kann dem Ausgabenfluss zugeordnet werden."],
@@ -1754,7 +1758,7 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
   if (view === "customers") {
     return (
       <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("kunde") || query.includes("segment")}>
-        <div className={styles.panelHead}><div><h2>Kunde anlegen</h2><span>Kontakt vorbereiten und in den echten Kunden-Flow wechseln</span></div><Link href="/customers/new">Vollstaendig anlegen</Link></div>
+        <div className={styles.panelHead}><div><h2>Kunde anlegen</h2><span>Kontakt im Premium-Flow vorbereiten</span></div><Link href={withPremiumTheme("/dashboard-v2/customers?q=Kunde%20neu%20vorbereitet", mode)}>Premium vorbereiten</Link></div>
         <form className={styles.workflowForm} action="/dashboard-v2/customers" method="get">
           <input type="hidden" name="q" value="Kunde vorbereitet" />
           <input type="hidden" name="theme" value={mode} />
@@ -1770,7 +1774,7 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
   if (view === "projects") {
     return (
       <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("projekt") || query.includes("budget")}>
-        <div className={styles.panelHead}><div><h2>Projekt anlegen</h2><span>Projekt vorbereiten und Budget direkt pruefen</span></div><Link href="/projects/new">Vollstaendig anlegen</Link></div>
+        <div className={styles.panelHead}><div><h2>Projekt anlegen</h2><span>Projekt vorbereiten und Budget direkt pruefen</span></div><Link href={withPremiumTheme("/dashboard-v2/projects?q=Projekt%20neu%20vorbereitet", mode)}>Premium vorbereiten</Link></div>
         <form className={styles.workflowForm} action="/dashboard-v2/projects" method="get">
           <input type="hidden" name="q" value="Projekt vorbereitet" />
           <input type="hidden" name="theme" value={mode} />
@@ -1786,7 +1790,7 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
   if (view === "invoices") {
     return (
       <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("rechnung") || query.includes("zahlung") || query.includes("freigabe")}>
-        <div className={styles.panelHead}><div><h2>Rechnung vorbereiten</h2><span>Kunde, Projekt und Dokumentfluss vorbereiten</span></div><Link href="/documents/new">Vollstaendig erstellen</Link></div>
+        <div className={styles.panelHead}><div><h2>Rechnung vorbereiten</h2><span>Kunde, Projekt und Dokumentfluss vorbereiten</span></div><Link href={withPremiumTheme("/dashboard-v2/invoices?q=Rechnung%20neu%20vorbereitet", mode)}>Premium erstellen</Link></div>
         <form className={styles.workflowForm} action="/dashboard-v2/invoices" method="get">
           <input type="hidden" name="q" value="Rechnung vorbereitet" />
           <input type="hidden" name="theme" value={mode} />
@@ -1802,7 +1806,7 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
   if (view === "offers") {
     return (
       <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("angebot") || query.includes("pipeline")}>
-        <div className={styles.panelHead}><div><h2>Angebot vorbereiten</h2><span>Pipeline-Dokument mit Kunde und Projekt vorbereiten</span></div><Link href="/documents/templates/new/offer">Vollstaendig erstellen</Link></div>
+        <div className={styles.panelHead}><div><h2>Angebot vorbereiten</h2><span>Pipeline-Dokument mit Kunde und Projekt vorbereiten</span></div><Link href={withPremiumTheme("/dashboard-v2/offers?q=Angebot%20neu%20vorbereitet", mode)}>Premium erstellen</Link></div>
         <form className={styles.workflowForm} action="/dashboard-v2/offers" method="get">
           <input type="hidden" name="q" value="Angebot vorbereitet" />
           <input type="hidden" name="theme" value={mode} />
@@ -1847,7 +1851,7 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
           <button type="submit">Erfassen</button>
         </form>
         <div className={styles.workflowActions}>
-          <Link href="/api/finance/datev-export">DATEV Export</Link>
+          <Link href={withPremiumTheme("/dashboard-v2/expenses?q=DATEV%20vorbereitet", mode)}>DATEV Export</Link>
           <Link href={withPremiumTheme("/dashboard-v2/expenses?q=DATEV%20vorbereitet", mode)}>Export vormerken</Link>
         </div>
         {message}
