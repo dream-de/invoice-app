@@ -1456,11 +1456,73 @@ function moduleTimeline(view: Exclude<PremiumView, "dashboard">, data: PremiumDa
   return moduleContent[view].timeline
 }
 
+function moduleSelectionLabel(searchQuery: string) {
+  return searchQuery.trim()
+}
+
+const premiumActionQueryTerms = [
+  "zeit gebucht",
+  "timer gestartet",
+  "freigabe vorbereitet",
+  "kunde vorbereitet",
+  "segment geprueft",
+  "projekt vorbereitet",
+  "budget geprueft",
+  "rechnung vorbereitet",
+  "zahlung geprueft",
+  "angebot vorbereitet",
+  "pipeline geprueft",
+  "ausgabe erfasst",
+  "datev vorbereitet",
+  "report exportiert",
+  "vergleich geoeffnet",
+  "firma geprueft",
+  "nummernkreis geprueft",
+  "portal geoeffnet",
+  "system geprueft",
+  "benutzer eingeladen",
+  "rolle vorbereitet",
+  "regeln aktualisiert",
+  "alle gelesen",
+  "audit filter aktiv",
+  "filter aktiv",
+  "integration verbunden",
+  "sync geprueft",
+  "token vorbereitet",
+  "workflow erstellt",
+  "workflow getestet",
+  "audit exportiert",
+  "ereignis gefunden",
+  "webhook logs",
+  "api-key rotiert",
+  "api geprueft",
+  "webhook erstellt"
+]
+
+function isPremiumActionQuery(searchQuery: string) {
+  const selection = moduleSelectionLabel(searchQuery).toLowerCase()
+  return premiumActionQueryTerms.some((term) => selection.includes(term))
+}
+
+function isModuleRowActive(row: ModuleRow, searchQuery: string) {
+  const selection = moduleSelectionLabel(searchQuery).toLowerCase()
+  if (!selection) return false
+
+  return row.some((value) => value.toLowerCase() === selection || value.toLowerCase().includes(selection))
+}
+
+function moduleSelectedRow(rows: ModuleRow[], searchQuery: string) {
+  const selection = moduleSelectionLabel(searchQuery)
+  if (!selection) return null
+
+  return rows.find((row) => isModuleRowActive(row, selection)) ?? null
+}
+
 function moduleRowHref(view: Exclude<PremiumView, "dashboard">, data: PremiumData, row: ModuleRow) {
   if (view === "customers") {
     const customersSource = data.customers.length ? data.customers : fallbackApiCustomers
     const customer = customersSource.find((item) => item.name === row[0])
-    return customer ? `/customers/${customer.id}` : "/dashboard-v2/customers"
+    return customer ? `/dashboard-v2/customers?q=${encodeURIComponent(customer.name)}` : "/dashboard-v2/customers"
   }
 
   if (view === "projects") {
@@ -1470,7 +1532,7 @@ function moduleRowHref(view: Exclude<PremiumView, "dashboard">, data: PremiumDat
   }
 
   if (view === "invoices" || view === "offers") {
-    return documentHrefForNumber(data, row[0])
+    return `/dashboard-v2/${view}?q=${encodeURIComponent(row[0])}`
   }
 
   if (view === "time") {
@@ -1486,6 +1548,28 @@ function moduleRowHref(view: Exclude<PremiumView, "dashboard">, data: PremiumDat
   }
 
   return `/dashboard-v2/${view}?q=${encodeURIComponent(row[0])}`
+}
+
+function ModuleSelectionPanel({ data, mode, row, searchQuery, view }: { data: PremiumData; mode: ThemeMode; row: ModuleRow | null; searchQuery: string; view: Exclude<PremiumView, "dashboard"> }) {
+  const selection = moduleSelectionLabel(searchQuery)
+  if (!selection) return null
+  if (!row && !isPremiumActionQuery(selection)) return null
+
+  const detailHref = row && (view === "invoices" || view === "offers") ? documentHrefForNumber(data, row[0]) : null
+
+  return (
+    <article className={`${styles.panel} ${styles.selectionPanel}`}>
+      <div>
+        <span>Auswahl aktiv</span>
+        <strong>{row?.[0] || selection}</strong>
+        <small>{row ? `${row[1]} · ${row[2]} · ${row[3]}` : "Premium Aktion wurde vorbereitet und ist im aktuellen Bereich markiert."}</small>
+      </div>
+      <div>
+        {detailHref ? <Link href={detailHref}>Dokument oeffnen</Link> : null}
+        <Link href={withPremiumTheme(`/dashboard-v2/${view}`, mode)}>Auswahl leeren</Link>
+      </div>
+    </article>
+  )
 }
 
 type LicensePanelState =
@@ -1869,7 +1953,9 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
 function PremiumModulePage({ view, data, mode, searchQuery }: { view: Exclude<PremiumView, "dashboard">; data: PremiumData; mode: ThemeMode; searchQuery: string }) {
   const meta = premiumViewMeta[view]
   const content = moduleContent[view]
-  const rows = moduleRows(view, data).filter((row) => matchesSearch(row, searchQuery))
+  const allRows = moduleRows(view, data)
+  const selectedRow = moduleSelectedRow(allRows, searchQuery)
+  const rows = allRows.filter((row) => matchesSearch(row, searchQuery))
   const stats = moduleStats(view, data)
   const focus = moduleFocus(view, data)
   const timeline = moduleTimeline(view, data)
@@ -1896,6 +1982,7 @@ function PremiumModulePage({ view, data, mode, searchQuery }: { view: Exclude<Pr
 
       {view === "license" ? <PremiumLicensePanel data={data} mode={mode} searchQuery={searchQuery} /> : null}
       <PremiumWorkflowPanel view={view} data={data} mode={mode} searchQuery={searchQuery} />
+      <ModuleSelectionPanel view={view} data={data} mode={mode} row={selectedRow} searchQuery={searchQuery} />
 
       <section className={styles.moduleGrid}>
         <article className={`${styles.panel} ${styles.moduleCard}`}>
@@ -1935,7 +2022,7 @@ function PremiumModulePage({ view, data, mode, searchQuery }: { view: Exclude<Pr
           <div className={styles.panelHead}><h2>{meta.title} Uebersicht</h2><Link href={withPremiumTheme("/dashboard-v2", mode)}>Zurueck zum Dashboard</Link></div>
           <div className={styles.pipelineList}>
             {rows.length ? rows.map(([title, subtitle, value, status]) => (
-              <Link key={`${title}-${value}`} href={withPremiumTheme(moduleRowHref(view, data, [title, subtitle, value, status]), mode)} className={styles.pipelineRow}>
+              <Link key={`${title}-${value}`} href={withPremiumTheme(moduleRowHref(view, data, [title, subtitle, value, status]), mode)} className={styles.pipelineRow} data-active={isModuleRowActive([title, subtitle, value, status], searchQuery)}>
                 <span><strong>{title}</strong><small>{subtitle}</small></span>
                 <b>{value}</b>
                 <em>{status}</em>

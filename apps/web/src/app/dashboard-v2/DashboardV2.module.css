@@ -1668,6 +1668,67 @@
   color: var(--rose);
 }
 
+.selectionPanel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border-color: color-mix(in srgb, var(--violet) 46%, var(--line));
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--violet) 12%, transparent), transparent 58%),
+    var(--panel);
+}
+
+.selectionPanel > div:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+
+.selectionPanel span,
+.selectionPanel small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.selectionPanel span {
+  color: var(--violet-2);
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.selectionPanel strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--text);
+  font-size: 17px;
+  line-height: 1.2;
+}
+
+.selectionPanel > div:last-child {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.selectionPanel a {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel-strong) 86%, transparent);
+  color: var(--text);
+  padding: 0 13px;
+  font-size: 12px;
+  font-weight: 950;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
 .moduleStatCard {
   min-height: 104px;
   display: grid;
@@ -1798,6 +1859,12 @@
   border-color: color-mix(in srgb, var(--violet) 50%, var(--line));
   background: color-mix(in srgb, var(--panel-strong) 92%, transparent);
   transform: translateY(-1px);
+}
+
+.pipelineRow[data-active="true"] {
+  border-color: color-mix(in srgb, var(--violet) 62%, var(--line));
+  background: color-mix(in srgb, var(--violet) 11%, var(--panel-strong));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--violet) 13%, transparent);
 }
 
 .pipelineList strong,
