@@ -1,7 +1,7 @@
 "use client"
 
-import type { ComponentType } from "react"
-import { useEffect, useMemo, useState } from "react"
+import type { ComponentType, RefObject } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { articles as fallbackArticlesData, projects as fallbackProjectsData } from "@/data/invoice-data"
@@ -30,6 +30,7 @@ import {
   UserPlus,
   Users,
   Wallet,
+  X,
   Zap
 } from "lucide-react"
 import styles from "./DashboardV2.module.css"
@@ -714,12 +715,12 @@ function Sidebar({ workspace }: { workspace: ReturnType<typeof workspaceFromData
   )
 }
 
-function Topbar({ mode, profile, searchQuery, unreadCount, onModeChange, onSearchChange }: { mode: ThemeMode; profile: ReturnType<typeof profileFromData>; searchQuery: string; unreadCount: number; onModeChange: (mode: ThemeMode) => void; onSearchChange: (value: string) => void }) {
+function Topbar({ mode, profile, searchInputRef, searchQuery, unreadCount, onModeChange, onSearchChange }: { mode: ThemeMode; profile: ReturnType<typeof profileFromData>; searchInputRef: RefObject<HTMLInputElement | null>; searchQuery: string; unreadCount: number; onModeChange: (mode: ThemeMode) => void; onSearchChange: (value: string) => void }) {
   const pathname = usePathname()
 
   return (
     <header className={styles.topbar}>
-      <label className={styles.searchBox}><Search size={16} /><input value={searchQuery} onChange={(event) => onSearchChange(event.target.value)} placeholder="Suche..." aria-label="Premium Suche" /></label>
+      <label className={styles.searchBox}><Search size={16} /><input ref={searchInputRef} value={searchQuery} onChange={(event) => onSearchChange(event.target.value)} placeholder="Suche..." aria-label="Premium Suche" />{searchQuery ? <button type="button" aria-label="Suche leeren" onClick={() => onSearchChange("")}><X size={15} /></button> : null}</label>
       <nav className={styles.desktopNav}>{mainNav.map((item) => <Link key={item.label} className={pathname === item.href ? styles.navActive : ""} href={item.href}>{item.label}</Link>)}</nav>
       <div className={styles.topActions}><ThemeToggle mode={mode} onChange={onModeChange} /><Link href="/documents/new" aria-label="Neu"><Plus size={18} /></Link><Link href="/dashboard-v2/notifications" aria-label="Benachrichtigungen" className={styles.bellButton}><Bell size={18} />{unreadCount > 0 ? <span>{unreadCount}</span> : null}</Link><Link href="/settings/system" aria-label="Hilfe"><HelpCircle size={18} /></Link><div className={styles.profile}><span>{profile.initials}</span><div><strong>{profile.name}</strong><small>{profile.role}</small></div></div></div>
     </header>
@@ -1239,6 +1240,7 @@ function PremiumModulePage({ view, data, searchQuery }: { view: Exclude<PremiumV
 export function PremiumWorkspacePage({ view = "dashboard" }: { view?: PremiumView }) {
   const [mode, setMode] = useState<ThemeMode>("dark")
   const [searchQuery, setSearchQuery] = useState("")
+  const searchInputRef = useRef<HTMLInputElement>(null)
   const [data, setData] = useState<PremiumData>({
     invoices: [],
     customers: [],
@@ -1311,6 +1313,24 @@ export function PremiumWorkspacePage({ view = "dashboard" }: { view?: PremiumVie
     }
   }, [])
 
+  useEffect(() => {
+    function handleSearchShortcut(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault()
+        searchInputRef.current?.focus()
+        searchInputRef.current?.select()
+        return
+      }
+
+      if (event.key === "Escape" && searchQuery) {
+        setSearchQuery("")
+      }
+    }
+
+    window.addEventListener("keydown", handleSearchShortcut)
+    return () => window.removeEventListener("keydown", handleSearchShortcut)
+  }, [searchQuery])
+
   function handleModeChange(nextMode: ThemeMode) {
     setMode(nextMode)
     window.localStorage.setItem("dream-invoice-premium-theme", nextMode)
@@ -1323,7 +1343,7 @@ export function PremiumWorkspacePage({ view = "dashboard" }: { view?: PremiumVie
     <div className={styles.page} data-theme={mode} role="main">
       <Sidebar workspace={workspace} />
       <section className={styles.contentShell}>
-        <Topbar mode={mode} profile={profile} searchQuery={searchQuery} unreadCount={(data.notifications.length ? data.notifications : fallbackNotifications).filter((item) => !item.readAt).length} onModeChange={handleModeChange} onSearchChange={setSearchQuery} />
+        <Topbar mode={mode} profile={profile} searchInputRef={searchInputRef} searchQuery={searchQuery} unreadCount={(data.notifications.length ? data.notifications : fallbackNotifications).filter((item) => !item.readAt).length} onModeChange={handleModeChange} onSearchChange={setSearchQuery} />
         {view === "dashboard" ? <DashboardOverview data={data} profile={profile} searchQuery={searchQuery} /> : <PremiumModulePage view={view} data={data} searchQuery={searchQuery} />}
       </section>
     </div>
