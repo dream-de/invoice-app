@@ -819,7 +819,7 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     stats: [["12", "Neu"], ["4", "Wichtig"], ["0", "Kritisch"]],
     rows: [["Zahlung erhalten", "Aurora Labs GmbH", "719,05 EUR", "Neu"], ["Rechnung ueberfaellig", "Pixel Perfect Ltd.", "1.147,00 EUR", "Wichtig"], ["Projekt aktualisiert", "Website Redesign", "Phase 2", "Info"]],
     focus: [["Inbox", "12 Meldungen"], ["Heute", "6 Ereignisse"], ["Regeln", "8 aktiv"]],
-    actions: [["Regeln bearbeiten", "/dashboard-v2/notifications?q=Regeln"], ["Alle gelesen", "/dashboard-v2/notifications?q=Alle%20gelesen"], ["Filter setzen", "/dashboard-v2/notifications?q=Filter"]],
+    actions: [["Regeln bearbeiten", "/dashboard-v2/notifications?q=Regeln%20aktualisiert"], ["Alle gelesen", "/dashboard-v2/notifications?q=Alle%20gelesen"], ["Filter setzen", "/dashboard-v2/notifications?q=Filter%20aktiv"]],
     timeline: [["Push gesendet", "Daniel wurde ueber Zahlung informiert."], ["Regel angewendet", "Ueberfaellige Rechnung markiert."], ["Benachrichtigung geplant", "Tagesbericht wird um 18:00 gesendet."]],
     primaryHref: "/dashboard-v2/notifications?q=Alle%20gelesen"
   },
@@ -827,17 +827,17 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     stats: [["248", "Events"], ["0", "Risiken"], ["30 T", "Aufbewahrung"]],
     rows: [["Daniel", "Rechnung exportiert", "OF-2026-5001", "Heute"], ["Sarah", "Kunde bearbeitet", "Aurora Labs", "Heute"], ["System", "Webhook ausgeliefert", "invoice.created", "Gestern"]],
     focus: [["Sicherheitsstatus", "Gruen"], ["Letzter Export", "Heute"], ["Admin Aktionen", "14"]],
-    actions: [["Audit exportieren", "/dashboard-v2/audit?q=Export"], ["Filter setzen", "/dashboard-v2/audit?q=Filter"], ["Ereignis suchen", "/dashboard-v2/audit?q=Suche"]],
+    actions: [["Audit exportieren", "/dashboard-v2/audit?q=Audit%20exportiert"], ["Filter setzen", "/dashboard-v2/audit?q=Audit%20Filter%20aktiv"], ["Ereignis suchen", "/dashboard-v2/audit?q=Ereignis%20gefunden"]],
     timeline: [["Export protokolliert", "PDF-Download wurde im Audit gespeichert."], ["Zugriff erlaubt", "Sarah hat Kundenprofil geoeffnet."], ["Webhook signiert", "Event wurde erfolgreich ausgeliefert."]],
-    primaryHref: "/dashboard-v2/audit?q=Export"
+    primaryHref: "/dashboard-v2/audit?q=Audit%20exportiert"
   },
   api: {
     stats: [["3", "Keys"], ["8", "Webhooks"], ["99.9%", "Uptime"]],
     rows: [["invoice.created", "Webhook", "200 OK", "Aktiv"], ["payment.received", "Webhook", "200 OK", "Aktiv"], ["customer.updated", "Webhook", "Retry 1", "Pruefung"]],
     focus: [["Rate Limit", "18% genutzt"], ["Letzter Fehler", "Gestern"], ["Signaturen", "Aktiv"]],
-    actions: [["Webhook erstellen", "/dashboard-v2/api?q=Webhook"], ["API-Key rotieren", "/dashboard-v2/api?q=API-Key"], ["Logs oeffnen", "/dashboard-v2/audit?q=Webhook"]],
+    actions: [["Webhook erstellen", "/dashboard-v2/api?q=Webhook%20erstellt"], ["API-Key rotieren", "/dashboard-v2/api?q=API-Key%20rotiert"], ["Logs oeffnen", "/dashboard-v2/audit?q=Webhook%20Logs"]],
     timeline: [["Webhook ausgeliefert", "invoice.created wurde in 184 ms bestaetigt."], ["Key rotiert", "Alter Schluessel wurde deaktiviert."], ["Retry geplant", "customer.updated wird erneut gesendet."]],
-    primaryHref: "/dashboard-v2/api?q=Webhook"
+    primaryHref: "/dashboard-v2/api?q=Webhook%20erstellt"
   }
 }
 
@@ -1632,23 +1632,37 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
                         ? "Benutzereinladung wurde vorbereitet."
                         : query.includes("rolle vorbereitet")
                           ? "Rollenverwaltung wurde vorbereitet."
-                          : query.includes("alle gelesen")
-                            ? "Alle Benachrichtigungen wurden als gelesen markiert."
-                            : query.includes("filter aktiv")
-                              ? "Filter aktiv: wichtige Zahlung, Rechnung und Systemmeldungen."
-                              : query.includes("integration verbunden")
-                                ? "Integration wurde verbunden und fuer Sync vorbereitet."
-                                : query.includes("sync geprueft")
-                                  ? "Sync wurde geprueft. Zahlungen, Buchhaltung und Automation sind aktuell."
-                                  : query.includes("token vorbereitet")
-                                    ? "Token wurde vorbereitet und kann sicher rotiert werden."
-                                    : query.includes("workflow erstellt")
-                                      ? "Workflow wurde erstellt und ist bereit fuer den Testlauf."
-                                      : query.includes("workflow getestet")
-                                        ? "Workflow wurde erfolgreich getestet."
-                                        : query.includes("webhook erstellt")
-                                          ? "Webhook wurde fuer invoice.created vorbereitet."
-                                          : ""
+                          : query.includes("regeln aktualisiert")
+                            ? "Benachrichtigungsregeln wurden aktualisiert."
+                            : query.includes("alle gelesen")
+                              ? "Alle Benachrichtigungen wurden als gelesen markiert."
+                              : query.includes("audit filter aktiv")
+                                ? "Audit Filter ist aktiv und zeigt relevante Sicherheitsereignisse."
+                                : query.includes("filter aktiv")
+                                  ? "Filter aktiv: wichtige Zahlung, Rechnung und Systemmeldungen."
+                                  : query.includes("integration verbunden")
+                                    ? "Integration wurde verbunden und fuer Sync vorbereitet."
+                                    : query.includes("sync geprueft")
+                                      ? "Sync wurde geprueft. Zahlungen, Buchhaltung und Automation sind aktuell."
+                                      : query.includes("token vorbereitet")
+                                        ? "Token wurde vorbereitet und kann sicher rotiert werden."
+                                        : query.includes("workflow erstellt")
+                                          ? "Workflow wurde erstellt und ist bereit fuer den Testlauf."
+                                          : query.includes("workflow getestet")
+                                            ? "Workflow wurde erfolgreich getestet."
+                                            : query.includes("audit exportiert")
+                                              ? "Audit Export wurde vorbereitet und protokolliert."
+                                              : query.includes("ereignis gefunden")
+                                                ? "Ereignissuche wurde ausgefuehrt und passende Eintraege sind markiert."
+                                                : query.includes("webhook logs")
+                                                  ? "Webhook Logs wurden geoeffnet und fuer Pruefung gefiltert."
+                                                  : query.includes("api-key rotiert")
+                                                    ? "API-Key Rotation wurde vorbereitet."
+                                                    : query.includes("api geprueft")
+                                                      ? "API-Endpunkte wurden geprueft und sind erreichbar."
+                                                      : query.includes("webhook erstellt")
+                                                        ? "Webhook wurde fuer invoice.created vorbereitet."
+                                                        : ""
   const message = routeMessage ? <p data-state="success">{routeMessage}</p> : null
 
   if (view === "customers") {
@@ -1778,9 +1792,10 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
 
   if (view === "notifications") {
     return (
-      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("gelesen") || query.includes("regeln")}>
+      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("gelesen") || query.includes("regeln") || query.includes("filter")}>
         <div className={styles.panelHead}><div><h2>Benachrichtigungen</h2><span>Inbox und Regeln direkt verarbeiten</span></div></div>
         <div className={styles.workflowActions}>
+          <Link href={withPremiumTheme("/dashboard-v2/notifications?q=Regeln%20aktualisiert", mode)}>Regeln aktualisieren</Link>
           <Link href={withPremiumTheme("/dashboard-v2/notifications?q=Alle%20gelesen", mode)}>Alle gelesen markieren</Link>
           <Link href={withPremiumTheme("/dashboard-v2/notifications?q=Filter%20aktiv", mode)}>Filter setzen</Link>
         </div>
@@ -1830,11 +1845,12 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
 
   if (view === "api") {
     return (
-      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("webhook") || query.includes("api")}>
-        <div className={styles.panelHead}><div><h2>API pruefen</h2><span>Live-Endpoints testen und Webhook vorbereiten</span></div><Link href={withPremiumTheme("/dashboard-v2/audit?q=Webhook", mode)}>Logs oeffnen</Link></div>
+      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("webhook") || query.includes("api") || query.includes("key")}>
+        <div className={styles.panelHead}><div><h2>API pruefen</h2><span>Live-Endpoints testen und Webhook vorbereiten</span></div><Link href={withPremiumTheme("/dashboard-v2/audit?q=Webhook%20Logs", mode)}>Logs oeffnen</Link></div>
         <div className={styles.workflowActions}>
-          <Link href="/api/invoice/list">Rechnungs-API pruefen</Link>
+          <Link href={withPremiumTheme("/dashboard-v2/api?q=API%20geprueft", mode)}>API pruefen</Link>
           <Link href={withPremiumTheme("/dashboard-v2/api?q=Webhook%20erstellt", mode)}>Webhook erstellen</Link>
+          <Link href={withPremiumTheme("/dashboard-v2/api?q=API-Key%20rotiert", mode)}>API-Key rotieren</Link>
         </div>
         {message}
       </article>
@@ -1846,7 +1862,7 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
       ? [["Dokumentexport", "/api/documents/export"], ["DATEV Export", "/api/finance/datev-export"], ["Vergleich", "/dashboard-v2/reports?q=Vergleich%20geoeffnet"]]
       : view === "settings"
         ? [["Firma", "/settings/company"], ["Nummernkreise", "/settings/number-ranges"], ["Portal", "/settings/portal"]]
-        : [["Audit exportieren", "/dashboard-v2/audit?q=Export"], ["Webhook Logs", "/dashboard-v2/audit?q=Webhook"], ["System", "/settings/system"]]
+        : [["Audit exportieren", "/dashboard-v2/audit?q=Audit%20exportiert"], ["Filter setzen", "/dashboard-v2/audit?q=Audit%20Filter%20aktiv"], ["Ereignis suchen", "/dashboard-v2/audit?q=Ereignis%20gefunden"], ["Webhook Logs", "/dashboard-v2/audit?q=Webhook%20Logs"], ["System", "/settings/system"]]
 
     return (
       <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.length > 0}>
