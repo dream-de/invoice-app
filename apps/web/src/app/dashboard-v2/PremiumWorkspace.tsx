@@ -149,6 +149,12 @@ type ModuleConfig = {
   timeline: Array<[title: string, text: string]>
   primaryHref: string
 }
+type UpgradeSummary = {
+  title: string
+  text: string
+  action: string
+  href: string
+}
 
 const mainNav: NavItem[] = [
   { label: "Dashboard", href: "/dashboard-v2", icon: Home },
@@ -484,6 +490,25 @@ function userLimitFromData(data: PremiumData) {
   }
 }
 
+function upgradeSummaryFromData(data: PremiumData): UpgradeSummary {
+  const limit = userLimitFromData(data)
+  if (limit.isFull) {
+    return {
+      title: "Limit erreicht",
+      text: `${limit.currentUsers}/${limit.maxUsers} Benutzer aktiv. Upgrade fuer mehr Teammitglieder vorbereiten.`,
+      action: "Upgrade pruefen",
+      href: "/dashboard-v2/license"
+    }
+  }
+
+  return {
+    title: `${limit.plan} aktiv`,
+    text: `${limit.maxUsers - limit.currentUsers} Benutzerplaetze verfuegbar. Lizenzstatus und Limits pruefen.`,
+    action: "Lizenzstatus",
+    href: "/dashboard-v2/license"
+  }
+}
+
 function matchesSearch(values: readonly string[], query: string) {
   const normalizedQuery = query.trim().toLowerCase()
   if (!normalizedQuery) return true
@@ -702,15 +727,15 @@ function ThemeToggle({ mode, onChange }: { mode: ThemeMode; onChange: (mode: The
   )
 }
 
-function Sidebar({ workspace }: { workspace: ReturnType<typeof workspaceFromData> }) {
+function Sidebar({ unreadCount, upgrade, workspace }: { unreadCount: number; upgrade: UpgradeSummary; workspace: ReturnType<typeof workspaceFromData> }) {
   const pathname = usePathname()
 
   return (
     <aside className={styles.sidebar}>
       <div className={styles.logoWrap}><div className={styles.logoMark}>D</div><div><strong>DreamInvoice</strong><span>Premium Edition</span></div></div>
       <button className={styles.workspaceButton} type="button"><span className={styles.workspaceAvatar}>{workspace.initial}</span><span><small>Workspace</small><strong>{workspace.name}</strong></span><ChevronDown size={14} /></button>
-      <nav className={styles.sideSections}>{sideNav.map((group) => <div key={group.section} className={styles.sideSection}><p>{group.section}</p>{group.items.map((item) => { const Icon = item.icon; const isActive = pathname === item.href; return <Link key={item.label} href={item.href} className={isActive ? styles.activeSideItem : styles.sideItem}><Icon size={16} /><span>{item.label}</span>{item.badge ? <em>{item.badge}</em> : null}</Link> })}</div>)}</nav>
-      <div className={styles.upgradeCard}><Crown size={26} /><strong>Upgrade & Skalieren</strong><span>Erweiterte Funktionen und unbegrenzte Benutzer</span><Link href="/settings/users">Lizenz aktivieren</Link></div>
+      <nav className={styles.sideSections}>{sideNav.map((group) => <div key={group.section} className={styles.sideSection}><p>{group.section}</p>{group.items.map((item) => { const Icon = item.icon; const isActive = pathname === item.href; const badge = item.label === "Benachrichtigungen" ? unreadCount : Number(item.badge || 0); return <Link key={item.label} href={item.href} className={isActive ? styles.activeSideItem : styles.sideItem}><Icon size={16} /><span>{item.label}</span>{badge > 0 ? <em>{badge}</em> : null}</Link> })}</div>)}</nav>
+      <div className={styles.upgradeCard}><Crown size={26} /><strong>{upgrade.title}</strong><span>{upgrade.text}</span><Link href={upgrade.href}>{upgrade.action}</Link></div>
     </aside>
   )
 }
@@ -823,7 +848,7 @@ function UsersPanel({ data }: { data: PremiumData }) {
 
 function LicensePanel({ data }: { data: PremiumData }) {
   const limit = userLimitFromData(data)
-  return <article className={`${styles.panel} ${styles.licensePanel}`}><div className={styles.panelHead}><h2>Lizenzstatus</h2><span className={styles.freeBadge}>{limit.plan}</span></div><div className={styles.licenseGrid}><div><span>Benutzer</span><b>{limit.currentUsers} / {limit.maxUsers}</b></div><div><span>Status</span><b>{limit.isFull ? "Limit erreicht" : "Aktiv"}</b></div><div><span>Speicher</span><b>1 GB / 1 GB</b></div><div><span>Ablaufdatum</span><b>{limit.validUntil ? limit.validUntil.slice(0, 10) : "-"}</b></div></div><Link href="/settings/users"><span>Lizenz / Upgrade aktivieren</span><KeyRound size={18} /></Link></article>
+  return <article className={`${styles.panel} ${styles.licensePanel}`}><div className={styles.panelHead}><h2>Lizenzstatus</h2><span className={styles.freeBadge}>{limit.plan}</span></div><div className={styles.licenseGrid}><div><span>Benutzer</span><b>{limit.currentUsers} / {limit.maxUsers}</b></div><div><span>Status</span><b>{limit.isFull ? "Limit erreicht" : "Aktiv"}</b></div><div><span>Speicher</span><b>1 GB / 1 GB</b></div><div><span>Ablaufdatum</span><b>{limit.validUntil ? limit.validUntil.slice(0, 10) : "-"}</b></div></div><Link href="/dashboard-v2/license"><span>Lizenz / Upgrade aktivieren</span><KeyRound size={18} /></Link></article>
 }
 
 function IntegrationsPanel() {
@@ -1338,12 +1363,14 @@ export function PremiumWorkspacePage({ view = "dashboard" }: { view?: PremiumVie
 
   const workspace = workspaceFromData(data)
   const profile = profileFromData(data)
+  const unreadCount = (data.notifications.length ? data.notifications : fallbackNotifications).filter((item) => !item.readAt).length
+  const upgrade = upgradeSummaryFromData(data)
 
   return (
     <div className={styles.page} data-theme={mode} role="main">
-      <Sidebar workspace={workspace} />
+      <Sidebar unreadCount={unreadCount} upgrade={upgrade} workspace={workspace} />
       <section className={styles.contentShell}>
-        <Topbar mode={mode} profile={profile} searchInputRef={searchInputRef} searchQuery={searchQuery} unreadCount={(data.notifications.length ? data.notifications : fallbackNotifications).filter((item) => !item.readAt).length} onModeChange={handleModeChange} onSearchChange={setSearchQuery} />
+        <Topbar mode={mode} profile={profile} searchInputRef={searchInputRef} searchQuery={searchQuery} unreadCount={unreadCount} onModeChange={handleModeChange} onSearchChange={setSearchQuery} />
         {view === "dashboard" ? <DashboardOverview data={data} profile={profile} searchQuery={searchQuery} /> : <PremiumModulePage view={view} data={data} searchQuery={searchQuery} />}
       </section>
     </div>
