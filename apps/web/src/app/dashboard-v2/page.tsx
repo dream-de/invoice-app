@@ -1,5 +1,6 @@
 "use client"
 
+import type { ComponentType } from "react"
 import { useMemo, useState } from "react"
 import Link from "next/link"
 import {
@@ -23,9 +24,7 @@ import {
   Search,
   Settings,
   ShieldCheck,
-  Sparkles,
   Tag,
-  User,
   UserPlus,
   Users,
   Wallet,
@@ -34,8 +33,8 @@ import {
 import styles from "./DashboardV2.module.css"
 
 type ThemeMode = "dark" | "light"
-type NavItem = { label: string; href: string; icon: React.ComponentType<{ size?: number }> }
-type KpiCard = { label: string; value: string; detail: string; tone: "violet" | "green" | "rose" | "blue" | "amber"; icon: React.ComponentType<{ size?: number }> }
+type NavItem = { label: string; href: string; icon: ComponentType<{ size?: number }> }
+type KpiCard = { label: string; value: string; detail: string; tone: "violet" | "green" | "rose" | "blue" | "amber"; icon: ComponentType<{ size?: number }> }
 type InvoiceRow = { number: string; customer: string; status: "Entwurf" | "Bezahlt" | "Ueberfaellig"; amount: string; date: string }
 type ActivityItem = { title: string; text: string; time: string; tone: "blue" | "green" | "violet" | "rose" }
 
@@ -184,7 +183,7 @@ function Topbar({ mode, onModeChange }: { mode: ThemeMode; onModeChange: (mode: 
       <div className={styles.searchBox}><Search size={16} /><span>Suche...</span></div>
       <nav className={styles.desktopNav}>{mainNav.map((item) => <Link key={item.label} className={item.href === "/dashboard-v2" ? styles.navActive : ""} href={item.href}>{item.label}</Link>)}</nav>
       <div className={styles.topActions}>
-        <ThemeToggle mode={mode} onChange={onModeChange} />
+        <ThemeToggle mode={mode} onChange={setMode} />
         <button type="button" aria-label="Neu"><Plus size={18} /></button>
         <button type="button" aria-label="Benachrichtigungen" className={styles.bellButton}><Bell size={18} /><span>12</span></button>
         <button type="button" aria-label="Hilfe"><HelpCircle size={18} /></button>
