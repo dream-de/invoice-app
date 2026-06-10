@@ -518,6 +518,14 @@ function userStatusLabel(value?: string | null) {
   return value || "Aktiv"
 }
 
+function customerStatusLabel(value?: string | null) {
+  const normalized = String(value || "").toLowerCase()
+  if (normalized === "active" || normalized === "aktiv") return "Aktiv"
+  if (normalized === "open" || normalized === "offen") return "Offen"
+  if (normalized === "inactive" || normalized === "inaktiv") return "Inaktiv"
+  return value || "Aktiv"
+}
+
 function numberRangeLabel(type: string) {
   const normalized = type.toLowerCase()
   if (normalized.includes("invoice")) return "Rechnungen"
@@ -1025,18 +1033,19 @@ function DashboardOverview({ data, profile, searchQuery }: { data: PremiumData; 
 }
 
 function moduleRows(view: Exclude<PremiumView, "dashboard">, data: PremiumData): ModuleRow[] {
+  const customersSource = data.customers.length ? data.customers : fallbackApiCustomers
   const projectsSource = data.projects.length ? data.projects : fallbackProjects
   const articlesSource = data.articles.length ? data.articles : fallbackApiArticles
   const usersSource = data.appUsers.length ? data.appUsers : fallbackAppUsers
   const notificationsSource = data.notifications.length ? data.notifications : fallbackNotifications
   const rangesSource = data.numberRanges.length ? data.numberRanges : fallbackNumberRanges
 
-  if (view === "customers" && data.customers.length) {
-    return data.customers.slice(0, 5).map((customer) => [
+  if (view === "customers") {
+    return customersSource.slice(0, 5).map((customer) => [
       customer.name,
       customer.email || customer.contact || customer.number || "Kundenprofil",
-      customer.status || "Aktiv",
-      "Live"
+      customerStatusLabel(customer.status),
+      data.customers.length ? "Live" : "Demo"
     ])
   }
 
@@ -1386,7 +1395,13 @@ function moduleTimeline(view: Exclude<PremiumView, "dashboard">, data: PremiumDa
   return moduleContent[view].timeline
 }
 
-function moduleRowHref(view: Exclude<PremiumView, "dashboard">) {
+function moduleRowHref(view: Exclude<PremiumView, "dashboard">, data: PremiumData, row: ModuleRow) {
+  if (view === "customers") {
+    const customersSource = data.customers.length ? data.customers : fallbackApiCustomers
+    const customer = customersSource.find((item) => item.name === row[0])
+    return customer ? `/customers/${customer.id}` : "/dashboard-v2/customers"
+  }
+
   return `/dashboard-v2/${view}`
 }
 
@@ -1397,7 +1412,6 @@ function PremiumModulePage({ view, data, searchQuery }: { view: Exclude<PremiumV
   const stats = moduleStats(view, data)
   const focus = moduleFocus(view, data)
   const timeline = moduleTimeline(view, data)
-  const rowHref = moduleRowHref(view)
 
   return (
     <section className={styles.modulePage}>
@@ -1457,7 +1471,7 @@ function PremiumModulePage({ view, data, searchQuery }: { view: Exclude<PremiumV
           <div className={styles.panelHead}><h2>{meta.title} Uebersicht</h2><Link href="/dashboard-v2">Zurueck zum Dashboard</Link></div>
           <div className={styles.pipelineList}>
             {rows.length ? rows.map(([title, subtitle, value, status]) => (
-              <Link key={`${title}-${value}`} href={rowHref} className={styles.pipelineRow}>
+              <Link key={`${title}-${value}`} href={moduleRowHref(view, data, [title, subtitle, value, status])} className={styles.pipelineRow}>
                 <span><strong>{title}</strong><small>{subtitle}</small></span>
                 <b>{value}</b>
                 <em>{status}</em>
