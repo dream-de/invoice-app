@@ -438,6 +438,13 @@ function notificationRows(data: PremiumData): ActivityRow[] {
   ])
 }
 
+function notificationStatus(item: NotificationItem) {
+  if (item.readAt) return "Gelesen"
+  if (item.tone === "warning") return "Wichtig"
+  if (item.tone === "success") return "Erledigt"
+  return "Neu"
+}
+
 function userCardsFromData(data: PremiumData): UserRow[] {
   const source = data.appUsers.length ? data.appUsers : fallbackAppUsers
   return source.slice(0, 5).map((user, index) => {
@@ -984,25 +991,26 @@ function moduleRows(view: Exclude<PremiumView, "dashboard">, data: PremiumData):
       item.title,
       item.message || item.category || "Systemmeldung",
       item.category || "Info",
-      item.readAt ? "Gelesen" : "Neu"
+      notificationStatus(item)
     ])
   }
 
   if (view === "automation") {
-    return rangesSource.slice(0, 5).map((range) => [
+    const rows: ModuleRow[] = rangesSource.slice(0, 5).map((range) => [
       `${range.type} Nummernkreis`,
       `Prefix ${range.prefix}`,
       `Naechste ${range.nextValue}`,
       "Aktiv"
     ])
+    return rows.length ? rows : [["Benachrichtigungsregeln", "Systemmeldungen", `${notificationsSource.length} Ereignisse`, "Bereit"]]
   }
 
   if (view === "audit") {
     return notificationsSource.slice(0, 5).map((item) => [
-      item.title,
+      item.category || item.title,
       item.message || item.category || "Ereignis",
-      item.readAt ? "Gelesen" : "Neu",
-      item.tone || "Info"
+      item.readAt ? "Gelesen" : "Offen",
+      notificationStatus(item)
     ])
   }
 
@@ -1078,15 +1086,18 @@ function moduleStats(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
 
   if (view === "notifications") {
     const unread = notificationsSource.filter((item) => !item.readAt).length
-    return [[String(unread), "Neu"], [String(notificationsSource.length), "Gesamt"], [dataSourceLabel(data), "Quelle"]]
+    const important = notificationsSource.filter((item) => item.tone === "warning").length
+    return [[String(unread), "Neu"], [String(important), "Wichtig"], [String(notificationsSource.length), "Gesamt"]]
   }
 
   if (view === "automation") {
-    return [[String(rangesSource.length), "Regeln"], [String(rangesSource.filter((range) => range.nextValue > 0).length), "Aktiv"], ["0", "Fehler"]]
+    const activeRules = rangesSource.filter((range) => range.nextValue > 0).length
+    return [[String(rangesSource.length), "Regeln"], [String(activeRules), "Aktiv"], [dataSourceLabel(data), "Quelle"]]
   }
 
   if (view === "audit") {
-    return [[String(notificationsSource.length), "Events"], [String(notificationsSource.filter((item) => !item.readAt).length), "Offen"], ["30 T", "Aufbewahrung"]]
+    const openEvents = notificationsSource.filter((item) => !item.readAt).length
+    return [[String(notificationsSource.length), "Events"], [String(openEvents), "Offen"], ["Bereit", "Status"]]
   }
 
   if (view === "api") {
@@ -1155,13 +1166,20 @@ function moduleFocus(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
     return [["Benutzer", `${limit.currentUsers}/${limit.maxUsers}`], ["Tarif", limit.plan], ["Status", limit.isFull ? "Limit erreicht" : "Aktiv"]]
   }
 
-  if (view === "notifications" || view === "audit") {
+  if (view === "notifications") {
     const unread = notificationsSource.filter((item) => !item.readAt).length
-    return [["Neue Ereignisse", String(unread)], ["Gesamt", String(notificationsSource.length)], ["Letzte Meldung", notificationsSource[0]?.title || "Keine Meldung"]]
+    const read = notificationsSource.length - unread
+    return [["Neue Meldungen", String(unread)], ["Gelesen", String(read)], ["Letzte Meldung", notificationsSource[0]?.title || "Keine Meldung"]]
+  }
+
+  if (view === "audit") {
+    const openEvents = notificationsSource.filter((item) => !item.readAt).length
+    return [["Sicherheitsstatus", "Bereit"], ["Offene Events", String(openEvents)], ["Letztes Ereignis", notificationsSource[0]?.title || "Keine Ereignisse"]]
   }
 
   if (view === "automation") {
-    return [["Regeln", String(rangesSource.length)], ["Aktiv", String(rangesSource.filter((range) => range.nextValue > 0).length)], ["Naechster Lauf", rangesSource[0] ? `${rangesSource[0].type} ${rangesSource[0].nextValue}` : "Bereit"]]
+    const activeRules = rangesSource.filter((range) => range.nextValue > 0).length
+    return [["Regeln", String(rangesSource.length)], ["Aktiv", String(activeRules)], ["Naechster Lauf", rangesSource[0] ? `${rangesSource[0].type} ${rangesSource[0].nextValue}` : "Bereit"]]
   }
 
   if (view === "api") {
