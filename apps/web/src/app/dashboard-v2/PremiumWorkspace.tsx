@@ -771,17 +771,17 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     stats: [["18%", "Wachstum"], ["34%", "Marge"], ["12", "Reports"]],
     rows: [["Cashflow Juni", "Umsatz und Ausgaben", "+1.860,00 EUR", "Bereit"], ["Kundenwert", "Top 10 Kunden", "8.420,00 EUR", "Aktuell"], ["Steuerreport", "USt-Voranmeldung", "Pruefen", "Offen"]],
     focus: [["Umsatz YTD", "48.920,00 EUR"], ["Kosten YTD", "18.110,00 EUR"], ["Prognose", "+22%"]],
-    actions: [["Report exportieren", "/api/documents/export"], ["DATEV Export", "/api/finance/datev-export"], ["Vergleich oeffnen", "/dashboard-v2/reports?q=Vergleich"]],
+    actions: [["Report exportieren", "/api/documents/export"], ["DATEV Export", "/api/finance/datev-export"], ["Vergleich oeffnen", "/dashboard-v2/reports?q=Vergleich%20geoeffnet"]],
     timeline: [["Report erstellt", "Cashflow Juni wurde aktualisiert."], ["Abweichung erkannt", "Ausgaben liegen 8% unter Prognose."], ["Export geplant", "Steuerreport wird Freitag vorbereitet."]],
-    primaryHref: "/dashboard-v2/reports"
+    primaryHref: "/api/documents/export"
   },
   settings: {
     stats: [["9", "Bereiche"], ["3", "Pruefen"], ["100%", "Gesichert"]],
     rows: [["Unternehmen", "Acme GmbH", "Vollstaendig", "Aktiv"], ["Nummernkreise", "RE-2026 und OF-2026", "Synchron", "Aktiv"], ["E-Mail Versand", "SMTP verbunden", "OK", "Aktiv"]],
     focus: [["Portal", "Aktiv"], ["Sprache", "Deutsch"], ["Sicherheit", "2FA empfohlen"]],
-    actions: [["Firma bearbeiten", "/dashboard-v2/settings"], ["Nummernkreis pruefen", "/dashboard-v2/settings"], ["Portal oeffnen", "/dashboard-v2/settings"]],
+    actions: [["Firma bearbeiten", "/settings/company"], ["Nummernkreis pruefen", "/settings/number-ranges"], ["Portal oeffnen", "/settings/portal"]],
     timeline: [["SMTP getestet", "Versandadresse ist erreichbar."], ["Logo aktualisiert", "Premium Branding wurde gespeichert."], ["Backup gesetzt", "Systemeinstellungen wurden versioniert."]],
-    primaryHref: "/dashboard-v2/settings"
+    primaryHref: "/settings/company"
   },
   users: {
     stats: [["5/5", "Benutzer"], ["3", "Rollen"], ["2FA", "Empfohlen"]],
@@ -1626,19 +1626,21 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
                   ? "Ausgabe wurde vorgemerkt und fuer DATEV vorbereitet."
                   : query.includes("datev vorbereitet")
                     ? "DATEV Export wurde vorbereitet."
-                    : query.includes("benutzer eingeladen")
-                      ? "Benutzereinladung wurde vorbereitet."
-                      : query.includes("alle gelesen")
-                        ? "Alle Benachrichtigungen wurden als gelesen markiert."
-                        : query.includes("filter aktiv")
-                          ? "Filter aktiv: wichtige Zahlung, Rechnung und Systemmeldungen."
-                          : query.includes("integration verbunden")
-                            ? "Integration wurde verbunden und fuer Sync vorbereitet."
-                            : query.includes("workflow getestet")
-                              ? "Workflow wurde erfolgreich getestet."
-                              : query.includes("webhook erstellt")
-                                ? "Webhook wurde fuer invoice.created vorbereitet."
-                                : ""
+                    : query.includes("vergleich geoeffnet")
+                      ? "Vergleich wurde geoeffnet und fuer den Export vorbereitet."
+                      : query.includes("benutzer eingeladen")
+                        ? "Benutzereinladung wurde vorbereitet."
+                        : query.includes("alle gelesen")
+                          ? "Alle Benachrichtigungen wurden als gelesen markiert."
+                          : query.includes("filter aktiv")
+                            ? "Filter aktiv: wichtige Zahlung, Rechnung und Systemmeldungen."
+                            : query.includes("integration verbunden")
+                              ? "Integration wurde verbunden und fuer Sync vorbereitet."
+                              : query.includes("workflow getestet")
+                                ? "Workflow wurde erfolgreich getestet."
+                                : query.includes("webhook erstellt")
+                                  ? "Webhook wurde fuer invoice.created vorbereitet."
+                                  : ""
   const message = routeMessage ? <p data-state="success">{routeMessage}</p> : null
 
   if (view === "customers") {
@@ -1821,7 +1823,7 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
 
   if (view === "reports" || view === "audit" || view === "settings") {
     const links = view === "reports"
-      ? [["Dokumentexport", "/api/documents/export"], ["DATEV Export", "/api/finance/datev-export"], ["Vergleich", "/dashboard-v2/reports?q=Vergleich"]]
+      ? [["Dokumentexport", "/api/documents/export"], ["DATEV Export", "/api/finance/datev-export"], ["Vergleich", "/dashboard-v2/reports?q=Vergleich%20geoeffnet"]]
       : view === "settings"
         ? [["Firma", "/settings/company"], ["Nummernkreise", "/settings/number-ranges"], ["Portal", "/settings/portal"]]
         : [["Audit exportieren", "/dashboard-v2/audit?q=Export"], ["Webhook Logs", "/dashboard-v2/audit?q=Webhook"], ["System", "/settings/system"]]
