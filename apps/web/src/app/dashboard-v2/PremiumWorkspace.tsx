@@ -4,7 +4,7 @@ import type { ChangeEvent, ComponentType, FormEvent, RefObject } from "react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { articles as fallbackArticlesData, customers as fallbackCustomersData, documents as fallbackDocumentsData, projects as fallbackProjectsData } from "@/data/invoice-data"
+import { articles as fallbackArticlesData, customers as fallbackCustomersData, projects as fallbackProjectsData } from "@/data/invoice-data"
 import {
   AlertCircle,
   BarChart3,
@@ -432,19 +432,6 @@ function invoiceType(invoice: ApiInvoice) {
   return "invoice"
 }
 
-function documentHrefForInvoice(invoice: ApiInvoice) {
-  const type = invoiceType(invoice)
-  const amount = Number(invoice.grossTotal) || 0
-  const fallbackDocument = fallbackDocumentsData.find((document) => document.number === invoice.number)
-    ?? fallbackDocumentsData.find((document) => {
-      const documentType = String(document.type || "").toLowerCase().includes("angebot") ? "offer" : "invoice"
-      const sameAmount = Math.abs(Number(document.amount || 0) - amount) < 0.01
-      return documentType === type && document.customer === invoice.customer && sameAmount
-    })
-
-  return `/documents/${fallbackDocument?.id || invoice.id || invoice.number}`
-}
-
 function invoiceRowsFromData(data: PremiumData): InvoiceRow[] {
   const source = data.invoices.length ? data.invoices : fallbackApiInvoices
   return source.slice(0, 5).map((invoice) => [
@@ -605,7 +592,8 @@ function globalSearchResults(data: PremiumData, query: string): SearchResult[] {
 
   for (const invoice of invoicesSource) {
     if (!matchesSearch([invoice.number, invoice.customer, statusLabel(invoice.status), formatEuro(Number(invoice.grossTotal) || 0)], normalizedQuery)) continue
-    results.push({ title: invoice.number, subtitle: `${invoice.customer} · ${formatEuro(Number(invoice.grossTotal) || 0)}`, href: documentHrefForInvoice(invoice), icon: FileText })
+    const view = invoiceType(invoice) === "offer" ? "offers" : "invoices"
+    results.push({ title: invoice.number, subtitle: `${invoice.customer} · ${formatEuro(Number(invoice.grossTotal) || 0)}`, href: `/dashboard-v2/${view}?q=${encodeURIComponent(invoice.number)}`, icon: FileText })
   }
 
   for (const project of projectsSource) {

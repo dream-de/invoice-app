@@ -39,10 +39,11 @@ export function LocalizedNavigationShell({
   const hasLoadedCurrentUser = useRef(Boolean(initialUser))
 
   const isLoginPage = currentPathname === "/login" || currentPathname.startsWith("/login/")
+  const usesOwnShell = currentPathname === "/dashboard-v2" || currentPathname.startsWith("/dashboard-v2/")
   const isPublicAuthPage = isLoginPage || currentPathname.startsWith("/api/auth/verify-email")
 
   useEffect(() => {
-    if (isPublicAuthPage) {
+    if (isPublicAuthPage || usesOwnShell) {
       hasLoadedCurrentUser.current = false
       setCurrentUser(null)
       return
@@ -74,7 +75,7 @@ export function LocalizedNavigationShell({
     return () => {
       cancelled = true
     }
-  }, [isPublicAuthPage])
+  }, [isPublicAuthPage, usesOwnShell])
 
   const handleLogout = useCallback(async () => {
     if (currentUser?.id === "demo-user") {
@@ -102,7 +103,7 @@ export function LocalizedNavigationShell({
     can("articles:view") ? { href: "/articles", label: t("nav.articles"), icon: "▣" } : null
   ].filter((item): item is { href: string; label: string; icon: string } => Boolean(item))
 
-  if (isPublicAuthPage) return <>{children}</>
+  if (isPublicAuthPage || usesOwnShell) return <>{children}</>
 
   return (
     <NavigationShell
