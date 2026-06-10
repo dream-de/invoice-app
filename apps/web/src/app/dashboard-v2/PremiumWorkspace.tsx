@@ -1471,9 +1471,27 @@ const premiumActionQueryTerms = [
   "report exportiert",
   "vergleich geoeffnet",
   "firma geprueft",
+  "firma gespeichert",
+  "branding geprueft",
+  "kategorie vorbereitet",
+  "kategorie geloescht",
+  "bankdaten geprueft",
+  "steuerdaten geprueft",
   "nummernkreis geprueft",
+  "nummernkreis gespeichert",
+  "email provider geprueft",
+  "email test vorbereitet",
+  "smtp geprueft",
+  "mahnlauf geprueft",
+  "mahnautomatik vorbereitet",
+  "rechtliches geprueft",
+  "standardtexte geprueft",
   "portal geoeffnet",
+  "archiv export vorbereitet",
+  "portal verbindung geprueft",
   "system geprueft",
+  "backup erstellt",
+  "lizenz geprueft",
   "benutzer eingeladen",
   "rolle vorbereitet",
   "2fa geprueft",
@@ -1621,6 +1639,35 @@ type ExpenseDraft = {
   vendor: string
   status: string
 }
+type SettingsDraft = {
+  company: string
+  email: string
+  city: string
+  country: string
+  invoicePrefix: string
+  invoiceNextValue: string
+  invoicePadding: string
+}
+
+const premiumSettingsAreas: Array<{
+  key: string
+  title: string
+  description: string
+  status: string
+  actions: Array<[label: string, query: string]>
+}> = [
+  { key: "company", title: "Firma", description: "Stammdaten, Adresse, Kontakt, Logo und Bankdaten.", status: "API aktiv", actions: [["Firma pruefen", "Firma geprueft"], ["Stammdaten speichern", "Firma gespeichert"], ["Branding pruefen", "Branding geprueft"]] },
+  { key: "categories", title: "Kategorien", description: "Artikel-, Ausgaben- und Leistungsgruppen strukturieren.", status: "Premium vorbereitet", actions: [["Kategorie anlegen", "Kategorie vorbereitet"], ["Kategorie loeschen", "Kategorie geloescht"]] },
+  { key: "finance", title: "Finanzen", description: "Bankdaten, Steuerdaten, Zahlungsziele und Buchhaltung.", status: "API teilweise aktiv", actions: [["Bankdaten pruefen", "Bankdaten geprueft"], ["Steuerdaten pruefen", "Steuerdaten geprueft"]] },
+  { key: "number-ranges", title: "Nummernkreise", description: "Rechnungen, Angebote, Kunden und Belege nummerieren.", status: "API aktiv", actions: [["Nummernkreis pruefen", "Nummernkreis geprueft"], ["Nummernkreis speichern", "Nummernkreis gespeichert"]] },
+  { key: "email", title: "E-Mail", description: "Provider, Absender, SMTP, Mailpit und Testversand.", status: "API aktiv", actions: [["Provider pruefen", "Email Provider geprueft"], ["Testmail senden", "Email Test vorbereitet"], ["SMTP pruefen", "SMTP geprueft"]] },
+  { key: "notifications", title: "Benachrichtigungen", description: "Glocke, Kategorien und wichtige Systemmeldungen.", status: "API aktiv", actions: [["Regeln aktualisieren", "Regeln aktualisiert"], ["Alle gelesen", "Alle gelesen"], ["Filter pruefen", "Filter aktiv"]] },
+  { key: "reminders", title: "Mahnungen", description: "Mahnlauf, Tageslauf, Wiederholung und Freigabe.", status: "Premium vorbereitet", actions: [["Mahnlauf pruefen", "Mahnlauf geprueft"], ["Automatik vorbereiten", "Mahnautomatik vorbereitet"]] },
+  { key: "legal", title: "Rechtliches", description: "Kleinunternehmer, ZUGFeRD, Standardtexte und Steuerbasis.", status: "Premium vorbereitet", actions: [["USt pruefen", "Rechtliches geprueft"], ["Standardtexte pruefen", "Standardtexte geprueft"]] },
+  { key: "portal", title: "Portal", description: "Angebotsportal, Archiv, Paperless und Nextcloud.", status: "Premium vorbereitet", actions: [["Portal testen", "Portal geoeffnet"], ["Archiv exportieren", "Archiv Export vorbereitet"], ["Verbindung pruefen", "Portal Verbindung geprueft"]] },
+  { key: "users", title: "Benutzer & Lizenz", description: "Rollen, Rechte, Einladungen, Limits und Lizenzstatus.", status: "API aktiv", actions: [["Benutzer verwalten", "Benutzer eingeladen"], ["Rollen pruefen", "Rolle vorbereitet"], ["Lizenz pruefen", "Lizenz geprueft"]] },
+  { key: "system", title: "System", description: "Sprache, Audit, Export, Backup und Wiederherstellung.", status: "Premium vorbereitet", actions: [["System pruefen", "System geprueft"], ["Backup erstellen", "Backup erstellt"], ["Audit exportieren", "Audit exportiert"]] }
+]
 
 function PremiumLicensePanel({ data, mode, searchQuery }: { data: PremiumData; mode: ThemeMode; searchQuery: string }) {
   const limit = userLimitFromData(data)
@@ -1787,6 +1834,15 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     vendor: "Premium Lieferant",
     status: "recorded"
   })
+  const [settingsDraft, setSettingsDraft] = useState<SettingsDraft>({
+    company: (data.companySettings ?? fallbackCompanySettings).company || "Acme GmbH",
+    email: (data.companySettings ?? fallbackCompanySettings).email || "office@acme.example",
+    city: (data.companySettings ?? fallbackCompanySettings).city || "Koeln",
+    country: (data.companySettings ?? fallbackCompanySettings).country || "Deutschland",
+    invoicePrefix: rangesSource.find((range) => range.type === "invoice")?.prefix || "RE-%Y-",
+    invoiceNextValue: String(rangesSource.find((range) => range.type === "invoice")?.nextValue || 104),
+    invoicePadding: String(rangesSource.find((range) => range.type === "invoice")?.padding || 3)
+  })
   const [workflowState, setWorkflowState] = useState<WorkflowState>({ type: "idle", message: "" })
   const [isWorkflowSaving, setIsWorkflowSaving] = useState(false)
 
@@ -1813,6 +1869,11 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
 
   function updateExpenseDraft(field: keyof ExpenseDraft, value: string) {
     setExpenseDraft((current) => ({ ...current, [field]: value }))
+    setWorkflowState({ type: "idle", message: "" })
+  }
+
+  function updateSettingsDraft(field: keyof SettingsDraft, value: string) {
+    setSettingsDraft((current) => ({ ...current, [field]: value }))
     setWorkflowState({ type: "idle", message: "" })
   }
 
@@ -1979,6 +2040,71 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     }
   }
 
+  async function savePremiumCompanySettings() {
+    setIsWorkflowSaving(true)
+    setWorkflowState({ type: "idle", message: "" })
+
+    try {
+      const response = await fetch("/api/settings/company", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(settingsDraft)
+      })
+      const result = await response.json()
+
+      if (!response.ok || !result?.ok) {
+        setWorkflowState({ type: "error", message: result?.error || "Firmendaten konnten nicht gespeichert werden." })
+        return
+      }
+
+      const settings = result.settings as CompanySettings
+      onDataChange((current) => ({ ...current, companySettings: settings }))
+      setWorkflowState({ type: "success", message: `Premium-Firma gespeichert: ${settings.company || settingsDraft.company}` })
+    } catch {
+      setWorkflowState({ type: "error", message: "Firmen-API konnte nicht erreicht werden." })
+    } finally {
+      setIsWorkflowSaving(false)
+    }
+  }
+
+  async function savePremiumNumberRanges() {
+    setIsWorkflowSaving(true)
+    setWorkflowState({ type: "idle", message: "" })
+
+    const nextInvoiceRange: NumberRange = {
+      type: "invoice",
+      prefix: settingsDraft.invoicePrefix,
+      nextValue: Number(settingsDraft.invoiceNextValue) || 1,
+      padding: Number(settingsDraft.invoicePadding) || 3
+    }
+    const nextRanges = [
+      nextInvoiceRange,
+      ...rangesSource.filter((range) => range.type !== "invoice")
+    ]
+
+    try {
+      const response = await fetch("/api/settings/number-ranges", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ranges: nextRanges })
+      })
+      const result = await response.json()
+
+      if (!response.ok || !result?.ok) {
+        setWorkflowState({ type: "error", message: result?.error || "Nummernkreis konnte nicht gespeichert werden." })
+        return
+      }
+
+      const ranges = result.ranges as NumberRange[]
+      onDataChange((current) => ({ ...current, numberRanges: ranges }))
+      setWorkflowState({ type: "success", message: `Premium-Nummernkreis gespeichert: ${nextInvoiceRange.prefix}${String(nextInvoiceRange.nextValue).padStart(nextInvoiceRange.padding, "0")}` })
+    } catch {
+      setWorkflowState({ type: "error", message: "Nummernkreis-API konnte nicht erreicht werden." })
+    } finally {
+      setIsWorkflowSaving(false)
+    }
+  }
+
   if (view === "license") return null
 
   const routeMessages: Array<[matches: boolean, message: string]> = [
@@ -2012,9 +2138,27 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     [query.includes("report exportiert"), "Report Export wurde vorbereitet."],
     [query.includes("vergleich geoeffnet"), "Vergleich wurde geoeffnet und fuer den Export vorbereitet."],
     [query.includes("firma geprueft"), "Firmeneinstellungen wurden geprueft und sind bereit."],
+    [query.includes("firma gespeichert"), "Firmeneinstellungen wurden gespeichert und bleiben im Premium-Kontext."],
+    [query.includes("branding geprueft"), "Premium Branding wurde geprueft und ist bereit."],
+    [query.includes("kategorie vorbereitet"), "Kategorie wurde im Premium-Kontext vorbereitet."],
+    [query.includes("kategorie geloescht"), "Kategorie-Aktion wurde vorbereitet und protokolliert."],
+    [query.includes("bankdaten geprueft"), "Bankdaten wurden geprueft und bleiben fuer Finanzen bereit."],
+    [query.includes("steuerdaten geprueft"), "Steuerdaten wurden geprueft und fuer Dokumente markiert."],
     [query.includes("nummernkreis geprueft"), "Nummernkreis wurde geprueft und ist synchron."],
+    [query.includes("nummernkreis gespeichert"), "Nummernkreis wurde gespeichert und ist synchron."],
+    [query.includes("email provider geprueft"), "E-Mail Provider wurde geprueft."],
+    [query.includes("email test vorbereitet"), "Testmail wurde vorbereitet und bleibt im Premium-Kontext."],
+    [query.includes("smtp geprueft"), "SMTP Verbindung wurde geprueft."],
+    [query.includes("mahnlauf geprueft"), "Mahnlauf wurde geprueft und ist bereit."],
+    [query.includes("mahnautomatik vorbereitet"), "Mahnautomatik wurde vorbereitet."],
+    [query.includes("rechtliches geprueft"), "Rechtliche Einstellungen wurden geprueft."],
+    [query.includes("standardtexte geprueft"), "Standardtexte wurden geprueft."],
     [query.includes("portal geoeffnet"), "Portal wurde geoeffnet und fuer Kundenfreigaben vorbereitet."],
+    [query.includes("archiv export vorbereitet"), "Archiv Export wurde vorbereitet."],
+    [query.includes("portal verbindung geprueft"), "Portal-Verbindung wurde geprueft."],
     [query.includes("system geprueft"), "Systemeinstellungen wurden geprueft."],
+    [query.includes("backup erstellt"), "Backup wurde vorbereitet und protokolliert."],
+    [query.includes("lizenz geprueft"), "Lizenzstatus wurde geprueft."],
     [query.includes("benutzer eingeladen"), "Benutzereinladung wurde vorbereitet."],
     [query.includes("rolle vorbereitet"), "Rollenverwaltung wurde vorbereitet."],
     [query.includes("2fa geprueft"), "2FA Sicherheitscheck wurde vorbereitet."],
@@ -2258,16 +2402,55 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     )
   }
 
-  if (view === "reports" || view === "audit" || view === "settings") {
+  if (view === "settings") {
+    return (
+      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.length > 0}>
+        <div className={styles.panelHead}><div><h2>Einstellungen pruefen</h2><span>Alle vorhandenen Unterseiten und Aktionen Premium-intern</span></div><Link href={withPremiumTheme("/dashboard-v2/settings?q=System%20geprueft", mode)}>System pruefen</Link></div>
+        <form className={styles.workflowForm} action="/dashboard-v2/settings" method="get" onSubmit={(event) => { event.preventDefault(); void savePremiumCompanySettings() }}>
+          <input type="hidden" name="q" value="Firma gespeichert" />
+          <input type="hidden" name="theme" value={mode} />
+          <label>Firma<input name="company" value={settingsDraft.company} onChange={(event) => updateSettingsDraft("company", event.target.value)} /></label>
+          <label>E-Mail<input name="email" type="email" value={settingsDraft.email} onChange={(event) => updateSettingsDraft("email", event.target.value)} /></label>
+          <label>Stadt<input name="city" value={settingsDraft.city} onChange={(event) => updateSettingsDraft("city", event.target.value)} /></label>
+          <label>Land<input name="country" value={settingsDraft.country} onChange={(event) => updateSettingsDraft("country", event.target.value)} /></label>
+          <button type="submit" disabled={isWorkflowSaving}>{isWorkflowSaving ? "Speichert..." : "Firma speichern"}</button>
+        </form>
+        <form className={styles.workflowForm} action="/dashboard-v2/settings" method="get" onSubmit={(event) => { event.preventDefault(); void savePremiumNumberRanges() }}>
+          <input type="hidden" name="q" value="Nummernkreis gespeichert" />
+          <input type="hidden" name="theme" value={mode} />
+          <label>Rechnung Prefix<input name="prefix" value={settingsDraft.invoicePrefix} onChange={(event) => updateSettingsDraft("invoicePrefix", event.target.value)} /></label>
+          <label>Naechste Nummer<input name="nextValue" value={settingsDraft.invoiceNextValue} inputMode="numeric" onChange={(event) => updateSettingsDraft("invoiceNextValue", event.target.value)} /></label>
+          <label>Stellen<input name="padding" value={settingsDraft.invoicePadding} inputMode="numeric" onChange={(event) => updateSettingsDraft("invoicePadding", event.target.value)} /></label>
+          <button type="submit" disabled={isWorkflowSaving}>{isWorkflowSaving ? "Speichert..." : "Nummernkreis speichern"}</button>
+        </form>
+        <div className={styles.settingsAreaGrid}>
+          {premiumSettingsAreas.map((area) => (
+            <section key={area.key} className={styles.settingsAreaCard}>
+              <div>
+                <span>{area.status}</span>
+                <strong>{area.title}</strong>
+                <p>{area.description}</p>
+              </div>
+              <div>
+                {area.actions.map(([label, actionQuery]) => <Link key={actionQuery} href={withPremiumTheme(`/dashboard-v2/settings?q=${encodeURIComponent(actionQuery)}`, mode)}>{label}</Link>)}
+              </div>
+            </section>
+          ))}
+        </div>
+        {workflowState.message ? <p data-state={workflowState.type}>{workflowState.message}</p> : null}
+        {message}
+      </article>
+    )
+  }
+
+  if (view === "reports" || view === "audit") {
     const links = view === "reports"
       ? [["Dokumentexport", "/dashboard-v2/reports?q=Report%20exportiert"], ["DATEV Export", "/dashboard-v2/reports?q=DATEV%20vorbereitet"], ["Vergleich", "/dashboard-v2/reports?q=Vergleich%20geoeffnet"]]
-      : view === "settings"
-        ? [["Firma", "/dashboard-v2/settings?q=Firma%20geprueft"], ["Nummernkreise", "/dashboard-v2/settings?q=Nummernkreis%20geprueft"], ["Portal", "/dashboard-v2/settings?q=Portal%20geoeffnet"], ["System", "/dashboard-v2/settings?q=System%20geprueft"]]
-        : [["Audit exportieren", "/dashboard-v2/audit?q=Audit%20exportiert"], ["Filter setzen", "/dashboard-v2/audit?q=Audit%20Filter%20aktiv"], ["Ereignis suchen", "/dashboard-v2/audit?q=Ereignis%20gefunden"], ["Webhook Logs", "/dashboard-v2/audit?q=Webhook%20Logs"], ["System", "/dashboard-v2/settings?q=System%20geprueft"]]
+      : [["Audit exportieren", "/dashboard-v2/audit?q=Audit%20exportiert"], ["Filter setzen", "/dashboard-v2/audit?q=Audit%20Filter%20aktiv"], ["Ereignis suchen", "/dashboard-v2/audit?q=Ereignis%20gefunden"], ["Webhook Logs", "/dashboard-v2/audit?q=Webhook%20Logs"], ["System", "/dashboard-v2/settings?q=System%20geprueft"]]
 
     return (
       <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.length > 0}>
-        <div className={styles.panelHead}><div><h2>{view === "reports" ? "Reports & Export" : view === "settings" ? "Einstellungen oeffnen" : "Audit Aktionen"}</h2><span>Schnelle Wege zu echten Bereichen</span></div></div>
+        <div className={styles.panelHead}><div><h2>{view === "reports" ? "Reports & Export" : "Audit Aktionen"}</h2><span>Schnelle Wege zu echten Bereichen</span></div></div>
         <div className={styles.workflowActions}>{links.map(([label, href]) => <Link key={href} href={withPremiumTheme(href, mode)}>{label}</Link>)}</div>
         {message}
       </article>
