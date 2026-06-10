@@ -4,7 +4,7 @@ import type { ComponentType, RefObject } from "react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { articles as fallbackArticlesData, customers as fallbackCustomersData, projects as fallbackProjectsData } from "@/data/invoice-data"
+import { articles as fallbackArticlesData, customers as fallbackCustomersData, documents as fallbackDocumentsData, projects as fallbackProjectsData } from "@/data/invoice-data"
 import {
   AlertCircle,
   BarChart3,
@@ -430,6 +430,25 @@ function invoiceType(invoice: ApiInvoice) {
   return "invoice"
 }
 
+function documentHrefForInvoice(invoice: ApiInvoice) {
+  const type = invoiceType(invoice)
+  const amount = Number(invoice.grossTotal) || 0
+  const fallbackDocument = fallbackDocumentsData.find((document) => document.number === invoice.number)
+    ?? fallbackDocumentsData.find((document) => {
+      const documentType = String(document.type || "").toLowerCase().includes("angebot") ? "offer" : "invoice"
+      const sameAmount = Math.abs(Number(document.amount || 0) - amount) < 0.01
+      return documentType === type && document.customer === invoice.customer && sameAmount
+    })
+
+  return `/documents/${fallbackDocument?.id || invoice.id || invoice.number}`
+}
+
+function documentHrefForNumber(data: PremiumData, number: string) {
+  const source = data.invoices.length ? data.invoices : fallbackApiInvoices
+  const invoice = source.find((item) => item.number === number)
+  return invoice ? documentHrefForInvoice(invoice) : "/documents"
+}
+
 function invoiceRowsFromData(data: PremiumData): InvoiceRow[] {
   const source = data.invoices.length ? data.invoices : fallbackApiInvoices
   return source.slice(0, 5).map((invoice) => [
@@ -590,7 +609,7 @@ function globalSearchResults(data: PremiumData, query: string): SearchResult[] {
 
   for (const invoice of invoicesSource) {
     if (!matchesSearch([invoice.number, invoice.customer, statusLabel(invoice.status), formatEuro(Number(invoice.grossTotal) || 0)], normalizedQuery)) continue
-    results.push({ title: invoice.number, subtitle: `${invoice.customer} · ${formatEuro(Number(invoice.grossTotal) || 0)}`, href: invoiceType(invoice) === "offer" ? "/dashboard-v2/offers" : "/dashboard-v2/invoices", icon: FileText })
+    results.push({ title: invoice.number, subtitle: `${invoice.customer} · ${formatEuro(Number(invoice.grossTotal) || 0)}`, href: documentHrefForInvoice(invoice), icon: FileText })
   }
 
   for (const project of projectsSource) {
@@ -966,7 +985,7 @@ function QuickActions({ profile }: { profile: ReturnType<typeof profileFromData>
 
 function InvoiceTable({ data, searchQuery }: { data: PremiumData; searchQuery: string }) {
   const rows = invoiceRowsFromData(data).filter((row) => matchesSearch(row, searchQuery))
-  return <article className={`${styles.panel} ${styles.tablePanel}`}><div className={styles.panelHead}><h2>Kuerzlich erstellte Rechnungen</h2><Link href="/dashboard-v2/invoices">Alle anzeigen</Link></div><div className={styles.tableScroll}><table><thead><tr><th>Rechnung</th><th>Kunde</th><th>Status</th><th>Betrag</th><th>Datum</th></tr></thead><tbody>{rows.length ? rows.map(([number, customer, status, amount, date]) => <tr key={number}><td><Link href="/dashboard-v2/invoices">{number}</Link></td><td>{customer}</td><td><span data-status={status}>{status}</span></td><td>{amount}</td><td>{date}</td></tr>) : <tr><td colSpan={5} className={styles.emptyTableCell}>Keine Treffer</td></tr>}</tbody></table></div></article>
+  return <article className={`${styles.panel} ${styles.tablePanel}`}><div className={styles.panelHead}><h2>Kuerzlich erstellte Rechnungen</h2><Link href="/dashboard-v2/invoices">Alle anzeigen</Link></div><div className={styles.tableScroll}><table><thead><tr><th>Rechnung</th><th>Kunde</th><th>Status</th><th>Betrag</th><th>Datum</th></tr></thead><tbody>{rows.length ? rows.map(([number, customer, status, amount, date]) => <tr key={number}><td><Link href={documentHrefForNumber(data, number)}>{number}</Link></td><td>{customer}</td><td><span data-status={status}>{status}</span></td><td>{amount}</td><td>{date}</td></tr>) : <tr><td colSpan={5} className={styles.emptyTableCell}>Keine Treffer</td></tr>}</tbody></table></div></article>
 }
 
 function BarPanel({ data }: { data: PremiumData }) {
@@ -1049,8 +1068,9 @@ function moduleRows(view: Exclude<PremiumView, "dashboard">, data: PremiumData):
     ])
   }
 
-  if ((view === "invoices" || view === "offers") && data.invoices.length) {
-    return data.invoices
+  if (view === "invoices" || view === "offers") {
+    const source = data.invoices.length ? data.invoices : fallbackApiInvoices
+    return source
       .filter((invoice) => view === "offers" ? invoiceType(invoice) === "offer" : invoiceType(invoice) === "invoice")
       .slice(0, 5)
       .map((invoice) => [
@@ -1179,7 +1199,7 @@ function moduleRows(view: Exclude<PremiumView, "dashboard">, data: PremiumData):
     return apiRows
   }
 
-  return moduleContent[view].rows
+  return []
 }
 
 function moduleStats(view: Exclude<PremiumView, "dashboard">, data: PremiumData): ModuleConfig["stats"] {
@@ -1406,6 +1426,10 @@ function moduleRowHref(view: Exclude<PremiumView, "dashboard">, data: PremiumDat
     const projectsSource = data.projects.length ? data.projects : fallbackProjects
     const project = projectsSource.find((item) => item.name === row[0])
     return project ? `/dashboard-v2/projects?q=${encodeURIComponent(project.name)}` : "/dashboard-v2/projects"
+  }
+
+  if (view === "invoices" || view === "offers") {
+    return documentHrefForNumber(data, row[0])
   }
 
   return `/dashboard-v2/${view}`
