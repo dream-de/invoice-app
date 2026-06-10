@@ -802,14 +802,14 @@ function KpiGrid({ data }: { data: PremiumData }) {
   const overdueAmount = invoiceSource.filter((invoice) => isStatus(invoice.status, "overdue")).reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
   const offerAmount = offerSource.reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
   const liveKpis = source.length ? [
-    { label: "Offene Rechnungen", value: formatEuro(openAmount), detail: `${invoiceSource.filter((invoice) => isStatus(invoice.status, "open")).length} Dokumente`, tone: "violet" as Tone, icon: Receipt },
-    { label: "Bezahlt", value: formatEuro(paidAmount), detail: data.loaded ? "Live synchronisiert" : "+18% vs. Vormonat", tone: "green" as Tone, icon: Briefcase },
-    { label: "Ueberfaellig", value: formatEuro(overdueAmount), detail: `${invoiceSource.filter((invoice) => isStatus(invoice.status, "overdue")).length} Dokumente`, tone: "rose" as Tone, icon: AlertCircle },
-    { label: "Angebote", value: formatEuro(offerAmount), detail: `${offerSource.length} Dokumente`, tone: "blue" as Tone, icon: Tag },
-    { label: "Kunden", value: String(data.customers.length || 4), detail: data.loaded ? "Live synchronisiert" : "Lokale Daten", tone: "amber" as Tone, icon: Users }
-  ] : kpis
+    { label: "Offene Rechnungen", value: formatEuro(openAmount), detail: `${invoiceSource.filter((invoice) => isStatus(invoice.status, "open")).length} Dokumente`, tone: "violet" as Tone, icon: Receipt, href: "/dashboard-v2/invoices" },
+    { label: "Bezahlt", value: formatEuro(paidAmount), detail: data.loaded ? "Live synchronisiert" : "+18% vs. Vormonat", tone: "green" as Tone, icon: Briefcase, href: "/dashboard-v2/reports" },
+    { label: "Ueberfaellig", value: formatEuro(overdueAmount), detail: `${invoiceSource.filter((invoice) => isStatus(invoice.status, "overdue")).length} Dokumente`, tone: "rose" as Tone, icon: AlertCircle, href: "/dashboard-v2/invoices" },
+    { label: "Angebote", value: formatEuro(offerAmount), detail: `${offerSource.length} Dokumente`, tone: "blue" as Tone, icon: Tag, href: "/dashboard-v2/offers" },
+    { label: "Kunden", value: String(data.customers.length || 4), detail: data.loaded ? "Live synchronisiert" : "Lokale Daten", tone: "amber" as Tone, icon: Users, href: "/dashboard-v2/customers" }
+  ] : kpis.map((item) => ({ ...item, href: item.label === "Angebote" ? "/dashboard-v2/offers" : item.label === "Ausgaben" ? "/dashboard-v2/expenses" : "/dashboard-v2/invoices" }))
 
-  return <section className={styles.kpiGrid}>{liveKpis.map((item) => { const Icon = item.icon; return <article key={item.label} className={`${styles.panel} ${styles.kpiCard}`} data-tone={item.tone}><div className={styles.kpiIcon}><Icon size={22} /></div><div><span>{item.label}</span><strong>{item.value}</strong><small>{item.detail}</small></div><MoreVertical size={17} className={styles.moreIcon} /></article> })}</section>
+  return <section className={styles.kpiGrid}>{liveKpis.map((item) => { const Icon = item.icon; return <Link key={item.label} href={item.href} className={`${styles.panel} ${styles.kpiCard}`} data-tone={item.tone}><div className={styles.kpiIcon}><Icon size={22} /></div><div><span>{item.label}</span><strong>{item.value}</strong><small>{item.detail}</small></div><MoreVertical size={17} className={styles.moreIcon} /></Link> })}</section>
 }
 
 function RevenueChart({ data }: { data: PremiumData }) {
@@ -865,7 +865,7 @@ function QuickActions({ profile }: { profile: ReturnType<typeof profileFromData>
 
 function InvoiceTable({ data, searchQuery }: { data: PremiumData; searchQuery: string }) {
   const rows = invoiceRowsFromData(data).filter((row) => matchesSearch(row, searchQuery))
-  return <article className={`${styles.panel} ${styles.tablePanel}`}><div className={styles.panelHead}><h2>Kuerzlich erstellte Rechnungen</h2><Link href="/dashboard-v2/invoices">Alle anzeigen</Link></div><div className={styles.tableScroll}><table><thead><tr><th>Rechnung</th><th>Kunde</th><th>Status</th><th>Betrag</th><th>Datum</th></tr></thead><tbody>{rows.length ? rows.map(([number, customer, status, amount, date]) => <tr key={number}><td><Link href="/documents">{number}</Link></td><td>{customer}</td><td><span data-status={status}>{status}</span></td><td>{amount}</td><td>{date}</td></tr>) : <tr><td colSpan={5} className={styles.emptyTableCell}>Keine Treffer</td></tr>}</tbody></table></div></article>
+  return <article className={`${styles.panel} ${styles.tablePanel}`}><div className={styles.panelHead}><h2>Kuerzlich erstellte Rechnungen</h2><Link href="/dashboard-v2/invoices">Alle anzeigen</Link></div><div className={styles.tableScroll}><table><thead><tr><th>Rechnung</th><th>Kunde</th><th>Status</th><th>Betrag</th><th>Datum</th></tr></thead><tbody>{rows.length ? rows.map(([number, customer, status, amount, date]) => <tr key={number}><td><Link href="/dashboard-v2/invoices">{number}</Link></td><td>{customer}</td><td><span data-status={status}>{status}</span></td><td>{amount}</td><td>{date}</td></tr>) : <tr><td colSpan={5} className={styles.emptyTableCell}>Keine Treffer</td></tr>}</tbody></table></div></article>
 }
 
 function BarPanel({ data }: { data: PremiumData }) {
