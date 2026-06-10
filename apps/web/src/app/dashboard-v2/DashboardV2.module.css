@@ -374,6 +374,10 @@
   background: linear-gradient(135deg, #7c3aed, #4f46e5);
 }
 
+.compactNav {
+  display: none;
+}
+
 .topActions {
   display: flex;
   align-items: center;
@@ -1636,6 +1640,61 @@
     justify-content: flex-start;
   }
 
+  .compactNav {
+    min-width: 0;
+    display: flex;
+    gap: 8px;
+    margin: -2px 0 14px;
+    overflow-x: auto;
+    padding-bottom: 3px;
+    scrollbar-width: none;
+  }
+
+  .compactNav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .compactNav a {
+    position: relative;
+    min-width: 92px;
+    min-height: 46px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--panel-strong) 82%, transparent);
+    color: var(--muted);
+    padding: 0 11px;
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 900;
+    white-space: nowrap;
+  }
+
+  .compactNav a:hover,
+  .compactNav a:focus-visible,
+  .compactNavActive {
+    border-color: color-mix(in srgb, var(--violet) 45%, var(--line));
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.18), rgba(59, 130, 246, 0.08));
+    color: var(--text) !important;
+    outline: none;
+  }
+
+  .compactNav em {
+    min-width: 18px;
+    height: 18px;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    background: var(--rose);
+    color: #fff;
+    font-size: 9px;
+    font-style: normal;
+    font-weight: 950;
+  }
+
   .topActions {
     justify-content: flex-start;
     flex-wrap: wrap;
@@ -1712,6 +1771,21 @@
 
   .searchBox {
     min-width: 0;
+  }
+
+  .compactNav a {
+    min-width: 74px;
+    min-height: 44px;
+    flex-direction: column;
+    gap: 4px;
+    padding: 6px 8px;
+    font-size: 10px;
+  }
+
+  .compactNav em {
+    position: absolute;
+    right: 5px;
+    top: 4px;
   }
 
   .chartArea {

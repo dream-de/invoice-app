@@ -859,6 +859,33 @@ function Topbar({ mode, profile, searchInputRef, searchQuery, unreadCount, onMod
   )
 }
 
+function CompactNav({ unreadCount }: { unreadCount: number }) {
+  const pathname = usePathname()
+  const compactItems: NavItem[] = [
+    mainNav[0],
+    mainNav[1],
+    mainNav[2],
+    mainNav[3],
+    mainNav[7],
+    sideNav[1].items[0],
+    sideNav[1].items[1],
+    sideNav[2].items[0],
+    sideNav[2].items[2]
+  ]
+
+  return (
+    <nav className={styles.compactNav} aria-label="Mobile Premium Navigation">
+      {compactItems.map((item) => {
+        const Icon = item.icon
+        const isActive = pathname === item.href
+        const badge = item.label === "Benachrichtigungen" ? unreadCount : 0
+
+        return <Link key={item.href} href={item.href} aria-current={isActive ? "page" : undefined} className={isActive ? styles.compactNavActive : ""}><Icon size={16} /><span>{item.label}</span>{badge > 0 ? <em>{badge}</em> : null}</Link>
+      })}
+    </nav>
+  )
+}
+
 function KpiGrid({ data }: { data: PremiumData }) {
   const source = data.invoices.length ? data.invoices : fallbackApiInvoices
   const invoiceSource = source.filter((invoice) => invoiceType(invoice) === "invoice")
@@ -1552,6 +1579,7 @@ export function PremiumWorkspacePage({ view = "dashboard", initialSearchQuery = 
       <Sidebar unreadCount={unreadCount} upgrade={upgrade} workspace={workspace} />
       <section className={styles.contentShell}>
         <Topbar mode={mode} profile={profile} searchInputRef={searchInputRef} searchQuery={searchQuery} unreadCount={unreadCount} onModeChange={handleModeChange} onSearchChange={setSearchQuery} />
+        <CompactNav unreadCount={unreadCount} />
         {view === "dashboard" ? <DashboardOverview data={data} profile={profile} searchQuery={searchQuery} /> : <><SearchResultsPanel data={data} searchQuery={searchQuery} /><PremiumModulePage view={view} data={data} searchQuery={searchQuery} /></>}
       </section>
     </div>
