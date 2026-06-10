@@ -1,5 +1,8 @@
 import { PremiumWorkspacePage } from "../PremiumWorkspace"
+import { type DashboardV2SearchPageProps, searchQueryFromParams } from "../routeSearch"
 
-export default function PremiumSettingsPage() {
-  return <PremiumWorkspacePage view="settings" />
+export default async function PremiumSettingsPage({ searchParams }: DashboardV2SearchPageProps) {
+  const query = await searchQueryFromParams(searchParams)
+
+  return <PremiumWorkspacePage view="settings" initialSearchQuery={query} />
 }

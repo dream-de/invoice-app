@@ -1,14 +1,8 @@
 import { PremiumWorkspacePage } from "./PremiumWorkspace"
+import { type DashboardV2SearchPageProps, searchQueryFromParams } from "./routeSearch"
 
-type DashboardV2PageProps = {
-  searchParams?: Promise<{
-    q?: string | string[]
-  }>
-}
+export default async function DashboardV2Page({ searchParams }: DashboardV2SearchPageProps) {
+  const query = await searchQueryFromParams(searchParams)
 
-export default async function DashboardV2Page({ searchParams }: DashboardV2PageProps) {
-  const params = await searchParams
-  const query = Array.isArray(params?.q) ? params?.q[0] : params?.q
-
-  return <PremiumWorkspacePage view="dashboard" initialSearchQuery={query || ""} />
+  return <PremiumWorkspacePage view="dashboard" initialSearchQuery={query} />
 }

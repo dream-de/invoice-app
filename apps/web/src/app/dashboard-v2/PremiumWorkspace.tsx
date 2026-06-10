@@ -1552,7 +1552,7 @@ export function PremiumWorkspacePage({ view = "dashboard", initialSearchQuery = 
       <Sidebar unreadCount={unreadCount} upgrade={upgrade} workspace={workspace} />
       <section className={styles.contentShell}>
         <Topbar mode={mode} profile={profile} searchInputRef={searchInputRef} searchQuery={searchQuery} unreadCount={unreadCount} onModeChange={handleModeChange} onSearchChange={setSearchQuery} />
-        {view === "dashboard" ? <DashboardOverview data={data} profile={profile} searchQuery={searchQuery} /> : <PremiumModulePage view={view} data={data} searchQuery={searchQuery} />}
+        {view === "dashboard" ? <DashboardOverview data={data} profile={profile} searchQuery={searchQuery} /> : <><SearchResultsPanel data={data} searchQuery={searchQuery} /><PremiumModulePage view={view} data={data} searchQuery={searchQuery} /></>}
       </section>
     </div>
   )
