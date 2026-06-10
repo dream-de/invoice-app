@@ -532,6 +532,20 @@ function parsePercent(value: string) {
   return Number.isFinite(parsed) ? parsed : 0
 }
 
+function parseMoney(value: string) {
+  const normalized = value.replace(/\s/g, "").replaceAll(".", "").replace(",", ".").replace(/[^\d.-]/g, "")
+  const parsed = Number(normalized)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+function projectBudgetTotal(projectsSource: ProjectData[]) {
+  return projectsSource.reduce((sum, project) => sum + parseMoney(project.budget), 0)
+}
+
+function estimatedBillableHours(projectsSource: ProjectData[]) {
+  return Math.round(projectsSource.reduce((sum, project) => sum + (parsePercent(project.progress) / 100) * 12, 0))
+}
+
 function parseInvoiceDate(value?: string) {
   if (!value) return null
   const isoDate = new Date(value)
@@ -606,7 +620,7 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     stats: [["18", "Projekte"], ["8", "In Arbeit"], ["74%", "Auslastung"]],
     rows: [["Website Redesign", "Phase 2 aktiv", "78%", "Aktiv"], ["Brand Portal", "Review offen", "42%", "Review"], ["DATEV Export", "Bereit fuer Abnahme", "100%", "Fertig"]],
     focus: [["Abrechenbare Zeit", "126 h"], ["Budget offen", "8.430,00 EUR"], ["Naechster Meilenstein", "Freitag"]],
-    actions: [["Projekt anlegen", "/projects/new"], ["Aufgabe planen", "/projects"], ["Budget pruefen", "/finance/statistics"]],
+    actions: [["Projekt anlegen", "/projects/new"], ["Aufgabe planen", "/dashboard-v2/projects"], ["Budget pruefen", "/dashboard-v2/reports"]],
     timeline: [["Meilenstein bewegt", "Phase 2 wurde in Review verschoben."], ["Budgetwarnung", "Brand Portal liegt bei 82% des geplanten Budgets."], ["Freigabe erhalten", "DATEV Export kann final abgerechnet werden."]],
     primaryHref: "/projects/new"
   },
@@ -630,7 +644,7 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     stats: [["126 h", "Erfasst"], ["34 h", "Abrechenbar"], ["91%", "Freigegeben"]],
     rows: [["Website Redesign", "Daniel und Sarah", "18:40 h", "Laeuft"], ["Brand Portal", "Julia", "07:15 h", "Pruefung"], ["Support Retainer", "Thomas", "04:30 h", "Bereit"]],
     focus: [["Aktiver Timer", "01:24:18"], ["Heute erfasst", "6:45 h"], ["Nicht abgerechnet", "34 h"]],
-    actions: [["Timer starten", "/dashboard-v2/time"], ["Zeit buchen", "/projects"], ["Freigabe senden", "/documents"]],
+    actions: [["Timer starten", "/dashboard-v2/time"], ["Zeit buchen", "/dashboard-v2/time"], ["Freigabe senden", "/dashboard-v2/invoices"]],
     timeline: [["Timer gestartet", "Daniel arbeitet an Website Redesign."], ["Zeit freigegeben", "Sarahs Eintrag wurde fuer Abrechnung markiert."], ["Monatsabschluss", "Mai-Zeiten sind bereit fuer Rechnungen."]],
     primaryHref: "/dashboard-v2/time"
   },
@@ -638,7 +652,7 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     stats: [["528,99", "Ausgaben"], ["12", "Belege"], ["100%", "Zuordnung"]],
     rows: [["Adobe Creative Cloud", "Software", "71,39 EUR", "Bezahlt"], ["Hetzner Cloud", "Hosting", "43,20 EUR", "Verbucht"], ["DB Reise", "Projektkosten", "128,40 EUR", "Pruefung"]],
     focus: [["Monatliches Budget", "2.000,00 EUR"], ["Erstattungen offen", "214,20 EUR"], ["DATEV bereit", "10 Belege"]],
-    actions: [["Ausgabe erfassen", "/finance/accounts"], ["Beleg hochladen", "/finance/accounts/import"], ["Export starten", "/finance/eur"]],
+    actions: [["Ausgabe erfassen", "/finance/accounts"], ["Beleg hochladen", "/finance/accounts/import"], ["Export starten", "/dashboard-v2/reports"]],
     timeline: [["Beleg erkannt", "OCR hat Kategorie und Betrag automatisch gesetzt."], ["Kostenstelle gesetzt", "Hosting wurde Projekt Website Redesign zugeordnet."], ["Export vorbereitet", "10 Belege sind DATEV-kompatibel."]],
     primaryHref: "/finance/accounts"
   },
@@ -920,7 +934,7 @@ function moduleRows(view: Exclude<PremiumView, "dashboard">, data: PremiumData):
     return projectsSource.slice(0, 5).map((project) => [
       project.name,
       `${project.customer} · ${project.budget}`,
-      project.progress,
+      `${Math.max(1, Math.round((parsePercent(project.progress) / 100) * 12))} h`,
       project.status
     ])
   }
@@ -1038,9 +1052,15 @@ function moduleStats(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
     return [[String(data.customers.length || 8), "Kunden"], [String(data.customers.length ? activeCustomers : 6), "Aktiv"], [dataSourceLabel(data), "Datenquelle"]]
   }
 
-  if (view === "projects" || view === "time") {
+  if (view === "projects") {
     const avgProgress = Math.round(projectsSource.reduce((sum, project) => sum + parsePercent(project.progress), 0) / Math.max(projectsSource.length, 1))
-    return [[String(projectsSource.length), "Projekte"], [String(projectsSource.filter((project) => project.status === "Aktiv").length), "Aktiv"], [`${avgProgress}%`, "Fortschritt"]]
+    return [[String(projectsSource.length), "Projekte"], [String(projectsSource.filter((project) => project.status === "Aktiv").length), "Aktiv"], [formatEuro(projectBudgetTotal(projectsSource)), "Budget"]]
+  }
+
+  if (view === "time") {
+    const billableHours = estimatedBillableHours(projectsSource)
+    const avgProgress = Math.round(projectsSource.reduce((sum, project) => sum + parsePercent(project.progress), 0) / Math.max(projectsSource.length, 1))
+    return [[`${billableHours} h`, "Abrechenbar"], [String(projectsSource.length), "Projekte"], [`${avgProgress}%`, "Freigabe"]]
   }
 
   if (view === "invoices") {
@@ -1054,7 +1074,8 @@ function moduleStats(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
   }
 
   if (view === "expenses") {
-    return [[String(articlesSource.length), "Artikel"], [String(articlesSource.filter((article) => article.active !== false).length), "Aktiv"], [formatEuro(articlesSource.reduce((sum, article) => sum + Number(article.price || 0), 0)), "Listenwert"]]
+    const activeArticles = articlesSource.filter((article) => article.active !== false)
+    return [[String(articlesSource.length), "Positionen"], [String(activeArticles.length), "Aktiv"], [formatEuro(activeArticles.reduce((sum, article) => sum + Number(article.price || 0), 0)), "Kostenbasis"]]
   }
 
   if (view === "reports") {
@@ -1125,9 +1146,16 @@ function moduleFocus(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
     return [["Kunden gesamt", String(data.customers.length || 4)], ["Top Kontakt", firstCustomer?.name || fallbackCompanySettings.company || "Acme GmbH"], ["Datenquelle", dataSourceLabel(data)]]
   }
 
-  if (view === "projects" || view === "time") {
+  if (view === "projects") {
     const avgProgress = Math.round(projectsSource.reduce((sum, project) => sum + parsePercent(project.progress), 0) / Math.max(projectsSource.length, 1))
-    return [["Aktive Projekte", String(projectsSource.filter((project) => project.status === "Aktiv").length)], ["Durchschnitt", `${avgProgress}%`], ["Naechstes Projekt", projectsSource[0]?.name || "Projekt anlegen"]]
+    const nextProject = projectsSource.find((project) => project.status !== "Aktiv") ?? projectsSource[0]
+    return [["Gesamtbudget", formatEuro(projectBudgetTotal(projectsSource))], ["Durchschnitt", `${avgProgress}%`], ["Naechstes Projekt", nextProject?.name || "Projekt anlegen"]]
+  }
+
+  if (view === "time") {
+    const billableHours = estimatedBillableHours(projectsSource)
+    const topProject = [...projectsSource].sort((left, right) => parsePercent(right.progress) - parsePercent(left.progress))[0]
+    return [["Abrechenbar", `${billableHours} h`], ["Aktive Projekte", String(projectsSource.filter((project) => project.status === "Aktiv").length)], ["Top Projekt", topProject?.name || "Zeit buchen"]]
   }
 
   if (view === "invoices") {
@@ -1141,7 +1169,9 @@ function moduleFocus(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
 
   if (view === "expenses") {
     const activeArticles = articlesSource.filter((article) => article.active !== false)
-    return [["Aktive Positionen", String(activeArticles.length)], ["Listenwert", formatEuro(activeArticles.reduce((sum, article) => sum + Number(article.price || 0), 0))], ["Top Kategorie", activeArticles[0]?.category || "Leistung"]]
+    const categories = Array.from(new Set(activeArticles.map((article) => article.category || "Leistung")))
+    const topArticle = [...activeArticles].sort((left, right) => Number(right.price || 0) - Number(left.price || 0))[0]
+    return [["Aktive Positionen", String(activeArticles.length)], ["Kostenbasis", formatEuro(activeArticles.reduce((sum, article) => sum + Number(article.price || 0), 0))], ["Top Position", topArticle?.name || categories[0] || "Leistung"]]
   }
 
   if (view === "reports") {
