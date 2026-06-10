@@ -32,7 +32,7 @@ export async function proxy(request: NextRequest) {
     basicAuthRequiredEnv: "DREAM_INVOICE_AUTH_REQUIRED",
     protectAppSession: !isDemoMode,
     sessionSecretEnv: "AUTH_SECRET",
-    publicPaths: ["/login", "/api/auth"]
+    publicPaths: ["/login", "/api/auth", "/dashboard-v2"]
   })
 
   if (decision.allowed) return NextResponse.next()
