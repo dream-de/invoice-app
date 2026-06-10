@@ -490,6 +490,10 @@ function userLimitFromData(data: PremiumData) {
   }
 }
 
+function dataSourceLabel(data: PremiumData) {
+  return data.loaded ? "Live" : "Lokal"
+}
+
 function upgradeSummaryFromData(data: PremiumData): UpgradeSummary {
   const limit = userLimitFromData(data)
   if (limit.isFull) {
@@ -657,7 +661,7 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
   },
   license: {
     stats: [["Free", "Tarif"], ["100", "Rechnungen"], ["1 GB", "Speicher"]],
-    rows: [["Benutzerlimit", "5 von 5 verwendet", "Voll", "Limit"], ["Dokumente im Workspace", "Live geladene Dokumente", "Preview", "Aktiv"], ["Speicher", "Nicht gemessen", "Preview", "Info"]],
+    rows: [["Benutzerlimit", "5 von 5 verwendet", "Voll", "Limit"], ["Dokumente im Workspace", "Geladene Dokumente", "Lokal", "Aktiv"], ["Speicher", "Nicht gemessen", "Lokal", "Info"]],
     focus: [["Upgrade Vorteil", "Unbegrenzt"], ["Premium Support", "Enthalten"], ["Aktivierung", "Lizenz-Key"]],
     actions: [["Lizenz aktivieren", "/dashboard-v2/license"], ["Upgrade pruefen", "/dashboard-v2/license"], ["Key eingeben", "/dashboard-v2/license"]],
     timeline: [["Limit erreicht", "Kostenloser Plan ist vollstaendig ausgereizt."], ["Upgrade vorbereitet", "Premium schaltet unbegrenzte Benutzer frei."], ["Abrechnung bereit", "Lizenzdaten koennen hinterlegt werden."]],
@@ -762,10 +766,10 @@ function KpiGrid({ data }: { data: PremiumData }) {
   const offerAmount = offerSource.reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
   const liveKpis = source.length ? [
     { label: "Offene Rechnungen", value: formatEuro(openAmount), detail: `${invoiceSource.filter((invoice) => isStatus(invoice.status, "open")).length} Dokumente`, tone: "violet" as Tone, icon: Receipt },
-    { label: "Bezahlt", value: formatEuro(paidAmount), detail: data.loaded ? "Live aus API" : "+18% vs. Vormonat", tone: "green" as Tone, icon: Briefcase },
+    { label: "Bezahlt", value: formatEuro(paidAmount), detail: data.loaded ? "Live synchronisiert" : "+18% vs. Vormonat", tone: "green" as Tone, icon: Briefcase },
     { label: "Ueberfaellig", value: formatEuro(overdueAmount), detail: `${invoiceSource.filter((invoice) => isStatus(invoice.status, "overdue")).length} Dokumente`, tone: "rose" as Tone, icon: AlertCircle },
     { label: "Angebote", value: formatEuro(offerAmount), detail: `${offerSource.length} Dokumente`, tone: "blue" as Tone, icon: Tag },
-    { label: "Kunden", value: String(data.customers.length || 4), detail: data.loaded ? "Live aus API" : "Fallback-Daten", tone: "amber" as Tone, icon: Users }
+    { label: "Kunden", value: String(data.customers.length || 4), detail: data.loaded ? "Live synchronisiert" : "Lokale Daten", tone: "amber" as Tone, icon: Users }
   ] : kpis
 
   return <section className={styles.kpiGrid}>{liveKpis.map((item) => { const Icon = item.icon; return <article key={item.label} className={`${styles.panel} ${styles.kpiCard}`} data-tone={item.tone}><div className={styles.kpiIcon}><Icon size={22} /></div><div><span>{item.label}</span><strong>{item.value}</strong><small>{item.detail}</small></div><MoreVertical size={17} className={styles.moreIcon} /></article> })}</section>
@@ -961,7 +965,7 @@ function moduleRows(view: Exclude<PremiumView, "dashboard">, data: PremiumData):
     const documentCount = (data.invoices.length ? data.invoices : fallbackApiInvoices).length
     return [
       ["Benutzerlimit", `${currentUsers} von ${maxUsers} verwendet`, limit.plan || "Free", currentUsers >= maxUsers ? "Limit" : "OK"],
-      ["Dokumente im Workspace", `${documentCount} geladen`, data.loaded ? "Live" : "Preview", "Aktiv"],
+      ["Dokumente im Workspace", `${documentCount} geladen`, dataSourceLabel(data), "Aktiv"],
       ["Lizenzablauf", limit.validUntil ? limit.validUntil.slice(0, 10) : "Kein Ablaufdatum", "Status", "Aktiv"]
     ]
   }
@@ -995,9 +999,9 @@ function moduleRows(view: Exclude<PremiumView, "dashboard">, data: PremiumData):
 
   if (view === "api") {
     return [
-      ["GET /api/invoice/list", "Rechnungsdaten", data.invoices.length ? "200 OK" : "Auth/Fallback", "Aktiv"],
-      ["GET /api/customers/list", "Kundendaten", data.customers.length ? "200 OK" : "Auth/Fallback", "Aktiv"],
-      ["GET /api/articles/list", "Artikel und Leistungen", data.articles.length ? "200 OK" : "Demo", "Aktiv"]
+      ["GET /api/invoice/list", "Rechnungsdaten", data.invoices.length ? "200 OK" : dataSourceLabel(data), "Aktiv"],
+      ["GET /api/customers/list", "Kundendaten", data.customers.length ? "200 OK" : dataSourceLabel(data), "Aktiv"],
+      ["GET /api/articles/list", "Artikel und Leistungen", data.articles.length ? "200 OK" : dataSourceLabel(data), "Aktiv"]
     ]
   }
 
@@ -1014,7 +1018,7 @@ function moduleStats(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
 
   if (view === "customers") {
     const activeCustomers = data.customers.filter((customer) => String(customer.status || "").toLowerCase() === "active").length
-    return [[String(data.customers.length || 8), "Kunden"], [String(data.customers.length ? activeCustomers : 6), "Aktiv"], [data.loaded ? "API" : "Demo", "Datenquelle"]]
+    return [[String(data.customers.length || 8), "Kunden"], [String(data.customers.length ? activeCustomers : 6), "Aktiv"], [dataSourceLabel(data), "Datenquelle"]]
   }
 
   if (view === "projects" || view === "time") {
@@ -1029,7 +1033,7 @@ function moduleStats(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
 
   if (view === "offers") {
     const offerSource = source.filter((invoice) => invoiceType(invoice) === "offer")
-    return [[String(offerSource.length), "Angebote"], [formatEuro(offerSource.reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)), "Pipeline"], [data.loaded ? "API" : "Demo", "Datenquelle"]]
+    return [[String(offerSource.length), "Angebote"], [formatEuro(offerSource.reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)), "Pipeline"], [dataSourceLabel(data), "Datenquelle"]]
   }
 
   if (view === "expenses") {
@@ -1044,7 +1048,7 @@ function moduleStats(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
   }
 
   if (view === "settings") {
-    return [[String(rangesSource.length), "Nummernkreise"], [data.companySettings?.company ? "OK" : "Demo", "Firmendaten"], [data.loaded ? "API" : "Demo", "Datenquelle"]]
+    return [[String(rangesSource.length), "Nummernkreise"], [data.companySettings?.company ? "OK" : "Lokal", "Firmendaten"], [dataSourceLabel(data), "Datenquelle"]]
   }
 
   if (view === "users") {
@@ -1061,7 +1065,7 @@ function moduleStats(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
 
   if (view === "notifications") {
     const unread = notificationsSource.filter((item) => !item.readAt).length
-    return [[String(unread), "Neu"], [String(notificationsSource.length), "Gesamt"], [data.loaded ? "API" : "Demo", "Quelle"]]
+    return [[String(unread), "Neu"], [String(notificationsSource.length), "Gesamt"], [dataSourceLabel(data), "Quelle"]]
   }
 
   if (view === "automation") {
@@ -1074,7 +1078,7 @@ function moduleStats(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
 
   if (view === "api") {
     const connected = Number(data.invoices.length > 0) + Number(data.customers.length > 0) + Number(data.articles.length > 0)
-    return [[String(connected), "Endpoints"], [data.loaded ? "Bereit" : "Laedt", "Status"], ["V2", "Preview"]]
+    return [[String(connected), "Endpoints"], [data.loaded ? "Bereit" : "Lokal", "Status"], ["Dashboard V2", "Version"]]
   }
 
   return moduleContent[view].stats
@@ -1094,7 +1098,7 @@ function moduleFocus(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
 
   if (view === "customers") {
     const firstCustomer = data.customers[0]
-    return [["Kunden gesamt", String(data.customers.length || 4)], ["Top Kontakt", firstCustomer?.name || fallbackCompanySettings.company || "Acme GmbH"], ["Datenquelle", data.loaded ? "API" : "Demo"]]
+    return [["Kunden gesamt", String(data.customers.length || 4)], ["Top Kontakt", firstCustomer?.name || fallbackCompanySettings.company || "Acme GmbH"], ["Datenquelle", dataSourceLabel(data)]]
   }
 
   if (view === "projects" || view === "time") {
@@ -1124,7 +1128,7 @@ function moduleFocus(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
 
   if (view === "settings") {
     const company = data.companySettings ?? fallbackCompanySettings
-    return [["Firma", company.company || "Nicht gesetzt"], ["Nummernkreise", String(rangesSource.length)], ["Status", data.loaded ? "Synchron" : "Demo"]]
+    return [["Firma", company.company || "Nicht gesetzt"], ["Nummernkreise", String(rangesSource.length)], ["Status", data.loaded ? "Synchron" : "Lokal"]]
   }
 
   if (view === "users" || view === "license") {
@@ -1143,7 +1147,7 @@ function moduleFocus(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
 
   if (view === "api") {
     const connected = Number(data.invoices.length > 0) + Number(data.customers.length > 0) + Number(data.articles.length > 0)
-    return [["Endpoints", String(connected)], ["Status", data.loaded ? "Bereit" : "Laedt"], ["Version", "V2 Preview"]]
+    return [["Endpoints", String(connected)], ["Status", data.loaded ? "Bereit" : "Lokal"], ["Version", "Dashboard V2"]]
   }
 
   return moduleContent[view].focus
