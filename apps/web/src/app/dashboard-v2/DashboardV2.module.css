@@ -828,6 +828,10 @@
   min-width: 0;
 }
 
+.revenuePanel {
+  min-width: 0;
+}
+
 .tablePanel table {
   width: 100%;
   min-width: 660px;
