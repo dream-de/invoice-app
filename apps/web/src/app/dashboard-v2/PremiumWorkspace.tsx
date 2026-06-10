@@ -1057,6 +1057,8 @@ function IntegrationsPanel({ mode }: { mode: ThemeMode }) {
 }
 
 function SearchResultsPanel({ data, mode, searchQuery }: { data: PremiumData; mode: ThemeMode; searchQuery: string }) {
+  if (isPremiumActionQuery(searchQuery)) return null
+
   const results = globalSearchResults(data, searchQuery)
   if (!searchQuery.trim()) return null
 
@@ -1078,12 +1080,14 @@ function SearchResultsPanel({ data, mode, searchQuery }: { data: PremiumData; mo
 }
 
 function DashboardOverview({ data, mode, profile, searchQuery }: { data: PremiumData; mode: ThemeMode; profile: ReturnType<typeof profileFromData>; searchQuery: string }) {
+  const effectiveSearchQuery = premiumSearchQuery(searchQuery)
+
   return (
     <>
       <KpiGrid data={data} mode={mode} />
-      <SearchResultsPanel data={data} mode={mode} searchQuery={searchQuery} />
+      <SearchResultsPanel data={data} mode={mode} searchQuery={effectiveSearchQuery} />
       <section className={styles.mainGrid}><RevenueChart data={data} mode={mode} /><StatusPanel data={data} /><QuickActions mode={mode} profile={profile} /></section>
-      <section className={styles.lowerGrid}><InvoiceTable data={data} mode={mode} searchQuery={searchQuery} /><BarPanel data={data} mode={mode} /><ActivityFeed data={data} mode={mode} /></section>
+      <section className={styles.lowerGrid}><InvoiceTable data={data} mode={mode} searchQuery={effectiveSearchQuery} /><BarPanel data={data} mode={mode} /><ActivityFeed data={data} mode={mode} /></section>
       <section className={styles.bottomGrid}><UsersPanel data={data} mode={mode} /><LicensePanel data={data} mode={mode} /></section>
       <IntegrationsPanel mode={mode} />
     </>
@@ -1502,6 +1506,10 @@ const premiumActionQueryTerms = [
 function isPremiumActionQuery(searchQuery: string) {
   const selection = moduleSelectionLabel(searchQuery).toLowerCase()
   return premiumActionQueryTerms.some((term) => selection.includes(term))
+}
+
+function premiumSearchQuery(searchQuery: string) {
+  return isPremiumActionQuery(searchQuery) ? "" : searchQuery
 }
 
 function isModuleRowActive(row: ModuleRow, searchQuery: string) {
@@ -1954,8 +1962,9 @@ function PremiumModulePage({ view, data, mode, searchQuery }: { view: Exclude<Pr
   const meta = premiumViewMeta[view]
   const content = moduleContent[view]
   const allRows = moduleRows(view, data)
+  const effectiveSearchQuery = premiumSearchQuery(searchQuery)
   const selectedRow = moduleSelectedRow(allRows, searchQuery)
-  const rows = allRows.filter((row) => matchesSearch(row, searchQuery))
+  const rows = allRows.filter((row) => matchesSearch(row, effectiveSearchQuery))
   const stats = moduleStats(view, data)
   const focus = moduleFocus(view, data)
   const timeline = moduleTimeline(view, data)
@@ -2156,7 +2165,7 @@ export function PremiumWorkspacePage({ view = "dashboard", initialSearchQuery = 
       <section className={styles.contentShell}>
         <Topbar mode={mode} profile={profile} searchInputRef={searchInputRef} searchQuery={searchQuery} themeLinks={themeLinks} unreadCount={unreadCount} onModeChange={handleModeChange} onSearchChange={setSearchQuery} />
         <CompactNav mode={mode} unreadCount={unreadCount} />
-        {view === "dashboard" ? <DashboardOverview data={data} mode={mode} profile={profile} searchQuery={searchQuery} /> : <><SearchResultsPanel data={data} mode={mode} searchQuery={searchQuery} /><PremiumModulePage view={view} data={data} mode={mode} searchQuery={searchQuery} /></>}
+        {view === "dashboard" ? <DashboardOverview data={data} mode={mode} profile={profile} searchQuery={searchQuery} /> : <><SearchResultsPanel data={data} mode={mode} searchQuery={premiumSearchQuery(searchQuery)} /><PremiumModulePage view={view} data={data} mode={mode} searchQuery={searchQuery} /></>}
       </section>
     </div>
   )
