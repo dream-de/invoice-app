@@ -763,7 +763,7 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     stats: [["528,99", "Ausgaben"], ["12", "Belege"], ["100%", "Zuordnung"]],
     rows: [["Adobe Creative Cloud", "Software", "71,39 EUR", "Bezahlt"], ["Hetzner Cloud", "Hosting", "43,20 EUR", "Verbucht"], ["DB Reise", "Projektkosten", "128,40 EUR", "Pruefung"]],
     focus: [["Monatliches Budget", "2.000,00 EUR"], ["Erstattungen offen", "214,20 EUR"], ["DATEV bereit", "10 Belege"]],
-    actions: [["Ausgabe erfassen", "/dashboard-v2/expenses?q=Ausgabe%20erfasst"], ["Beleg hochladen", "/finance/accounts/import"], ["Export starten", "/dashboard-v2/expenses?q=DATEV%20vorbereitet"]],
+    actions: [["Ausgabe erfassen", "/dashboard-v2/expenses?q=Ausgabe%20erfasst"], ["Beleg hochladen", "/dashboard-v2/expenses?q=Beleg%20hochgeladen"], ["Export starten", "/dashboard-v2/expenses?q=DATEV%20vorbereitet"]],
     timeline: [["Beleg erkannt", "OCR hat Kategorie und Betrag automatisch gesetzt."], ["Kostenstelle gesetzt", "Hosting wurde Projekt Website Redesign zugeordnet."], ["Export vorbereitet", "10 Belege sind DATEV-kompatibel."]],
     primaryHref: "/dashboard-v2/expenses?q=Ausgabe%20erfasst"
   },
@@ -787,7 +787,7 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     stats: [["5/5", "Benutzer"], ["3", "Rollen"], ["2FA", "Empfohlen"]],
     rows: users.map(([name, role]) => [name, role, "Aktiv", role === "Administrator" ? "Owner" : "Team"]) as ModuleRow[],
     focus: [["Admin", "Daniel"], ["Lizenzlimit", "5 Benutzer"], ["Letzter Login", "Heute"]],
-    actions: [["Benutzer einladen", "/dashboard-v2/users?q=Benutzer%20eingeladen"], ["Rolle bearbeiten", "/settings/users"], ["2FA pruefen", "/account/security"]],
+    actions: [["Benutzer einladen", "/dashboard-v2/users?q=Benutzer%20eingeladen"], ["Rolle bearbeiten", "/dashboard-v2/users?q=Rolle%20vorbereitet"], ["2FA pruefen", "/dashboard-v2/users?q=2FA%20geprueft"]],
     timeline: [["Einladung vorbereitet", "Neuer Benutzer kann per E-Mail eingeladen werden."], ["Rolle geaendert", "Sarah ist Manager mit Projektfreigaben."], ["Sicherheitshinweis", "2FA fuer Buchhaltung empfohlen."]],
     primaryHref: "/dashboard-v2/users?q=Benutzer%20eingeladen"
   },
@@ -1477,6 +1477,7 @@ const premiumActionQueryTerms = [
   "angebot vorbereitet",
   "pipeline geprueft",
   "ausgabe erfasst",
+  "beleg hochgeladen",
   "datev vorbereitet",
   "report exportiert",
   "vergleich geoeffnet",
@@ -1486,6 +1487,7 @@ const premiumActionQueryTerms = [
   "system geprueft",
   "benutzer eingeladen",
   "rolle vorbereitet",
+  "2fa geprueft",
   "regeln aktualisiert",
   "alle gelesen",
   "audit filter aktiv",
@@ -1719,6 +1721,7 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
     [query.includes("angebot vorbereitet"), "Angebot wurde vorbereitet. Fuer Speicherung kann der vollstaendige Angebots-Flow geoeffnet werden."],
     [query.includes("pipeline geprueft"), "Pipeline wurde geprueft und offene Angebote sind markiert."],
     [query.includes("ausgabe erfasst"), "Ausgabe wurde vorgemerkt und fuer DATEV vorbereitet."],
+    [query.includes("beleg hochgeladen"), "Beleg-Upload wurde vorbereitet und kann dem Ausgabenfluss zugeordnet werden."],
     [query.includes("datev vorbereitet"), "DATEV Export wurde vorbereitet."],
     [query.includes("report exportiert"), "Report Export wurde vorbereitet."],
     [query.includes("vergleich geoeffnet"), "Vergleich wurde geoeffnet und fuer den Export vorbereitet."],
@@ -1728,6 +1731,7 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
     [query.includes("system geprueft"), "Systemeinstellungen wurden geprueft."],
     [query.includes("benutzer eingeladen"), "Benutzereinladung wurde vorbereitet."],
     [query.includes("rolle vorbereitet"), "Rollenverwaltung wurde vorbereitet."],
+    [query.includes("2fa geprueft"), "2FA Sicherheitscheck wurde vorbereitet."],
     [query.includes("regeln aktualisiert"), "Benachrichtigungsregeln wurden aktualisiert."],
     [query.includes("alle gelesen"), "Alle Benachrichtigungen wurden als gelesen markiert."],
     [query.includes("audit filter aktiv"), "Audit Filter ist aktiv und zeigt relevante Sicherheitsereignisse."],
@@ -1833,8 +1837,8 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
 
   if (view === "expenses") {
     return (
-      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("ausgabe")}>
-        <div className={styles.panelHead}><div><h2>Ausgabe erfassen</h2><span>Belegposition vormerken und fuer Export vorbereiten</span></div><Link href="/finance/accounts/import">Beleg hochladen</Link></div>
+      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("ausgabe") || query.includes("beleg") || query.includes("datev")}>
+        <div className={styles.panelHead}><div><h2>Ausgabe erfassen</h2><span>Belegposition vormerken und fuer Export vorbereiten</span></div><Link href={withPremiumTheme("/dashboard-v2/expenses?q=Beleg%20hochgeladen", mode)}>Beleg hochladen</Link></div>
         <form className={styles.workflowForm} action="/dashboard-v2/expenses" method="get">
           <input type="hidden" name="q" value="Ausgabe erfasst" />
           <input type="hidden" name="theme" value={mode} />
@@ -1853,8 +1857,8 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
 
   if (view === "users") {
     return (
-      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("benutzer")}>
-        <div className={styles.panelHead}><div><h2>Benutzer einladen</h2><span>API-gestuetzter Invite fuer Rollen und Berechtigungen</span></div><Link href="/account/security">2FA pruefen</Link></div>
+      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("benutzer") || query.includes("rolle") || query.includes("2fa")}>
+        <div className={styles.panelHead}><div><h2>Benutzer einladen</h2><span>API-gestuetzter Invite fuer Rollen und Berechtigungen</span></div><Link href={withPremiumTheme("/dashboard-v2/users?q=2FA%20geprueft", mode)}>2FA pruefen</Link></div>
         <form className={styles.workflowForm} action="/dashboard-v2/users" method="get">
           <input type="hidden" name="q" value="Benutzer eingeladen" />
           <input type="hidden" name="theme" value={mode} />
@@ -1863,8 +1867,8 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
           <button type="submit">Einladen</button>
         </form>
         <div className={styles.workflowActions}>
-          <Link href="/settings/users">Rollen verwalten</Link>
-          <Link href="/account/security">2FA pruefen</Link>
+          <Link href={withPremiumTheme("/dashboard-v2/users?q=Rolle%20vorbereitet", mode)}>Rollen verwalten</Link>
+          <Link href={withPremiumTheme("/dashboard-v2/users?q=2FA%20geprueft", mode)}>2FA pruefen</Link>
           <Link href={withPremiumTheme("/dashboard-v2/users?q=Rolle%20vorbereitet", mode)}>Rolle vormerken</Link>
         </div>
         {message}
@@ -1918,7 +1922,7 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
         <div className={styles.workflowActions}>
           <Link href={withPremiumTheme("/dashboard-v2/automation?q=Workflow%20erstellt", mode)}>Workflow erstellen</Link>
           <Link href={withPremiumTheme("/dashboard-v2/audit?q=Workflow", mode)}>Run Verlauf</Link>
-          <Link href="/settings/number-ranges">Nummernkreise</Link>
+          <Link href={withPremiumTheme("/dashboard-v2/automation?q=Nummernkreis%20geprueft", mode)}>Nummernkreise</Link>
         </div>
         {message}
       </article>
@@ -1944,7 +1948,7 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
       ? [["Dokumentexport", "/dashboard-v2/reports?q=Report%20exportiert"], ["DATEV Export", "/dashboard-v2/reports?q=DATEV%20vorbereitet"], ["Vergleich", "/dashboard-v2/reports?q=Vergleich%20geoeffnet"]]
       : view === "settings"
         ? [["Firma", "/dashboard-v2/settings?q=Firma%20geprueft"], ["Nummernkreise", "/dashboard-v2/settings?q=Nummernkreis%20geprueft"], ["Portal", "/dashboard-v2/settings?q=Portal%20geoeffnet"], ["System", "/dashboard-v2/settings?q=System%20geprueft"]]
-        : [["Audit exportieren", "/dashboard-v2/audit?q=Audit%20exportiert"], ["Filter setzen", "/dashboard-v2/audit?q=Audit%20Filter%20aktiv"], ["Ereignis suchen", "/dashboard-v2/audit?q=Ereignis%20gefunden"], ["Webhook Logs", "/dashboard-v2/audit?q=Webhook%20Logs"], ["System", "/settings/system"]]
+        : [["Audit exportieren", "/dashboard-v2/audit?q=Audit%20exportiert"], ["Filter setzen", "/dashboard-v2/audit?q=Audit%20Filter%20aktiv"], ["Ereignis suchen", "/dashboard-v2/audit?q=Ereignis%20gefunden"], ["Webhook Logs", "/dashboard-v2/audit?q=Webhook%20Logs"], ["System", "/dashboard-v2/settings?q=System%20geprueft"]]
 
     return (
       <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.length > 0}>
