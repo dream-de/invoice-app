@@ -710,7 +710,7 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     stats: [["18", "Projekte"], ["8", "In Arbeit"], ["74%", "Auslastung"]],
     rows: [["Website Redesign", "Phase 2 aktiv", "78%", "Aktiv"], ["Brand Portal", "Review offen", "42%", "Review"], ["DATEV Export", "Bereit fuer Abnahme", "100%", "Fertig"]],
     focus: [["Abrechenbare Zeit", "126 h"], ["Budget offen", "8.430,00 EUR"], ["Naechster Meilenstein", "Freitag"]],
-    actions: [["Projekt anlegen", "/projects/new"], ["Aufgabe planen", "/dashboard-v2/projects"], ["Budget pruefen", "/dashboard-v2/reports"]],
+    actions: [["Projekt anlegen", "/projects/new"], ["Projektliste", "/dashboard-v2/projects"], ["Budget pruefen", "/dashboard-v2/reports"]],
     timeline: [["Meilenstein bewegt", "Phase 2 wurde in Review verschoben."], ["Budgetwarnung", "Brand Portal liegt bei 82% des geplanten Budgets."], ["Freigabe erhalten", "DATEV Export kann final abgerechnet werden."]],
     primaryHref: "/projects/new"
   },
@@ -1400,6 +1400,12 @@ function moduleRowHref(view: Exclude<PremiumView, "dashboard">, data: PremiumDat
     const customersSource = data.customers.length ? data.customers : fallbackApiCustomers
     const customer = customersSource.find((item) => item.name === row[0])
     return customer ? `/customers/${customer.id}` : "/dashboard-v2/customers"
+  }
+
+  if (view === "projects") {
+    const projectsSource = data.projects.length ? data.projects : fallbackProjects
+    const project = projectsSource.find((item) => item.name === row[0])
+    return project ? `/dashboard-v2/projects?q=${encodeURIComponent(project.name)}` : "/dashboard-v2/projects"
   }
 
   return `/dashboard-v2/${view}`
