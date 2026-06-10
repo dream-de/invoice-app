@@ -660,7 +660,7 @@ function QuickActions() {
 
 function InvoiceTable({ data, searchQuery }: { data: PremiumData; searchQuery: string }) {
   const rows = invoiceRowsFromData(data).filter((row) => matchesSearch(row, searchQuery))
-  return <article className={`${styles.panel} ${styles.tablePanel}`}><div className={styles.panelHead}><h2>Kuerzlich erstellte Rechnungen</h2><Link href="/documents">Alle anzeigen</Link></div><div className={styles.tableScroll}><table><thead><tr><th>Rechnung</th><th>Kunde</th><th>Status</th><th>Betrag</th><th>Datum</th></tr></thead><tbody>{rows.length ? rows.map(([number, customer, status, amount, date]) => <tr key={number}><td>{number}</td><td>{customer}</td><td><span data-status={status}>{status}</span></td><td>{amount}</td><td>{date}</td></tr>) : <tr><td colSpan={5} className={styles.emptyTableCell}>Keine Treffer</td></tr>}</tbody></table></div></article>
+  return <article className={`${styles.panel} ${styles.tablePanel}`}><div className={styles.panelHead}><h2>Kuerzlich erstellte Rechnungen</h2><Link href="/documents">Alle anzeigen</Link></div><div className={styles.tableScroll}><table><thead><tr><th>Rechnung</th><th>Kunde</th><th>Status</th><th>Betrag</th><th>Datum</th></tr></thead><tbody>{rows.length ? rows.map(([number, customer, status, amount, date]) => <tr key={number}><td><Link href="/documents">{number}</Link></td><td>{customer}</td><td><span data-status={status}>{status}</span></td><td>{amount}</td><td>{date}</td></tr>) : <tr><td colSpan={5} className={styles.emptyTableCell}>Keine Treffer</td></tr>}</tbody></table></div></article>
 }
 
 function BarPanel() {
@@ -909,11 +909,27 @@ function moduleStats(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
   return moduleContent[view].stats
 }
 
+function moduleRowHref(view: Exclude<PremiumView, "dashboard">) {
+  if (view === "customers") return "/customers"
+  if (view === "projects" || view === "time") return "/projects"
+  if (view === "invoices" || view === "offers") return "/documents"
+  if (view === "expenses") return "/articles"
+  if (view === "reports") return "/finance/statistics"
+  if (view === "settings") return "/settings"
+  if (view === "users" || view === "license") return "/settings/users"
+  if (view === "integrations") return "/dashboard-v2/integrations"
+  if (view === "automation") return "/settings/reminders"
+  if (view === "notifications") return "/dashboard-v2/notifications"
+  if (view === "audit") return "/dashboard-v2/audit"
+  return "/dashboard-v2/api"
+}
+
 function PremiumModulePage({ view, data, searchQuery }: { view: Exclude<PremiumView, "dashboard">; data: PremiumData; searchQuery: string }) {
   const meta = premiumViewMeta[view]
   const content = moduleContent[view]
   const rows = moduleRows(view, data).filter((row) => matchesSearch(row, searchQuery))
   const stats = moduleStats(view, data)
+  const rowHref = moduleRowHref(view)
 
   return (
     <section className={styles.modulePage}>
@@ -973,11 +989,11 @@ function PremiumModulePage({ view, data, searchQuery }: { view: Exclude<PremiumV
           <div className={styles.panelHead}><h2>{meta.title} Uebersicht</h2><Link href="/dashboard-v2">Zurueck zum Dashboard</Link></div>
           <div className={styles.pipelineList}>
             {rows.length ? rows.map(([title, subtitle, value, status]) => (
-              <div key={`${title}-${value}`}>
+              <Link key={`${title}-${value}`} href={rowHref} className={styles.pipelineRow}>
                 <span><strong>{title}</strong><small>{subtitle}</small></span>
                 <b>{value}</b>
                 <em>{status}</em>
-              </div>
+              </Link>
             )) : <div className={styles.emptyPipeline}><span><strong>Keine Treffer</strong><small>Suche oder Filter anpassen</small></span><b>-</b><em>Leer</em></div>}
           </div>
         </article>

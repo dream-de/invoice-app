@@ -887,6 +887,15 @@
   color: var(--muted);
 }
 
+.tablePanel td a {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.tablePanel td a:hover {
+  color: var(--violet);
+}
+
 .tablePanel [data-status] {
   display: inline-flex;
   border-radius: 999px;
@@ -1395,6 +1404,7 @@
   gap: 10px;
 }
 
+.pipelineRow,
 .pipelineList div {
   min-height: 64px;
   display: grid;
@@ -1405,6 +1415,14 @@
   border-radius: 8px;
   background: color-mix(in srgb, var(--panel-strong) 80%, transparent);
   padding: 12px 14px;
+  text-decoration: none;
+  transition: border-color 150ms ease, transform 150ms ease, background 150ms ease;
+}
+
+.pipelineRow:hover {
+  border-color: color-mix(in srgb, var(--violet) 50%, var(--line));
+  background: color-mix(in srgb, var(--panel-strong) 92%, transparent);
+  transform: translateY(-1px);
 }
 
 .pipelineList strong,
