@@ -803,17 +803,17 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     stats: [["6", "Verbunden"], ["2", "Aktion noetig"], ["99%", "Sync"]],
     rows: integrations.slice(0, 4).map(([name, meta]) => [name, meta, "Verbunden", "Aktiv"]) as ModuleRow[],
     focus: [["Zahlungen", "Stripe, PayPal"], ["Buchhaltung", "DATEV"], ["Automation", "Zapier"]],
-    actions: [["Integration verbinden", "/dashboard-v2/integrations?q=Stripe"], ["Sync pruefen", "/dashboard-v2/integrations?q=Verbunden"], ["Token erneuern", "/dashboard-v2/api?q=Rechnungsdaten"]],
+    actions: [["Integration verbinden", "/dashboard-v2/integrations?q=Integration%20verbunden"], ["Sync pruefen", "/dashboard-v2/integrations?q=Sync%20geprueft"], ["Token erneuern", "/dashboard-v2/api?q=Token%20vorbereitet"]],
     timeline: [["Stripe synchronisiert", "Neue Zahlung wurde automatisch zugeordnet."], ["DATEV Export bereit", "Buchhaltungsdaten sind vorbereitet."], ["Zapier aktiv", "Webhook fuer neue Rechnung feuert korrekt."]],
-    primaryHref: "/dashboard-v2/integrations?q=Stripe"
+    primaryHref: "/dashboard-v2/integrations?q=Integration%20verbunden"
   },
   automation: {
     stats: [["14", "Workflows"], ["9", "Aktiv"], ["312", "Runs"]],
     rows: [["Mahnung nach 7 Tagen", "Rechnungen", "9 Runs", "Aktiv"], ["Monatsreport senden", "Berichte", "1 Run", "Geplant"], ["Beleg automatisch taggen", "Ausgaben", "42 Runs", "Aktiv"]],
     focus: [["Gesparte Zeit", "18 h"], ["Fehlerquote", "0,8%"], ["Naechster Run", "Morgen 08:00"]],
-    actions: [["Workflow erstellen", "/dashboard-v2/automation?q=Rechnungen%20Nummernkreis"], ["Regel testen", "/dashboard-v2/notifications?q=Neue%20Rechnung%20erstellt"], ["Run Verlauf", "/dashboard-v2/audit?q=Neue%20Rechnung%20erstellt"]],
+    actions: [["Workflow erstellen", "/dashboard-v2/automation?q=Workflow%20erstellt"], ["Regel testen", "/dashboard-v2/automation?q=Workflow%20getestet"], ["Run Verlauf", "/dashboard-v2/audit?q=Workflow"]],
     timeline: [["Mahnlauf ausgefuehrt", "3 Kunden wurden automatisch erinnert."], ["Regel getestet", "Belegtagging erkennt Softwarekosten."], ["Workflow pausiert", "Alter Export wurde deaktiviert."]],
-    primaryHref: "/dashboard-v2/automation?q=Rechnungen%20Nummernkreis"
+    primaryHref: "/dashboard-v2/automation?q=Workflow%20erstellt"
   },
   notifications: {
     stats: [["12", "Neu"], ["4", "Wichtig"], ["0", "Kritisch"]],
@@ -1638,11 +1638,17 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
                               ? "Filter aktiv: wichtige Zahlung, Rechnung und Systemmeldungen."
                               : query.includes("integration verbunden")
                                 ? "Integration wurde verbunden und fuer Sync vorbereitet."
-                                : query.includes("workflow getestet")
-                                  ? "Workflow wurde erfolgreich getestet."
-                                  : query.includes("webhook erstellt")
-                                    ? "Webhook wurde fuer invoice.created vorbereitet."
-                                    : ""
+                                : query.includes("sync geprueft")
+                                  ? "Sync wurde geprueft. Zahlungen, Buchhaltung und Automation sind aktuell."
+                                  : query.includes("token vorbereitet")
+                                    ? "Token wurde vorbereitet und kann sicher rotiert werden."
+                                    : query.includes("workflow erstellt")
+                                      ? "Workflow wurde erstellt und ist bereit fuer den Testlauf."
+                                      : query.includes("workflow getestet")
+                                        ? "Workflow wurde erfolgreich getestet."
+                                        : query.includes("webhook erstellt")
+                                          ? "Webhook wurde fuer invoice.created vorbereitet."
+                                          : ""
   const message = routeMessage ? <p data-state="success">{routeMessage}</p> : null
 
   if (view === "customers") {
@@ -1785,15 +1791,18 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
 
   if (view === "integrations") {
     return (
-      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("stripe") || query.includes("verbunden")}>
+      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("integration") || query.includes("verbunden") || query.includes("sync") || query.includes("token")}>
         <div className={styles.panelHead}><div><h2>Integration verbinden</h2><span>Provider auswaehlen und Verbindung simulieren</span></div></div>
         <form className={styles.workflowForm} action="/dashboard-v2/integrations" method="get">
           <input type="hidden" name="q" value="Integration verbunden" />
           <input type="hidden" name="theme" value={mode} />
           <label>Provider<select name="provider" defaultValue={integrationsSource[0]?.[0] || "Stripe"}>{integrationsSource.map(([name]) => <option key={name} value={name}>{name}</option>)}</select></label>
           <button type="submit">Verbinden</button>
-          <Link href={withPremiumTheme("/dashboard-v2/api?q=Token", mode)}>Token pruefen</Link>
         </form>
+        <div className={styles.workflowActions}>
+          <Link href={withPremiumTheme("/dashboard-v2/integrations?q=Sync%20geprueft", mode)}>Sync pruefen</Link>
+          <Link href={withPremiumTheme("/dashboard-v2/api?q=Token%20vorbereitet", mode)}>Token erneuern</Link>
+        </div>
         {message}
       </article>
     )
@@ -1801,15 +1810,19 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
 
   if (view === "automation") {
     return (
-      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("workflow") || query.includes("nummernkreis")}>
+      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("workflow") || query.includes("nummernkreis") || query.includes("run")}>
         <div className={styles.panelHead}><div><h2>Workflow testen</h2><span>Regel aus Nummernkreis und Ereignis ausloesen</span></div></div>
         <form className={styles.workflowForm} action="/dashboard-v2/automation" method="get">
           <input type="hidden" name="q" value="Workflow getestet" />
           <input type="hidden" name="theme" value={mode} />
           <label>Regel<select name="rule" defaultValue={rangesSource[0]?.type || "invoice"}>{rangesSource.map((range) => <option key={range.type} value={range.type}>{numberRangeLabel(range.type)}</option>)}</select></label>
           <button type="submit">Regel testen</button>
-          <Link href={withPremiumTheme("/dashboard-v2/audit?q=Workflow", mode)}>Run Verlauf</Link>
         </form>
+        <div className={styles.workflowActions}>
+          <Link href={withPremiumTheme("/dashboard-v2/automation?q=Workflow%20erstellt", mode)}>Workflow erstellen</Link>
+          <Link href={withPremiumTheme("/dashboard-v2/audit?q=Workflow", mode)}>Run Verlauf</Link>
+          <Link href="/settings/number-ranges">Nummernkreise</Link>
+        </div>
         {message}
       </article>
     )
