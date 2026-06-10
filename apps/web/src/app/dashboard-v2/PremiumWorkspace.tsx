@@ -36,6 +36,8 @@ import {
 import styles from "./DashboardV2.module.css"
 
 type ThemeMode = "dark" | "light"
+type ThemeLinks = { light: string; dark: string }
+const PREMIUM_THEME_STORAGE_KEY = "dream-invoice-premium-theme"
 type IconType = ComponentType<{ size?: number; className?: string }>
 type NavItem = { label: string; href: string; icon: IconType; badge?: string }
 type Tone = "violet" | "green" | "rose" | "blue" | "amber"
@@ -852,11 +854,39 @@ function linePoints(values: number[], height: number, maxValue: number) {
   return chartCoordinates(values, height, maxValue).map((point) => `${point.x},${point.y}`).join(" ")
 }
 
-function ThemeToggle({ mode, onChange }: { mode: ThemeMode; onChange: (mode: ThemeMode) => void }) {
+function readStoredPremiumTheme() {
+  try {
+    const savedMode = window.localStorage.getItem(PREMIUM_THEME_STORAGE_KEY)
+    return savedMode === "light" || savedMode === "dark" ? savedMode : null
+  } catch {
+    return null
+  }
+}
+
+function storePremiumTheme(mode: ThemeMode) {
+  try {
+    window.localStorage.setItem(PREMIUM_THEME_STORAGE_KEY, mode)
+  } catch {
+    // Theme switching must still work in restricted browser contexts.
+  }
+}
+
+function premiumViewPath(view: PremiumView) {
+  return view === "dashboard" ? "/dashboard-v2" : `/dashboard-v2/${view}`
+}
+
+function premiumThemeHref(path: string, theme: ThemeMode, query: string) {
+  const params = new URLSearchParams()
+  if (query) params.set("q", query)
+  params.set("theme", theme)
+  return `${path}?${params.toString()}`
+}
+
+function ThemeToggle({ links, mode, onChange }: { links: ThemeLinks; mode: ThemeMode; onChange: (mode: ThemeMode) => void }) {
   return (
     <div className={styles.themeToggle} aria-label="Theme wechseln">
-      <button type="button" className={mode === "light" ? styles.activeToggle : ""} onClick={() => onChange("light")}>Hell</button>
-      <button type="button" className={mode === "dark" ? styles.activeToggle : ""} onClick={() => onChange("dark")}>Dark</button>
+      <Link href={links.light} aria-pressed={mode === "light"} className={mode === "light" ? styles.activeToggle : ""} onClick={() => onChange("light")}>Hell</Link>
+      <Link href={links.dark} aria-pressed={mode === "dark"} className={mode === "dark" ? styles.activeToggle : ""} onClick={() => onChange("dark")}>Dark</Link>
     </div>
   )
 }
@@ -874,14 +904,14 @@ function Sidebar({ unreadCount, upgrade, workspace }: { unreadCount: number; upg
   )
 }
 
-function Topbar({ mode, profile, searchInputRef, searchQuery, unreadCount, onModeChange, onSearchChange }: { mode: ThemeMode; profile: ReturnType<typeof profileFromData>; searchInputRef: RefObject<HTMLInputElement | null>; searchQuery: string; unreadCount: number; onModeChange: (mode: ThemeMode) => void; onSearchChange: (value: string) => void }) {
+function Topbar({ mode, profile, searchInputRef, searchQuery, themeLinks, unreadCount, onModeChange, onSearchChange }: { mode: ThemeMode; profile: ReturnType<typeof profileFromData>; searchInputRef: RefObject<HTMLInputElement | null>; searchQuery: string; themeLinks: ThemeLinks; unreadCount: number; onModeChange: (mode: ThemeMode) => void; onSearchChange: (value: string) => void }) {
   const pathname = usePathname()
 
   return (
     <header className={styles.topbar}>
       <label className={styles.searchBox}><Search size={16} /><input ref={searchInputRef} value={searchQuery} onChange={(event) => onSearchChange(event.target.value)} placeholder="Suche..." aria-label="Premium Suche" />{searchQuery ? <button type="button" aria-label="Suche leeren" onClick={() => onSearchChange("")}><X size={15} /></button> : null}</label>
       <nav className={styles.desktopNav}>{mainNav.map((item) => { const isActive = pathname === item.href; return <Link key={item.label} className={isActive ? styles.navActive : ""} aria-current={isActive ? "page" : undefined} href={item.href}>{item.label}</Link> })}</nav>
-      <div className={styles.topActions}><ThemeToggle mode={mode} onChange={onModeChange} /><Link href="/documents/new" aria-label="Neu"><Plus size={18} /></Link><Link href="/dashboard-v2/notifications" aria-label="Benachrichtigungen" className={styles.bellButton}><Bell size={18} />{unreadCount > 0 ? <span>{unreadCount}</span> : null}</Link><Link href="/dashboard-v2/settings" aria-label="Hilfe"><HelpCircle size={18} /></Link><div className={styles.profile}><span>{profile.initials}</span><div><strong>{profile.name}</strong><small>{profile.role}</small></div></div></div>
+      <div className={styles.topActions}><ThemeToggle links={themeLinks} mode={mode} onChange={onModeChange} /><Link href="/documents/new" aria-label="Neu"><Plus size={18} /></Link><Link href="/dashboard-v2/notifications" aria-label="Benachrichtigungen" className={styles.bellButton}><Bell size={18} />{unreadCount > 0 ? <span>{unreadCount}</span> : null}</Link><Link href="/dashboard-v2/settings" aria-label="Hilfe"><HelpCircle size={18} /></Link><div className={styles.profile}><span>{profile.initials}</span><div><strong>{profile.name}</strong><small>{profile.role}</small></div></div></div>
     </header>
   )
 }
@@ -1634,8 +1664,8 @@ function PremiumModulePage({ view, data, searchQuery }: { view: Exclude<PremiumV
   )
 }
 
-export function PremiumWorkspacePage({ view = "dashboard", initialSearchQuery = "" }: { view?: PremiumView; initialSearchQuery?: string }) {
-  const [mode, setMode] = useState<ThemeMode>("dark")
+export function PremiumWorkspacePage({ view = "dashboard", initialSearchQuery = "", initialTheme }: { view?: PremiumView; initialSearchQuery?: string; initialTheme?: ThemeMode }) {
+  const [mode, setMode] = useState<ThemeMode>(initialTheme ?? "dark")
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const [data, setData] = useState<PremiumData>({
@@ -1652,11 +1682,17 @@ export function PremiumWorkspacePage({ view = "dashboard", initialSearchQuery = 
   })
 
   useEffect(() => {
-    const savedMode = window.localStorage.getItem("dream-invoice-premium-theme")
-    if (savedMode === "light" || savedMode === "dark") {
+    if (initialTheme) {
+      setMode(initialTheme)
+      storePremiumTheme(initialTheme)
+      return
+    }
+
+    const savedMode = readStoredPremiumTheme()
+    if (savedMode) {
       setMode(savedMode)
     }
-  }, [])
+  }, [initialTheme])
 
   useEffect(() => {
     let cancelled = false
@@ -1730,19 +1766,24 @@ export function PremiumWorkspacePage({ view = "dashboard", initialSearchQuery = 
 
   function handleModeChange(nextMode: ThemeMode) {
     setMode(nextMode)
-    window.localStorage.setItem("dream-invoice-premium-theme", nextMode)
+    storePremiumTheme(nextMode)
   }
 
   const workspace = workspaceFromData(data)
   const profile = profileFromData(data)
   const unreadCount = (data.notifications.length ? data.notifications : fallbackNotifications).filter((item) => !item.readAt).length
   const upgrade = upgradeSummaryFromData(data)
+  const currentPath = premiumViewPath(view)
+  const themeLinks = useMemo(() => ({
+    dark: premiumThemeHref(currentPath, "dark", searchQuery),
+    light: premiumThemeHref(currentPath, "light", searchQuery)
+  }), [currentPath, searchQuery])
 
   return (
     <div className={styles.page} data-theme={mode} role="main">
       <Sidebar unreadCount={unreadCount} upgrade={upgrade} workspace={workspace} />
       <section className={styles.contentShell}>
-        <Topbar mode={mode} profile={profile} searchInputRef={searchInputRef} searchQuery={searchQuery} unreadCount={unreadCount} onModeChange={handleModeChange} onSearchChange={setSearchQuery} />
+        <Topbar mode={mode} profile={profile} searchInputRef={searchInputRef} searchQuery={searchQuery} themeLinks={themeLinks} unreadCount={unreadCount} onModeChange={handleModeChange} onSearchChange={setSearchQuery} />
         <CompactNav unreadCount={unreadCount} />
         {view === "dashboard" ? <DashboardOverview data={data} profile={profile} searchQuery={searchQuery} /> : <><SearchResultsPanel data={data} searchQuery={searchQuery} /><PremiumModulePage view={view} data={data} searchQuery={searchQuery} /></>}
       </section>
