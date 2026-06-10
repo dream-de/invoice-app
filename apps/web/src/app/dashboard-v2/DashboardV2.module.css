@@ -132,6 +132,7 @@
   color: var(--text);
   padding: 10px;
   cursor: pointer;
+  text-decoration: none;
 }
 
 .workspaceAvatar {

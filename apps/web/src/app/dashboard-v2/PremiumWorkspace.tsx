@@ -628,7 +628,7 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     stats: [["186", "Kunden"], ["24", "Aktiv"], ["98%", "Kontaktqualitaet"]],
     rows: [["Meridian Studio GmbH", "4 offene Dokumente", "2.467,00 EUR", "Aktiv"], ["Aurora Labs GmbH", "Zahlung erhalten", "719,05 EUR", "Bezahlt"], ["Pixel Perfect Ltd.", "Neues Projekt", "Design Sprint", "Neu"]],
     focus: [["Offene Forderungen", "3.614,00 EUR"], ["Top Kunde", "Meridian Studio"], ["Naechster Kontakt", "Heute 15:30"]],
-    actions: [["Kunde anlegen", "/customers/new"], ["Import starten", "/customers"], ["Segment pruefen", "/customers"]],
+    actions: [["Kunde anlegen", "/customers/new"], ["Kundenliste", "/dashboard-v2/customers"], ["Segment pruefen", "/dashboard-v2/reports"]],
     timeline: [["Kontakt aktualisiert", "Daniel hat Ansprechpartner und Zahlungsziel angepasst."], ["Projekt verknuepft", "Website Redesign wurde Meridian Studio zugeordnet."], ["Bonitaet geprueft", "Kundenrisiko bleibt im gruenen Bereich."]],
     primaryHref: "/customers/new"
   },
@@ -644,7 +644,7 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     stats: [["42", "Rechnungen"], ["11", "Ueberfaellig"], ["86%", "Zahlungsquote"]],
     rows: invoices.map(([number, customer, status, amount]) => [number, customer, amount, status]) as ModuleRow[],
     focus: [["Faellig diese Woche", "1.676,00 EUR"], ["Automatische Mahnungen", "7 aktiv"], ["Naechster Versand", "Heute 16:00"]],
-    actions: [["Rechnung erstellen", "/documents/new"], ["Mahnlauf starten", "/settings/reminders"], ["Zahlung buchen", "/documents"]],
+    actions: [["Rechnung erstellen", "/documents/new"], ["Mahnlauf starten", "/dashboard-v2/automation"], ["Zahlung pruefen", "/dashboard-v2/reports"]],
     timeline: [["Rechnung erstellt", "OF-2026-5001 wurde fuer Meridian Studio vorbereitet."], ["Zahlung erkannt", "719,05 EUR von Aurora Labs wurden zugeordnet."], ["Mahnung geplant", "Pixel Perfect Ltd. erhaelt morgen eine Erinnerung."]],
     primaryHref: "/documents/new"
   },
@@ -652,7 +652,7 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     stats: [["16", "Angebote"], ["9", "Offen"], ["41%", "Annahmequote"]],
     rows: [["OF-2026-5001", "Meridian Studio GmbH", "1.320,00 EUR", "Entwurf"], ["OF-2026-4997", "Pixel Perfect Ltd.", "1.147,00 EUR", "Offen"], ["OF-2026-4992", "Urban Commerce Inc.", "2.840,00 EUR", "Review"]],
     focus: [["Pipeline", "12.640,00 EUR"], ["Entwuerfe", "5"], ["Ablauf in 7 Tagen", "3"]],
-    actions: [["Angebot erstellen", "/documents/templates/new/offer"], ["Version duplizieren", "/documents/templates"], ["PDF senden", "/documents"]],
+    actions: [["Angebot erstellen", "/documents/templates/new/offer"], ["Pipeline pruefen", "/dashboard-v2/offers"], ["Dokumente oeffnen", "/dashboard-v2/invoices"]],
     timeline: [["Angebot versendet", "Pixel Perfect Ltd. hat Version 3 erhalten."], ["Preisposition geaendert", "Hosting wurde als optionale Position markiert."], ["Annahme erwartet", "Meridian Studio will bis Freitag entscheiden."]],
     primaryHref: "/documents/templates/new/offer"
   },
@@ -692,7 +692,7 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     stats: [["5/5", "Benutzer"], ["3", "Rollen"], ["2FA", "Empfohlen"]],
     rows: users.map(([name, role]) => [name, role, "Aktiv", role === "Administrator" ? "Owner" : "Team"]) as ModuleRow[],
     focus: [["Admin", "Daniel"], ["Lizenzlimit", "5 Benutzer"], ["Letzter Login", "Heute"]],
-    actions: [["Benutzer einladen", "/dashboard-v2/users"], ["Rolle bearbeiten", "/dashboard-v2/users"], ["2FA pruefen", "/account/security"]],
+    actions: [["Benutzer einladen", "/dashboard-v2/users"], ["Rolle bearbeiten", "/dashboard-v2/users"], ["2FA pruefen", "/dashboard-v2/settings"]],
     timeline: [["Einladung vorbereitet", "Neuer Benutzer kann per E-Mail eingeladen werden."], ["Rolle geaendert", "Sarah ist Manager mit Projektfreigaben."], ["Sicherheitshinweis", "2FA fuer Buchhaltung empfohlen."]],
     primaryHref: "/dashboard-v2/users"
   },
@@ -740,7 +740,7 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     stats: [["3", "Keys"], ["8", "Webhooks"], ["99.9%", "Uptime"]],
     rows: [["invoice.created", "Webhook", "200 OK", "Aktiv"], ["payment.received", "Webhook", "200 OK", "Aktiv"], ["customer.updated", "Webhook", "Retry 1", "Pruefung"]],
     focus: [["Rate Limit", "18% genutzt"], ["Letzter Fehler", "Gestern"], ["Signaturen", "Aktiv"]],
-    actions: [["Webhook erstellen", "/dashboard-v2/api"], ["API-Key rotieren", "/account/security"], ["Logs oeffnen", "/dashboard-v2/audit"]],
+    actions: [["Webhook erstellen", "/dashboard-v2/api"], ["API-Key rotieren", "/dashboard-v2/api"], ["Logs oeffnen", "/dashboard-v2/audit"]],
     timeline: [["Webhook ausgeliefert", "invoice.created wurde in 184 ms bestaetigt."], ["Key rotiert", "Alter Schluessel wurde deaktiviert."], ["Retry geplant", "customer.updated wird erneut gesendet."]],
     primaryHref: "/dashboard-v2/api"
   }
@@ -774,7 +774,7 @@ function Sidebar({ unreadCount, upgrade, workspace }: { unreadCount: number; upg
   return (
     <aside className={styles.sidebar}>
       <div className={styles.logoWrap}><div className={styles.logoMark}>D</div><div><strong>DreamInvoice</strong><span>Premium Edition</span></div></div>
-      <button className={styles.workspaceButton} type="button"><span className={styles.workspaceAvatar}>{workspace.initial}</span><span><small>Workspace</small><strong>{workspace.name}</strong></span><ChevronDown size={14} /></button>
+      <Link className={styles.workspaceButton} href="/dashboard-v2/settings"><span className={styles.workspaceAvatar}>{workspace.initial}</span><span><small>Workspace</small><strong>{workspace.name}</strong></span><ChevronDown size={14} /></Link>
       <nav className={styles.sideSections}>{sideNav.map((group) => <div key={group.section} className={styles.sideSection}><p>{group.section}</p>{group.items.map((item) => { const Icon = item.icon; const isActive = pathname === item.href; const badge = item.label === "Benachrichtigungen" ? unreadCount : 0; return <Link key={item.label} href={item.href} aria-current={isActive ? "page" : undefined} className={isActive ? styles.activeSideItem : styles.sideItem}><Icon size={16} /><span>{item.label}</span>{badge > 0 ? <em>{badge}</em> : null}</Link> })}</div>)}</nav>
       <div className={styles.upgradeCard}><Crown size={26} /><strong>{upgrade.title}</strong><span>{upgrade.text}</span><Link href={upgrade.href}>{upgrade.action}</Link></div>
     </aside>
@@ -831,7 +831,7 @@ function RevenueChart({ data }: { data: PremiumData }) {
 
   return (
     <article className={`${styles.panel} ${styles.revenuePanel}`}>
-      <div className={styles.panelHead}><div><h2>Umsatzuebersicht</h2><span>Umsaetze, Zahlungen und Ausgaben</span></div><button type="button">Letzte 12 Monate <ChevronDown size={14} /></button></div>
+      <div className={styles.panelHead}><div><h2>Umsatzuebersicht</h2><span>Umsaetze, Zahlungen und Ausgaben</span></div><Link href="/dashboard-v2/reports">Letzte 12 Monate <ChevronDown size={14} /></Link></div>
       <div className={styles.legend}><span data-color="violet">Umsatz</span><span data-color="green">Zahlungen</span><span data-color="amber">Ausgaben</span></div>
       <div className={styles.chartArea}><svg viewBox={`0 0 100 ${chartHeight}`} preserveAspectRatio="none" aria-label="Umsatzdiagramm"><polyline points={revenuePoints} className={styles.revenueLine} /><polyline points={paymentPoints} className={styles.paymentLine} /><polyline points={expensePoints} className={styles.expenseLine} />{chartMarkers.map(({ tone, point }) => point ? <circle key={tone} cx={point.x} cy={point.y} r="1.8" className={styles.chartDot} data-tone={tone} /> : null)}</svg><div className={styles.chartTooltip}><strong>{series.labels[latestIndex]} {series.years[latestIndex]}</strong><span><i />Umsatz <b>{formatEuro(series.revenue[latestIndex] || 0)}</b></span><span><i />Zahlungen <b>{formatEuro(series.payments[latestIndex] || 0)}</b></span><span><i />Ausgaben <b>{formatEuro(series.expenses[latestIndex] || 0)}</b></span></div><div className={styles.monthLabels}>{series.labels.map((month, index) => <span key={`${month}-${index}`}>{month}</span>)}</div></div>
     </article>
@@ -872,7 +872,7 @@ function BarPanel({ data }: { data: PremiumData }) {
   const series = useMemo(() => buildMonthlySeries(data), [data])
   const maxValue = Math.max(...series.revenue, ...series.expenses, 1)
 
-  return <article className={`${styles.panel} ${styles.barPanel}`}><div className={styles.panelHead}><h2>Einnahmen & Ausgaben</h2><button type="button">Monatlich <ChevronDown size={14} /></button></div><div className={styles.barChart}>{series.labels.map((label, index) => <div key={label} className={styles.barGroup}><div><span className={styles.incomeBar} style={{ height: `${Math.max(18, (series.revenue[index] / maxValue) * 122)}px` }} /><span className={styles.spendBar} style={{ height: `${Math.max(12, (series.expenses[index] / maxValue) * 122)}px` }} /></div><small>{label}</small></div>)}</div><div className={styles.legend}><span data-color="violet">Einnahmen</span><span data-color="amber">Ausgaben</span></div></article>
+  return <article className={`${styles.panel} ${styles.barPanel}`}><div className={styles.panelHead}><h2>Einnahmen & Ausgaben</h2><Link href="/dashboard-v2/reports">Monatlich <ChevronDown size={14} /></Link></div><div className={styles.barChart}>{series.labels.map((label, index) => <div key={label} className={styles.barGroup}><div><span className={styles.incomeBar} style={{ height: `${Math.max(18, (series.revenue[index] / maxValue) * 122)}px` }} /><span className={styles.spendBar} style={{ height: `${Math.max(12, (series.expenses[index] / maxValue) * 122)}px` }} /></div><small>{label}</small></div>)}</div><div className={styles.legend}><span data-color="violet">Einnahmen</span><span data-color="amber">Ausgaben</span></div></article>
 }
 
 function ActivityFeed({ data }: { data: PremiumData }) {
