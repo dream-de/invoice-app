@@ -723,7 +723,7 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     stats: [["186", "Kunden"], ["24", "Aktiv"], ["98%", "Kontaktqualitaet"]],
     rows: [["Meridian Studio GmbH", "4 offene Dokumente", "2.467,00 EUR", "Aktiv"], ["Aurora Labs GmbH", "Zahlung erhalten", "719,05 EUR", "Bezahlt"], ["Pixel Perfect Ltd.", "Neues Projekt", "Design Sprint", "Neu"]],
     focus: [["Offene Forderungen", "3.614,00 EUR"], ["Top Kunde", "Meridian Studio"], ["Naechster Kontakt", "Heute 15:30"]],
-    actions: [["Kunde anlegen", "/customers/new"], ["Kundenliste", "/dashboard-v2/customers"], ["Segment pruefen", "/dashboard-v2/reports"]],
+    actions: [["Kunde anlegen", "/customers/new"], ["Kundenliste", "/customers"], ["Segment pruefen", "/dashboard-v2/customers?q=Segment"]],
     timeline: [["Kontakt aktualisiert", "Daniel hat Ansprechpartner und Zahlungsziel angepasst."], ["Projekt verknuepft", "Website Redesign wurde Meridian Studio zugeordnet."], ["Bonitaet geprueft", "Kundenrisiko bleibt im gruenen Bereich."]],
     primaryHref: "/customers/new"
   },
@@ -1599,6 +1599,7 @@ function PremiumLicensePanel({ data, mode, searchQuery }: { data: PremiumData; m
 }
 
 function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude<PremiumView, "dashboard">; data: PremiumData; mode: ThemeMode; searchQuery: string }) {
+  const customersSource = data.customers.length ? data.customers : fallbackApiCustomers
   const projectsSource = data.projects.length ? data.projects : fallbackProjects
   const articlesSource = data.articles.length ? data.articles : fallbackApiArticles
   const integrationsSource = integrations.length ? integrations : [["Stripe", "Zahlungen", "#635bff"]]
@@ -1609,22 +1610,40 @@ function PremiumWorkflowPanel({ view, data, mode, searchQuery }: { view: Exclude
 
   const routeMessage = query.includes("zeit gebucht")
     ? "Zeit wurde vorgemerkt und fuer Abrechnung vorbereitet."
-    : query.includes("ausgabe erfasst")
-      ? "Ausgabe wurde vorgemerkt und fuer DATEV vorbereitet."
-      : query.includes("benutzer eingeladen")
-        ? "Benutzereinladung wurde vorbereitet."
-        : query.includes("alle gelesen")
-          ? "Alle Benachrichtigungen wurden als gelesen markiert."
-          : query.includes("filter aktiv")
-            ? "Filter aktiv: wichtige Zahlung, Rechnung und Systemmeldungen."
-            : query.includes("integration verbunden")
-              ? "Integration wurde verbunden und fuer Sync vorbereitet."
-              : query.includes("workflow getestet")
-                ? "Workflow wurde erfolgreich getestet."
-                : query.includes("webhook erstellt")
-                  ? "Webhook wurde fuer invoice.created vorbereitet."
-                  : ""
+    : query.includes("kunde vorbereitet")
+      ? "Kunde wurde vorbereitet. Fuer Speicherung kann der vollstaendige Kunden-Flow geoeffnet werden."
+      : query.includes("ausgabe erfasst")
+        ? "Ausgabe wurde vorgemerkt und fuer DATEV vorbereitet."
+        : query.includes("benutzer eingeladen")
+          ? "Benutzereinladung wurde vorbereitet."
+          : query.includes("alle gelesen")
+            ? "Alle Benachrichtigungen wurden als gelesen markiert."
+            : query.includes("filter aktiv")
+              ? "Filter aktiv: wichtige Zahlung, Rechnung und Systemmeldungen."
+              : query.includes("integration verbunden")
+                ? "Integration wurde verbunden und fuer Sync vorbereitet."
+                : query.includes("workflow getestet")
+                  ? "Workflow wurde erfolgreich getestet."
+                  : query.includes("webhook erstellt")
+                    ? "Webhook wurde fuer invoice.created vorbereitet."
+                    : ""
   const message = routeMessage ? <p data-state="success">{routeMessage}</p> : null
+
+  if (view === "customers") {
+    return (
+      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("kunde") || query.includes("segment")}>
+        <div className={styles.panelHead}><div><h2>Kunde anlegen</h2><span>Kontakt vorbereiten und in den echten Kunden-Flow wechseln</span></div><Link href="/customers/new">Vollstaendig anlegen</Link></div>
+        <form className={styles.workflowForm} action="/dashboard-v2/customers" method="get">
+          <input type="hidden" name="q" value="Kunde vorbereitet" />
+          <input type="hidden" name="theme" value={mode} />
+          <label>Kunde<input name="name" defaultValue={customersSource[0]?.name || "Neuer Kunde"} /></label>
+          <label>Status<select name="status" defaultValue="active"><option value="active">Aktiv</option><option value="open">Offen</option><option value="inactive">Inaktiv</option></select></label>
+          <button type="submit">Vorbereiten</button>
+        </form>
+        {message}
+      </article>
+    )
+  }
 
   if (view === "time") {
     return (
