@@ -2436,6 +2436,7 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
   const [articleImportDraft, setArticleImportDraft] = useState<ArticleImportDraft>({
     csv: "AR-PREM-1001;Premium Beratung;Dienstleistung;149.00;Stk;19\nAR-PREM-1002;Wartungspaket;Service;89.00;Monat;19"
   })
+  const articleFileInputRef = useRef<HTMLInputElement>(null)
   const [workflowState, setWorkflowState] = useState<WorkflowState>({ type: "idle", message: "" })
   const [isWorkflowSaving, setIsWorkflowSaving] = useState(false)
 
@@ -2909,6 +2910,42 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
       return
     }
 
+    await savePremiumArticleRows(articles)
+  }
+
+  function openArticleFilePicker() {
+    setWorkflowState({ type: "idle", message: "" })
+    articleFileInputRef.current?.click()
+  }
+
+  async function importPremiumArticleFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = ""
+
+    if (!file) return
+
+    setIsWorkflowSaving(true)
+    setWorkflowState({ type: "idle", message: "" })
+
+    try {
+      const csv = await file.text()
+      const articles = parseArticleImportRows(csv)
+
+      if (!articles.length) {
+        setWorkflowState({ type: "error", message: "Die ausgewaehlte Datei enthaelt keine gueltigen Artikelzeilen." })
+        setIsWorkflowSaving(false)
+        return
+      }
+
+      setArticleImportDraft({ csv })
+      await savePremiumArticleRows(articles, file.name)
+    } catch {
+      setWorkflowState({ type: "error", message: "Artikeldatei konnte nicht gelesen werden." })
+      setIsWorkflowSaving(false)
+    }
+  }
+
+  async function savePremiumArticleRows(articles: ReturnType<typeof parseArticleImportRows>, filename?: string) {
     setIsWorkflowSaving(true)
     setWorkflowState({ type: "idle", message: "" })
 
@@ -2927,7 +2964,7 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
           ...current,
           articles: mergePremiumArticles(importedArticles, current.articles)
         }))
-        setWorkflowState({ type: "success", message: `${importedArticles.length} Artikel wurden im Premium-Kontext importiert.` })
+        setWorkflowState({ type: "success", message: `${importedArticles.length} Artikel wurden${filename ? ` aus ${filename}` : ""} im Premium-Kontext importiert.` })
         return
       }
 
@@ -2936,14 +2973,14 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
         ...current,
         articles: savedArticles.length ? [...savedArticles, ...(current.articles.length ? current.articles : fallbackApiArticles)].slice(0, 50) : current.articles
       }))
-      setWorkflowState({ type: "success", message: `${result.savedCount ?? savedArticles.length} Artikel wurden importiert.` })
+      setWorkflowState({ type: "success", message: `${result.savedCount ?? savedArticles.length} Artikel wurden${filename ? ` aus ${filename}` : ""} importiert.` })
     } catch {
       const importedArticles = createPremiumArticlesFromRows(articles)
       onDataChange((current) => ({
         ...current,
         articles: mergePremiumArticles(importedArticles, current.articles)
       }))
-      setWorkflowState({ type: "success", message: `${importedArticles.length} Artikel wurden im Premium-Kontext importiert.` })
+      setWorkflowState({ type: "success", message: `${importedArticles.length} Artikel wurden${filename ? ` aus ${filename}` : ""} im Premium-Kontext importiert.` })
     } finally {
       setIsWorkflowSaving(false)
     }
@@ -3330,13 +3367,14 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
 
   if (view === "articles") {
     return (
-      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("artikel") || query.includes("import") || query.includes("export") || query.includes("vorlage")}>
+      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("artikel") || query.includes("import") || query.includes("export") || query.includes("vorlage")} data-premium-workflow="articles">
         <div className={styles.panelHead}><div><h2>Artikel Import & Export</h2><span>CSV importieren, Vorlage laden und Preisliste exportieren</span></div><button type="button" disabled={isWorkflowSaving} onClick={() => void exportPremiumArticles("check")}>Artikel pruefen</button></div>
         <form className={styles.workflowForm} action="/dashboard-v2/articles" method="get" onSubmit={(event) => { event.preventDefault(); void importPremiumArticles() }}>
           <input type="hidden" name="q" value="Artikel importiert" />
           <input type="hidden" name="theme" value={mode} />
-          <label className={styles.workflowWideField}>CSV Daten<textarea name="csv" rows={4} value={articleImportDraft.csv} onChange={(event) => updateArticleImportDraft("csv", event.target.value)} /></label>
-          <button type="submit" disabled={isWorkflowSaving}>Artikel importieren</button>
+          <input ref={articleFileInputRef} className={styles.visuallyHidden} data-premium-article-file type="file" accept=".csv,.txt,text/csv,text/plain" onChange={(event) => void importPremiumArticleFile(event)} />
+          <label className={styles.workflowWideField}>CSV Daten<textarea data-premium-article-csv name="csv" rows={4} value={articleImportDraft.csv} onChange={(event) => updateArticleImportDraft("csv", event.target.value)} /></label>
+          <button type="button" disabled={isWorkflowSaving} onClick={openArticleFilePicker}>Artikel importieren</button>
         </form>
         <div className={styles.workflowActions}>
           <button type="button" disabled={isWorkflowSaving} onClick={() => void exportPremiumArticles("export")}>CSV Export</button>
@@ -3918,39 +3956,28 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
     }
   }
 
+  function openArticleImportDesktop() {
+    setModuleActionState({ type: "success", message: "Artikelimport geoeffnet. CSV-Datei vom Desktop auswaehlen." })
+
+    const workflowPanel = document.querySelector<HTMLElement>('[data-premium-workflow="articles"]')
+    workflowPanel?.scrollIntoView({ behavior: "smooth", block: "start" })
+
+    window.setTimeout(() => {
+      const fileInput = document.querySelector<HTMLInputElement>('[data-premium-article-file]')
+      fileInput?.click()
+    }, 180)
+  }
+
   async function runArticleQuickAction(action: "import" | "export" | "template") {
+    if (action === "import") {
+      openArticleImportDesktop()
+      return
+    }
+
     setIsModuleActionSaving(true)
     setModuleActionState({ type: "idle", message: "" })
 
     try {
-      if (action === "import") {
-        const articles = parseArticleImportRows("AR-PREM-Q1;Premium Quick Artikel;Dienstleistung;149.00;Stk;19")
-        const response = await fetch("/api/articles/bulk", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "same-origin",
-          body: JSON.stringify({ articles })
-        })
-        const result = await response.json()
-
-        if (!response.ok || !result?.ok) {
-          const importedArticles = createPremiumArticlesFromRows(articles)
-          onDataChange((current) => ({
-            ...current,
-            articles: mergePremiumArticles(importedArticles, current.articles)
-          }))
-          setModuleActionState({ type: "success", message: `${importedArticles.length} Premium-Artikel wurde im Premium-Kontext importiert.` })
-          return
-        }
-
-        onDataChange((current) => ({
-          ...current,
-          articles: Array.isArray(result.articles) && result.articles.length ? [...result.articles, ...(current.articles.length ? current.articles : fallbackApiArticles)].slice(0, 50) : current.articles
-        }))
-        setModuleActionState({ type: "success", message: `${result.savedCount ?? 1} Premium-Artikel wurde importiert.` })
-        return
-      }
-
       const endpoint = action === "template" ? "/api/articles/import-template" : "/api/articles/export"
       const response = await fetch(endpoint, { credentials: "same-origin" })
 
@@ -3969,14 +3996,7 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
       downloadBlob(blob, action === "template" ? "artikel-import-vorlage.csv" : "preisliste-export.csv")
       setModuleActionState({ type: "success", message: action === "template" ? "Importvorlage wurde geladen." : "Artikel CSV Export wurde vorbereitet." })
     } catch {
-      if (action === "import") {
-        const importedArticles = createPremiumArticlesFromRows(parseArticleImportRows("AR-PREM-Q1;Premium Quick Artikel;Dienstleistung;149.00;Stk;19"))
-        onDataChange((current) => ({
-          ...current,
-          articles: mergePremiumArticles(importedArticles, current.articles)
-        }))
-        setModuleActionState({ type: "success", message: `${importedArticles.length} Premium-Artikel wurde im Premium-Kontext importiert.` })
-      } else if (action === "template") {
+      if (action === "template") {
         downloadTextFile("Artikelnummer;Artikel;Kategorie;Nettopreis;Einheit;MwSt;Beschreibung\nAR-1001;Premium Beratung;Dienstleistung;149,00;Stk;19;Premium-Leistung fuer Import", "artikel-import-vorlage.csv")
         setModuleActionState({ type: "success", message: "Importvorlage wurde im Premium-Kontext geladen." })
       } else {
@@ -4182,6 +4202,8 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
           <button type="button" disabled={isModuleActionSaving} onClick={() => void runLicenseQuickAction("activate")}><Plus size={18} />{meta.primary}</button>
         ) : view === "integrations" ? (
           <button type="button" disabled={isModuleActionSaving} onClick={() => void runIntegrationQuickAction("connect")}><Plus size={18} />{meta.primary}</button>
+        ) : view === "articles" ? (
+          <button type="button" disabled={isModuleActionSaving} onClick={openArticleImportDesktop}><Plus size={18} />{meta.primary}</button>
         ) : (
           <Link href={withPremiumTheme(content.primaryHref, mode)}><Plus size={18} />{meta.primary}</Link>
         )}
