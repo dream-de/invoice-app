@@ -1,16 +1,14 @@
-import { createHash } from "node:crypto"
 import { prisma } from "@dream-invoice/database"
-import { verifyLicenseKey } from "./keys"
+import { hashLicenseKey, verifyLicenseKey } from "./keys"
 
 type LicenseTransaction = {
   license: {
     updateMany: typeof prisma.license.updateMany
     upsert: typeof prisma.license.upsert
   }
-}
-
-function hashLicenseKey(licenseKey: string) {
-  return createHash("sha256").update(licenseKey.trim()).digest("hex")
+  licenseIssue: {
+    updateMany: typeof prisma.licenseIssue.updateMany
+  }
 }
 
 function toLicenseData(licenseKey: string) {
@@ -84,6 +82,15 @@ export async function activateLicenseKey(licenseKey: string) {
       },
       update: licenseData
     })
+  })
+
+  await prisma.licenseIssue.updateMany({
+    where: { keyHash },
+    data: {
+      status: "activated",
+      activatedAt: license.activatedAt ?? new Date(),
+      activatedLicenseId: license.id
+    }
   })
 
   return {

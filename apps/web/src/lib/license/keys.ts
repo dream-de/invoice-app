@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto"
 import { verifySignedLicenseDocument, getLicenseExpiry, getLicenseCustomerName, getLicenseUserLimit, type SignedLicensePayload } from "@dream-invoice/licensing/signed-license"
 
 export type LicenseBillingCycle = "free" | "monthly" | "yearly" | "custom"
@@ -25,6 +26,21 @@ export type LicenseKeyCheck =
       reason: string
     }
 
+function normalizePem(value: string | undefined) {
+  return value?.replace(/\\n/g, "\n") ?? ""
+}
+
+export function hashLicenseKey(licenseKey: string) {
+  return createHash("sha256").update(licenseKey.trim()).digest("hex")
+}
+
+export function previewLicenseKey(licenseKey: string) {
+  const trimmed = licenseKey.trim()
+  if (trimmed.length <= 24) return trimmed
+
+  return `${trimmed.slice(0, 12)}...${trimmed.slice(-8)}`
+}
+
 function normalizeLicensePayload(payload: SignedLicensePayload): LicenseKeyPayload {
   return {
     version: 1,
@@ -40,9 +56,9 @@ function normalizeLicensePayload(payload: SignedLicensePayload): LicenseKeyPaylo
 }
 
 export function verifyLicenseKey(licenseKey: string): LicenseKeyCheck {
-  const publicKey = process.env.LICENSE_PUBLIC_KEY
+  const publicKey = normalizePem(process.env.LICENSE_PUBLIC_KEY)
 
-  const result = verifySignedLicenseDocument(licenseKey, publicKey ?? "")
+  const result = verifySignedLicenseDocument(licenseKey, publicKey)
 
   if (!result.valid) {
     return {

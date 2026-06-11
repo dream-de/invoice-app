@@ -10,6 +10,8 @@ export type AuditAction =
   | "account.password_update"
   | "account.profile_update"
   | "license.activate"
+  | "license.generate"
+  | "license.verify"
   | "settings.company.update"
   | "settings.number_ranges.update"
   | "invoice.finalize"

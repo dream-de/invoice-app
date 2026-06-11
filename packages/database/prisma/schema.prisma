@@ -247,3 +247,26 @@ model License {
 
   @@index([status, validUntil, updatedAt])
 }
+
+model LicenseIssue {
+  id              String   @id @default(cuid())
+  licenseId       String   @unique
+  keyHash         String   @unique
+  keyPreview      String
+  plan            String
+  billingCycle    String
+  maxUsers        Int
+  status          String   @default("issued")
+  customerId      String?
+  customerName    String?
+  validUntil      DateTime?
+  features        Json?
+  issuedByUserId  String?
+  activatedAt     DateTime?
+  activatedLicenseId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([status, validUntil, updatedAt])
+  @@index([customerName])
+}
