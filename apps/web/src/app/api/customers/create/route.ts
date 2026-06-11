@@ -38,8 +38,19 @@ export async function POST(req: Request) {
       }))
     }
 
-    const count = await prisma.customer.count()
-    const number = data.number?.trim() || `KD-${String(count + 1).padStart(4, "0")}`
+    const requestedNumber = data.number?.trim()
+    let number = requestedNumber
+
+    if (!number) {
+      let nextValue = (await prisma.customer.count()) + 1
+
+      while (!number) {
+        const candidate = `KD-${String(nextValue).padStart(4, "0")}`
+        const existing = await prisma.customer.findUnique({ where: { number: candidate } })
+        if (!existing) number = candidate
+        nextValue += 1
+      }
+    }
 
     const customer = await prisma.customer.create({
       data: {

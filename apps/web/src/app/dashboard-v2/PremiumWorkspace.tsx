@@ -2354,7 +2354,7 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
   const rangesSource = data.numberRanges.length ? data.numberRanges : fallbackNumberRanges
   const query = searchQuery.toLowerCase()
   const [customerDraft, setCustomerDraft] = useState<CustomerDraft>({
-    number: customersSource[0]?.number || "",
+    number: "",
     name: customersSource[0]?.name || "Neuer Premium Kunde",
     contact: customersSource[0]?.contact || "Daniel Kontakt",
     email: customersSource[0]?.email || "kontakt@example.test",
@@ -3225,12 +3225,12 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
 
   if (view === "customers") {
     return (
-      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("kunde") || query.includes("segment")}>
+      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("kunde") || query.includes("segment")} data-premium-workflow="customers">
         <div className={styles.panelHead}><div><h2>Kunde anlegen</h2><span>Kontakt im Premium-Flow vorbereiten</span></div><button type="button" disabled={isWorkflowSaving} onClick={() => void runPremiumAction("customers", "customer.prepare", "Kunde vorbereitet", customerDraft, "Premium-Kundenformular wurde vorbereitet und protokolliert.")}>Premium vorbereiten</button></div>
         <form className={styles.workflowForm} action="/dashboard-v2/customers" method="get" onSubmit={(event) => { event.preventDefault(); void savePremiumCustomer() }}>
           <input type="hidden" name="q" value="Kunde gespeichert" />
           <input type="hidden" name="theme" value={mode} />
-          <label>Firmenname<input name="name" value={customerDraft.name} onChange={(event) => updateCustomerDraft("name", event.target.value)} /></label>
+          <label>Firmenname<input data-premium-focus name="name" value={customerDraft.name} onChange={(event) => updateCustomerDraft("name", event.target.value)} /></label>
           <label>Ansprechpartner<input name="contact" value={customerDraft.contact} onChange={(event) => updateCustomerDraft("contact", event.target.value)} /></label>
           <label>E-Mail<input name="email" type="email" value={customerDraft.email} onChange={(event) => updateCustomerDraft("email", event.target.value)} /></label>
           <label>Telefon<input name="phone" value={customerDraft.phone} onChange={(event) => updateCustomerDraft("phone", event.target.value)} /></label>
@@ -3254,12 +3254,12 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
 
   if (view === "projects") {
     return (
-      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("projekt") || query.includes("budget")}>
+      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("projekt") || query.includes("budget")} data-premium-workflow="projects">
         <div className={styles.panelHead}><div><h2>Projekt anlegen</h2><span>Projekt vorbereiten und Budget direkt pruefen</span></div><button type="button" disabled={isWorkflowSaving} onClick={() => void runPremiumAction("projects", "project.prepare", "Projekt vorbereitet", projectDraft, "Premium-Projektformular wurde vorbereitet und protokolliert.")}>Premium vorbereiten</button></div>
         <form className={styles.workflowForm} action="/dashboard-v2/projects" method="get" onSubmit={(event) => { event.preventDefault(); void savePremiumProject() }}>
           <input type="hidden" name="q" value="Projekt gespeichert" />
           <input type="hidden" name="theme" value={mode} />
-          <label>Projekt<input name="name" value={projectDraft.name} onChange={(event) => updateProjectDraft("name", event.target.value)} /></label>
+          <label>Projekt<input data-premium-focus name="name" value={projectDraft.name} onChange={(event) => updateProjectDraft("name", event.target.value)} /></label>
           <label>Kunde<select name="customer" value={projectDraft.customer} onChange={(event) => updateProjectDraft("customer", event.target.value)}>{customersSource.map((customer) => <option key={customer.id} value={customer.name}>{customer.name}</option>)}</select></label>
           <label>Budget<input name="budget" value={projectDraft.budget} inputMode="decimal" onChange={(event) => updateProjectDraft("budget", event.target.value)} /></label>
           <label>Status<select name="status" value={projectDraft.status} onChange={(event) => updateProjectDraft("status", event.target.value)}><option value="Planung">Planung</option><option value="Aktiv">Aktiv</option><option value="Review">Review</option><option value="Fertig">Fertig</option></select></label>
@@ -3274,13 +3274,13 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
 
   if (view === "invoices") {
     return (
-      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("rechnung") || query.includes("zahlung") || query.includes("freigabe")}>
+      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("rechnung") || query.includes("zahlung") || query.includes("freigabe")} data-premium-workflow="invoices">
         <div className={styles.panelHead}><div><h2>Rechnung vorbereiten</h2><span>Kunde, Projekt und Dokumentfluss vorbereiten</span></div><button type="button" disabled={isWorkflowSaving} onClick={() => void runPremiumAction("invoices", "invoice.prepare", "Rechnung vorbereitet", invoiceDraft, "Premium-Rechnungsformular wurde vorbereitet und protokolliert.")}>Premium erstellen</button></div>
         <form className={styles.workflowForm} action="/dashboard-v2/invoices" method="get" onSubmit={(event) => { event.preventDefault(); void savePremiumDocument("invoice") }}>
           <input type="hidden" name="q" value="Rechnung gespeichert" />
           <input type="hidden" name="theme" value={mode} />
           <input type="hidden" name="type" value="invoice" />
-          <label>Kunde<select name="customer" value={invoiceDraft.customer} onChange={(event) => updateDocumentDraft("invoice", "customer", event.target.value)}>{customersSource.map((customer) => <option key={customer.id} value={customer.name}>{customer.name}</option>)}</select></label>
+          <label>Kunde<select data-premium-focus name="customer" value={invoiceDraft.customer} onChange={(event) => updateDocumentDraft("invoice", "customer", event.target.value)}>{customersSource.map((customer) => <option key={customer.id} value={customer.name}>{customer.name}</option>)}</select></label>
           <label>Projekt<select name="project" value={invoiceDraft.project} onChange={(event) => updateDocumentDraft("invoice", "project", event.target.value)}>{projectsSource.map((project) => <option key={project.id} value={project.name}>{project.name}</option>)}</select></label>
           <label>Position<input name="title" value={invoiceDraft.title} onChange={(event) => updateDocumentDraft("invoice", "title", event.target.value)} /></label>
           <label>Betrag netto<input name="amount" value={invoiceDraft.amount} inputMode="decimal" onChange={(event) => updateDocumentDraft("invoice", "amount", event.target.value)} /></label>
@@ -3296,13 +3296,13 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
 
   if (view === "offers") {
     return (
-      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("angebot") || query.includes("pipeline")}>
+      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("angebot") || query.includes("pipeline")} data-premium-workflow="offers">
         <div className={styles.panelHead}><div><h2>Angebot vorbereiten</h2><span>Pipeline-Dokument mit Kunde und Projekt vorbereiten</span></div><button type="button" disabled={isWorkflowSaving} onClick={() => void preparePremiumDocument("offer", "create")}>Premium erstellen</button></div>
         <form className={styles.workflowForm} action="/dashboard-v2/offers" method="get" onSubmit={(event) => { event.preventDefault(); void savePremiumDocument("offer") }}>
           <input type="hidden" name="q" value="Angebot gespeichert" />
           <input type="hidden" name="theme" value={mode} />
           <input type="hidden" name="type" value="offer" />
-          <label>Kunde<select name="customer" value={offerDraft.customer} onChange={(event) => updateDocumentDraft("offer", "customer", event.target.value)}>{customersSource.map((customer) => <option key={customer.id} value={customer.name}>{customer.name}</option>)}</select></label>
+          <label>Kunde<select data-premium-focus name="customer" value={offerDraft.customer} onChange={(event) => updateDocumentDraft("offer", "customer", event.target.value)}>{customersSource.map((customer) => <option key={customer.id} value={customer.name}>{customer.name}</option>)}</select></label>
           <label>Projekt<select name="project" value={offerDraft.project} onChange={(event) => updateDocumentDraft("offer", "project", event.target.value)}>{projectsSource.map((project) => <option key={project.id} value={project.name}>{project.name}</option>)}</select></label>
           <label>Position<input name="title" value={offerDraft.title} onChange={(event) => updateDocumentDraft("offer", "title", event.target.value)} /></label>
           <label>Betrag netto<input name="amount" value={offerDraft.amount} inputMode="decimal" onChange={(event) => updateDocumentDraft("offer", "amount", event.target.value)} /></label>
@@ -3318,12 +3318,12 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
 
   if (view === "time") {
     return (
-      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("timer") || query.includes("zeit")}>
+      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("timer") || query.includes("zeit")} data-premium-workflow="time">
         <div className={styles.panelHead}><div><h2>Zeit erfassen</h2><span>Timer starten oder abrechenbare Stunden buchen</span></div></div>
         <form className={styles.workflowForm} action="/dashboard-v2/time" method="get" onSubmit={(event) => { event.preventDefault(); void savePremiumTime() }}>
           <input type="hidden" name="q" value="Zeit gespeichert" />
           <input type="hidden" name="theme" value={mode} />
-          <label>Projekt<select name="project" value={timeDraft.project} onChange={(event) => updateTimeDraft("project", event.target.value)}>{projectsSource.map((project) => <option key={project.id} value={project.name}>{project.name}</option>)}</select></label>
+          <label>Projekt<select data-premium-focus name="project" value={timeDraft.project} onChange={(event) => updateTimeDraft("project", event.target.value)}>{projectsSource.map((project) => <option key={project.id} value={project.name}>{project.name}</option>)}</select></label>
           <label>Aufgabe<input name="task" value={timeDraft.task} onChange={(event) => updateTimeDraft("task", event.target.value)} /></label>
           <label>Stunden<input name="hours" value={timeDraft.hours} inputMode="decimal" onChange={(event) => updateTimeDraft("hours", event.target.value)} /></label>
           <label>Stundensatz<input name="rate" value={timeDraft.rate} inputMode="decimal" onChange={(event) => updateTimeDraft("rate", event.target.value)} /></label>
@@ -3342,12 +3342,12 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
 
   if (view === "expenses") {
     return (
-      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("ausgabe") || query.includes("beleg") || query.includes("datev")}>
+      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("ausgabe") || query.includes("beleg") || query.includes("datev")} data-premium-workflow="expenses">
         <div className={styles.panelHead}><div><h2>Ausgabe erfassen</h2><span>Belegposition vormerken und fuer Export vorbereiten</span></div><button type="button" disabled={isWorkflowSaving} onClick={() => void runExpenseWorkflowAction("upload")}>Beleg hochladen</button></div>
         <form className={styles.workflowForm} action="/dashboard-v2/expenses" method="get" onSubmit={(event) => { event.preventDefault(); void savePremiumExpense() }}>
           <input type="hidden" name="q" value="Ausgabe gespeichert" />
           <input type="hidden" name="theme" value={mode} />
-          <label>Ausgabe<input name="title" value={expenseDraft.title} onChange={(event) => updateExpenseDraft("title", event.target.value)} /></label>
+          <label>Ausgabe<input data-premium-focus name="title" value={expenseDraft.title} onChange={(event) => updateExpenseDraft("title", event.target.value)} /></label>
           <label>Betrag<input name="amount" value={expenseDraft.amount} inputMode="decimal" onChange={(event) => updateExpenseDraft("amount", event.target.value)} /></label>
           <label>Kategorie<input name="category" value={expenseDraft.category} onChange={(event) => updateExpenseDraft("category", event.target.value)} /></label>
           <label>Projekt<select name="project" value={expenseDraft.project} onChange={(event) => updateExpenseDraft("project", event.target.value)}>{projectsSource.map((project) => <option key={project.id} value={project.name}>{project.name}</option>)}</select></label>
@@ -3681,7 +3681,7 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
 
     try {
       if (action === "create") {
-        setModuleActionState({ type: "success", message: "Kundenformular ist bereit. Daten ausfuellen und mit Kunde speichern anlegen." })
+        openPremiumWorkflow("customers", "Kundenformular geoeffnet. Daten ausfuellen und mit Kunde speichern anlegen.")
         return
       }
 
@@ -3729,7 +3729,7 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
 
     try {
       if (action === "create") {
-        setModuleActionState({ type: "success", message: "Projektformular ist bereit. Projektdaten ausfuellen und mit Projekt speichern anlegen." })
+        openPremiumWorkflow("projects", "Projektformular geoeffnet. Projektdaten ausfuellen und mit Projekt speichern anlegen.")
         return
       }
 
@@ -3776,6 +3776,16 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
     setModuleActionState({ type: "idle", message: "" })
 
     try {
+      if (action === "prepare" || action === "create") {
+        openPremiumWorkflow(
+          "invoices",
+          action === "create"
+            ? "Rechnungserstellung geoeffnet. Daten pruefen und mit Rechnung speichern anlegen."
+            : "Rechnungsformular geoeffnet. Daten pruefen und mit Rechnung speichern anlegen."
+        )
+        return
+      }
+
       if (action === "payment") {
         const response = await fetch("/api/finance/report", { credentials: "same-origin" })
         if (!response.ok) {
@@ -3787,28 +3797,6 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
         return
       }
 
-      const response = await fetch("/api/premium/actions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        body: JSON.stringify({
-          type: "invoices",
-          action: action === "create" ? "invoice.create.prepare" : "invoice.prepare",
-          label: action === "create" ? "Rechnung erstellen" : "Rechnung vorbereitet",
-          payload: { source: "quick-action" }
-        })
-      })
-      const result = await response.json()
-      if (!response.ok || !result?.ok) {
-        setModuleActionState({ type: "error", message: result?.error || "Rechnungsaktion konnte nicht ausgefuehrt werden." })
-        return
-      }
-      setModuleActionState({
-        type: "success",
-        message: action === "create"
-          ? "Rechnungserstellung wurde vorbereitet. Fuer echte Speicherung oben Rechnung speichern nutzen."
-          : "Rechnungsformular ist bereit. Daten pruefen und mit Rechnung speichern anlegen."
-      })
     } catch {
       setModuleActionState({ type: "error", message: "Rechnungsaktion konnte nicht erreicht werden." })
     } finally {
@@ -3821,6 +3809,16 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
     setModuleActionState({ type: "idle", message: "" })
 
     try {
+      if (action === "prepare" || action === "create") {
+        openPremiumWorkflow(
+          "offers",
+          action === "create"
+            ? "Angebotserstellung geoeffnet. Daten pruefen und mit Angebot speichern anlegen."
+            : "Angebotsformular geoeffnet. Daten pruefen und mit Angebot speichern anlegen."
+        )
+        return
+      }
+
       const offersSource = (data.invoices.length ? data.invoices : fallbackApiInvoices).filter((invoice) => invoiceType(invoice) === "offer")
       const offerTotal = offersSource.reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
       const response = await fetch("/api/premium/actions", {
@@ -3841,11 +3839,7 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
       }
       setModuleActionState({
         type: "success",
-        message: action === "pipeline"
-          ? `Pipeline geprueft: ${offersSource.length} Angebote mit ${formatEuro(offerTotal)} Volumen.`
-          : action === "create"
-            ? "Angebotserstellung wurde vorbereitet. Fuer echte Speicherung oben Angebot speichern nutzen."
-            : "Angebotsformular ist bereit. Daten pruefen und mit Angebot speichern anlegen."
+        message: `Pipeline geprueft: ${offersSource.length} Angebote mit ${formatEuro(offerTotal)} Volumen.`
       })
     } catch {
       setModuleActionState({ type: "error", message: "Angebotsaktion konnte nicht erreicht werden." })
@@ -3859,6 +3853,11 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
     setModuleActionState({ type: "idle", message: "" })
 
     try {
+      if (action === "book") {
+        openPremiumWorkflow("time", "Zeitbuchung geoeffnet. Daten pruefen und mit Zeit speichern buchen.")
+        return
+      }
+
       const projectsSource = data.projects.length ? data.projects : fallbackProjects
       const activeProjects = projectsSource.filter((project) => project.status === "Aktiv")
       const response = await fetch("/api/premium/actions", {
@@ -3881,9 +3880,7 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
         type: "success",
         message: action === "timer"
           ? "Timer wurde gestartet und ist fuer die aktuelle Zeiterfassung vorbereitet."
-          : action === "approval"
-            ? "Freigabe wurde vorbereitet und kann in den Rechnungsfluss uebernommen werden."
-            : "Zeitbuchung ist bereit. Daten oben pruefen und mit Zeit speichern buchen."
+          : "Freigabe wurde vorbereitet und kann in den Rechnungsfluss uebernommen werden."
       })
     } catch {
       setModuleActionState({ type: "error", message: "Zeitaktion konnte nicht erreicht werden." })
@@ -3897,6 +3894,11 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
     setModuleActionState({ type: "idle", message: "" })
 
     try {
+      if (action === "create") {
+        openPremiumWorkflow("expenses", "Ausgabenformular geoeffnet. Daten pruefen und mit Ausgabe speichern erfassen.")
+        return
+      }
+
       const articlesSource = data.articles.length ? data.articles : fallbackApiArticles
       const activeExpenses = articlesSource.filter((article) => article.active !== false)
       const total = activeExpenses.reduce((sum, article) => sum + Number(article.price || 0), 0)
@@ -3920,9 +3922,7 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
         type: "success",
         message: action === "upload"
           ? "Beleg-Upload wurde vorbereitet und kann der Ausgabe zugeordnet werden."
-          : action === "export"
-            ? `Export wurde vorbereitet: ${activeExpenses.length} Positionen mit ${formatEuro(total)}.`
-            : "Ausgabenformular ist bereit. Daten oben pruefen und mit Ausgabe speichern erfassen."
+          : `Export wurde vorbereitet: ${activeExpenses.length} Positionen mit ${formatEuro(total)}.`
       })
     } catch {
       setModuleActionState({ type: "error", message: "Ausgabenaktion konnte nicht erreicht werden." })
@@ -3954,6 +3954,18 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
     } finally {
       setIsModuleActionSaving(false)
     }
+  }
+
+  function openPremiumWorkflow(target: Exclude<PremiumView, "dashboard" | "license" | "license-admin">, message: string) {
+    setModuleActionState({ type: "success", message })
+
+    const workflowPanel = document.querySelector<HTMLElement>(`[data-premium-workflow="${target}"]`)
+    workflowPanel?.scrollIntoView({ behavior: "smooth", block: "start" })
+
+    window.setTimeout(() => {
+      const focusTarget = workflowPanel?.querySelector<HTMLElement>("[data-premium-focus], input:not([type='hidden']):not([type='file']), textarea, select")
+      focusTarget?.focus()
+    }, 220)
   }
 
   function openArticleImportDesktop() {
@@ -4188,7 +4200,13 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
           <h1>{meta.title}</h1>
           <p>{meta.description}</p>
         </div>
-        {view === "offers" ? (
+        {view === "customers" ? (
+          <button type="button" disabled={isModuleActionSaving} onClick={() => openPremiumWorkflow("customers", "Kundenformular geoeffnet. Daten ausfuellen und mit Kunde speichern anlegen.")}><Plus size={18} />{meta.primary}</button>
+        ) : view === "projects" ? (
+          <button type="button" disabled={isModuleActionSaving} onClick={() => openPremiumWorkflow("projects", "Projektformular geoeffnet. Projektdaten ausfuellen und mit Projekt speichern anlegen.")}><Plus size={18} />{meta.primary}</button>
+        ) : view === "invoices" ? (
+          <button type="button" disabled={isModuleActionSaving} onClick={() => openPremiumWorkflow("invoices", "Rechnungserstellung geoeffnet. Daten pruefen und mit Rechnung speichern anlegen.")}><Plus size={18} />{meta.primary}</button>
+        ) : view === "offers" ? (
           <button type="button" disabled={isModuleActionSaving} onClick={() => void runOfferQuickAction("create")}><Plus size={18} />{meta.primary}</button>
         ) : view === "time" ? (
           <button type="button" disabled={isModuleActionSaving} onClick={() => void runTimeQuickAction("timer")}><Plus size={18} />{meta.primary}</button>
