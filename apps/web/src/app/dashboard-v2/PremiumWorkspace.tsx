@@ -118,6 +118,7 @@ type NotificationItem = {
   message?: string | null
   category?: string | null
   tone?: string | null
+  read?: boolean | null
   readAt?: string | null
 }
 type CompanySettings = {
@@ -494,13 +495,28 @@ function notificationRows(data: PremiumData): ActivityRow[] {
   return source.slice(0, 4).map((item, index) => [
     item.title,
     item.message || item.category || "Systemmeldung",
-    item.readAt ? "Gelesen" : index === 0 ? "Neu" : "Heute",
+    isNotificationRead(item) ? "Gelesen" : index === 0 ? "Neu" : "Heute",
     item.tone === "success" ? "green" : item.tone === "warning" ? "rose" : "blue"
   ])
 }
 
+function isNotificationRead(item: NotificationItem) {
+  return item.read === true || Boolean(item.readAt)
+}
+
+function normalizeNotificationItem(item: NotificationItem): NotificationItem {
+  return {
+    ...item,
+    readAt: item.readAt ?? (item.read === true ? new Date().toISOString() : null)
+  }
+}
+
+function normalizeNotifications(items: NotificationItem[]) {
+  return items.map(normalizeNotificationItem)
+}
+
 function notificationStatus(item: NotificationItem) {
-  if (item.readAt) return "Gelesen"
+  if (isNotificationRead(item)) return "Gelesen"
   if (item.tone === "warning") return "Wichtig"
   if (item.tone === "success") return "Erledigt"
   return "Neu"
@@ -857,7 +873,7 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     focus: [["Inbox", "12 Meldungen"], ["Heute", "6 Ereignisse"], ["Regeln", "8 aktiv"]],
     actions: [["Regeln bearbeiten", "/dashboard-v2/notifications?q=Regeln%20aktualisiert"], ["Alle gelesen", "/dashboard-v2/notifications?q=Alle%20gelesen"], ["Filter setzen", "/dashboard-v2/notifications?q=Filter%20aktiv"]],
     timeline: [["Push gesendet", "Daniel wurde ueber Zahlung informiert."], ["Regel angewendet", "Ueberfaellige Rechnung markiert."], ["Benachrichtigung geplant", "Tagesbericht wird um 18:00 gesendet."]],
-    primaryHref: "/dashboard-v2/notifications?q=Alle%20gelesen"
+    primaryHref: "/dashboard-v2/notifications?q=Regeln%20aktualisiert"
   },
   audit: {
     stats: [["248", "Events"], ["0", "Risiken"], ["30 T", "Aufbewahrung"]],
@@ -1264,7 +1280,7 @@ function moduleRows(view: Exclude<PremiumView, "dashboard">, data: PremiumData):
     return notificationsSource.slice(0, 5).map((item) => [
       item.title,
       item.message || item.category || "Ereignis",
-      item.readAt ? "Gelesen" : "Offen",
+      isNotificationRead(item) ? "Gelesen" : "Offen",
       notificationStatus(item)
     ])
   }
@@ -1351,7 +1367,7 @@ function moduleStats(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
   }
 
   if (view === "notifications") {
-    const unread = notificationsSource.filter((item) => !item.readAt).length
+    const unread = notificationsSource.filter((item) => !isNotificationRead(item)).length
     const important = notificationsSource.filter((item) => item.tone === "warning").length
     return [[String(unread), "Neu"], [String(important), "Wichtig"], [String(notificationsSource.length), "Gesamt"]]
   }
@@ -1363,7 +1379,7 @@ function moduleStats(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
   }
 
   if (view === "audit") {
-    const openEvents = notificationsSource.filter((item) => !item.readAt).length
+    const openEvents = notificationsSource.filter((item) => !isNotificationRead(item)).length
     const readEvents = notificationsSource.length - openEvents
     return [[String(notificationsSource.length), "Events"], [String(openEvents), "Offen"], [String(readEvents), "Gelesen"]]
   }
@@ -1454,13 +1470,13 @@ function moduleFocus(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
   }
 
   if (view === "notifications") {
-    const unread = notificationsSource.filter((item) => !item.readAt).length
+    const unread = notificationsSource.filter((item) => !isNotificationRead(item)).length
     const read = notificationsSource.length - unread
     return [["Neue Meldungen", String(unread)], ["Gelesen", String(read)], ["Letzte Meldung", notificationsSource[0]?.title || "Keine Meldung"]]
   }
 
   if (view === "audit") {
-    const openEvents = notificationsSource.filter((item) => !item.readAt).length
+    const openEvents = notificationsSource.filter((item) => !isNotificationRead(item)).length
     return [["Sicherheitsstatus", "Bereit"], ["Offene Events", String(openEvents)], ["Letztes Ereignis", notificationsSource[0]?.title || "Keine Ereignisse"]]
   }
 
@@ -2638,15 +2654,15 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
       })
       const result = response.ok ? await response.json() : null
       const nextNotifications = Array.isArray(result?.notifications)
-        ? result.notifications
-        : (data.notifications.length ? data.notifications : fallbackNotifications).map((item) => ({ ...item, readAt }))
+        ? normalizeNotifications(result.notifications)
+        : (data.notifications.length ? data.notifications : fallbackNotifications).map((item) => ({ ...item, read: true, readAt }))
 
       onDataChange((current) => ({ ...current, notifications: nextNotifications }))
       setWorkflowState({ type: "success", message: "Alle Premium-Benachrichtigungen wurden als gelesen markiert." })
     } catch {
       onDataChange((current) => ({
         ...current,
-        notifications: (current.notifications.length ? current.notifications : fallbackNotifications).map((item) => ({ ...item, readAt }))
+        notifications: (current.notifications.length ? current.notifications : fallbackNotifications).map((item) => ({ ...item, read: true, readAt }))
       }))
       setWorkflowState({ type: "success", message: "Alle Premium-Benachrichtigungen wurden lokal als gelesen markiert." })
     } finally {
@@ -2659,7 +2675,7 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     setWorkflowState({ type: "idle", message: "" })
 
     try {
-      await fetch("/api/settings/notifications", {
+      const response = await fetch("/api/settings/notifications", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "same-origin",
@@ -2674,16 +2690,55 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
           }
         })
       })
+      const result = response.ok ? await response.json() : null
+
+      if (!response.ok || result?.ok === false) {
+        setWorkflowState({ type: "error", message: result?.error || "Benachrichtigungsregeln konnten nicht aktualisiert werden." })
+        return
+      }
+
       setWorkflowState({ type: "success", message: "Premium-Benachrichtigungsregeln wurden aktualisiert." })
     } catch {
-      setWorkflowState({ type: "success", message: "Premium-Benachrichtigungsregeln wurden vorbereitet." })
+      setWorkflowState({ type: "error", message: "Benachrichtigungsregeln-API konnte nicht erreicht werden." })
     } finally {
       setIsWorkflowSaving(false)
     }
   }
 
   function activatePremiumNotificationFilter() {
+    onDataChange((current) => {
+      const source = current.notifications.length ? current.notifications : fallbackNotifications
+      const filtered = [...source].sort((a, b) => {
+        const priority = (item: NotificationItem) => item.tone === "warning" ? 0 : item.category === "security" ? 1 : item.category === "email" ? 2 : 3
+        return priority(a) - priority(b)
+      })
+
+      return { ...current, notifications: filtered }
+    })
     setWorkflowState({ type: "success", message: "Premium-Filter zeigt wichtige Zahlung, Rechnung und Systemmeldungen." })
+  }
+
+  async function checkPremiumNotificationActivity() {
+    setIsWorkflowSaving(true)
+    setWorkflowState({ type: "idle", message: "" })
+
+    try {
+      const response = await fetch("/api/notifications?limit=20", { credentials: "same-origin" })
+      const result = response.ok ? await response.json() : null
+
+      if (!response.ok || result?.ok === false || !Array.isArray(result?.notifications)) {
+        setWorkflowState({ type: "error", message: result?.error || "Aktivitaet konnte nicht geladen werden." })
+        return
+      }
+
+      const notifications = normalizeNotifications(result.notifications)
+      onDataChange((current) => ({ ...current, notifications }))
+      setWorkflowState({ type: "success", message: `${notifications.length} Premium-Aktivitaeten wurden geprueft.` })
+    } catch {
+      setWorkflowState({ type: "error", message: "Benachrichtigungs-Aktivitaet konnte nicht erreicht werden." })
+    } finally {
+      setIsWorkflowSaving(false)
+    }
   }
 
   if (view === "license") return null
@@ -2937,7 +2992,7 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
             <input type="hidden" name="theme" value={mode} />
             <button type="submit">Filter setzen</button>
           </form>
-          <Link href={withPremiumTheme("/dashboard-v2/audit?q=Ereignis%20gefunden", mode)}>Aktivitaet pruefen</Link>
+          <button type="button" disabled={isWorkflowSaving} onClick={() => void checkPremiumNotificationActivity()}>Aktivitaet pruefen</button>
         </div>
         {workflowState.message ? <p data-state={workflowState.type}>{workflowState.message}</p> : null}
         {message}
@@ -3822,7 +3877,7 @@ export function PremiumWorkspacePage({ view = "dashboard", initialSearchQuery = 
           projects: Array.isArray(projectPayload) ? projectPayload : fallbackProjects,
           appUsers: Array.isArray(userPayload?.users) ? userPayload.users : fallbackAppUsers,
           userLimit: userPayload?.limit ?? fallbackUserLimit,
-          notifications: Array.isArray(notificationPayload?.notifications) ? notificationPayload.notifications : fallbackNotifications,
+          notifications: Array.isArray(notificationPayload?.notifications) ? normalizeNotifications(notificationPayload.notifications) : fallbackNotifications,
           companySettings: companyPayload?.settings ?? fallbackCompanySettings,
           numberRanges: Array.isArray(rangePayload?.ranges) ? rangePayload.ranges : fallbackNumberRanges,
           loaded: true
@@ -3866,7 +3921,7 @@ export function PremiumWorkspacePage({ view = "dashboard", initialSearchQuery = 
 
   const workspace = workspaceFromData(data)
   const profile = profileFromData(data)
-  const unreadCount = (data.notifications.length ? data.notifications : fallbackNotifications).filter((item) => !item.readAt).length
+  const unreadCount = (data.notifications.length ? data.notifications : fallbackNotifications).filter((item) => !isNotificationRead(item)).length
   const upgrade = upgradeSummaryFromData(data)
   const currentPath = premiumViewPath(view)
   const themeLinks = useMemo(() => ({
