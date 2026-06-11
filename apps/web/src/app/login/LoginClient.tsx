@@ -23,10 +23,12 @@ function getError(result: unknown, fallback: string) {
 
 export function LoginClient({
   setupAvailable,
-  demoMode = false
+  demoMode = false,
+  defaultRedirectPath = "/dashboard-v2"
 }: {
   setupAvailable: boolean
   demoMode?: boolean
+  defaultRedirectPath?: string
 }) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -92,7 +94,10 @@ export function LoginClient({
       }
 
       const nextPath = new URL(window.location.href).searchParams.get("next")
-      const safeNextPath = nextPath?.startsWith("/") && !nextPath.startsWith("//") ? nextPath : "/dashboard"
+      const safeDefaultPath = defaultRedirectPath.startsWith("/") && !defaultRedirectPath.startsWith("//")
+        ? defaultRedirectPath
+        : "/dashboard-v2"
+      const safeNextPath = nextPath?.startsWith("/") && !nextPath.startsWith("//") ? nextPath : safeDefaultPath
 
       window.location.assign(safeNextPath)
     } catch {
