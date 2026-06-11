@@ -1486,6 +1486,165 @@
   gap: 14px;
 }
 
+.licensePlanGrid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.licensePlanGrid button {
+  min-height: 116px;
+  display: grid;
+  gap: 8px;
+  align-content: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel-strong) 84%, transparent);
+  color: var(--text);
+  cursor: pointer;
+  padding: 14px;
+  text-align: left;
+  box-shadow: var(--shadow-soft);
+}
+
+.licensePlanGrid button[data-active="true"] {
+  border-color: color-mix(in srgb, var(--violet) 70%, var(--line));
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.18), rgba(59, 130, 246, 0.08)), var(--panel-strong);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--violet) 14%, transparent);
+}
+
+.licensePlanGrid span,
+.licensePlanGrid small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.licensePlanGrid strong {
+  color: var(--text);
+  font-size: 30px;
+  line-height: 1;
+}
+
+.licenseKeyResult {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel-strong) 82%, transparent);
+  padding: 14px;
+}
+
+.licenseKeyResult div {
+  grid-column: 1 / -1;
+}
+
+.licenseKeyResult span {
+  display: block;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.licenseKeyResult strong {
+  display: block;
+  margin-top: 6px;
+  color: var(--text);
+  font-size: 18px;
+}
+
+.licenseKeyResult p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.licenseKeyResult textarea {
+  width: 100%;
+  min-height: 112px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: var(--shell);
+  color: var(--text);
+  padding: 12px;
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.licenseKeyResult button,
+.moduleTable .panelHead button {
+  min-height: 42px;
+  align-self: start;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #8b5cf6, #4f46e5);
+  color: #fff;
+  cursor: pointer;
+  padding: 0 14px;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.moduleList {
+  display: grid;
+  gap: 10px;
+}
+
+.moduleListRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) 0.5fr 0.7fr auto;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel-strong) 76%, transparent);
+  padding: 12px;
+}
+
+.moduleListRow strong,
+.moduleListRow span {
+  display: block;
+}
+
+.moduleListRow strong {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.moduleListRow span,
+.moduleListRow em {
+  color: var(--muted);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.moduleListRow b {
+  color: var(--text);
+  font-size: 13px;
+  text-transform: uppercase;
+}
+
+.moduleListRow small {
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--violet) 13%, transparent);
+  color: var(--violet-2);
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.moduleListRow small[data-status="activated"] {
+  background: color-mix(in srgb, var(--green) 13%, transparent);
+  color: var(--green);
+}
+
 .licenseActionPanel {
   display: grid;
   gap: 18px;
@@ -2134,6 +2293,10 @@
   .searchResultsGrid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+
+  .licensePlanGrid {
+    grid-template-columns: repeat(3, minmax(140px, 1fr));
+  }
 }
 
 @media (max-width: 1180px) {
@@ -2240,6 +2403,19 @@
     grid-template-columns: 1fr;
   }
 
+  .licensePlanGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .licenseKeyResult {
+    grid-template-columns: 1fr;
+  }
+
+  .moduleListRow {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
   .userCards {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
@@ -2265,7 +2441,8 @@
   .searchResultsGrid,
   .settingsAreaGrid,
   .userCards,
-  .integrationsGrid {
+  .integrationsGrid,
+  .licensePlanGrid {
     grid-template-columns: 1fr;
   }
 

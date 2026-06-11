@@ -53,6 +53,7 @@ type PremiumView =
   | "settings"
   | "users"
   | "license"
+  | "license-admin"
   | "integrations"
   | "automation"
   | "notifications"
@@ -131,6 +132,32 @@ type NumberRange = {
   nextValue: number
   padding: number
 }
+type LicenseAdminPlan = "free" | "pro" | "team" | "business" | "unlimited"
+type LicenseIssueSummary = {
+  id: string
+  licenseId: string
+  keyPreview: string
+  plan: string
+  billingCycle: string
+  maxUsers: number
+  status: string
+  customerName?: string | null
+  validUntil?: string | null
+  activatedAt?: string | null
+  createdAt?: string | null
+}
+type LicenseAdminGenerated = {
+  licenseKey: string
+  license: {
+    keyPreview: string
+    plan: string
+    billingCycle: string
+    maxUsers: number
+    customerName?: string | null
+    validUntil?: string | null
+    status: string
+  }
+}
 type PremiumData = {
   invoices: ApiInvoice[]
   customers: ApiCustomer[]
@@ -183,6 +210,7 @@ const sideNav = [
     items: [
       { label: "Benutzer & Rollen", href: "/dashboard-v2/users", icon: Users },
       { label: "Lizenzen", href: "/dashboard-v2/license", icon: KeyRound },
+      { label: "Lizenz Admin", href: "/dashboard-v2/license-admin", icon: ShieldCheck },
       { label: "Integrationen", href: "/dashboard-v2/integrations", icon: Zap },
       { label: "Automatisierung", href: "/dashboard-v2/automation", icon: Settings }
     ]
@@ -264,6 +292,12 @@ const premiumViewMeta: Record<PremiumView, { title: string; eyebrow: string; des
     description: "Lizenzstatus, Aktivierung, Limits und Upgrade-Optionen ueberblicken.",
     primary: "Lizenz aktivieren"
   },
+  "license-admin": {
+    title: "Lizenz Admin",
+    eyebrow: "Intern",
+    description: "Lizenz-Keys fuer Kunden erzeugen, Benutzerlimits setzen und Ausgaben kontrollieren.",
+    primary: "Key erzeugen"
+  },
   integrations: {
     title: "Integrationen",
     eyebrow: "Automatisierung",
@@ -334,6 +368,18 @@ const integrations: IntegrationRow[] = [
   ["Google Drive", "Dateispeicher", "#16a34a"],
   ["Zapier", "Automatisierung", "#ff4f00"]
 ]
+
+const licenseAdminPlans: Array<{ key: LicenseAdminPlan; label: string; users: number; billing: string }> = [
+  { key: "free", label: "Free", users: 5, billing: "free" },
+  { key: "pro", label: "Pro", users: 15, billing: "yearly" },
+  { key: "team", label: "Team", users: 25, billing: "yearly" },
+  { key: "business", label: "Business", users: 50, billing: "yearly" },
+  { key: "unlimited", label: "Unlimited", users: 1_000_000, billing: "custom" }
+]
+
+function licenseAdminPlanByKey(plan: LicenseAdminPlan) {
+  return licenseAdminPlans.find((item) => item.key === plan) ?? licenseAdminPlans[2]
+}
 
 const revenue = [820, 980, 1320, 1580, 1190, 1460, 1440, 1900, 2220, 1980, 2240, 1730, 1750]
 const payments = [520, 650, 1020, 1080, 880, 760, 1060, 1500, 1810, 1600, 1450, 1280, 860]
@@ -780,6 +826,14 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     actions: [["Lizenz aktivieren", "/dashboard-v2/license?q=Lizenz-Key"], ["Demo-Key pruefen", "/dashboard-v2/license?q=Lizenz%20aktiviert"], ["Benutzerlimit", "/dashboard-v2/license?q=Benutzerlimit"]],
     timeline: [["Limit erreicht", "Kostenloser Plan ist vollstaendig ausgereizt."], ["Upgrade vorbereitet", "Premium schaltet unbegrenzte Benutzer frei."], ["Abrechnung bereit", "Lizenzdaten koennen hinterlegt werden."]],
     primaryHref: "/dashboard-v2/license?q=Lizenz-Key"
+  },
+  "license-admin": {
+    stats: [["5", "Verkaufsplaene"], ["Signiert", "Key-Modus"], ["Intern", "Zugriff"]],
+    rows: [["Free", "Basisplan", "5 Benutzer", "Aktiv"], ["Pro", "Wachstum", "15 Benutzer", "Aktiv"], ["Team", "Agentur", "25 Benutzer", "Aktiv"], ["Business", "Firma", "50 Benutzer", "Aktiv"]],
+    focus: [["Standard", "Pro 15"], ["Aktivierung", "Kunde traegt Key ein"], ["Speicherung", "Hash + Preview"]],
+    actions: [["Key erzeugen", "/dashboard-v2/license-admin?q=Key%20erzeugen"], ["Ausgaben laden", "/dashboard-v2/license-admin?q=Ausgaben"], ["Zur Lizenz", "/dashboard-v2/license"]],
+    timeline: [["Key erzeugt", "Vollstaendiger Key wird nur einmal angezeigt."], ["Key geprueft", "Signatur und Laufzeit werden serverseitig validiert."], ["Key aktiviert", "Lizenzlimit wird im Workspace aktualisiert."]],
+    primaryHref: "/dashboard-v2/license-admin?q=Key%20erzeugen"
   },
   integrations: {
     stats: [["6", "Verbunden"], ["2", "Aktion noetig"], ["99%", "Sync"]],
@@ -1851,6 +1905,174 @@ function PremiumLicensePanel({ data, mode, searchQuery }: { data: PremiumData; m
         </div>
       </div>
     </article>
+  )
+}
+
+function PremiumLicenseAdminPage({ mode }: { mode: ThemeMode }) {
+  const defaultPlan = licenseAdminPlanByKey("team")
+  const [plan, setPlan] = useState<LicenseAdminPlan>("team")
+  const [billingCycle, setBillingCycle] = useState(defaultPlan.billing)
+  const [maxUsers, setMaxUsers] = useState(String(defaultPlan.users))
+  const [days, setDays] = useState("365")
+  const [customerName, setCustomerName] = useState("Premium Kunde GmbH")
+  const [generated, setGenerated] = useState<LicenseAdminGenerated | null>(null)
+  const [issues, setIssues] = useState<LicenseIssueSummary[]>([])
+  const [state, setState] = useState<WorkflowState>({ type: "idle", message: "" })
+  const [isSaving, setIsSaving] = useState(false)
+
+  async function loadIssues() {
+    try {
+      const response = await fetch("/api/settings/license/generate", { credentials: "same-origin" })
+      const result = await response.json()
+      if (!response.ok || !result?.ok) return
+      setIssues(Array.isArray(result.issues) ? result.issues : [])
+    } catch {
+      // The admin page can still generate keys even if the list refresh fails.
+    }
+  }
+
+  useEffect(() => {
+    void loadIssues()
+  }, [])
+
+  function handlePlanChange(nextPlan: LicenseAdminPlan) {
+    const selected = licenseAdminPlanByKey(nextPlan)
+    setPlan(nextPlan)
+    setMaxUsers(String(selected.users))
+    setBillingCycle(selected.billing)
+    if (nextPlan === "free") setDays("365")
+    if (nextPlan === "unlimited") setDays("365")
+    setState({ type: "idle", message: "" })
+  }
+
+  async function generateKey(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setIsSaving(true)
+    setState({ type: "idle", message: "" })
+    setGenerated(null)
+
+    try {
+      const response = await fetch("/api/settings/license/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          plan,
+          billingCycle,
+          days: Number(days),
+          maxUsers: Number(maxUsers),
+          customerName,
+          features: ["apiAccess", "auditLog", "datevExport", "teamUsers"]
+        })
+      })
+      const result = await response.json()
+      if (!response.ok || !result?.ok) {
+        setState({ type: "error", message: result?.error || "Lizenz-Key konnte nicht erzeugt werden." })
+        return
+      }
+
+      setGenerated({ licenseKey: result.licenseKey, license: result.license })
+      setState({ type: "success", message: `${result.license?.plan || plan} Key erzeugt: ${result.license?.maxUsers || maxUsers} Benutzer.` })
+      await loadIssues()
+    } catch {
+      setState({ type: "error", message: "Lizenz-Key-API konnte nicht erreicht werden." })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  async function copyGeneratedKey() {
+    if (!generated?.licenseKey) return
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(generated.licenseKey)
+      } else {
+        throw new Error("Clipboard API unavailable")
+      }
+      setState({ type: "success", message: "Lizenz-Key wurde kopiert und kann an den Kunden gesendet werden." })
+    } catch {
+      const textarea = document.getElementById("generated-license-key") as HTMLTextAreaElement | null
+      textarea?.focus()
+      textarea?.select()
+      const copied = typeof document.execCommand === "function" ? document.execCommand("copy") : false
+      setState({
+        type: "success",
+        message: copied
+          ? "Lizenz-Key wurde kopiert und kann an den Kunden gesendet werden."
+          : "Key wurde markiert. Bitte mit Cmd/Ctrl+C kopieren."
+      })
+    }
+  }
+
+  return (
+    <section className={styles.modulePage}>
+      <article className={`${styles.panel} ${styles.moduleHero}`}>
+        <div>
+          <span>Intern</span>
+          <h1>Lizenz Admin</h1>
+          <p>Signierte Premium-Keys erzeugen, Planlimits steuern und Ausgaben nachvollziehen.</p>
+        </div>
+        <button type="button" disabled={isSaving} onClick={() => document.getElementById("premium-license-admin-form")?.scrollIntoView({ behavior: "smooth", block: "start" })}><Plus size={18} />Key erzeugen</button>
+      </article>
+
+      <section className={styles.licensePlanGrid}>
+        {licenseAdminPlans.map((item) => (
+          <button key={item.key} type="button" data-active={plan === item.key} onClick={() => handlePlanChange(item.key)}>
+            <span>{item.label}</span>
+            <strong>{item.key === "unlimited" ? "Unlimited" : item.users}</strong>
+            <small>{item.key === "unlimited" ? "ohne praktisches Limit" : "Benutzer"}</small>
+          </button>
+        ))}
+      </section>
+
+      <article className={`${styles.panel} ${styles.workflowPanel}`}>
+        <div className={styles.panelHead}>
+          <div>
+            <h2>Lizenz-Key erzeugen</h2>
+            <span>Plan auswaehlen, Kunde eintragen und Key kopieren</span>
+          </div>
+          <Link href={withPremiumTheme("/dashboard-v2/license", mode)}>Zur Aktivierung</Link>
+        </div>
+
+        <form id="premium-license-admin-form" className={styles.workflowForm} onSubmit={generateKey}>
+          <label>Plan<select value={plan} onChange={(event) => handlePlanChange(event.target.value as LicenseAdminPlan)}>{licenseAdminPlans.map((item) => <option key={item.key} value={item.key}>{item.label} - {item.key === "unlimited" ? "Unlimited" : `${item.users} Benutzer`}</option>)}</select></label>
+          <label>Benutzerlimit<input value={maxUsers} inputMode="numeric" onChange={(event) => setMaxUsers(event.target.value)} /></label>
+          <label>Laufzeit Tage<input value={days} inputMode="numeric" onChange={(event) => setDays(event.target.value)} /></label>
+          <label>Kunde<input value={customerName} onChange={(event) => setCustomerName(event.target.value)} /></label>
+          <label>Abrechnung<select value={billingCycle} onChange={(event) => setBillingCycle(event.target.value)}><option value="free">Free</option><option value="monthly">Monatlich</option><option value="yearly">Jaehrlich</option><option value="custom">Custom</option></select></label>
+          <button type="submit" disabled={isSaving}>{isSaving ? "Erzeugt..." : "Key erzeugen"}</button>
+        </form>
+
+        {generated ? (
+          <div className={styles.licenseKeyResult}>
+            <div>
+              <span>Neuer Lizenz-Key</span>
+              <strong>{generated.license.keyPreview}</strong>
+              <p>{generated.license.plan} · {generated.license.maxUsers} Benutzer · {generated.license.validUntil ? generated.license.validUntil.slice(0, 10) : "ohne Ablauf"}</p>
+            </div>
+            <textarea id="generated-license-key" readOnly value={generated.licenseKey} rows={4} spellCheck={false} />
+            <button type="button" onClick={() => void copyGeneratedKey()}>Key kopieren</button>
+          </div>
+        ) : null}
+
+        {state.message ? <p data-state={state.type}>{state.message}</p> : null}
+      </article>
+
+      <article className={`${styles.panel} ${styles.moduleTable}`}>
+        <div className={styles.panelHead}><h2>Letzte Lizenz-Keys</h2><button type="button" onClick={() => void loadIssues()}>Aktualisieren</button></div>
+        <div className={styles.moduleList}>
+          {issues.length ? issues.map((issue) => (
+            <div key={issue.id} className={styles.moduleListRow}>
+              <div><strong>{issue.customerName || "Ohne Kunde"}</strong><span>{issue.keyPreview}</span></div>
+              <b>{issue.plan}</b>
+              <em>{issue.maxUsers === 1_000_000 ? "Unlimited" : `${issue.maxUsers} Benutzer`}</em>
+              <small data-status={issue.status}>{issue.status}</small>
+            </div>
+          )) : <p className={styles.emptyTableCell}>Noch keine Keys erzeugt.</p>}
+        </div>
+      </article>
+    </section>
   )
 }
 
@@ -3377,6 +3599,10 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
     } finally {
       setIsModuleActionSaving(false)
     }
+  }
+
+  if (view === "license-admin") {
+    return <PremiumLicenseAdminPage mode={mode} />
   }
 
   return (

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { prisma } from "@dream-invoice/database"
 import { writeAuditLog } from "@/lib/audit/log"
 import { mapAuthError, requireCurrentUserRole } from "@/lib/auth/service"
 import { RequestBodyError, readJsonBodyWithLimit } from "@/lib/http/request-body"
@@ -6,6 +7,38 @@ import { generateLicenseKey, type GenerateLicenseKeyInput } from "@/lib/license/
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
+
+export async function GET() {
+  try {
+    await requireCurrentUserRole(["admin"])
+  } catch (error) {
+    const mapped = mapAuthError(error)
+    return NextResponse.json(
+      { ok: false, error: mapped.error, code: mapped.code },
+      { status: mapped.status }
+    )
+  }
+
+  const issues = await prisma.licenseIssue.findMany({
+    orderBy: { createdAt: "desc" },
+    take: 20,
+    select: {
+      id: true,
+      licenseId: true,
+      keyPreview: true,
+      plan: true,
+      billingCycle: true,
+      maxUsers: true,
+      status: true,
+      customerName: true,
+      validUntil: true,
+      activatedAt: true,
+      createdAt: true
+    }
+  })
+
+  return NextResponse.json({ ok: true, issues })
+}
 
 export async function POST(req: Request) {
   let actor
