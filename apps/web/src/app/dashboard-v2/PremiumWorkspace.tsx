@@ -1759,50 +1759,6 @@ type DocumentDraft = {
   note: string
 }
 
-function premiumInvoicePayload(draft: DocumentDraft, customersSource: ApiCustomer[]) {
-  const todayDate = new Date()
-  const today = todayDate.toISOString().slice(0, 10)
-  const dueDateValue = new Date(todayDate)
-  dueDateValue.setDate(dueDateValue.getDate() + 14)
-  const dueDate = dueDateValue.toISOString().slice(0, 10)
-  const customer = customersSource.find((item) => item.name === draft.customer)
-  const parsedAmount = Number.parseFloat(String(draft.amount || "0").replace(",", "."))
-  const price = Number.isFinite(parsedAmount) && parsedAmount >= 0 ? parsedAmount : 0
-
-  return {
-    date: today,
-    dueDate,
-    customerId: customer?.id,
-    taxRate: 0.19,
-    tip: 0,
-    note: draft.note || "Premium-Rechnung wurde im Dashboard vorbereitet.",
-    items: [
-      {
-        name: draft.title || "Premium Leistung",
-        quantity: 1,
-        price,
-        category: draft.project || null
-      }
-    ]
-  }
-}
-
-async function createPremiumInvoiceEditorDraft(draft: DocumentDraft, customersSource: ApiCustomer[]) {
-  const response = await fetch("/api/invoice/create", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "same-origin",
-    body: JSON.stringify(premiumInvoicePayload(draft, customersSource))
-  })
-  const result = await response.json().catch(() => null)
-
-  if (!response.ok || !result?.invoice?.id) {
-    throw new Error(result?.error || "Rechnung konnte nicht erstellt werden.")
-  }
-
-  return result.invoice as { id: string; number?: string }
-}
-
 function createLocalCustomer(draft: CustomerDraft): ApiCustomer {
   const seed = Date.now()
   return {
@@ -2796,9 +2752,8 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     setWorkflowState({ type: "idle", message: "" })
 
     try {
-      const invoice = await createPremiumInvoiceEditorDraft(invoiceDraft, customersSource)
-      setWorkflowState({ type: "success", message: `Rechnungseditor wird geoeffnet: ${invoice.number || "Entwurf"}` })
-      router.push(`/documents/${invoice.id}/edit`)
+      setWorkflowState({ type: "success", message: "Premium-Rechnungseditor wird geoeffnet." })
+      router.push(withPremiumTheme("/dashboard-v2/invoices/new", mode))
     } catch {
       const document = createLocalDocument(invoiceDraft, "invoice")
       onDataChange((current) => ({
@@ -3842,21 +3797,8 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
     setModuleActionState({ type: "idle", message: "" })
 
     try {
-      const customersSource = data.customers.length ? data.customers : fallbackApiCustomers
-      const articlesSource = data.articles.length ? data.articles : fallbackApiArticles
-      const projectsSource = data.projects.length ? data.projects : fallbackProjects
-      const invoiceDraft: DocumentDraft = {
-        type: "invoice",
-        customer: customersSource[0]?.name || "Demo Kunde",
-        project: projectsSource[0]?.name || "Allgemein",
-        title: articlesSource[0]?.name || "Premium Leistung",
-        amount: String(Number(articlesSource[0]?.price || 0).toFixed(2)),
-        status: "draft",
-        note: "Premium-Rechnung wurde aus dem Dashboard erstellt."
-      }
-      const invoice = await createPremiumInvoiceEditorDraft(invoiceDraft, customersSource)
-      setModuleActionState({ type: "success", message: `Rechnungseditor wird geoeffnet: ${invoice.number || "Entwurf"}` })
-      router.push(`/documents/${invoice.id}/edit`)
+      setModuleActionState({ type: "success", message: "Premium-Rechnungseditor wird geoeffnet." })
+      router.push(withPremiumTheme("/dashboard-v2/invoices/new", mode))
     } catch {
       const customersSource = data.customers.length ? data.customers : fallbackApiCustomers
       const articlesSource = data.articles.length ? data.articles : fallbackApiArticles

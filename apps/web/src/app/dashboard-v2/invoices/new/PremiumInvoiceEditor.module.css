@@ -1,0 +1,478 @@
+.page {
+  --bg: #f7f8fb;
+  --panel: #ffffff;
+  --panel-soft: #fbfcff;
+  --line: #e6ecf5;
+  --text: #172033;
+  --muted: #68758b;
+  --violet: #6d4aff;
+  --violet-soft: #efeafd;
+  --green: #14a673;
+  --shadow: 0 18px 44px rgba(23, 32, 51, 0.08);
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 248px minmax(0, 1fr);
+  gap: 16px;
+  background: linear-gradient(180deg, #fbfcff, var(--bg));
+  color: var(--text);
+  padding: 16px;
+  letter-spacing: 0;
+}
+
+.page * {
+  box-sizing: border-box;
+}
+
+.page button,
+.page input,
+.page textarea,
+.page select {
+  font: inherit;
+}
+
+.sidebar,
+.toolbar,
+.panel,
+.invoicePreview {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+
+.sidebar {
+  position: sticky;
+  top: 16px;
+  height: calc(100vh - 32px);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.backLink,
+.sidebar nav a,
+.toolbarActions button,
+.panelHead button,
+.taxCreator button,
+.previewToolbar button {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-soft);
+  color: var(--text);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brand > span,
+.previewLogo {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--violet), #2563eb);
+  color: #fff;
+  font-weight: 950;
+}
+
+.brand strong,
+.brand small {
+  display: block;
+}
+
+.brand small,
+.sidebarTotal small,
+.toolbar span,
+.panelHead span,
+.previewToolbar span,
+.previewMeta span,
+.previewItems small,
+.previewLogo + div span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.sidebar nav {
+  display: grid;
+  gap: 8px;
+}
+
+.sidebar nav a {
+  justify-content: flex-start;
+  padding: 0 12px;
+}
+
+.sidebarTotal {
+  margin-top: auto;
+  padding: 14px;
+  border-radius: 8px;
+  background: var(--violet-soft);
+}
+
+.sidebarTotal span,
+.sidebarTotal strong,
+.sidebarTotal small {
+  display: block;
+}
+
+.sidebarTotal strong {
+  margin: 5px 0;
+  font-size: 24px;
+}
+
+.workspace {
+  min-width: 0;
+  display: grid;
+  gap: 16px;
+}
+
+.toolbar {
+  position: sticky;
+  top: 16px;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 16px;
+}
+
+.toolbar h1,
+.panelHead h2 {
+  margin: 0;
+}
+
+.toolbar h1 {
+  font-size: 28px;
+  line-height: 1.1;
+}
+
+.toolbarActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.toolbarActions button:last-child {
+  border-color: transparent;
+  background: var(--violet);
+  color: #fff;
+}
+
+.editorGrid {
+  display: grid;
+  grid-template-columns: minmax(520px, 1fr) minmax(380px, 0.72fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.formColumn,
+.previewColumn {
+  display: grid;
+  gap: 16px;
+}
+
+.previewColumn {
+  position: sticky;
+  top: 102px;
+}
+
+.panel {
+  padding: 16px;
+}
+
+.panelHead,
+.previewToolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.panel label {
+  display: grid;
+  gap: 7px;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.panel input,
+.panel textarea,
+.panel select,
+.itemRow input,
+.itemRow select,
+.taxCreator input {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  padding: 9px 10px;
+  outline: none;
+}
+
+.panel textarea {
+  resize: vertical;
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.itemTable {
+  display: grid;
+  gap: 8px;
+}
+
+.itemHeader,
+.itemRow {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) 86px 112px 142px 112px 38px;
+  gap: 8px;
+  align-items: center;
+}
+
+.itemHeader {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.itemRow {
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel-soft);
+}
+
+.itemRow strong {
+  text-align: right;
+}
+
+.itemRow button {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: #ef4444;
+  cursor: pointer;
+}
+
+.taxGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.taxGrid span {
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: var(--violet-soft);
+  color: var(--violet);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.taxCreator {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 90px auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.invoicePreview {
+  min-height: 680px;
+  padding: 28px;
+  background: #fff;
+}
+
+.invoicePreview header,
+.previewMeta,
+.previewTotals p,
+.previewTotals strong,
+.invoicePreview footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 22px;
+}
+
+.invoicePreview header {
+  align-items: center;
+  justify-content: flex-start;
+  margin-bottom: 42px;
+}
+
+.previewMeta {
+  align-items: flex-start;
+  margin-bottom: 34px;
+}
+
+.previewMeta > div:last-child {
+  text-align: right;
+}
+
+.previewMeta p {
+  margin: 8px 0 0;
+  white-space: pre-line;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.previewItems {
+  display: grid;
+  gap: 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+
+.previewItems > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.previewItems > div:last-child {
+  border-bottom: 0;
+}
+
+.previewItems small {
+  grid-column: 1;
+}
+
+.previewItems b {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+}
+
+.previewTotals {
+  max-width: 360px;
+  margin: 28px 0 0 auto;
+}
+
+.previewTotals p,
+.previewTotals strong {
+  margin: 0;
+  padding: 8px 0;
+}
+
+.previewTotals strong {
+  border-top: 2px solid var(--text);
+  font-size: 20px;
+}
+
+.invoicePreview footer {
+  justify-content: flex-start;
+  align-items: center;
+  margin-top: 44px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 13px;
+}
+
+@media (max-width: 1180px) {
+  .page {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    position: static;
+    height: auto;
+  }
+
+  .sidebar nav {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .editorGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .previewColumn {
+    position: static;
+  }
+}
+
+@media (max-width: 760px) {
+  .page {
+    padding: 10px;
+  }
+
+  .toolbar,
+  .panelHead,
+  .previewMeta {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .toolbarActions,
+  .toolbarActions button,
+  .formGrid,
+  .taxCreator,
+  .sidebar nav {
+    grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .itemHeader {
+    display: none;
+  }
+
+  .itemRow {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media print {
+  .sidebar,
+  .toolbar,
+  .formColumn,
+  .previewToolbar {
+    display: none;
+  }
+
+  .page {
+    display: block;
+    min-height: auto;
+    padding: 0;
+    background: #fff;
+  }
+
+  .editorGrid,
+  .previewColumn {
+    display: block;
+  }
+
+  .invoicePreview {
+    min-height: auto;
+    border: 0;
+    box-shadow: none;
+  }
+}
