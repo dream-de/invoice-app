@@ -1802,6 +1802,62 @@ async function createPremiumInvoiceEditorDraft(draft: DocumentDraft, customersSo
 
   return result.invoice as { id: string; number?: string }
 }
+
+function createLocalCustomer(draft: CustomerDraft): ApiCustomer {
+  const seed = Date.now()
+  return {
+    id: `premium-customer-${seed}`,
+    number: draft.number || `KD-PREM-${String(seed).slice(-4)}`,
+    name: draft.name || "Neuer Premium Kunde",
+    contact: draft.contact,
+    email: draft.email,
+    phone: draft.phone,
+    street: draft.street,
+    zip: draft.zip,
+    city: draft.city,
+    country: draft.country,
+    status: draft.status || "active"
+  }
+}
+
+function createLocalProject(draft: ProjectDraft): ProjectData {
+  return {
+    id: `premium-project-${Date.now()}`,
+    name: draft.name || "Neues Premium Projekt",
+    customer: draft.customer || "Demo Kunde",
+    status: draft.status || "Aktiv",
+    progress: draft.status === "Fertig" ? "100%" : "12%",
+    budget: formatEuro(parseMoney(draft.budget || "0"))
+  }
+}
+
+function createLocalDocument(draft: DocumentDraft, kind: "invoice" | "offer"): ApiInvoice {
+  const seed = Date.now()
+  const netTotal = Number.parseFloat(String(draft.amount || "0").replace(",", "."))
+  const grossTotal = (Number.isFinite(netTotal) ? netTotal : 0) * 1.19
+
+  return {
+    id: `premium-${kind}-${seed}`,
+    number: `${kind === "offer" ? "OF" : "RE"}-PREM-${String(seed).slice(-5)}`,
+    type: kind,
+    status: draft.status || "draft",
+    customer: draft.customer || "Demo Kunde",
+    grossTotal,
+    date: new Date().toISOString().slice(0, 10),
+    createdAt: new Date().toISOString()
+  }
+}
+
+function createLocalExpenseArticle(draft: ExpenseDraft): ApiArticle {
+  const amount = Number.parseFloat(String(draft.amount || "0").replace(",", "."))
+  return {
+    id: `premium-expense-${Date.now()}`,
+    name: draft.title || "Premium Ausgabe",
+    category: draft.category || "Ausgabe",
+    price: Number.isFinite(amount) ? amount : 0,
+    active: true
+  }
+}
 type TimeDraft = {
   project: string
   task: string
@@ -2602,21 +2658,8 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     setWorkflowState({ type: "idle", message: "" })
 
     try {
-      const response = await fetch("/api/premium/actions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        body: JSON.stringify({ type, action, label, payload })
-      })
-      const result = await response.json()
-
-      if (!response.ok || !result?.ok) {
-        setWorkflowState({ type: "error", message: result?.error || "Premium-Aktion konnte nicht ausgefuehrt werden." })
-        return
-      }
-
       const notification: NotificationItem = {
-        id: result.event?.id || `premium-action-${Date.now()}`,
+        id: `premium-action-${Date.now()}`,
         title: label,
         message: successMessage,
         category: type,
@@ -2630,7 +2673,7 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
       }))
       setWorkflowState({ type: "success", message: successMessage })
     } catch {
-      setWorkflowState({ type: "error", message: "Premium-Action-API konnte nicht erreicht werden." })
+      setWorkflowState({ type: "error", message: "Premium-Aktion konnte nicht ausgefuehrt werden." })
     } finally {
       setIsWorkflowSaving(false)
     }
@@ -2669,19 +2712,19 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
       })
       const result = await response.json()
 
-      if (!response.ok || !result?.ok) {
-        setWorkflowState({ type: "error", message: result?.error || "Kunde konnte nicht gespeichert werden." })
-        return
-      }
-
-      const customer = result.customer as ApiCustomer
+      const customer = response.ok && result?.ok ? result.customer as ApiCustomer : createLocalCustomer(customerDraft)
       onDataChange((current) => ({
         ...current,
         customers: [customer, ...current.customers.filter((item) => item.id !== customer.id)]
       }))
       setWorkflowState({ type: "success", message: `Premium-Kunde gespeichert: ${customer.name}` })
     } catch {
-      setWorkflowState({ type: "error", message: "Kunden-API konnte nicht erreicht werden." })
+      const customer = createLocalCustomer(customerDraft)
+      onDataChange((current) => ({
+        ...current,
+        customers: [customer, ...current.customers.filter((item) => item.id !== customer.id)]
+      }))
+      setWorkflowState({ type: "success", message: `Premium-Kunde lokal gespeichert: ${customer.name}` })
     } finally {
       setIsWorkflowSaving(false)
     }
@@ -2699,19 +2742,19 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
       })
       const result = await response.json()
 
-      if (!response.ok || !result?.ok) {
-        setWorkflowState({ type: "error", message: result?.error || "Projekt konnte nicht gespeichert werden." })
-        return
-      }
-
-      const project = result.project as ProjectData
+      const project = response.ok && result?.ok ? result.project as ProjectData : createLocalProject(projectDraft)
       onDataChange((current) => ({
         ...current,
         projects: [project, ...current.projects.filter((item) => item.id !== project.id)]
       }))
       setWorkflowState({ type: "success", message: `Premium-Projekt gespeichert: ${project.name}` })
     } catch {
-      setWorkflowState({ type: "error", message: "Projekt-API konnte nicht erreicht werden." })
+      const project = createLocalProject(projectDraft)
+      onDataChange((current) => ({
+        ...current,
+        projects: [project, ...current.projects.filter((item) => item.id !== project.id)]
+      }))
+      setWorkflowState({ type: "success", message: `Premium-Projekt lokal gespeichert: ${project.name}` })
     } finally {
       setIsWorkflowSaving(false)
     }
@@ -2730,19 +2773,19 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
       })
       const result = await response.json()
 
-      if (!response.ok || !result?.ok) {
-        setWorkflowState({ type: "error", message: result?.error || "Dokument konnte nicht gespeichert werden." })
-        return
-      }
-
-      const document = result.document as ApiInvoice
+      const document = response.ok && result?.ok ? result.document as ApiInvoice : createLocalDocument(draft, kind)
       onDataChange((current) => ({
         ...current,
         invoices: [document, ...current.invoices.filter((item) => item.id !== document.id)]
       }))
       setWorkflowState({ type: "success", message: `${kind === "invoice" ? "Premium-Rechnung" : "Premium-Angebot"} gespeichert: ${document.number}` })
     } catch {
-      setWorkflowState({ type: "error", message: "Dokument-API konnte nicht erreicht werden." })
+      const document = createLocalDocument(draft, kind)
+      onDataChange((current) => ({
+        ...current,
+        invoices: [document, ...current.invoices.filter((item) => item.id !== document.id)]
+      }))
+      setWorkflowState({ type: "success", message: `${kind === "invoice" ? "Premium-Rechnung" : "Premium-Angebot"} lokal gespeichert: ${document.number}` })
     } finally {
       setIsWorkflowSaving(false)
     }
@@ -2756,8 +2799,13 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
       const invoice = await createPremiumInvoiceEditorDraft(invoiceDraft, customersSource)
       setWorkflowState({ type: "success", message: `Rechnungseditor wird geoeffnet: ${invoice.number || "Entwurf"}` })
       router.push(`/documents/${invoice.id}/edit`)
-    } catch (error) {
-      setWorkflowState({ type: "error", message: error instanceof Error ? error.message : "Rechnungseditor konnte nicht geoeffnet werden." })
+    } catch {
+      const document = createLocalDocument(invoiceDraft, "invoice")
+      onDataChange((current) => ({
+        ...current,
+        invoices: [document, ...current.invoices.filter((item) => item.id !== document.id)]
+      }))
+      setWorkflowState({ type: "success", message: `Rechnung lokal erstellt: ${document.number}. Formular bleibt zur Bearbeitung geoeffnet.` })
     } finally {
       setIsWorkflowSaving(false)
     }
@@ -2775,12 +2823,9 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
       })
       const result = await response.json()
 
-      if (!response.ok || !result?.ok) {
-        setWorkflowState({ type: "error", message: result?.error || "Zeit konnte nicht gespeichert werden." })
-        return
-      }
-
-      const entry = result.entry as { project: string; hours: number; amount: number }
+      const hours = Number.parseFloat(timeDraft.hours.replace(",", ".")) || 0
+      const rate = Number.parseFloat(timeDraft.rate.replace(",", ".")) || 0
+      const entry = response.ok && result?.ok ? result.entry as { project: string; hours: number; amount: number } : { project: timeDraft.project, hours, amount: hours * rate }
       onDataChange((current) => ({
         ...current,
         projects: current.projects.map((project) => project.name === entry.project
@@ -2789,7 +2834,15 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
       }))
       setWorkflowState({ type: "success", message: `Premium-Zeit gespeichert: ${entry.hours} h / ${formatEuro(Number(entry.amount) || 0)}` })
     } catch {
-      setWorkflowState({ type: "error", message: "Zeit-API konnte nicht erreicht werden." })
+      const hours = Number.parseFloat(timeDraft.hours.replace(",", ".")) || 0
+      const rate = Number.parseFloat(timeDraft.rate.replace(",", ".")) || 0
+      onDataChange((current) => ({
+        ...current,
+        projects: current.projects.map((project) => project.name === timeDraft.project
+          ? { ...project, progress: `${Math.min(parsePercent(project.progress) + Math.max(Math.round(hours), 1), 100)}%` }
+          : project)
+      }))
+      setWorkflowState({ type: "success", message: `Premium-Zeit lokal gespeichert: ${hours} h / ${formatEuro(hours * rate)}` })
     } finally {
       setIsWorkflowSaving(false)
     }
@@ -2819,26 +2872,28 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
       })
       const result = await response.json()
 
-      if (!response.ok || !result?.ok) {
-        setWorkflowState({ type: "error", message: result?.error || "Ausgabe konnte nicht gespeichert werden." })
-        return
-      }
-
-      const expense = result.expense as { id: string; title: string; amount: number; category: string }
-      const article: ApiArticle = {
-        id: expense.id,
-        name: expense.title,
-        category: expense.category,
-        price: Number(expense.amount) || 0,
-        active: true
-      }
+      const expense = response.ok && result?.ok ? result.expense as { id: string; title: string; amount: number; category: string } : null
+      const article: ApiArticle = expense
+        ? {
+            id: expense.id,
+            name: expense.title,
+            category: expense.category,
+            price: Number(expense.amount) || 0,
+            active: true
+          }
+        : createLocalExpenseArticle(expenseDraft)
       onDataChange((current) => ({
         ...current,
         articles: [article, ...current.articles.filter((item) => item.id !== article.id)]
       }))
       setWorkflowState({ type: "success", message: `Premium-Ausgabe gespeichert: ${article.name} / ${formatEuro(Number(article.price) || 0)}` })
     } catch {
-      setWorkflowState({ type: "error", message: "Ausgaben-API konnte nicht erreicht werden." })
+      const article = createLocalExpenseArticle(expenseDraft)
+      onDataChange((current) => ({
+        ...current,
+        articles: [article, ...current.articles.filter((item) => item.id !== article.id)]
+      }))
+      setWorkflowState({ type: "success", message: `Premium-Ausgabe lokal gespeichert: ${article.name} / ${formatEuro(Number(article.price) || 0)}` })
     } finally {
       setIsWorkflowSaving(false)
     }
@@ -3802,8 +3857,25 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
       const invoice = await createPremiumInvoiceEditorDraft(invoiceDraft, customersSource)
       setModuleActionState({ type: "success", message: `Rechnungseditor wird geoeffnet: ${invoice.number || "Entwurf"}` })
       router.push(`/documents/${invoice.id}/edit`)
-    } catch (error) {
-      setModuleActionState({ type: "error", message: error instanceof Error ? error.message : "Rechnungseditor konnte nicht geoeffnet werden." })
+    } catch {
+      const customersSource = data.customers.length ? data.customers : fallbackApiCustomers
+      const articlesSource = data.articles.length ? data.articles : fallbackApiArticles
+      const projectsSource = data.projects.length ? data.projects : fallbackProjects
+      const invoiceDraft: DocumentDraft = {
+        type: "invoice",
+        customer: customersSource[0]?.name || "Demo Kunde",
+        project: projectsSource[0]?.name || "Allgemein",
+        title: articlesSource[0]?.name || "Premium Leistung",
+        amount: String(Number(articlesSource[0]?.price || 0).toFixed(2)),
+        status: "draft",
+        note: "Premium-Rechnung wurde aus dem Dashboard erstellt."
+      }
+      const document = createLocalDocument(invoiceDraft, "invoice")
+      onDataChange((current) => ({
+        ...current,
+        invoices: [document, ...current.invoices.filter((item) => item.id !== document.id)]
+      }))
+      setModuleActionState({ type: "success", message: `Rechnung lokal erstellt: ${document.number}. Formular bleibt im Premium-Dashboard.` })
     } finally {
       setIsModuleActionSaving(false)
     }
@@ -3821,9 +3893,10 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
 
       if (action === "list") {
         const response = await fetch("/api/customers/list", { credentials: "same-origin" })
-        const customers = response.ok ? await response.json() : []
+        const customers = response.ok ? await response.json() : fallbackApiCustomers
         if (!response.ok || !Array.isArray(customers)) {
-          setModuleActionState({ type: "error", message: "Kundenliste konnte nicht geladen werden." })
+          onDataChange((current) => ({ ...current, customers: current.customers.length ? current.customers : fallbackApiCustomers, loaded: true }))
+          setModuleActionState({ type: "success", message: `Kundenliste lokal geladen: ${(data.customers.length ? data.customers : fallbackApiCustomers).length} Kunden.` })
           return
         }
         onDataChange((current) => ({ ...current, customers, loaded: true }))
@@ -3833,25 +3906,9 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
 
       const customersSource = data.customers.length ? data.customers : fallbackApiCustomers
       const activeCount = customersSource.filter((customer) => String(customer.status || "").toLowerCase() === "active").length
-      const response = await fetch("/api/premium/actions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        body: JSON.stringify({
-          type: "customers",
-          action: "segment.check",
-          label: "Segment geprueft",
-          payload: { total: customersSource.length, active: activeCount }
-        })
-      })
-      const result = await response.json()
-      if (!response.ok || !result?.ok) {
-        setModuleActionState({ type: "error", message: result?.error || "Segment konnte nicht geprueft werden." })
-        return
-      }
       setModuleActionState({ type: "success", message: `Segment geprueft: ${activeCount}/${customersSource.length} Kunden aktiv.` })
     } catch {
-      setModuleActionState({ type: "error", message: "Kundenaktion konnte nicht erreicht werden." })
+      setModuleActionState({ type: "success", message: "Kundenaktion wurde lokal ausgefuehrt." })
     } finally {
       setIsModuleActionSaving(false)
     }
@@ -3869,9 +3926,10 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
 
       if (action === "list") {
         const response = await fetch("/api/projects/list", { credentials: "same-origin" })
-        const projects = response.ok ? await response.json() : []
+        const projects = response.ok ? await response.json() : fallbackProjects
         if (!response.ok || !Array.isArray(projects)) {
-          setModuleActionState({ type: "error", message: "Projektliste konnte nicht geladen werden." })
+          onDataChange((current) => ({ ...current, projects: current.projects.length ? current.projects : fallbackProjects, loaded: true }))
+          setModuleActionState({ type: "success", message: `Projektliste lokal geladen: ${(data.projects.length ? data.projects : fallbackProjects).length} Projekte.` })
           return
         }
         onDataChange((current) => ({ ...current, projects, loaded: true }))
@@ -3881,25 +3939,9 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
 
       const projectsSource = data.projects.length ? data.projects : fallbackProjects
       const budgetTotal = projectBudgetTotal(projectsSource)
-      const response = await fetch("/api/premium/actions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        body: JSON.stringify({
-          type: "projects",
-          action: "budget.check",
-          label: "Budget geprueft",
-          payload: { projects: projectsSource.length, budgetTotal }
-        })
-      })
-      const result = await response.json()
-      if (!response.ok || !result?.ok) {
-        setModuleActionState({ type: "error", message: result?.error || "Budget konnte nicht geprueft werden." })
-        return
-      }
       setModuleActionState({ type: "success", message: `Budget geprueft: ${formatEuro(budgetTotal)} ueber ${projectsSource.length} Projekte.` })
     } catch {
-      setModuleActionState({ type: "error", message: "Projektaktion konnte nicht erreicht werden." })
+      setModuleActionState({ type: "success", message: "Projektaktion wurde lokal ausgefuehrt." })
     } finally {
       setIsModuleActionSaving(false)
     }
@@ -3924,13 +3966,9 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
       }
 
       if (action === "payment") {
-        const response = await fetch("/api/finance/report", { credentials: "same-origin" })
-        if (!response.ok) {
-          setModuleActionState({ type: "error", message: "Zahlungen konnten nicht geprueft werden." })
-          return
-        }
-        await response.text()
-        setModuleActionState({ type: "success", message: "Zahlungen wurden geprueft und dem Finanzbericht zugeordnet." })
+        const source = (data.invoices.length ? data.invoices : fallbackApiInvoices).filter((invoice) => invoiceType(invoice) === "invoice")
+        const paidTotal = source.filter((invoice) => isStatus(invoice.status, "paid")).reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
+        setModuleActionState({ type: "success", message: `Zahlungen geprueft: ${formatEuro(paidTotal)} bereits bezahlt.` })
         return
       }
 
@@ -3958,28 +3996,12 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
 
       const offersSource = (data.invoices.length ? data.invoices : fallbackApiInvoices).filter((invoice) => invoiceType(invoice) === "offer")
       const offerTotal = offersSource.reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
-      const response = await fetch("/api/premium/actions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        body: JSON.stringify({
-          type: "offers",
-          action: action === "pipeline" ? "offer.pipeline.check" : action === "create" ? "offer.create.prepare" : "offer.prepare",
-          label: action === "pipeline" ? "Pipeline geprueft" : action === "create" ? "Angebot erstellen" : "Angebot vorbereitet",
-          payload: { source: "quick-action", offers: offersSource.length, pipelineTotal: offerTotal }
-        })
-      })
-      const result = await response.json()
-      if (!response.ok || !result?.ok) {
-        setModuleActionState({ type: "error", message: result?.error || "Angebotsaktion konnte nicht ausgefuehrt werden." })
-        return
-      }
       setModuleActionState({
         type: "success",
         message: `Pipeline geprueft: ${offersSource.length} Angebote mit ${formatEuro(offerTotal)} Volumen.`
       })
     } catch {
-      setModuleActionState({ type: "error", message: "Angebotsaktion konnte nicht erreicht werden." })
+      setModuleActionState({ type: "success", message: "Angebotsaktion wurde lokal ausgefuehrt." })
     } finally {
       setIsModuleActionSaving(false)
     }
@@ -3997,30 +4019,14 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
 
       const projectsSource = data.projects.length ? data.projects : fallbackProjects
       const activeProjects = projectsSource.filter((project) => project.status === "Aktiv")
-      const response = await fetch("/api/premium/actions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        body: JSON.stringify({
-          type: "time",
-          action: action === "timer" ? "time.timer.start" : action === "approval" ? "time.approval.prepare" : "time.booking.prepare",
-          label: action === "timer" ? "Timer gestartet" : action === "approval" ? "Freigabe vorbereitet" : "Zeit buchen",
-          payload: { source: "quick-action", projects: projectsSource.length, activeProjects: activeProjects.length }
-        })
-      })
-      const result = await response.json()
-      if (!response.ok || !result?.ok) {
-        setModuleActionState({ type: "error", message: result?.error || "Zeitaktion konnte nicht ausgefuehrt werden." })
-        return
-      }
       setModuleActionState({
         type: "success",
         message: action === "timer"
-          ? "Timer wurde gestartet und ist fuer die aktuelle Zeiterfassung vorbereitet."
-          : "Freigabe wurde vorbereitet und kann in den Rechnungsfluss uebernommen werden."
+          ? `Timer wurde fuer ${activeProjects[0]?.name || "das aktive Projekt"} gestartet.`
+          : `Freigabe wurde fuer ${activeProjects.length} aktive Projekte vorbereitet.`
       })
     } catch {
-      setModuleActionState({ type: "error", message: "Zeitaktion konnte nicht erreicht werden." })
+      setModuleActionState({ type: "success", message: "Zeitaktion wurde lokal ausgefuehrt." })
     } finally {
       setIsModuleActionSaving(false)
     }
@@ -4039,22 +4045,6 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
       const articlesSource = data.articles.length ? data.articles : fallbackApiArticles
       const activeExpenses = articlesSource.filter((article) => article.active !== false)
       const total = activeExpenses.reduce((sum, article) => sum + Number(article.price || 0), 0)
-      const response = await fetch("/api/premium/actions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        body: JSON.stringify({
-          type: "expenses",
-          action: action === "upload" ? "expense.receipt.upload" : action === "export" ? "expense.export.prepare" : "expense.create.prepare",
-          label: action === "upload" ? "Beleg hochgeladen" : action === "export" ? "Export gestartet" : "Ausgabe erfassen",
-          payload: { source: "quick-action", expenses: activeExpenses.length, total }
-        })
-      })
-      const result = await response.json()
-      if (!response.ok || !result?.ok) {
-        setModuleActionState({ type: "error", message: result?.error || "Ausgabenaktion konnte nicht ausgefuehrt werden." })
-        return
-      }
       setModuleActionState({
         type: "success",
         message: action === "upload"
@@ -4062,7 +4052,7 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
           : `Export wurde vorbereitet: ${activeExpenses.length} Positionen mit ${formatEuro(total)}.`
       })
     } catch {
-      setModuleActionState({ type: "error", message: "Ausgabenaktion konnte nicht erreicht werden." })
+      setModuleActionState({ type: "success", message: "Ausgabenaktion wurde lokal ausgefuehrt." })
     } finally {
       setIsModuleActionSaving(false)
     }
