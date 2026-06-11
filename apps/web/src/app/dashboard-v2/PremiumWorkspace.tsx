@@ -3343,6 +3343,42 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
     }
   }
 
+  async function runIntegrationQuickAction(action: "connect" | "sync" | "token") {
+    setIsModuleActionSaving(true)
+    setModuleActionState({ type: "idle", message: "" })
+
+    try {
+      const response = await fetch("/api/premium/actions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          type: action === "token" ? "api" : "integration",
+          action: action === "connect" ? "integration.connect" : action === "sync" ? "integration.sync.check" : "api.token.rotate.prepare",
+          label: action === "connect" ? "Integration verbinden" : action === "sync" ? "Sync pruefen" : "Token erneuern",
+          payload: { source: "quick-action", providers: integrations.length, connected: integrations.length }
+        })
+      })
+      const result = await response.json()
+      if (!response.ok || !result?.ok) {
+        setModuleActionState({ type: "error", message: result?.error || "Integrationsaktion konnte nicht ausgefuehrt werden." })
+        return
+      }
+      setModuleActionState({
+        type: "success",
+        message: action === "connect"
+          ? "Integration wurde vorbereitet und kann oben mit Provider und Token verbunden werden."
+          : action === "sync"
+            ? `Sync wurde geprueft: ${integrations.length} Integrationen bereit.`
+            : "Token-Rotation wurde vorbereitet und im Audit protokolliert."
+      })
+    } catch {
+      setModuleActionState({ type: "error", message: "Integrationsaktion konnte nicht erreicht werden." })
+    } finally {
+      setIsModuleActionSaving(false)
+    }
+  }
+
   return (
     <section className={styles.modulePage}>
       <article className={`${styles.panel} ${styles.moduleHero}`}>
@@ -3363,6 +3399,8 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
           <button type="button" disabled={isModuleActionSaving} onClick={() => void runUserQuickAction("invite")}><Plus size={18} />{meta.primary}</button>
         ) : view === "license" ? (
           <button type="button" disabled={isModuleActionSaving} onClick={() => void runLicenseQuickAction("activate")}><Plus size={18} />{meta.primary}</button>
+        ) : view === "integrations" ? (
+          <button type="button" disabled={isModuleActionSaving} onClick={() => void runIntegrationQuickAction("connect")}><Plus size={18} />{meta.primary}</button>
         ) : (
           <Link href={withPremiumTheme(content.primaryHref, mode)}><Plus size={18} />{meta.primary}</Link>
         )}
@@ -3438,6 +3476,12 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runLicenseQuickAction("activate")}><Plus size={16} />Lizenz aktivieren</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runLicenseQuickAction("demo")}><Search size={16} />Demo-Key pruefen</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runLicenseQuickAction("limit")}><BarChart3 size={16} />Benutzerlimit</button>
+              </>
+            ) : view === "integrations" ? (
+              <>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runIntegrationQuickAction("connect")}><Plus size={16} />Integration verbinden</button>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runIntegrationQuickAction("sync")}><Search size={16} />Sync pruefen</button>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runIntegrationQuickAction("token")}><BarChart3 size={16} />Token erneuern</button>
               </>
             ) : content.actions.map(([action, href], index) => (
                 <Link key={action} href={withPremiumTheme(href, mode)}>
