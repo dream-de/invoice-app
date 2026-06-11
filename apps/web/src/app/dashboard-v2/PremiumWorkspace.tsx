@@ -2124,6 +2124,18 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     }
   }
 
+  async function runTimeWorkflowAction(action: "timer" | "approval") {
+    await runPremiumAction(
+      "time",
+      action === "timer" ? "time.timer.start" : "time.approval.prepare",
+      action === "timer" ? "Timer gestartet" : "Freigabe vorbereitet",
+      { source: "workflow", draft: timeDraft },
+      action === "timer"
+        ? `Timer fuer ${timeDraft.project} wurde gestartet und ist im Premium-Zeitfluss aktiv.`
+        : `Freigabe fuer ${timeDraft.hours} h in ${timeDraft.project} wurde vorbereitet.`
+    )
+  }
+
   async function savePremiumExpense() {
     setIsWorkflowSaving(true)
     setWorkflowState({ type: "idle", message: "" })
@@ -2529,8 +2541,8 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
           <button type="submit" disabled={isWorkflowSaving}>{isWorkflowSaving ? "Speichert..." : "Zeit speichern"}</button>
         </form>
         <div className={styles.workflowActions}>
-          <Link href={withPremiumTheme("/dashboard-v2/time?q=Timer%20gestartet", mode)}>Timer starten</Link>
-          <Link href={withPremiumTheme("/dashboard-v2/time?q=Freigabe%20vorbereitet", mode)}>Freigabe senden</Link>
+          <button type="button" disabled={isWorkflowSaving} onClick={() => void runTimeWorkflowAction("timer")}>Timer starten</button>
+          <button type="button" disabled={isWorkflowSaving} onClick={() => void runTimeWorkflowAction("approval")}>Freigabe senden</button>
         </div>
         {workflowState.message ? <p data-state={workflowState.type}>{workflowState.message}</p> : null}
         {message}
@@ -3024,6 +3036,44 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
     }
   }
 
+  async function runTimeQuickAction(action: "timer" | "book" | "approval") {
+    setIsModuleActionSaving(true)
+    setModuleActionState({ type: "idle", message: "" })
+
+    try {
+      const projectsSource = data.projects.length ? data.projects : fallbackProjects
+      const activeProjects = projectsSource.filter((project) => project.status === "Aktiv")
+      const response = await fetch("/api/premium/actions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          type: "time",
+          action: action === "timer" ? "time.timer.start" : action === "approval" ? "time.approval.prepare" : "time.booking.prepare",
+          label: action === "timer" ? "Timer gestartet" : action === "approval" ? "Freigabe vorbereitet" : "Zeit buchen",
+          payload: { source: "quick-action", projects: projectsSource.length, activeProjects: activeProjects.length }
+        })
+      })
+      const result = await response.json()
+      if (!response.ok || !result?.ok) {
+        setModuleActionState({ type: "error", message: result?.error || "Zeitaktion konnte nicht ausgefuehrt werden." })
+        return
+      }
+      setModuleActionState({
+        type: "success",
+        message: action === "timer"
+          ? "Timer wurde gestartet und ist fuer die aktuelle Zeiterfassung vorbereitet."
+          : action === "approval"
+            ? "Freigabe wurde vorbereitet und kann in den Rechnungsfluss uebernommen werden."
+            : "Zeitbuchung ist bereit. Daten oben pruefen und mit Zeit speichern buchen."
+      })
+    } catch {
+      setModuleActionState({ type: "error", message: "Zeitaktion konnte nicht erreicht werden." })
+    } finally {
+      setIsModuleActionSaving(false)
+    }
+  }
+
   return (
     <section className={styles.modulePage}>
       <article className={`${styles.panel} ${styles.moduleHero}`}>
@@ -3034,6 +3084,8 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
         </div>
         {view === "offers" ? (
           <button type="button" disabled={isModuleActionSaving} onClick={() => void runOfferQuickAction("create")}><Plus size={18} />{meta.primary}</button>
+        ) : view === "time" ? (
+          <button type="button" disabled={isModuleActionSaving} onClick={() => void runTimeQuickAction("timer")}><Plus size={18} />{meta.primary}</button>
         ) : (
           <Link href={withPremiumTheme(content.primaryHref, mode)}><Plus size={18} />{meta.primary}</Link>
         )}
@@ -3079,6 +3131,12 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runOfferQuickAction("prepare")}><Plus size={16} />Angebot vorbereiten</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runOfferQuickAction("create")}><Search size={16} />Angebot erstellen</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runOfferQuickAction("pipeline")}><BarChart3 size={16} />Pipeline pruefen</button>
+              </>
+            ) : view === "time" ? (
+              <>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runTimeQuickAction("timer")}><Plus size={16} />Timer starten</button>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runTimeQuickAction("book")}><Search size={16} />Zeit buchen</button>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runTimeQuickAction("approval")}><BarChart3 size={16} />Freigabe senden</button>
               </>
             ) : content.actions.map(([action, href], index) => (
                 <Link key={action} href={withPremiumTheme(href, mode)}>
