@@ -82,6 +82,11 @@ type ApiCustomer = {
   name: string
   contact?: string
   email?: string
+  phone?: string | null
+  street?: string | null
+  zip?: string | null
+  city?: string | null
+  country?: string | null
   status?: string
 }
 type ApiArticle = {
@@ -406,9 +411,15 @@ const fallbackApiInvoices: ApiInvoice[] = invoices.map(([number, customer, statu
 }))
 const fallbackApiCustomers: ApiCustomer[] = fallbackCustomersData.map((customer) => ({
   id: customer.id,
+  number: "KD-" + customer.id.padStart(4, "0"),
   name: customer.name,
   contact: customer.contact,
   email: customer.email,
+  phone: "",
+  street: "",
+  zip: "",
+  city: "",
+  country: "Deutschland",
   status: customer.status
 }))
 const fallbackApiArticles: ApiArticle[] = fallbackArticlesData.map((article) => ({
@@ -1720,11 +1731,16 @@ type WorkflowState =
   | { type: "success"; message: string }
   | { type: "error"; message: string }
 type CustomerDraft = {
+  number: string
   name: string
   contact: string
   email: string
+  phone: string
   status: string
+  street: string
+  zip: string
   city: string
+  country: string
 }
 type ProjectDraft = {
   name: string
@@ -2182,11 +2198,16 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
   const rangesSource = data.numberRanges.length ? data.numberRanges : fallbackNumberRanges
   const query = searchQuery.toLowerCase()
   const [customerDraft, setCustomerDraft] = useState<CustomerDraft>({
+    number: customersSource[0]?.number || "",
     name: customersSource[0]?.name || "Neuer Premium Kunde",
     contact: customersSource[0]?.contact || "Daniel Kontakt",
     email: customersSource[0]?.email || "kontakt@example.test",
+    phone: customersSource[0]?.phone || "",
     status: "active",
-    city: "Koeln"
+    street: customersSource[0]?.street || "Lindenallee 12",
+    zip: customersSource[0]?.zip || "10115",
+    city: customersSource[0]?.city || "Koeln",
+    country: customersSource[0]?.country || "Deutschland"
   })
   const [projectDraft, setProjectDraft] = useState<ProjectDraft>({
     name: projectsSource[0]?.name || "Neues Premium Projekt",
@@ -2386,10 +2407,7 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
       const response = await fetch("/api/customers/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...customerDraft,
-          country: "Deutschland"
-        })
+        body: JSON.stringify(customerDraft)
       })
       const result = await response.json()
 
@@ -2992,11 +3010,20 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
         <form className={styles.workflowForm} action="/dashboard-v2/customers" method="get" onSubmit={(event) => { event.preventDefault(); void savePremiumCustomer() }}>
           <input type="hidden" name="q" value="Kunde gespeichert" />
           <input type="hidden" name="theme" value={mode} />
-          <label>Kunde<input name="name" value={customerDraft.name} onChange={(event) => updateCustomerDraft("name", event.target.value)} /></label>
+          <label>Firmenname<input name="name" value={customerDraft.name} onChange={(event) => updateCustomerDraft("name", event.target.value)} /></label>
+          <label>Ansprechpartner<input name="contact" value={customerDraft.contact} onChange={(event) => updateCustomerDraft("contact", event.target.value)} /></label>
           <label>E-Mail<input name="email" type="email" value={customerDraft.email} onChange={(event) => updateCustomerDraft("email", event.target.value)} /></label>
-          <label>Kontakt<input name="contact" value={customerDraft.contact} onChange={(event) => updateCustomerDraft("contact", event.target.value)} /></label>
-          <label>Stadt<input name="city" value={customerDraft.city} onChange={(event) => updateCustomerDraft("city", event.target.value)} /></label>
+          <label>Telefon<input name="phone" value={customerDraft.phone} onChange={(event) => updateCustomerDraft("phone", event.target.value)} /></label>
+          <label>Kundennummer<input name="number" value={customerDraft.number} placeholder="wird automatisch gesetzt" onChange={(event) => updateCustomerDraft("number", event.target.value)} /></label>
           <label>Status<select name="status" value={customerDraft.status} onChange={(event) => updateCustomerDraft("status", event.target.value)}><option value="active">Aktiv</option><option value="open">Offen</option><option value="inactive">Inaktiv</option></select></label>
+          <div className={styles.workflowWideField}>
+            <strong>Rechnungsadresse</strong>
+            <span>Adresse fuer Angebote, Rechnungen und Projekte.</span>
+          </div>
+          <label>Strasse<input name="street" value={customerDraft.street} onChange={(event) => updateCustomerDraft("street", event.target.value)} /></label>
+          <label>PLZ<input name="zip" value={customerDraft.zip} onChange={(event) => updateCustomerDraft("zip", event.target.value)} /></label>
+          <label>Ort<input name="city" value={customerDraft.city} onChange={(event) => updateCustomerDraft("city", event.target.value)} /></label>
+          <label>Land<input name="country" value={customerDraft.country} onChange={(event) => updateCustomerDraft("country", event.target.value)} /></label>
           <button type="submit" disabled={isWorkflowSaving}>{isWorkflowSaving ? "Speichert..." : "Kunde speichern"}</button>
         </form>
         {workflowState.message ? <p data-state={workflowState.type}>{workflowState.message}</p> : null}
