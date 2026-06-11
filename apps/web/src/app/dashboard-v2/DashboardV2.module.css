@@ -302,7 +302,7 @@
 .topbar {
   min-height: 58px;
   display: grid;
-  grid-template-columns: minmax(170px, 250px) minmax(0, 1fr) auto;
+  grid-template-columns: minmax(160px, 220px) minmax(420px, 1fr) minmax(320px, auto);
   align-items: center;
   gap: 14px;
   margin-bottom: 14px;
@@ -370,7 +370,9 @@
   justify-content: flex-start;
   gap: 4px;
   overflow-x: auto;
+  overflow-y: hidden;
   scrollbar-width: none;
+  padding-bottom: 2px;
 }
 
 .desktopNav::-webkit-scrollbar {
@@ -381,10 +383,11 @@
   flex: 0 0 auto;
   border-radius: 8px;
   color: var(--muted);
-  padding: 11px 13px;
+  padding: 11px 11px;
   text-decoration: none;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 850;
+  white-space: nowrap;
 }
 
 .desktopNav a:hover,
@@ -398,10 +401,12 @@
 }
 
 .topActions {
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
+  flex-wrap: nowrap;
 }
 
 .topActions > button,
@@ -472,6 +477,7 @@
 }
 
 .profile {
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 9px;
@@ -493,7 +499,14 @@
 .profile strong,
 .profile small {
   display: block;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.profile div {
+  min-width: 0;
 }
 
 .profile strong {
@@ -2042,9 +2055,23 @@
     grid-template-columns: 236px minmax(0, 1fr);
   }
 
+  .topbar {
+    grid-template-columns: minmax(150px, 190px) minmax(350px, 1fr) minmax(278px, auto);
+    gap: 10px;
+  }
+
   .desktopNav a {
-    padding-left: 10px;
-    padding-right: 10px;
+    padding-left: 9px;
+    padding-right: 9px;
+    font-size: 11px;
+  }
+
+  .topActions {
+    gap: 6px;
+  }
+
+  .profile {
+    max-width: 170px;
   }
 
   .mainGrid,

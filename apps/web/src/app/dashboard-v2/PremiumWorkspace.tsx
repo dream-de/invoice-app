@@ -769,7 +769,7 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     stats: [["5/5", "Benutzer"], ["3", "Rollen"], ["2FA", "Empfohlen"]],
     rows: users.map(([name, role]) => [name, role, "Aktiv", role === "Administrator" ? "Owner" : "Team"]) as ModuleRow[],
     focus: [["Admin", "Daniel"], ["Lizenzlimit", "5 Benutzer"], ["Letzter Login", "Heute"]],
-    actions: [["Benutzer einladen", "/dashboard-v2/users?q=Benutzer%20eingeladen"], ["Rolle bearbeiten", "/dashboard-v2/users?q=Rolle%20vorbereitet"], ["2FA pruefen", "/dashboard-v2/users?q=2FA%20geprueft"]],
+    actions: [["Benutzer einladen", "/dashboard-v2/users?q=Benutzer%20eingeladen"], ["Rolle bearbeiten", "/dashboard-v2/users?q=Rolle%20vorbereitet"], ["2FA pruefen", "/account/security"]],
     timeline: [["Einladung vorbereitet", "Neuer Benutzer kann per E-Mail eingeladen werden."], ["Rolle geaendert", "Sarah ist Manager mit Projektfreigaben."], ["Sicherheitshinweis", "2FA fuer Buchhaltung empfohlen."]],
     primaryHref: "/dashboard-v2/users?q=Benutzer%20eingeladen"
   },
@@ -1664,6 +1664,10 @@ type ApiDraft = {
   endpoint: string
   keyLabel: string
 }
+type UserDraft = {
+  email: string
+  role: string
+}
 
 const premiumSettingsAreas: Array<{
   key: string
@@ -1876,6 +1880,10 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     endpoint: "https://api.example.test/webhooks/dreaminvoice",
     keyLabel: "Production API Key"
   })
+  const [userDraft, setUserDraft] = useState<UserDraft>({
+    email: "team@example.test",
+    role: "user"
+  })
   const [workflowState, setWorkflowState] = useState<WorkflowState>({ type: "idle", message: "" })
   const [isWorkflowSaving, setIsWorkflowSaving] = useState(false)
 
@@ -1922,6 +1930,11 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
 
   function updateApiDraft(field: keyof ApiDraft, value: string) {
     setApiDraft((current) => ({ ...current, [field]: value }))
+    setWorkflowState({ type: "idle", message: "" })
+  }
+
+  function updateUserDraft(field: keyof UserDraft, value: string) {
+    setUserDraft((current) => ({ ...current, [field]: value }))
     setWorkflowState({ type: "idle", message: "" })
   }
 
@@ -2122,6 +2135,45 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
       setWorkflowState({ type: "success", message: `Premium-Ausgabe gespeichert: ${article.name} / ${formatEuro(Number(article.price) || 0)}` })
     } catch {
       setWorkflowState({ type: "error", message: "Ausgaben-API konnte nicht erreicht werden." })
+    } finally {
+      setIsWorkflowSaving(false)
+    }
+  }
+
+  async function savePremiumUser() {
+    setIsWorkflowSaving(true)
+    setWorkflowState({ type: "idle", message: "" })
+
+    try {
+      const response = await fetch("/api/settings/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          email: userDraft.email,
+          role: userDraft.role,
+          status: "active",
+          name: userDraft.email.split("@")[0]
+        })
+      })
+      const result = await response.json()
+
+      if (!response.ok || !result?.ok) {
+        setWorkflowState({ type: "error", message: result?.error || "Benutzer konnte nicht eingeladen werden." })
+        return
+      }
+
+      const user = result.user as AppUser
+      onDataChange((current) => ({
+        ...current,
+        appUsers: [user, ...current.appUsers.filter((item) => item.id !== user.id)],
+        userLimit: current.userLimit
+          ? { ...current.userLimit, currentUsers: Number(current.userLimit.currentUsers || 0) + 1 }
+          : current.userLimit
+      }))
+      setWorkflowState({ type: "success", message: `Benutzer eingeladen: ${user.email || userDraft.email}` })
+    } catch {
+      setWorkflowState({ type: "error", message: "Benutzer-API konnte nicht erreicht werden." })
     } finally {
       setIsWorkflowSaving(false)
     }
@@ -2493,18 +2545,18 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
   if (view === "users") {
     return (
       <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("benutzer") || query.includes("rolle") || query.includes("2fa")}>
-        <div className={styles.panelHead}><div><h2>Benutzer einladen</h2><span>API-gestuetzter Invite fuer Rollen und Berechtigungen</span></div><Link href={withPremiumTheme("/dashboard-v2/users?q=2FA%20geprueft", mode)}>2FA pruefen</Link></div>
-        <form className={styles.workflowForm} action="/dashboard-v2/users" method="get">
+        <div className={styles.panelHead}><div><h2>Benutzer einladen</h2><span>API-gestuetzter Invite fuer Rollen und Berechtigungen</span></div><Link href="/account/security">2FA pruefen</Link></div>
+        <form className={styles.workflowForm} action="/dashboard-v2/users" method="get" onSubmit={(event) => { event.preventDefault(); void savePremiumUser() }}>
           <input type="hidden" name="q" value="Benutzer eingeladen" />
           <input type="hidden" name="theme" value={mode} />
-          <label>E-Mail<input name="email" defaultValue="team@example.test" type="email" /></label>
-          <label>Rolle<select name="role" defaultValue="user"><option value="user">Mitarbeiter</option><option value="admin">Admin</option></select></label>
-          <button type="submit">Einladen</button>
+          <label>E-Mail<input name="email" value={userDraft.email} onChange={(event) => updateUserDraft("email", event.target.value)} type="email" /></label>
+          <label>Rolle<select name="role" value={userDraft.role} onChange={(event) => updateUserDraft("role", event.target.value)}><option value="user">Mitarbeiter</option><option value="admin">Admin</option></select></label>
+          <button type="submit" disabled={isWorkflowSaving}>Einladen</button>
         </form>
         <div className={styles.workflowActions}>
-          <Link href={withPremiumTheme("/dashboard-v2/users?q=Rolle%20vorbereitet", mode)}>Rollen verwalten</Link>
-          <Link href={withPremiumTheme("/dashboard-v2/users?q=2FA%20geprueft", mode)}>2FA pruefen</Link>
-          <Link href={withPremiumTheme("/dashboard-v2/users?q=Rolle%20vorbereitet", mode)}>Rolle vormerken</Link>
+          <button type="button" disabled={isWorkflowSaving} onClick={() => void runPremiumAction("users", "role.manage", "Rollen verwalten", { role: userDraft.role }, "Rollenverwaltung wurde geprueft und protokolliert.")}>Rollen verwalten</button>
+          <Link href="/account/security">2FA pruefen</Link>
+          <button type="button" disabled={isWorkflowSaving} onClick={() => void runPremiumAction("users", "role.prepare", "Rolle vorgemerkt", userDraft, `${userDraft.role === "admin" ? "Admin" : "Mitarbeiter"} Rolle wurde vorgemerkt.`)}>Rolle vormerken</button>
         </div>
         {message}
       </article>
