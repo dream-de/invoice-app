@@ -1,4 +1,5 @@
 import { prisma } from "@dream-invoice/database"
+import { isDemoMode } from "@/lib/demo-mode"
 
 function money(value: unknown) {
   const amount = Number(value ?? 0)
@@ -8,12 +9,34 @@ function money(value: unknown) {
 }
 
 export async function GET() {
-  if (!process.env.DATABASE_URL) {
-    return new Response("Finanzbericht\nDatenbank ist nicht verbunden.\n", {
-      status: 503,
+  if (isDemoMode() || !process.env.DATABASE_URL) {
+    return new Response([
+      "DreamInvoice Premium Finanzbericht",
+      `Erstellt: ${new Date().toLocaleString("de-DE")}`,
+      "",
+      "Rechnungen",
+      "Anzahl: 4",
+      `Netto: ${money(3407.64)}`,
+      `MwSt: ${money(456.15)}`,
+      `Brutto: ${money(3863.79)}`,
+      `Offen: ${money(3144.74)} (3)`,
+      "",
+      "Zahlungen",
+      `Zahlungseingaenge: ${money(719.05)} (1)`,
+      `Rest offen: ${money(3144.74)}`,
+      "",
+      "Premium Workflows",
+      `Erfasste Ausgaben: ${money(528.99)} (3)`,
+      `Abrechenbare Zeit: ${money(1450)} (6)`,
+      "",
+      "Ergebnis",
+      `Liquiditaetsblick: ${money(190.06)}`,
+      `Forecast inkl. offene Rechnungen: ${money(4784.8)}`
+    ].join("\n"), {
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
-        "Content-Disposition": 'attachment; filename="finanzbericht.txt"'
+        "Content-Disposition": 'attachment; filename="finanzbericht.txt"',
+        "Cache-Control": "no-store"
       }
     })
   }

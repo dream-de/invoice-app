@@ -1,4 +1,5 @@
 import { prisma } from "@dream-invoice/database"
+import { isDemoMode } from "@/lib/demo-mode"
 import { createCsvResponse } from "@/lib/export/csv-response"
 
 function amount(value: unknown) {
@@ -7,9 +8,13 @@ function amount(value: unknown) {
 }
 
 export async function GET() {
-  if (!process.env.DATABASE_URL) {
+  if (isDemoMode() || !process.env.DATABASE_URL) {
     return createCsvResponse(
-      [["Code", "Projekt", "Kunde", "Status", "Budget", "Rechnungen", "Abgerechnet", "Zeitwert", "Ausgaben"]],
+      [
+        ["Code", "Projekt", "Kunde", "Status", "Budget", "Rechnungen", "Abgerechnet", "Zeitwert", "Ausgaben"],
+        ["PR-0001", "Website Redesign", "Meridian Studio GmbH", "Aktiv", "2450.00", "2", "1320.00", "1450.00", "528.99"],
+        ["PR-0002", "Brand Portal", "Aurora Labs GmbH", "Review", "5200.00", "1", "719.05", "860.00", "120.00"]
+      ],
       "projektbericht.csv"
     )
   }

@@ -1,4 +1,5 @@
 import { prisma } from "@dream-invoice/database"
+import { isDemoMode } from "@/lib/demo-mode"
 import { createCsvResponse } from "@/lib/export/csv-response"
 
 function formatDate(value: Date | string | null | undefined) {
@@ -14,9 +15,14 @@ function amount(value: unknown) {
 }
 
 export async function GET() {
-  if (!process.env.DATABASE_URL) {
+  if (isDemoMode() || !process.env.DATABASE_URL) {
     return createCsvResponse(
-      [["Datum", "Belegnummer", "Konto", "Gegenkonto", "Text", "Soll", "Haben", "Steuer"]],
+      [
+        ["Datum", "Belegnummer", "Konto", "Gegenkonto", "Text", "Soll", "Haben", "Steuer"],
+        ["2026-06-10", "RE-2026-104", "8400", "1200", "Ausgangsrechnung Premium Staging Kunde", "", "148.75", "23.75"],
+        ["2026-05-23", "RE-2026-4999", "8400", "1200", "Ausgangsrechnung Aurora Labs GmbH", "", "719.05", "114.80"],
+        ["2026-06-10", "EXP-DEMO-001", "4930", "1200", "Software Ausgabe", "79.90", "", "0.00"]
+      ],
       "datev-export.csv"
     )
   }
