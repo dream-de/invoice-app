@@ -49,6 +49,7 @@ type PremiumView =
   | "offers"
   | "time"
   | "expenses"
+  | "articles"
   | "reports"
   | "settings"
   | "users"
@@ -203,9 +204,10 @@ const mainNav: NavItem[] = [
   { label: "Berichte", href: "/dashboard-v2/reports", icon: BarChart3 },
   { label: "Einstellungen", href: "/dashboard-v2/settings", icon: Settings }
 ]
+const articlesNavItem: NavItem = { label: "Artikel", href: "/dashboard-v2/articles", icon: Briefcase }
 
 const sideNav = [
-  { section: "Hauptmenu", items: mainNav.slice(0, 8) },
+  { section: "Hauptmenu", items: [...mainNav.slice(0, 7), articlesNavItem, mainNav[7]] },
   {
     section: "Management",
     items: [
@@ -268,6 +270,12 @@ const premiumViewMeta: Record<PremiumView, { title: string; eyebrow: string; des
     eyebrow: "Kosten",
     description: "Belege, Kostenstellen, Ausgabenkategorien und Erstattungen verwalten.",
     primary: "Ausgabe erfassen"
+  },
+  articles: {
+    title: "Artikel",
+    eyebrow: "Leistungen",
+    description: "Artikel, Leistungen, Preise, Kategorien, Import und Export im Premium-Kontext verwalten.",
+    primary: "Artikel importieren"
   },
   reports: {
     title: "Berichte",
@@ -665,7 +673,7 @@ function globalSearchResults(data: PremiumData, query: string): SearchResult[] {
 
   for (const article of articlesSource) {
     if (!matchesSearch([article.name, article.category || "", article.code || "", formatEuro(Number(article.price) || 0)], normalizedQuery)) continue
-    results.push({ title: article.name, subtitle: `${article.category || "Leistung"} · ${formatEuro(Number(article.price) || 0)}`, href: `/dashboard-v2/expenses?q=${encodeURIComponent(article.name)}`, icon: Wallet })
+    results.push({ title: article.name, subtitle: `${article.category || "Leistung"} · ${formatEuro(Number(article.price) || 0)}`, href: `/dashboard-v2/articles?q=${encodeURIComponent(article.name)}`, icon: Briefcase })
   }
 
   for (const user of usersSource) {
@@ -810,6 +818,14 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     actions: [["Ausgabe erfassen", "/dashboard-v2/expenses?q=Ausgabe%20erfasst"], ["Beleg hochladen", "/dashboard-v2/expenses?q=Beleg%20hochgeladen"], ["Export starten", "/dashboard-v2/expenses?q=DATEV%20vorbereitet"]],
     timeline: [["Beleg erkannt", "OCR hat Kategorie und Betrag automatisch gesetzt."], ["Kostenstelle gesetzt", "Hosting wurde Projekt Website Redesign zugeordnet."], ["Export vorbereitet", "10 Belege sind DATEV-kompatibel."]],
     primaryHref: "/dashboard-v2/expenses?q=Ausgabe%20erfasst"
+  },
+  articles: {
+    stats: [["6", "Artikel"], ["CSV", "Export"], ["API", "Import"]],
+    rows: [["Premium Beratung", "Dienstleistung", "149,00 EUR", "Aktiv"], ["Wartungspaket", "Service", "89,00 EUR", "Aktiv"], ["Lizenz Setup", "Software", "249,00 EUR", "Aktiv"]],
+    focus: [["Import", "CSV/Bulk"], ["Export", "Preisliste"], ["Vorlage", "Bereit"]],
+    actions: [["Artikel importieren", "/dashboard-v2/articles?q=Artikel%20importiert"], ["CSV Export", "/dashboard-v2/articles?q=Artikel%20exportiert"], ["Vorlage laden", "/dashboard-v2/articles?q=Artikel%20Vorlage"]],
+    timeline: [["Artikelimport bereit", "CSV-Zeilen koennen direkt gespeichert werden."], ["Export aktiv", "Preisliste wird als CSV erzeugt."], ["Vorlage bereit", "Importstruktur ist downloadbar."]],
+    primaryHref: "/dashboard-v2/articles?q=Artikel%20importieren"
   },
   reports: {
     stats: [["18%", "Wachstum"], ["34%", "Marge"], ["12", "Reports"]],
@@ -1204,6 +1220,15 @@ function moduleRows(view: Exclude<PremiumView, "dashboard">, data: PremiumData):
     ])
   }
 
+  if (view === "articles") {
+    return articlesSource.slice(0, 5).map((article) => [
+      article.name,
+      article.code || "Ohne Nummer",
+      formatEuro(Number(article.price) || 0),
+      article.active === false ? "Inaktiv" : "Aktiv"
+    ])
+  }
+
   if (view === "reports") {
     const source = data.invoices.length ? data.invoices : fallbackApiInvoices
     const invoiceTotal = source.filter((invoice) => invoiceType(invoice) === "invoice").reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
@@ -1339,6 +1364,11 @@ function moduleStats(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
     return [[String(articlesSource.length), "Positionen"], [String(activeArticles.length), "Aktiv"], [formatEuro(activeArticles.reduce((sum, article) => sum + Number(article.price || 0), 0)), "Kostenbasis"]]
   }
 
+  if (view === "articles") {
+    const activeArticles = articlesSource.filter((article) => article.active !== false)
+    return [[String(articlesSource.length), "Artikel"], [String(activeArticles.length), "Aktiv"], [formatEuro(activeArticles.reduce((sum, article) => sum + Number(article.price || 0), 0)), "Preisvolumen"]]
+  }
+
   if (view === "reports") {
     const total = source.reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
     const paid = source.filter((invoice) => isStatus(invoice.status, "paid")).reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
@@ -1440,6 +1470,13 @@ function moduleFocus(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
     return [["Aktive Positionen", String(activeArticles.length)], ["Kostenbasis", formatEuro(activeArticles.reduce((sum, article) => sum + Number(article.price || 0), 0))], ["Top Position", topArticle?.name || categories[0] || "Leistung"]]
   }
 
+  if (view === "articles") {
+    const activeArticles = articlesSource.filter((article) => article.active !== false)
+    const categories = Array.from(new Set(activeArticles.map((article) => article.category || "Leistung")))
+    const topArticle = [...activeArticles].sort((left, right) => Number(right.price || 0) - Number(left.price || 0))[0]
+    return [["Aktive Artikel", String(activeArticles.length)], ["Kategorien", String(categories.length)], ["Top Artikel", topArticle?.name || "Artikel importieren"]]
+  }
+
   if (view === "reports") {
     const total = source.reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
     const paidShare = Math.round((paidTotal / Math.max(total, 1)) * 100)
@@ -1539,6 +1576,10 @@ const premiumActionQueryTerms = [
   "ausgabe erfasst",
   "beleg hochgeladen",
   "datev vorbereitet",
+  "artikel importiert",
+  "artikel exportiert",
+  "artikel vorlage",
+  "artikel geprueft",
   "report exportiert",
   "vergleich geoeffnet",
   "firma geprueft",
@@ -1633,6 +1674,12 @@ function moduleRowHref(view: Exclude<PremiumView, "dashboard">, data: PremiumDat
     const articlesSource = data.articles.length ? data.articles : fallbackApiArticles
     const article = articlesSource.find((item) => item.name === row[0])
     return article ? `/dashboard-v2/expenses?q=${encodeURIComponent(article.name)}` : "/dashboard-v2/expenses"
+  }
+
+  if (view === "articles") {
+    const articlesSource = data.articles.length ? data.articles : fallbackApiArticles
+    const article = articlesSource.find((item) => item.name === row[0])
+    return article ? `/dashboard-v2/articles?q=${encodeURIComponent(article.name)}` : "/dashboard-v2/articles"
   }
 
   return `/dashboard-v2/${view}?q=${encodeURIComponent(row[0])}`
@@ -1737,6 +1784,9 @@ type ApiDraft = {
 type UserDraft = {
   email: string
   role: string
+}
+type ArticleImportDraft = {
+  csv: string
 }
 
 const premiumSettingsAreas: Array<{
@@ -2092,6 +2142,38 @@ function PremiumLicenseAdminPage({ mode }: { mode: ThemeMode }) {
   )
 }
 
+function downloadBlob(blob: Blob, filename: string) {
+  const href = URL.createObjectURL(blob)
+  const link = document.createElement("a")
+  link.href = href
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(href)
+}
+
+function parseArticleImportRows(csv: string) {
+  return csv
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const delimiter = line.includes(";") ? ";" : ","
+      const [code, name, category, price, unit, tax] = line.split(delimiter).map((value) => value.trim())
+
+      return {
+        code,
+        name,
+        category,
+        price,
+        unit,
+        tax
+      }
+    })
+    .filter((row) => row.name)
+}
+
 function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: { view: Exclude<PremiumView, "dashboard">; data: PremiumData; mode: ThemeMode; searchQuery: string; onDataChange: (updater: (current: PremiumData) => PremiumData) => void }) {
   const customersSource = data.customers.length ? data.customers : fallbackApiCustomers
   const projectsSource = data.projects.length ? data.projects : fallbackProjects
@@ -2174,6 +2256,9 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     email: "team@example.test",
     role: "user"
   })
+  const [articleImportDraft, setArticleImportDraft] = useState<ArticleImportDraft>({
+    csv: "AR-PREM-1001;Premium Beratung;Dienstleistung;149.00;Stk;19\nAR-PREM-1002;Wartungspaket;Service;89.00;Monat;19"
+  })
   const [workflowState, setWorkflowState] = useState<WorkflowState>({ type: "idle", message: "" })
   const [isWorkflowSaving, setIsWorkflowSaving] = useState(false)
 
@@ -2225,6 +2310,11 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
 
   function updateUserDraft(field: keyof UserDraft, value: string) {
     setUserDraft((current) => ({ ...current, [field]: value }))
+    setWorkflowState({ type: "idle", message: "" })
+  }
+
+  function updateArticleImportDraft(field: keyof ArticleImportDraft, value: string) {
+    setArticleImportDraft((current) => ({ ...current, [field]: value }))
     setWorkflowState({ type: "idle", message: "" })
   }
 
@@ -2640,6 +2730,80 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     }
   }
 
+  async function importPremiumArticles() {
+    const articles = parseArticleImportRows(articleImportDraft.csv)
+    if (!articles.length) {
+      setWorkflowState({ type: "error", message: "Keine gueltigen Artikelzeilen gefunden." })
+      return
+    }
+
+    setIsWorkflowSaving(true)
+    setWorkflowState({ type: "idle", message: "" })
+
+    try {
+      const response = await fetch("/api/articles/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ articles })
+      })
+      const result = await response.json()
+
+      if (!response.ok || !result?.ok) {
+        setWorkflowState({ type: "error", message: result?.error || "Artikelimport konnte nicht gespeichert werden." })
+        return
+      }
+
+      const savedArticles = Array.isArray(result.articles) ? result.articles : []
+      onDataChange((current) => ({
+        ...current,
+        articles: savedArticles.length ? [...savedArticles, ...(current.articles.length ? current.articles : fallbackApiArticles)].slice(0, 50) : current.articles
+      }))
+      setWorkflowState({ type: "success", message: `${result.savedCount ?? savedArticles.length} Artikel wurden importiert.` })
+    } catch {
+      setWorkflowState({ type: "error", message: "Artikelimport-API konnte nicht erreicht werden." })
+    } finally {
+      setIsWorkflowSaving(false)
+    }
+  }
+
+  async function exportPremiumArticles(kind: "export" | "template" | "check") {
+    setIsWorkflowSaving(true)
+    setWorkflowState({ type: "idle", message: "" })
+
+    try {
+      if (kind === "check") {
+        const response = await fetch("/api/articles/list", { credentials: "same-origin" })
+        const result = response.ok ? await response.json() : null
+
+        if (!response.ok || result?.ok === false || !Array.isArray(result?.articles)) {
+          setWorkflowState({ type: "error", message: result?.error || "Artikel konnten nicht geladen werden." })
+          return
+        }
+
+        onDataChange((current) => ({ ...current, articles: result.articles }))
+        setWorkflowState({ type: "success", message: `${result.articles.length} Artikel wurden aus der API geladen.` })
+        return
+      }
+
+      const endpoint = kind === "template" ? "/api/articles/import-template" : "/api/articles/export"
+      const response = await fetch(endpoint, { credentials: "same-origin" })
+
+      if (!response.ok) {
+        setWorkflowState({ type: "error", message: kind === "template" ? "Importvorlage konnte nicht geladen werden." : "Artikelexport konnte nicht vorbereitet werden." })
+        return
+      }
+
+      const blob = await response.blob()
+      downloadBlob(blob, kind === "template" ? "artikel-import-vorlage.csv" : "preisliste-export.csv")
+      setWorkflowState({ type: "success", message: kind === "template" ? "Artikel-Importvorlage wurde geladen." : "Artikelexport wurde als CSV vorbereitet." })
+    } catch {
+      setWorkflowState({ type: "error", message: "Artikel-API konnte nicht erreicht werden." })
+    } finally {
+      setIsWorkflowSaving(false)
+    }
+  }
+
   async function markPremiumNotificationsRead() {
     setIsWorkflowSaving(true)
     setWorkflowState({ type: "idle", message: "" })
@@ -2771,6 +2935,10 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     [query.includes("ausgabe gespeichert"), "Premium-Ausgabe wurde gespeichert und bleibt im neuen Dashboard-Kontext."],
     [query.includes("beleg hochgeladen"), "Beleg-Upload wurde vorbereitet und kann dem Ausgabenfluss zugeordnet werden."],
     [query.includes("datev vorbereitet"), "DATEV Export wurde vorbereitet."],
+    [query.includes("artikel importiert"), "Artikelimport wurde ausgefuehrt und die Premium-Liste aktualisiert."],
+    [query.includes("artikel exportiert"), "Artikelexport wurde als CSV vorbereitet."],
+    [query.includes("artikel vorlage"), "Artikel-Importvorlage wurde geladen."],
+    [query.includes("artikel geprueft"), "Artikel wurden aus der API geladen."],
     [query.includes("report exportiert"), "Report Export wurde vorbereitet."],
     [query.includes("vergleich geoeffnet"), "Vergleich wurde geoeffnet und fuer den Export vorbereitet."],
     [query.includes("firma geprueft"), "Firmeneinstellungen wurden geprueft und sind bereit."],
@@ -2943,6 +3111,27 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
         <div className={styles.workflowActions}>
           <button type="button" disabled={isWorkflowSaving} onClick={() => void runExpenseWorkflowAction("datev")}>DATEV Export</button>
           <button type="button" disabled={isWorkflowSaving} onClick={() => void runExpenseWorkflowAction("export")}>Export vormerken</button>
+        </div>
+        {workflowState.message ? <p data-state={workflowState.type}>{workflowState.message}</p> : null}
+        {message}
+      </article>
+    )
+  }
+
+  if (view === "articles") {
+    return (
+      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("artikel") || query.includes("import") || query.includes("export") || query.includes("vorlage")}>
+        <div className={styles.panelHead}><div><h2>Artikel Import & Export</h2><span>CSV importieren, Vorlage laden und Preisliste exportieren</span></div><button type="button" disabled={isWorkflowSaving} onClick={() => void exportPremiumArticles("check")}>Artikel pruefen</button></div>
+        <form className={styles.workflowForm} action="/dashboard-v2/articles" method="get" onSubmit={(event) => { event.preventDefault(); void importPremiumArticles() }}>
+          <input type="hidden" name="q" value="Artikel importiert" />
+          <input type="hidden" name="theme" value={mode} />
+          <label className={styles.workflowWideField}>CSV Daten<textarea name="csv" rows={4} value={articleImportDraft.csv} onChange={(event) => updateArticleImportDraft("csv", event.target.value)} /></label>
+          <button type="submit" disabled={isWorkflowSaving}>Artikel importieren</button>
+        </form>
+        <div className={styles.workflowActions}>
+          <button type="button" disabled={isWorkflowSaving} onClick={() => void exportPremiumArticles("export")}>CSV Export</button>
+          <button type="button" disabled={isWorkflowSaving} onClick={() => void exportPremiumArticles("template")}>Vorlage laden</button>
+          <button type="button" disabled={isWorkflowSaving} onClick={() => void exportPremiumArticles("check")}>Artikel pruefen</button>
         </div>
         {workflowState.message ? <p data-state={workflowState.type}>{workflowState.message}</p> : null}
         {message}
@@ -3526,6 +3715,90 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
     }
   }
 
+  async function runArticleQuickAction(action: "import" | "export" | "template") {
+    setIsModuleActionSaving(true)
+    setModuleActionState({ type: "idle", message: "" })
+
+    try {
+      if (action === "import") {
+        const articles = parseArticleImportRows("AR-PREM-Q1;Premium Quick Artikel;Dienstleistung;149.00;Stk;19")
+        const response = await fetch("/api/articles/bulk", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify({ articles })
+        })
+        const result = await response.json()
+
+        if (!response.ok || !result?.ok) {
+          setModuleActionState({ type: "error", message: result?.error || "Artikelimport konnte nicht ausgefuehrt werden." })
+          return
+        }
+
+        onDataChange((current) => ({
+          ...current,
+          articles: Array.isArray(result.articles) && result.articles.length ? [...result.articles, ...(current.articles.length ? current.articles : fallbackApiArticles)].slice(0, 50) : current.articles
+        }))
+        setModuleActionState({ type: "success", message: `${result.savedCount ?? 1} Premium-Artikel wurde importiert.` })
+        return
+      }
+
+      const endpoint = action === "template" ? "/api/articles/import-template" : "/api/articles/export"
+      const response = await fetch(endpoint, { credentials: "same-origin" })
+
+      if (!response.ok) {
+        setModuleActionState({ type: "error", message: action === "template" ? "Vorlage konnte nicht geladen werden." : "CSV Export konnte nicht vorbereitet werden." })
+        return
+      }
+
+      const blob = await response.blob()
+      downloadBlob(blob, action === "template" ? "artikel-import-vorlage.csv" : "preisliste-export.csv")
+      setModuleActionState({ type: "success", message: action === "template" ? "Importvorlage wurde geladen." : "Artikel CSV Export wurde vorbereitet." })
+    } catch {
+      setModuleActionState({ type: "error", message: "Artikelaktion konnte nicht erreicht werden." })
+    } finally {
+      setIsModuleActionSaving(false)
+    }
+  }
+
+  async function runAuditQuickAction(action: "export" | "filter" | "search") {
+    setIsModuleActionSaving(true)
+    setModuleActionState({ type: "idle", message: "" })
+
+    try {
+      const response = await fetch("/api/premium/actions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          type: "audit",
+          action: action === "export" ? "audit.export" : action === "filter" ? "audit.filter" : "audit.search",
+          label: action === "export" ? "Audit exportiert" : action === "filter" ? "Audit Filter aktiv" : "Ereignis gefunden",
+          payload: { source: "quick-action", filter: action === "filter" ? "security,system,webhook" : searchQuery || "all" }
+        })
+      })
+      const result = await response.json()
+
+      if (!response.ok || !result?.ok) {
+        setModuleActionState({ type: "error", message: result?.error || "Audit-Aktion konnte nicht ausgefuehrt werden." })
+        return
+      }
+
+      setModuleActionState({
+        type: "success",
+        message: action === "export"
+          ? "Audit Export wurde vorbereitet und protokolliert."
+          : action === "filter"
+            ? "Audit Filter zeigt jetzt Security, System und Webhook Ereignisse."
+            : "Ereignissuche wurde ausgefuehrt und passende Eintraege sind markiert."
+      })
+    } catch {
+      setModuleActionState({ type: "error", message: "Audit-Aktion konnte nicht erreicht werden." })
+    } finally {
+      setIsModuleActionSaving(false)
+    }
+  }
+
   async function runUserQuickAction(action: "invite" | "role" | "2fa") {
     setIsModuleActionSaving(true)
     setModuleActionState({ type: "idle", message: "" })
@@ -3740,11 +4013,23 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runExpenseQuickAction("upload")}><Search size={16} />Beleg hochladen</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runExpenseQuickAction("export")}><BarChart3 size={16} />Export starten</button>
               </>
+            ) : view === "articles" ? (
+              <>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runArticleQuickAction("import")}><Plus size={16} />Artikel importieren</button>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runArticleQuickAction("export")}><Search size={16} />CSV Export</button>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runArticleQuickAction("template")}><BarChart3 size={16} />Vorlage laden</button>
+              </>
             ) : view === "reports" ? (
               <>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runReportQuickAction("documents")}><Plus size={16} />Report exportieren</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runReportQuickAction("datev")}><Search size={16} />DATEV Export</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runReportQuickAction("compare")}><BarChart3 size={16} />Vergleich oeffnen</button>
+              </>
+            ) : view === "audit" ? (
+              <>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runAuditQuickAction("export")}><Plus size={16} />Audit exportieren</button>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runAuditQuickAction("filter")}><Search size={16} />Filter setzen</button>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runAuditQuickAction("search")}><BarChart3 size={16} />Ereignis suchen</button>
               </>
             ) : view === "users" ? (
               <>
