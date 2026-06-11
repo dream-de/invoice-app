@@ -3,7 +3,7 @@
 import type { ChangeEvent, ComponentType, FormEvent, RefObject } from "react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { articles as fallbackArticlesData, customers as fallbackCustomersData, projects as fallbackProjectsData } from "@/data/invoice-data"
 import {
   AlertCircle,
@@ -1758,6 +1758,50 @@ type DocumentDraft = {
   status: string
   note: string
 }
+
+function premiumInvoicePayload(draft: DocumentDraft, customersSource: ApiCustomer[]) {
+  const todayDate = new Date()
+  const today = todayDate.toISOString().slice(0, 10)
+  const dueDateValue = new Date(todayDate)
+  dueDateValue.setDate(dueDateValue.getDate() + 14)
+  const dueDate = dueDateValue.toISOString().slice(0, 10)
+  const customer = customersSource.find((item) => item.name === draft.customer)
+  const parsedAmount = Number.parseFloat(String(draft.amount || "0").replace(",", "."))
+  const price = Number.isFinite(parsedAmount) && parsedAmount >= 0 ? parsedAmount : 0
+
+  return {
+    date: today,
+    dueDate,
+    customerId: customer?.id,
+    taxRate: 0.19,
+    tip: 0,
+    note: draft.note || "Premium-Rechnung wurde im Dashboard vorbereitet.",
+    items: [
+      {
+        name: draft.title || "Premium Leistung",
+        quantity: 1,
+        price,
+        category: draft.project || null
+      }
+    ]
+  }
+}
+
+async function createPremiumInvoiceEditorDraft(draft: DocumentDraft, customersSource: ApiCustomer[]) {
+  const response = await fetch("/api/invoice/create", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    body: JSON.stringify(premiumInvoicePayload(draft, customersSource))
+  })
+  const result = await response.json().catch(() => null)
+
+  if (!response.ok || !result?.invoice?.id) {
+    throw new Error(result?.error || "Rechnung konnte nicht erstellt werden.")
+  }
+
+  return result.invoice as { id: string; number?: string }
+}
 type TimeDraft = {
   project: string
   task: string
@@ -2347,6 +2391,7 @@ function mergePremiumArticles(importedArticles: ApiArticle[], currentArticles: A
 }
 
 function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: { view: Exclude<PremiumView, "dashboard">; data: PremiumData; mode: ThemeMode; searchQuery: string; onDataChange: (updater: (current: PremiumData) => PremiumData) => void }) {
+  const router = useRouter()
   const customersSource = data.customers.length ? data.customers : fallbackApiCustomers
   const projectsSource = data.projects.length ? data.projects : fallbackProjects
   const articlesSource = data.articles.length ? data.articles : fallbackApiArticles
@@ -2642,6 +2687,21 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
       setWorkflowState({ type: "success", message: `${kind === "invoice" ? "Premium-Rechnung" : "Premium-Angebot"} gespeichert: ${document.number}` })
     } catch {
       setWorkflowState({ type: "error", message: "Dokument-API konnte nicht erreicht werden." })
+    } finally {
+      setIsWorkflowSaving(false)
+    }
+  }
+
+  async function openFullPremiumInvoiceEditor() {
+    setIsWorkflowSaving(true)
+    setWorkflowState({ type: "idle", message: "" })
+
+    try {
+      const invoice = await createPremiumInvoiceEditorDraft(invoiceDraft, customersSource)
+      setWorkflowState({ type: "success", message: `Rechnungseditor wird geoeffnet: ${invoice.number || "Entwurf"}` })
+      router.push(`/documents/${invoice.id}/edit`)
+    } catch (error) {
+      setWorkflowState({ type: "error", message: error instanceof Error ? error.message : "Rechnungseditor konnte nicht geoeffnet werden." })
     } finally {
       setIsWorkflowSaving(false)
     }
@@ -3275,7 +3335,7 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
   if (view === "invoices") {
     return (
       <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("rechnung") || query.includes("zahlung") || query.includes("freigabe")} data-premium-workflow="invoices">
-        <div className={styles.panelHead}><div><h2>Rechnung vorbereiten</h2><span>Kunde, Projekt und Dokumentfluss vorbereiten</span></div><button type="button" disabled={isWorkflowSaving} onClick={() => void runPremiumAction("invoices", "invoice.prepare", "Rechnung vorbereitet", invoiceDraft, "Premium-Rechnungsformular wurde vorbereitet und protokolliert.")}>Premium erstellen</button></div>
+        <div className={styles.panelHead}><div><h2>Rechnung vorbereiten</h2><span>Kunde, Projekt und Dokumentfluss vorbereiten</span></div><button type="button" disabled={isWorkflowSaving} onClick={() => void openFullPremiumInvoiceEditor()}>Premium erstellen</button></div>
         <form className={styles.workflowForm} action="/dashboard-v2/invoices" method="get" onSubmit={(event) => { event.preventDefault(); void savePremiumDocument("invoice") }}>
           <input type="hidden" name="q" value="Rechnung gespeichert" />
           <input type="hidden" name="theme" value={mode} />
@@ -3663,6 +3723,7 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
 }
 
 function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { view: Exclude<PremiumView, "dashboard">; data: PremiumData; mode: ThemeMode; searchQuery: string; onDataChange: (updater: (current: PremiumData) => PremiumData) => void }) {
+  const router = useRouter()
   const meta = premiumViewMeta[view]
   const content = moduleContent[view]
   const allRows = moduleRows(view, data)
@@ -3674,6 +3735,33 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
   const timeline = moduleTimeline(view, data)
   const [moduleActionState, setModuleActionState] = useState<WorkflowState>({ type: "idle", message: "" })
   const [isModuleActionSaving, setIsModuleActionSaving] = useState(false)
+
+  async function openFullPremiumInvoiceEditor() {
+    setIsModuleActionSaving(true)
+    setModuleActionState({ type: "idle", message: "" })
+
+    try {
+      const customersSource = data.customers.length ? data.customers : fallbackApiCustomers
+      const articlesSource = data.articles.length ? data.articles : fallbackApiArticles
+      const projectsSource = data.projects.length ? data.projects : fallbackProjects
+      const invoiceDraft: DocumentDraft = {
+        type: "invoice",
+        customer: customersSource[0]?.name || "Demo Kunde",
+        project: projectsSource[0]?.name || "Allgemein",
+        title: articlesSource[0]?.name || "Premium Leistung",
+        amount: String(Number(articlesSource[0]?.price || 0).toFixed(2)),
+        status: "draft",
+        note: "Premium-Rechnung wurde aus dem Dashboard erstellt."
+      }
+      const invoice = await createPremiumInvoiceEditorDraft(invoiceDraft, customersSource)
+      setModuleActionState({ type: "success", message: `Rechnungseditor wird geoeffnet: ${invoice.number || "Entwurf"}` })
+      router.push(`/documents/${invoice.id}/edit`)
+    } catch (error) {
+      setModuleActionState({ type: "error", message: error instanceof Error ? error.message : "Rechnungseditor konnte nicht geoeffnet werden." })
+    } finally {
+      setIsModuleActionSaving(false)
+    }
+  }
 
   async function runCustomerQuickAction(action: "create" | "list" | "segment") {
     setIsModuleActionSaving(true)
@@ -3777,11 +3865,14 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
 
     try {
       if (action === "prepare" || action === "create") {
+        if (action === "create") {
+          await openFullPremiumInvoiceEditor()
+          return
+        }
+
         openPremiumWorkflow(
           "invoices",
-          action === "create"
-            ? "Rechnungserstellung geoeffnet. Daten pruefen und mit Rechnung speichern anlegen."
-            : "Rechnungsformular geoeffnet. Daten pruefen und mit Rechnung speichern anlegen."
+          "Rechnungsformular geoeffnet. Daten pruefen und mit Rechnung speichern anlegen."
         )
         return
       }
@@ -4205,7 +4296,7 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
         ) : view === "projects" ? (
           <button type="button" disabled={isModuleActionSaving} onClick={() => openPremiumWorkflow("projects", "Projektformular geoeffnet. Projektdaten ausfuellen und mit Projekt speichern anlegen.")}><Plus size={18} />{meta.primary}</button>
         ) : view === "invoices" ? (
-          <button type="button" disabled={isModuleActionSaving} onClick={() => openPremiumWorkflow("invoices", "Rechnungserstellung geoeffnet. Daten pruefen und mit Rechnung speichern anlegen.")}><Plus size={18} />{meta.primary}</button>
+          <button type="button" disabled={isModuleActionSaving} onClick={() => void openFullPremiumInvoiceEditor()}><Plus size={18} />{meta.primary}</button>
         ) : view === "offers" ? (
           <button type="button" disabled={isModuleActionSaving} onClick={() => void runOfferQuickAction("create")}><Plus size={18} />{meta.primary}</button>
         ) : view === "time" ? (
