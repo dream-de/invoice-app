@@ -2452,7 +2452,7 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
   if (view === "invoices") {
     return (
       <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("rechnung") || query.includes("zahlung") || query.includes("freigabe")}>
-        <div className={styles.panelHead}><div><h2>Rechnung vorbereiten</h2><span>Kunde, Projekt und Dokumentfluss vorbereiten</span></div><Link href={withPremiumTheme("/dashboard-v2/invoices?q=Rechnung%20neu%20vorbereitet", mode)}>Premium erstellen</Link></div>
+        <div className={styles.panelHead}><div><h2>Rechnung vorbereiten</h2><span>Kunde, Projekt und Dokumentfluss vorbereiten</span></div><button type="button" disabled={isWorkflowSaving} onClick={() => void runPremiumAction("invoices", "invoice.prepare", "Rechnung vorbereitet", invoiceDraft, "Premium-Rechnungsformular wurde vorbereitet und protokolliert.")}>Premium erstellen</button></div>
         <form className={styles.workflowForm} action="/dashboard-v2/invoices" method="get" onSubmit={(event) => { event.preventDefault(); void savePremiumDocument("invoice") }}>
           <input type="hidden" name="q" value="Rechnung gespeichert" />
           <input type="hidden" name="theme" value={mode} />
@@ -2920,6 +2920,51 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
     }
   }
 
+  async function runInvoiceQuickAction(action: "prepare" | "create" | "payment") {
+    setIsModuleActionSaving(true)
+    setModuleActionState({ type: "idle", message: "" })
+
+    try {
+      if (action === "payment") {
+        const response = await fetch("/api/finance/report", { credentials: "same-origin" })
+        if (!response.ok) {
+          setModuleActionState({ type: "error", message: "Zahlungen konnten nicht geprueft werden." })
+          return
+        }
+        await response.text()
+        setModuleActionState({ type: "success", message: "Zahlungen wurden geprueft und dem Finanzbericht zugeordnet." })
+        return
+      }
+
+      const response = await fetch("/api/premium/actions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          type: "invoices",
+          action: action === "create" ? "invoice.create.prepare" : "invoice.prepare",
+          label: action === "create" ? "Rechnung erstellen" : "Rechnung vorbereitet",
+          payload: { source: "quick-action" }
+        })
+      })
+      const result = await response.json()
+      if (!response.ok || !result?.ok) {
+        setModuleActionState({ type: "error", message: result?.error || "Rechnungsaktion konnte nicht ausgefuehrt werden." })
+        return
+      }
+      setModuleActionState({
+        type: "success",
+        message: action === "create"
+          ? "Rechnungserstellung wurde vorbereitet. Fuer echte Speicherung oben Rechnung speichern nutzen."
+          : "Rechnungsformular ist bereit. Daten pruefen und mit Rechnung speichern anlegen."
+      })
+    } catch {
+      setModuleActionState({ type: "error", message: "Rechnungsaktion konnte nicht erreicht werden." })
+    } finally {
+      setIsModuleActionSaving(false)
+    }
+  }
+
   return (
     <section className={styles.modulePage}>
       <article className={`${styles.panel} ${styles.moduleHero}`}>
@@ -2959,6 +3004,12 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runProjectQuickAction("create")}><Plus size={16} />Projekt anlegen</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runProjectQuickAction("list")}><Search size={16} />Projektliste</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runProjectQuickAction("budget")}><BarChart3 size={16} />Budget pruefen</button>
+              </>
+            ) : view === "invoices" ? (
+              <>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runInvoiceQuickAction("prepare")}><Plus size={16} />Rechnung vorbereiten</button>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runInvoiceQuickAction("create")}><Search size={16} />Rechnung erstellen</button>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runInvoiceQuickAction("payment")}><BarChart3 size={16} />Zahlung pruefen</button>
               </>
             ) : content.actions.map(([action, href], index) => (
                 <Link key={action} href={withPremiumTheme(href, mode)}>
