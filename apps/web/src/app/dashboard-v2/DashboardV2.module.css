@@ -1522,17 +1522,21 @@
 
 .licenseKeyForm textarea {
   width: 100%;
-  min-height: 96px;
-  resize: vertical;
+  min-height: 44px;
+  max-height: 44px;
+  resize: none;
   border: 1px solid var(--line-strong);
   border-radius: 8px;
   background: var(--shell);
   color: var(--text);
   margin-top: 9px;
-  padding: 12px;
+  padding: 11px 12px;
   outline: none;
   font-size: 13px;
   font-weight: 750;
+  line-height: 20px;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .licenseKeyForm textarea:focus {

@@ -1828,8 +1828,8 @@ function PremiumLicensePanel({ data, mode, searchQuery }: { data: PremiumData; m
             id="premium-license-key"
             value={licenseKey}
             onChange={(event) => setLicenseKey(event.target.value)}
-            rows={3}
-            placeholder="INV1..."
+            rows={1}
+            placeholder="INV1-PREM-2026-XXXX-XXXX-XXXX-XXXX"
             spellCheck={false}
           />
           <div className={styles.licenseFormActions}>
