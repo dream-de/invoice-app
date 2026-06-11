@@ -1424,7 +1424,8 @@
 }
 
 .moduleHero a,
-.actionStrip a {
+.actionStrip a,
+.actionStrip button {
   min-height: 44px;
   display: inline-flex;
   align-items: center;
@@ -1663,7 +1664,8 @@
 .workflowForm a,
 .workflowActions button,
 .workflowActions a,
-.workflowPanel .panelHead a {
+.workflowPanel .panelHead a,
+.workflowPanel .panelHead button {
   min-height: 42px;
   display: inline-flex;
   align-items: center;
@@ -1682,7 +1684,8 @@
 
 .workflowForm a,
 .workflowActions a,
-.workflowPanel .panelHead a {
+.workflowPanel .panelHead a,
+.workflowPanel .panelHead button {
   border-color: var(--line);
   background: color-mix(in srgb, var(--panel-strong) 86%, transparent);
   color: var(--text);
@@ -1882,7 +1885,8 @@
   gap: 10px;
 }
 
-.actionStrip a {
+.actionStrip a,
+.actionStrip button {
   width: 100%;
   min-height: 46px;
   white-space: normal;

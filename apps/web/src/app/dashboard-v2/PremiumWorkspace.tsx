@@ -2412,7 +2412,7 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
   if (view === "customers") {
     return (
       <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("kunde") || query.includes("segment")}>
-        <div className={styles.panelHead}><div><h2>Kunde anlegen</h2><span>Kontakt im Premium-Flow vorbereiten</span></div><Link href={withPremiumTheme("/dashboard-v2/customers?q=Kunde%20neu%20vorbereitet", mode)}>Premium vorbereiten</Link></div>
+        <div className={styles.panelHead}><div><h2>Kunde anlegen</h2><span>Kontakt im Premium-Flow vorbereiten</span></div><button type="button" disabled={isWorkflowSaving} onClick={() => void runPremiumAction("customers", "customer.prepare", "Kunde vorbereitet", customerDraft, "Premium-Kundenformular wurde vorbereitet und protokolliert.")}>Premium vorbereiten</button></div>
         <form className={styles.workflowForm} action="/dashboard-v2/customers" method="get" onSubmit={(event) => { event.preventDefault(); void savePremiumCustomer() }}>
           <input type="hidden" name="q" value="Kunde gespeichert" />
           <input type="hidden" name="theme" value={mode} />
@@ -2821,6 +2821,56 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
   const stats = moduleStats(view, data)
   const focus = moduleFocus(view, data)
   const timeline = moduleTimeline(view, data)
+  const [moduleActionState, setModuleActionState] = useState<WorkflowState>({ type: "idle", message: "" })
+  const [isModuleActionSaving, setIsModuleActionSaving] = useState(false)
+
+  async function runCustomerQuickAction(action: "create" | "list" | "segment") {
+    setIsModuleActionSaving(true)
+    setModuleActionState({ type: "idle", message: "" })
+
+    try {
+      if (action === "create") {
+        setModuleActionState({ type: "success", message: "Kundenformular ist bereit. Daten ausfuellen und mit Kunde speichern anlegen." })
+        return
+      }
+
+      if (action === "list") {
+        const response = await fetch("/api/customers/list", { credentials: "same-origin" })
+        const customers = response.ok ? await response.json() : []
+        if (!response.ok || !Array.isArray(customers)) {
+          setModuleActionState({ type: "error", message: "Kundenliste konnte nicht geladen werden." })
+          return
+        }
+        onDataChange((current) => ({ ...current, customers, loaded: true }))
+        setModuleActionState({ type: "success", message: `Kundenliste geladen: ${customers.length} Kunden.` })
+        return
+      }
+
+      const customersSource = data.customers.length ? data.customers : fallbackApiCustomers
+      const activeCount = customersSource.filter((customer) => String(customer.status || "").toLowerCase() === "active").length
+      const response = await fetch("/api/premium/actions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          type: "customers",
+          action: "segment.check",
+          label: "Segment geprueft",
+          payload: { total: customersSource.length, active: activeCount }
+        })
+      })
+      const result = await response.json()
+      if (!response.ok || !result?.ok) {
+        setModuleActionState({ type: "error", message: result?.error || "Segment konnte nicht geprueft werden." })
+        return
+      }
+      setModuleActionState({ type: "success", message: `Segment geprueft: ${activeCount}/${customersSource.length} Kunden aktiv.` })
+    } catch {
+      setModuleActionState({ type: "error", message: "Kundenaktion konnte nicht erreicht werden." })
+    } finally {
+      setIsModuleActionSaving(false)
+    }
+  }
 
   return (
     <section className={styles.modulePage}>
@@ -2850,13 +2900,20 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
         <article className={`${styles.panel} ${styles.moduleCard}`}>
           <div className={styles.panelHead}><h2>Schnellzugriff</h2><span>Premium Aktionen</span></div>
           <div className={styles.actionStrip}>
-            {content.actions.map(([action, href], index) => (
-              <Link key={action} href={withPremiumTheme(href, mode)}>
-                {index === 0 ? <Plus size={16} /> : index === 1 ? <Search size={16} /> : <BarChart3 size={16} />}
-                {action}
-              </Link>
-            ))}
+            {view === "customers" ? (
+              <>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runCustomerQuickAction("create")}><Plus size={16} />Kunde anlegen</button>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runCustomerQuickAction("list")}><Search size={16} />Kundenliste</button>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runCustomerQuickAction("segment")}><BarChart3 size={16} />Segment pruefen</button>
+              </>
+            ) : content.actions.map(([action, href], index) => (
+                <Link key={action} href={withPremiumTheme(href, mode)}>
+                  {index === 0 ? <Plus size={16} /> : index === 1 ? <Search size={16} /> : <BarChart3 size={16} />}
+                  {action}
+                </Link>
+              ))}
           </div>
+          {moduleActionState.message ? <p data-state={moduleActionState.type}>{moduleActionState.message}</p> : null}
         </article>
 
         <article className={`${styles.panel} ${styles.moduleCard}`}>
