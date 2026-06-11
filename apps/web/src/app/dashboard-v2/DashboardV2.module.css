@@ -1442,6 +1442,7 @@
 }
 
 .moduleHero a,
+.moduleHero button,
 .actionStrip a,
 .actionStrip button {
   min-height: 44px;
@@ -1459,6 +1460,12 @@
   font-weight: 950;
   text-decoration: none;
   white-space: nowrap;
+}
+
+.moduleHero button:disabled,
+.actionStrip button:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
 }
 
 .moduleGrid {

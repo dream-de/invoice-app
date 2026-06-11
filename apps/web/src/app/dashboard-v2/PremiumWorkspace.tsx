@@ -1977,6 +1977,27 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     }
   }
 
+  async function preparePremiumDocument(kind: "invoice" | "offer", action: "prepare" | "create") {
+    const isOffer = kind === "offer"
+    await runPremiumAction(
+      isOffer ? "offers" : "invoices",
+      isOffer
+        ? action === "create" ? "offer.create.prepare" : "offer.prepare"
+        : action === "create" ? "invoice.create.prepare" : "invoice.prepare",
+      isOffer
+        ? action === "create" ? "Angebot erstellen" : "Angebot vorbereitet"
+        : action === "create" ? "Rechnung erstellen" : "Rechnung vorbereitet",
+      { source: "workflow", draft: isOffer ? offerDraft : invoiceDraft },
+      isOffer
+        ? action === "create"
+          ? "Angebotserstellung wurde vorbereitet. Fuer echte Speicherung unten Angebot speichern nutzen."
+          : "Angebotsformular ist bereit. Daten pruefen und mit Angebot speichern anlegen."
+        : action === "create"
+          ? "Rechnungserstellung wurde vorbereitet. Fuer echte Speicherung unten Rechnung speichern nutzen."
+          : "Rechnungsformular ist bereit. Daten pruefen und mit Rechnung speichern anlegen."
+    )
+  }
+
   async function savePremiumCustomer() {
     setIsWorkflowSaving(true)
     setWorkflowState({ type: "idle", message: "" })
@@ -2474,7 +2495,7 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
   if (view === "offers") {
     return (
       <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("angebot") || query.includes("pipeline")}>
-        <div className={styles.panelHead}><div><h2>Angebot vorbereiten</h2><span>Pipeline-Dokument mit Kunde und Projekt vorbereiten</span></div><Link href={withPremiumTheme("/dashboard-v2/offers?q=Angebot%20neu%20vorbereitet", mode)}>Premium erstellen</Link></div>
+        <div className={styles.panelHead}><div><h2>Angebot vorbereiten</h2><span>Pipeline-Dokument mit Kunde und Projekt vorbereiten</span></div><button type="button" disabled={isWorkflowSaving} onClick={() => void preparePremiumDocument("offer", "create")}>Premium erstellen</button></div>
         <form className={styles.workflowForm} action="/dashboard-v2/offers" method="get" onSubmit={(event) => { event.preventDefault(); void savePremiumDocument("offer") }}>
           <input type="hidden" name="q" value="Angebot gespeichert" />
           <input type="hidden" name="theme" value={mode} />
@@ -2965,6 +2986,44 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
     }
   }
 
+  async function runOfferQuickAction(action: "prepare" | "create" | "pipeline") {
+    setIsModuleActionSaving(true)
+    setModuleActionState({ type: "idle", message: "" })
+
+    try {
+      const offersSource = (data.invoices.length ? data.invoices : fallbackApiInvoices).filter((invoice) => invoiceType(invoice) === "offer")
+      const offerTotal = offersSource.reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
+      const response = await fetch("/api/premium/actions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          type: "offers",
+          action: action === "pipeline" ? "offer.pipeline.check" : action === "create" ? "offer.create.prepare" : "offer.prepare",
+          label: action === "pipeline" ? "Pipeline geprueft" : action === "create" ? "Angebot erstellen" : "Angebot vorbereitet",
+          payload: { source: "quick-action", offers: offersSource.length, pipelineTotal: offerTotal }
+        })
+      })
+      const result = await response.json()
+      if (!response.ok || !result?.ok) {
+        setModuleActionState({ type: "error", message: result?.error || "Angebotsaktion konnte nicht ausgefuehrt werden." })
+        return
+      }
+      setModuleActionState({
+        type: "success",
+        message: action === "pipeline"
+          ? `Pipeline geprueft: ${offersSource.length} Angebote mit ${formatEuro(offerTotal)} Volumen.`
+          : action === "create"
+            ? "Angebotserstellung wurde vorbereitet. Fuer echte Speicherung oben Angebot speichern nutzen."
+            : "Angebotsformular ist bereit. Daten pruefen und mit Angebot speichern anlegen."
+      })
+    } catch {
+      setModuleActionState({ type: "error", message: "Angebotsaktion konnte nicht erreicht werden." })
+    } finally {
+      setIsModuleActionSaving(false)
+    }
+  }
+
   return (
     <section className={styles.modulePage}>
       <article className={`${styles.panel} ${styles.moduleHero}`}>
@@ -2973,7 +3032,11 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
           <h1>{meta.title}</h1>
           <p>{meta.description}</p>
         </div>
-        <Link href={withPremiumTheme(content.primaryHref, mode)}><Plus size={18} />{meta.primary}</Link>
+        {view === "offers" ? (
+          <button type="button" disabled={isModuleActionSaving} onClick={() => void runOfferQuickAction("create")}><Plus size={18} />{meta.primary}</button>
+        ) : (
+          <Link href={withPremiumTheme(content.primaryHref, mode)}><Plus size={18} />{meta.primary}</Link>
+        )}
       </article>
 
       <section className={styles.moduleStatsGrid}>
@@ -3010,6 +3073,12 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runInvoiceQuickAction("prepare")}><Plus size={16} />Rechnung vorbereiten</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runInvoiceQuickAction("create")}><Search size={16} />Rechnung erstellen</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runInvoiceQuickAction("payment")}><BarChart3 size={16} />Zahlung pruefen</button>
+              </>
+            ) : view === "offers" ? (
+              <>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runOfferQuickAction("prepare")}><Plus size={16} />Angebot vorbereiten</button>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runOfferQuickAction("create")}><Search size={16} />Angebot erstellen</button>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runOfferQuickAction("pipeline")}><BarChart3 size={16} />Pipeline pruefen</button>
               </>
             ) : content.actions.map(([action, href], index) => (
                 <Link key={action} href={withPremiumTheme(href, mode)}>
