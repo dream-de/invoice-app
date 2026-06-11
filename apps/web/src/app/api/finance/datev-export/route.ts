@@ -13,11 +13,6 @@ function amount(value: unknown) {
   return (Number.isFinite(numberValue) ? numberValue : 0).toFixed(2)
 }
 
-function expenseValue(data: unknown, key: string) {
-  if (!data || typeof data !== "object" || Array.isArray(data)) return ""
-  return String((data as Record<string, unknown>)[key] ?? "")
-}
-
 export async function GET() {
   if (!process.env.DATABASE_URL) {
     return createCsvResponse(
@@ -35,10 +30,8 @@ export async function GET() {
       orderBy: { paidAt: "desc" },
       include: { invoice: { include: { customer: true } } }
     }),
-    prisma.auditLog.findMany({
-      where: { action: "premium.expense.create" },
-      orderBy: { createdAt: "desc" },
-      select: { createdAt: true, data: true, entityId: true }
+    prisma.expense.findMany({
+      orderBy: { date: "desc" }
     })
   ])
 
@@ -64,13 +57,13 @@ export async function GET() {
       "",
       "0.00"
     ]),
-    ...expenses.map((entry) => [
-      formatDate(entry.createdAt),
-      entry.entityId || "",
+    ...expenses.map((expense) => [
+      formatDate(expense.date),
+      expense.id,
       "4930",
       "1200",
-      expenseValue(entry.data, "title") || expenseValue(entry.data, "vendor") || "Premium Ausgabe",
-      expenseValue(entry.data, "amount") || "0.00",
+      expense.title || expense.vendor || "Premium Ausgabe",
+      amount(expense.amount),
       "",
       "0.00"
     ])

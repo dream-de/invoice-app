@@ -9,7 +9,7 @@ function amount(value: unknown) {
 export async function GET() {
   if (!process.env.DATABASE_URL) {
     return createCsvResponse(
-      [["Code", "Projekt", "Kunde", "Status", "Budget", "Rechnungen", "Abgerechnet"]],
+      [["Code", "Projekt", "Kunde", "Status", "Budget", "Rechnungen", "Abgerechnet", "Zeitwert", "Ausgaben"]],
       "projektbericht.csv"
     )
   }
@@ -18,12 +18,14 @@ export async function GET() {
     orderBy: { createdAt: "desc" },
     include: {
       customer: true,
-      invoices: true
+      invoices: true,
+      timeEntries: true,
+      expenses: true
     }
   })
 
   const rows = [
-    ["Code", "Projekt", "Kunde", "Status", "Budget", "Rechnungen", "Abgerechnet"],
+    ["Code", "Projekt", "Kunde", "Status", "Budget", "Rechnungen", "Abgerechnet", "Zeitwert", "Ausgaben"],
     ...projects.map((project) => [
       project.code,
       project.name,
@@ -31,7 +33,9 @@ export async function GET() {
       project.status,
       amount(project.budget),
       project.invoices.length,
-      amount(project.invoices.reduce((sum, invoice) => sum + Number(invoice.grossTotal ?? 0), 0))
+      amount(project.invoices.reduce((sum, invoice) => sum + Number(invoice.grossTotal ?? 0), 0)),
+      amount(project.timeEntries.reduce((sum, entry) => sum + Number(entry.amount ?? 0), 0)),
+      amount(project.expenses.reduce((sum, expense) => sum + Number(expense.amount ?? 0), 0))
     ])
   ]
 

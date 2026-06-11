@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { prisma } from "@dream-invoice/database"
 import { demoModeResponse, isDemoMode } from "@/lib/demo-mode"
 import { writeAuditLog } from "@/lib/audit/log"
 
@@ -39,15 +40,38 @@ export async function POST(req: Request) {
       return NextResponse.json(demoModeResponse({ ok: true, expense }))
     }
 
+    const project = await prisma.project.findFirst({
+      where: { name: expense.project }
+    })
+
+    const savedExpense = await prisma.expense.create({
+      data: {
+        projectId: project?.id ?? null,
+        projectName: expense.project,
+        title: expense.title,
+        category: expense.category,
+        vendor: expense.vendor,
+        amount: expense.amount,
+        status: expense.status,
+        date: new Date(expense.date)
+      }
+    })
+
+    const responseExpense = {
+      ...expense,
+      id: savedExpense.id,
+      date: savedExpense.date.toISOString()
+    }
+
     await writeAuditLog({
       action: "premium.expense.create",
       entity: "premium_expense",
-      entityId: expense.id,
+      entityId: savedExpense.id,
       reason: "Premium Ausgabe erstellt",
-      data: expense
+      data: responseExpense
     })
 
-    return NextResponse.json({ ok: true, expense })
+    return NextResponse.json({ ok: true, expense: responseExpense })
   } catch (error) {
     console.error(error)
 

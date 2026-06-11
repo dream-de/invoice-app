@@ -7,13 +7,6 @@ function money(value: unknown) {
   )
 }
 
-function numberFromAuditData(data: unknown, key: string) {
-  if (!data || typeof data !== "object" || Array.isArray(data)) return 0
-  const value = (data as Record<string, unknown>)[key]
-  const amount = Number(String(value ?? "0").replace(",", "."))
-  return Number.isFinite(amount) ? amount : 0
-}
-
 export async function GET() {
   if (!process.env.DATABASE_URL) {
     return new Response("Finanzbericht\nDatenbank ist nicht verbunden.\n", {
@@ -25,7 +18,7 @@ export async function GET() {
     })
   }
 
-  const [invoiceStats, paymentStats, openStats, expenseLogs, timeLogs] = await Promise.all([
+  const [invoiceStats, paymentStats, openStats, expenseStats, timeStats] = await Promise.all([
     prisma.invoice.aggregate({
       _sum: { netTotal: true, vatTotal: true, grossTotal: true },
       _count: { _all: true }
@@ -39,18 +32,18 @@ export async function GET() {
       _sum: { grossTotal: true },
       _count: { _all: true }
     }),
-    prisma.auditLog.findMany({
-      where: { action: "premium.expense.create" },
-      select: { data: true }
+    prisma.expense.aggregate({
+      _sum: { amount: true },
+      _count: { _all: true }
     }),
-    prisma.auditLog.findMany({
-      where: { action: "premium.time.create" },
-      select: { data: true }
+    prisma.timeEntry.aggregate({
+      _sum: { amount: true },
+      _count: { _all: true }
     })
   ])
 
-  const expensesTotal = expenseLogs.reduce((sum, entry) => sum + numberFromAuditData(entry.data, "amount"), 0)
-  const billableTimeTotal = timeLogs.reduce((sum, entry) => sum + numberFromAuditData(entry.data, "amount"), 0)
+  const expensesTotal = Number(expenseStats._sum.amount ?? 0)
+  const billableTimeTotal = Number(timeStats._sum.amount ?? 0)
   const grossTotal = Number(invoiceStats._sum.grossTotal ?? 0)
   const paidTotal = Number(paymentStats._sum.amount ?? 0)
   const openTotal = Number(openStats._sum.grossTotal ?? 0)
@@ -71,8 +64,8 @@ export async function GET() {
     `Rest offen: ${money(Math.max(grossTotal - paidTotal, 0))}`,
     "",
     "Premium Workflows",
-    `Erfasste Ausgaben: ${money(expensesTotal)} (${expenseLogs.length})`,
-    `Abrechenbare Zeit: ${money(billableTimeTotal)} (${timeLogs.length})`,
+    `Erfasste Ausgaben: ${money(expensesTotal)} (${expenseStats._count._all})`,
+    `Abrechenbare Zeit: ${money(billableTimeTotal)} (${timeStats._count._all})`,
     "",
     "Ergebnis",
     `Liquiditaetsblick: ${money(paidTotal - expensesTotal)}`,
