@@ -2432,7 +2432,7 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
   if (view === "projects") {
     return (
       <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("projekt") || query.includes("budget")}>
-        <div className={styles.panelHead}><div><h2>Projekt anlegen</h2><span>Projekt vorbereiten und Budget direkt pruefen</span></div><Link href={withPremiumTheme("/dashboard-v2/projects?q=Projekt%20neu%20vorbereitet", mode)}>Premium vorbereiten</Link></div>
+        <div className={styles.panelHead}><div><h2>Projekt anlegen</h2><span>Projekt vorbereiten und Budget direkt pruefen</span></div><button type="button" disabled={isWorkflowSaving} onClick={() => void runPremiumAction("projects", "project.prepare", "Projekt vorbereitet", projectDraft, "Premium-Projektformular wurde vorbereitet und protokolliert.")}>Premium vorbereiten</button></div>
         <form className={styles.workflowForm} action="/dashboard-v2/projects" method="get" onSubmit={(event) => { event.preventDefault(); void savePremiumProject() }}>
           <input type="hidden" name="q" value="Projekt gespeichert" />
           <input type="hidden" name="theme" value={mode} />
@@ -2872,6 +2872,54 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
     }
   }
 
+  async function runProjectQuickAction(action: "create" | "list" | "budget") {
+    setIsModuleActionSaving(true)
+    setModuleActionState({ type: "idle", message: "" })
+
+    try {
+      if (action === "create") {
+        setModuleActionState({ type: "success", message: "Projektformular ist bereit. Projektdaten ausfuellen und mit Projekt speichern anlegen." })
+        return
+      }
+
+      if (action === "list") {
+        const response = await fetch("/api/projects/list", { credentials: "same-origin" })
+        const projects = response.ok ? await response.json() : []
+        if (!response.ok || !Array.isArray(projects)) {
+          setModuleActionState({ type: "error", message: "Projektliste konnte nicht geladen werden." })
+          return
+        }
+        onDataChange((current) => ({ ...current, projects, loaded: true }))
+        setModuleActionState({ type: "success", message: `Projektliste geladen: ${projects.length} Projekte.` })
+        return
+      }
+
+      const projectsSource = data.projects.length ? data.projects : fallbackProjects
+      const budgetTotal = projectBudgetTotal(projectsSource)
+      const response = await fetch("/api/premium/actions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          type: "projects",
+          action: "budget.check",
+          label: "Budget geprueft",
+          payload: { projects: projectsSource.length, budgetTotal }
+        })
+      })
+      const result = await response.json()
+      if (!response.ok || !result?.ok) {
+        setModuleActionState({ type: "error", message: result?.error || "Budget konnte nicht geprueft werden." })
+        return
+      }
+      setModuleActionState({ type: "success", message: `Budget geprueft: ${formatEuro(budgetTotal)} ueber ${projectsSource.length} Projekte.` })
+    } catch {
+      setModuleActionState({ type: "error", message: "Projektaktion konnte nicht erreicht werden." })
+    } finally {
+      setIsModuleActionSaving(false)
+    }
+  }
+
   return (
     <section className={styles.modulePage}>
       <article className={`${styles.panel} ${styles.moduleHero}`}>
@@ -2905,6 +2953,12 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runCustomerQuickAction("create")}><Plus size={16} />Kunde anlegen</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runCustomerQuickAction("list")}><Search size={16} />Kundenliste</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runCustomerQuickAction("segment")}><BarChart3 size={16} />Segment pruefen</button>
+              </>
+            ) : view === "projects" ? (
+              <>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runProjectQuickAction("create")}><Plus size={16} />Projekt anlegen</button>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runProjectQuickAction("list")}><Search size={16} />Projektliste</button>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runProjectQuickAction("budget")}><BarChart3 size={16} />Budget pruefen</button>
               </>
             ) : content.actions.map(([action, href], index) => (
                 <Link key={action} href={withPremiumTheme(href, mode)}>
@@ -2989,18 +3043,20 @@ export function PremiumWorkspacePage({ view = "dashboard", initialSearchQuery = 
 
     async function loadPremiumData() {
       try {
-        const [invoiceResponse, customerResponse, articleResponse, userResponse, notificationResponse, companyResponse, rangeResponse] = await Promise.all([
+        const [invoiceResponse, customerResponse, projectResponse, articleResponse, userResponse, notificationResponse, companyResponse, rangeResponse] = await Promise.all([
           fetch("/api/invoice/list", { credentials: "same-origin" }),
           fetch("/api/customers/list", { credentials: "same-origin" }),
+          fetch("/api/projects/list", { credentials: "same-origin" }),
           fetch("/api/articles/list", { credentials: "same-origin" }),
           fetch("/api/settings/users", { credentials: "same-origin" }),
           fetch("/api/notifications?limit=8", { credentials: "same-origin" }),
           fetch("/api/settings/company", { credentials: "same-origin" }),
           fetch("/api/settings/number-ranges", { credentials: "same-origin" })
         ])
-        const [invoicePayload, customerPayload, articlePayload, userPayload, notificationPayload, companyPayload, rangePayload] = await Promise.all([
+        const [invoicePayload, customerPayload, projectPayload, articlePayload, userPayload, notificationPayload, companyPayload, rangePayload] = await Promise.all([
           invoiceResponse.ok ? invoiceResponse.json() : Promise.resolve([]),
           customerResponse.ok ? customerResponse.json() : Promise.resolve([]),
+          projectResponse.ok ? projectResponse.json() : Promise.resolve(fallbackProjects),
           articleResponse.ok ? articleResponse.json() : Promise.resolve({ articles: fallbackApiArticles }),
           userResponse.ok ? userResponse.json() : Promise.resolve({ users: fallbackAppUsers, limit: fallbackUserLimit }),
           notificationResponse.ok ? notificationResponse.json() : Promise.resolve({ notifications: fallbackNotifications }),
@@ -3014,7 +3070,7 @@ export function PremiumWorkspacePage({ view = "dashboard", initialSearchQuery = 
           invoices: Array.isArray(invoicePayload) ? invoicePayload : [],
           customers: Array.isArray(customerPayload) ? customerPayload : [],
           articles: Array.isArray(articlePayload?.articles) ? articlePayload.articles : fallbackApiArticles,
-          projects: fallbackProjects,
+          projects: Array.isArray(projectPayload) ? projectPayload : fallbackProjects,
           appUsers: Array.isArray(userPayload?.users) ? userPayload.users : fallbackAppUsers,
           userLimit: userPayload?.limit ?? fallbackUserLimit,
           notifications: Array.isArray(notificationPayload?.notifications) ? notificationPayload.notifications : fallbackNotifications,
