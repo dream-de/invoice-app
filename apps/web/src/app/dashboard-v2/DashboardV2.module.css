@@ -23,8 +23,7 @@
   overflow: auto;
   overflow-x: hidden;
   display: grid;
-  grid-template-columns: 264px minmax(0, 1fr);
-  gap: 16px;
+  grid-template-columns: minmax(0, 1fr);
   background:
     radial-gradient(circle at 10% 0%, rgba(124, 58, 237, 0.09), transparent 26%),
     linear-gradient(180deg, #fbfcff, var(--bg));
@@ -49,10 +48,6 @@
     radial-gradient(circle at 18% -10%, rgba(124, 58, 237, 0.28), transparent 31%),
     radial-gradient(circle at 90% 0%, rgba(59, 130, 246, 0.14), transparent 25%),
     linear-gradient(180deg, #070b15, #080d19 42%, #060914);
-}
-
-.page[data-navigation="compact"] {
-  grid-template-columns: 78px minmax(0, 1fr);
 }
 
 .page *,
@@ -282,93 +277,6 @@
   box-shadow: 0 12px 24px rgba(124, 58, 237, 0.25);
 }
 
-.page[data-navigation="compact"] .sidebar {
-  align-items: center;
-  padding: 16px 10px;
-}
-
-.page[data-navigation="compact"] .logoWrap {
-  width: 100%;
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: 10px;
-  padding: 0 0 14px;
-}
-
-.page[data-navigation="compact"] .logoHome {
-  justify-content: center;
-}
-
-.page[data-navigation="compact"] .logoText,
-.page[data-navigation="compact"] .workspaceButton span:nth-child(2),
-.page[data-navigation="compact"] .workspaceButton svg,
-.page[data-navigation="compact"] .sideSection p,
-.page[data-navigation="compact"] .sideItem span,
-.page[data-navigation="compact"] .activeSideItem span,
-.page[data-navigation="compact"] .upgradeCard strong,
-.page[data-navigation="compact"] .upgradeCard span,
-.page[data-navigation="compact"] .upgradeCard a {
-  display: none;
-}
-
-.page[data-navigation="compact"] .workspaceButton {
-  min-height: 46px;
-  justify-content: center;
-  padding: 7px;
-}
-
-.page[data-navigation="compact"] .workspaceAvatar {
-  width: 34px;
-  height: 34px;
-}
-
-.page[data-navigation="compact"] .sideSections {
-  width: 100%;
-  padding: 12px 0;
-}
-
-.page[data-navigation="compact"] .sideSection {
-  display: grid;
-  gap: 6px;
-  margin-bottom: 14px;
-}
-
-.page[data-navigation="compact"] .sideItem,
-.page[data-navigation="compact"] .activeSideItem {
-  position: relative;
-  min-height: 44px;
-  justify-content: center;
-  gap: 0;
-  padding: 0;
-}
-
-.page[data-navigation="compact"] .sideItem:hover {
-  transform: translateY(-1px);
-}
-
-.page[data-navigation="compact"] .sideItem em,
-.page[data-navigation="compact"] .activeSideItem em {
-  position: absolute;
-  right: 4px;
-  top: 4px;
-  min-width: 17px;
-  height: 17px;
-  font-size: 9px;
-}
-
-.page[data-navigation="compact"] .upgradeCard {
-  width: 46px;
-  min-height: 46px;
-  place-items: center;
-  gap: 0;
-  padding: 0;
-}
-
-.page[data-navigation="compact"] .upgradeCard svg {
-  width: 22px;
-  height: 22px;
-}
-
 .upgradeCard {
   display: grid;
   gap: 9px;
@@ -412,6 +320,7 @@
 
 .contentShell {
   min-width: 0;
+  min-height: calc(100vh - 32px);
   border-radius: 8px;
   background: color-mix(in srgb, var(--shell) 76%, transparent);
   padding: 14px;
@@ -429,10 +338,45 @@
 .topbar {
   min-height: 58px;
   display: grid;
-  grid-template-columns: minmax(160px, 220px) minmax(420px, 1fr) minmax(320px, auto);
+  grid-template-columns: minmax(210px, 250px) minmax(220px, 320px) minmax(460px, 1fr) minmax(330px, auto);
   align-items: center;
   gap: 14px;
   margin-bottom: 14px;
+}
+
+.topBrand {
+  min-width: 0;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  gap: 11px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.topBrand > span:last-child {
+  min-width: 0;
+}
+
+.topBrand strong,
+.topBrand small {
+  display: block;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topBrand strong {
+  font-size: 17px;
+  line-height: 1.05;
+}
+
+.topBrand small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
 }
 
 .searchBox {
@@ -538,6 +482,7 @@
 
 .topActions > button,
 .topActions > a,
+.adminMenu > button,
 .themeToggle,
 .profile {
   min-height: 42px;
@@ -548,12 +493,104 @@
 }
 
 .topActions > button,
-.topActions > a {
+.topActions > a,
+.adminMenu > button {
   width: 42px;
   display: grid;
   place-items: center;
   cursor: pointer;
   text-decoration: none;
+}
+
+.adminMenu {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.adminMenuPanel {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 10px);
+  z-index: 30;
+  width: min(640px, calc(100vw - 48px));
+  display: grid;
+  grid-template-columns: repeat(3, minmax(150px, 1fr));
+  gap: 12px;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(-4px);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--shell) 96%, transparent);
+  box-shadow: var(--shadow);
+  padding: 14px;
+  backdrop-filter: blur(20px);
+  transition: opacity 150ms ease, transform 150ms ease, visibility 150ms ease;
+}
+
+.adminMenu:hover .adminMenuPanel,
+.adminMenu:focus-within .adminMenuPanel {
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.adminMenuGroup {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 6px;
+}
+
+.adminMenuGroup p {
+  margin: 0 0 4px;
+  color: var(--faint);
+  font-size: 10px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.adminMenuGroup a {
+  min-width: 0;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border-radius: 8px;
+  color: var(--muted);
+  padding: 0 10px;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.adminMenuGroup a:hover,
+.adminMenuGroup a:focus-visible,
+.adminMenuActive {
+  background: color-mix(in srgb, var(--violet) 14%, var(--panel-strong));
+  color: var(--text) !important;
+  outline: none;
+}
+
+.adminMenuGroup a span {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.adminMenuGroup em {
+  min-width: 19px;
+  height: 19px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--rose);
+  color: #fff;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 950;
 }
 
 .bellButton {
@@ -2377,11 +2414,11 @@
 
 @media (max-width: 1480px) {
   .page {
-    grid-template-columns: 236px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .topbar {
-    grid-template-columns: minmax(150px, 190px) minmax(350px, 1fr) minmax(278px, auto);
+    grid-template-columns: minmax(190px, 220px) minmax(190px, 280px) minmax(390px, 1fr) minmax(278px, auto);
     gap: 10px;
   }
 
@@ -2431,10 +2468,6 @@
     grid-template-columns: 1fr;
   }
 
-  .page[data-navigation="compact"] {
-    grid-template-columns: 1fr;
-  }
-
   .sidebar {
     position: static;
     height: auto;
@@ -2447,11 +2480,20 @@
   }
 
   .topbar {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(170px, auto) minmax(220px, 1fr);
   }
 
   .desktopNav {
+    grid-column: 1 / -1;
     justify-content: flex-start;
+  }
+
+  .topActions {
+    justify-content: flex-end;
+  }
+
+  .adminMenuPanel {
+    grid-template-columns: repeat(2, minmax(150px, 1fr));
   }
 
   .compactNav {
@@ -2509,11 +2551,6 @@
     font-weight: 950;
   }
 
-  .topActions {
-    justify-content: flex-start;
-    flex-wrap: wrap;
-  }
-
   .kpiGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -2565,6 +2602,30 @@
 
   .contentShell {
     padding: 10px;
+  }
+
+  .topbar {
+    grid-template-columns: 1fr;
+  }
+
+  .topBrand strong,
+  .topBrand small {
+    max-width: none;
+  }
+
+  .desktopNav {
+    grid-column: auto;
+  }
+
+  .topActions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .adminMenuPanel {
+    left: 0;
+    right: auto;
+    grid-template-columns: 1fr;
   }
 
   .kpiGrid,
