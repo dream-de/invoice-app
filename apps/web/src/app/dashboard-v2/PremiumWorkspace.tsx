@@ -2217,8 +2217,6 @@ type ReportAction = "documents" | "datev" | "finance" | "compare"
 
 type ReportTarget = {
   action: ReportAction
-  auditAction: string
-  endpoint: string
   filename: string
   label: string
   successMessage: string
@@ -2228,8 +2226,6 @@ function getReportTarget(action: ReportAction): ReportTarget {
   if (action === "documents") {
     return {
       action,
-      auditAction: "report.documents.export",
-      endpoint: "/api/documents/export",
       filename: "dokumente-export.csv",
       label: "Dokumentexport",
       successMessage: "Dokumentexport wurde als CSV vorbereitet."
@@ -2239,8 +2235,6 @@ function getReportTarget(action: ReportAction): ReportTarget {
   if (action === "datev") {
     return {
       action,
-      auditAction: "report.datev.export",
-      endpoint: "/api/finance/datev-export",
       filename: "datev-export.csv",
       label: "DATEV Export",
       successMessage: "DATEV Export wurde als CSV vorbereitet."
@@ -2250,8 +2244,6 @@ function getReportTarget(action: ReportAction): ReportTarget {
   if (action === "finance") {
     return {
       action,
-      auditAction: "report.finance",
-      endpoint: "/api/finance/report",
       filename: "finanzbericht.txt",
       label: "Finanzbericht",
       successMessage: "Finanzbericht wurde erstellt und heruntergeladen."
@@ -2260,56 +2252,9 @@ function getReportTarget(action: ReportAction): ReportTarget {
 
   return {
     action,
-    auditAction: "report.compare",
-    endpoint: "/api/finance/report",
     filename: "finanzvergleich.txt",
     label: "Vergleich",
     successMessage: "Vergleich wurde erstellt und fuer den Export vorbereitet."
-  }
-}
-
-async function downloadReportTarget(action: ReportAction) {
-  const target = getReportTarget(action)
-  const response = await fetch(target.endpoint, { credentials: "same-origin" })
-
-  if (!response.ok) {
-    let errorMessage = `${target.label} konnte nicht vorbereitet werden.`
-
-    try {
-      const payload = await response.clone().json() as { error?: string }
-      if (payload?.error) errorMessage = payload.error
-    } catch {}
-
-    throw new Error(errorMessage)
-  }
-
-  const blob = await response.blob()
-  downloadBlob(blob, target.filename)
-  return target
-}
-
-async function recordReportFallback(target: ReportTarget, source: "workflow" | "quick", errorMessage: string) {
-  const response = await fetch("/api/premium/actions", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    credentials: "same-origin",
-    body: JSON.stringify({
-      type: "reports",
-      action: target.auditAction,
-      label: target.label,
-      payload: {
-        source,
-        endpoint: target.endpoint,
-        filename: target.filename,
-        fallback: true,
-        errorMessage
-      }
-    })
-  })
-  const result = await response.json()
-
-  if (!response.ok || !result?.ok) {
-    throw new Error(result?.error || `${target.label} konnte nicht vorbereitet werden.`)
   }
 }
 
@@ -2374,6 +2319,117 @@ function createArticleCsv(articles: ApiArticle[]) {
   ]
 
   return rows.map((row) => row.map(escapeCsvCell).join(";")).join("\n")
+}
+
+function reportInvoicesFromData(data: PremiumData) {
+  return data.invoices.length ? data.invoices : fallbackApiInvoices
+}
+
+function reportDate(value?: string) {
+  if (!value) return new Date().toISOString().slice(0, 10)
+  const date = new Date(value)
+  if (!Number.isNaN(date.getTime())) return date.toISOString().slice(0, 10)
+  return value.slice(0, 10)
+}
+
+function createDocumentExportCsv(data: PremiumData) {
+  const rows = [
+    ["Nummer", "Typ", "Status", "Kunde", "Datum", "Faelligkeit", "Netto", "MwSt", "Brutto"],
+    ...reportInvoicesFromData(data).map((invoice) => {
+      const grossTotal = Number(invoice.grossTotal) || 0
+      const netTotal = grossTotal / 1.19
+      const vatTotal = grossTotal - netTotal
+
+      return [
+        invoice.number,
+        invoiceType(invoice) === "offer" ? "Angebot" : "Rechnung",
+        statusLabel(invoice.status),
+        invoice.customer || "",
+        reportDate(invoice.date || invoice.createdAt),
+        reportDate(invoice.dueDate || invoice.date || invoice.createdAt),
+        netTotal.toFixed(2).replace(".", ","),
+        vatTotal.toFixed(2).replace(".", ","),
+        grossTotal.toFixed(2).replace(".", ",")
+      ]
+    })
+  ]
+
+  return rows.map((row) => row.map(escapeCsvCell).join(";")).join("\n")
+}
+
+function createDatevExportCsv(data: PremiumData) {
+  const rows = [
+    ["Datum", "Belegnummer", "Konto", "Gegenkonto", "Text", "Soll", "Haben", "Steuer"],
+    ...reportInvoicesFromData(data).map((invoice) => {
+      const grossTotal = Number(invoice.grossTotal) || 0
+      const netTotal = grossTotal / 1.19
+      const vatTotal = grossTotal - netTotal
+      const isOffer = invoiceType(invoice) === "offer"
+
+      return [
+        reportDate(invoice.date || invoice.createdAt),
+        invoice.number,
+        isOffer ? "8000" : "8400",
+        "1200",
+        `${isOffer ? "Angebot" : "Ausgangsrechnung"} ${invoice.customer || "Ohne Kunde"}`,
+        "",
+        netTotal.toFixed(2).replace(".", ","),
+        vatTotal.toFixed(2).replace(".", ",")
+      ]
+    })
+  ]
+
+  return rows.map((row) => row.map(escapeCsvCell).join(";")).join("\n")
+}
+
+function createFinanceReport(data: PremiumData, title = "DreamInvoice Premium Finanzbericht") {
+  const source = reportInvoicesFromData(data)
+  const invoiceSource = source.filter((invoice) => invoiceType(invoice) === "invoice")
+  const offerSource = source.filter((invoice) => invoiceType(invoice) === "offer")
+  const grossTotal = invoiceSource.reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
+  const paidTotal = invoiceSource.filter((invoice) => isStatus(invoice.status, "paid")).reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
+  const openTotal = invoiceSource.filter((invoice) => isStatus(invoice.status, "open") || isStatus(invoice.status, "overdue")).reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
+  const offerTotal = offerSource.reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
+  const articlesSource = data.articles.length ? data.articles : fallbackApiArticles
+  const expenseEstimate = articlesSource.reduce((sum, article) => sum + Number(article.price || 0), 0)
+
+  return [
+    title,
+    `Erstellt: ${new Date().toLocaleString("de-DE")}`,
+    "",
+    "Rechnungen",
+    `Anzahl: ${invoiceSource.length}`,
+    `Brutto: ${formatEuro(grossTotal)}`,
+    `Bezahlt: ${formatEuro(paidTotal)}`,
+    `Offen: ${formatEuro(openTotal)}`,
+    "",
+    "Angebote",
+    `Anzahl: ${offerSource.length}`,
+    `Pipeline: ${formatEuro(offerTotal)}`,
+    "",
+    "Premium Workflows",
+    `Artikel/Kostenbasis: ${formatEuro(expenseEstimate)}`,
+    `Datenquelle: ${dataSourceLabel(data)}`,
+    "",
+    "Ergebnis",
+    `Liquiditaetsblick: ${formatEuro(paidTotal - expenseEstimate)}`,
+    `Forecast inkl. offene Rechnungen und Angebote: ${formatEuro(paidTotal + openTotal + offerTotal - expenseEstimate)}`
+  ].join("\n")
+}
+
+function downloadLocalReportTarget(action: ReportAction, data: PremiumData) {
+  const target = getReportTarget(action)
+
+  if (action === "documents") {
+    downloadTextFile(createDocumentExportCsv(data), target.filename)
+  } else if (action === "datev") {
+    downloadTextFile(createDatevExportCsv(data), target.filename)
+  } else {
+    const title = action === "compare" ? "DreamInvoice Premium Finanzvergleich" : "DreamInvoice Premium Finanzbericht"
+    downloadTextFile(createFinanceReport(data, title), target.filename, "text/plain;charset=utf-8")
+  }
+
+  return target
 }
 
 function downloadTextFile(content: string, filename: string, type = "text/csv;charset=utf-8") {
@@ -2943,21 +2999,11 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     setWorkflowState({ type: "idle", message: "" })
 
     try {
-      const target = await downloadReportTarget(action)
+      const target = downloadLocalReportTarget(action, data)
       setWorkflowState({ type: "success", message: target.successMessage })
-    } catch (error) {
+    } catch {
       const target = getReportTarget(action)
-      const errorMessage = error instanceof Error ? error.message : `${target.label} konnte nicht erreicht werden.`
-
-      try {
-        await recordReportFallback(target, "workflow", errorMessage)
-        setWorkflowState({ type: "success", message: `${target.label} wurde premium-intern vorbereitet und protokolliert.` })
-      } catch (fallbackError) {
-        setWorkflowState({
-          type: "error",
-          message: fallbackError instanceof Error ? fallbackError.message : `${target.label} konnte nicht vorbereitet werden.`
-        })
-      }
+      setWorkflowState({ type: "error", message: `${target.label} konnte nicht lokal vorbereitet werden.` })
     } finally {
       setIsWorkflowSaving(false)
     }
@@ -4027,21 +4073,11 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
     setModuleActionState({ type: "idle", message: "" })
 
     try {
-      const target = await downloadReportTarget(action)
+      const target = downloadLocalReportTarget(action, data)
       setModuleActionState({ type: "success", message: target.successMessage })
-    } catch (error) {
+    } catch {
       const target = getReportTarget(action)
-      const errorMessage = error instanceof Error ? error.message : `${target.label} konnte nicht erreicht werden.`
-
-      try {
-        await recordReportFallback(target, "quick", errorMessage)
-        setModuleActionState({ type: "success", message: `${target.label} wurde premium-intern vorbereitet und protokolliert.` })
-      } catch (fallbackError) {
-        setModuleActionState({
-          type: "error",
-          message: fallbackError instanceof Error ? fallbackError.message : `${target.label} konnte nicht vorbereitet werden.`
-        })
-      }
+      setModuleActionState({ type: "error", message: `${target.label} konnte nicht lokal vorbereitet werden.` })
     } finally {
       setIsModuleActionSaving(false)
     }
