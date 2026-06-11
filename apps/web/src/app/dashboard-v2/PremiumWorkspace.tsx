@@ -2173,6 +2173,20 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     }
   }
 
+  async function runExpenseWorkflowAction(action: "upload" | "datev" | "export") {
+    await runPremiumAction(
+      "expenses",
+      action === "upload" ? "expense.receipt.upload" : action === "datev" ? "expense.datev.prepare" : "expense.export.prepare",
+      action === "upload" ? "Beleg hochgeladen" : action === "datev" ? "DATEV Export vorbereitet" : "Export vorgemerkt",
+      { source: "workflow", draft: expenseDraft },
+      action === "upload"
+        ? `Beleg fuer ${expenseDraft.title} wurde vorbereitet und der Ausgabe zugeordnet.`
+        : action === "datev"
+          ? `DATEV Export fuer ${expenseDraft.category} wurde vorbereitet.`
+          : `Export fuer ${expenseDraft.title} wurde vorgemerkt.`
+    )
+  }
+
   async function savePremiumUser() {
     setIsWorkflowSaving(true)
     setWorkflowState({ type: "idle", message: "" })
@@ -2553,7 +2567,7 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
   if (view === "expenses") {
     return (
       <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("ausgabe") || query.includes("beleg") || query.includes("datev")}>
-        <div className={styles.panelHead}><div><h2>Ausgabe erfassen</h2><span>Belegposition vormerken und fuer Export vorbereiten</span></div><Link href={withPremiumTheme("/dashboard-v2/expenses?q=Beleg%20hochgeladen", mode)}>Beleg hochladen</Link></div>
+        <div className={styles.panelHead}><div><h2>Ausgabe erfassen</h2><span>Belegposition vormerken und fuer Export vorbereiten</span></div><button type="button" disabled={isWorkflowSaving} onClick={() => void runExpenseWorkflowAction("upload")}>Beleg hochladen</button></div>
         <form className={styles.workflowForm} action="/dashboard-v2/expenses" method="get" onSubmit={(event) => { event.preventDefault(); void savePremiumExpense() }}>
           <input type="hidden" name="q" value="Ausgabe gespeichert" />
           <input type="hidden" name="theme" value={mode} />
@@ -2566,8 +2580,8 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
           <button type="submit" disabled={isWorkflowSaving}>{isWorkflowSaving ? "Speichert..." : "Ausgabe speichern"}</button>
         </form>
         <div className={styles.workflowActions}>
-          <Link href={withPremiumTheme("/dashboard-v2/expenses?q=DATEV%20vorbereitet", mode)}>DATEV Export</Link>
-          <Link href={withPremiumTheme("/dashboard-v2/expenses?q=DATEV%20vorbereitet", mode)}>Export vormerken</Link>
+          <button type="button" disabled={isWorkflowSaving} onClick={() => void runExpenseWorkflowAction("datev")}>DATEV Export</button>
+          <button type="button" disabled={isWorkflowSaving} onClick={() => void runExpenseWorkflowAction("export")}>Export vormerken</button>
         </div>
         {workflowState.message ? <p data-state={workflowState.type}>{workflowState.message}</p> : null}
         {message}
@@ -3074,6 +3088,45 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
     }
   }
 
+  async function runExpenseQuickAction(action: "create" | "upload" | "export") {
+    setIsModuleActionSaving(true)
+    setModuleActionState({ type: "idle", message: "" })
+
+    try {
+      const articlesSource = data.articles.length ? data.articles : fallbackApiArticles
+      const activeExpenses = articlesSource.filter((article) => article.active !== false)
+      const total = activeExpenses.reduce((sum, article) => sum + Number(article.price || 0), 0)
+      const response = await fetch("/api/premium/actions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          type: "expenses",
+          action: action === "upload" ? "expense.receipt.upload" : action === "export" ? "expense.export.prepare" : "expense.create.prepare",
+          label: action === "upload" ? "Beleg hochgeladen" : action === "export" ? "Export gestartet" : "Ausgabe erfassen",
+          payload: { source: "quick-action", expenses: activeExpenses.length, total }
+        })
+      })
+      const result = await response.json()
+      if (!response.ok || !result?.ok) {
+        setModuleActionState({ type: "error", message: result?.error || "Ausgabenaktion konnte nicht ausgefuehrt werden." })
+        return
+      }
+      setModuleActionState({
+        type: "success",
+        message: action === "upload"
+          ? "Beleg-Upload wurde vorbereitet und kann der Ausgabe zugeordnet werden."
+          : action === "export"
+            ? `Export wurde vorbereitet: ${activeExpenses.length} Positionen mit ${formatEuro(total)}.`
+            : "Ausgabenformular ist bereit. Daten oben pruefen und mit Ausgabe speichern erfassen."
+      })
+    } catch {
+      setModuleActionState({ type: "error", message: "Ausgabenaktion konnte nicht erreicht werden." })
+    } finally {
+      setIsModuleActionSaving(false)
+    }
+  }
+
   return (
     <section className={styles.modulePage}>
       <article className={`${styles.panel} ${styles.moduleHero}`}>
@@ -3086,6 +3139,8 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
           <button type="button" disabled={isModuleActionSaving} onClick={() => void runOfferQuickAction("create")}><Plus size={18} />{meta.primary}</button>
         ) : view === "time" ? (
           <button type="button" disabled={isModuleActionSaving} onClick={() => void runTimeQuickAction("timer")}><Plus size={18} />{meta.primary}</button>
+        ) : view === "expenses" ? (
+          <button type="button" disabled={isModuleActionSaving} onClick={() => void runExpenseQuickAction("create")}><Plus size={18} />{meta.primary}</button>
         ) : (
           <Link href={withPremiumTheme(content.primaryHref, mode)}><Plus size={18} />{meta.primary}</Link>
         )}
@@ -3137,6 +3192,12 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runTimeQuickAction("timer")}><Plus size={16} />Timer starten</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runTimeQuickAction("book")}><Search size={16} />Zeit buchen</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runTimeQuickAction("approval")}><BarChart3 size={16} />Freigabe senden</button>
+              </>
+            ) : view === "expenses" ? (
+              <>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runExpenseQuickAction("create")}><Plus size={16} />Ausgabe erfassen</button>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runExpenseQuickAction("upload")}><Search size={16} />Beleg hochladen</button>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runExpenseQuickAction("export")}><BarChart3 size={16} />Export starten</button>
               </>
             ) : content.actions.map(([action, href], index) => (
                 <Link key={action} href={withPremiumTheme(href, mode)}>
