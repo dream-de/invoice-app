@@ -2226,6 +2226,38 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     }
   }
 
+  async function runUserWorkflowAction(action: "roles" | "role" | "2fa") {
+    if (action === "2fa") {
+      setIsWorkflowSaving(true)
+      setWorkflowState({ type: "idle", message: "" })
+
+      try {
+        const response = await fetch("/api/account/profile", { credentials: "same-origin" })
+        const result = await response.json()
+        if (!response.ok || !result?.ok) {
+          setWorkflowState({ type: "error", message: result?.error || "2FA-Status konnte nicht geprueft werden." })
+          return
+        }
+        setWorkflowState({ type: "success", message: result.user?.twoFactorEnabled ? "2FA ist fuer diesen Admin aktiv." : "2FA ist aktuell nicht aktiv und kann unter Account Sicherheit eingerichtet werden." })
+      } catch {
+        setWorkflowState({ type: "error", message: "2FA-Profilpruefung konnte nicht erreicht werden." })
+      } finally {
+        setIsWorkflowSaving(false)
+      }
+      return
+    }
+
+    await runPremiumAction(
+      "users",
+      action === "roles" ? "role.manage" : "role.prepare",
+      action === "roles" ? "Rollen verwalten" : "Rolle vorgemerkt",
+      action === "roles" ? { role: userDraft.role } : userDraft,
+      action === "roles"
+        ? "Rollenverwaltung wurde geprueft und protokolliert."
+        : `${userDraft.role === "admin" ? "Admin" : "Mitarbeiter"} Rolle wurde vorgemerkt.`
+    )
+  }
+
   async function savePremiumCompanySettings() {
     setIsWorkflowSaving(true)
     setWorkflowState({ type: "idle", message: "" })
@@ -2592,7 +2624,7 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
   if (view === "users") {
     return (
       <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("benutzer") || query.includes("rolle") || query.includes("2fa")}>
-        <div className={styles.panelHead}><div><h2>Benutzer einladen</h2><span>API-gestuetzter Invite fuer Rollen und Berechtigungen</span></div><Link href="/account/security">2FA pruefen</Link></div>
+        <div className={styles.panelHead}><div><h2>Benutzer einladen</h2><span>API-gestuetzter Invite fuer Rollen und Berechtigungen</span></div><button type="button" disabled={isWorkflowSaving} onClick={() => void runUserWorkflowAction("2fa")}>2FA pruefen</button></div>
         <form className={styles.workflowForm} action="/dashboard-v2/users" method="get" onSubmit={(event) => { event.preventDefault(); void savePremiumUser() }}>
           <input type="hidden" name="q" value="Benutzer eingeladen" />
           <input type="hidden" name="theme" value={mode} />
@@ -2601,10 +2633,11 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
           <button type="submit" disabled={isWorkflowSaving}>Einladen</button>
         </form>
         <div className={styles.workflowActions}>
-          <button type="button" disabled={isWorkflowSaving} onClick={() => void runPremiumAction("users", "role.manage", "Rollen verwalten", { role: userDraft.role }, "Rollenverwaltung wurde geprueft und protokolliert.")}>Rollen verwalten</button>
-          <Link href="/account/security">2FA pruefen</Link>
-          <button type="button" disabled={isWorkflowSaving} onClick={() => void runPremiumAction("users", "role.prepare", "Rolle vorgemerkt", userDraft, `${userDraft.role === "admin" ? "Admin" : "Mitarbeiter"} Rolle wurde vorgemerkt.`)}>Rolle vormerken</button>
+          <button type="button" disabled={isWorkflowSaving} onClick={() => void runUserWorkflowAction("roles")}>Rollen verwalten</button>
+          <button type="button" disabled={isWorkflowSaving} onClick={() => void runUserWorkflowAction("2fa")}>2FA pruefen</button>
+          <button type="button" disabled={isWorkflowSaving} onClick={() => void runUserWorkflowAction("role")}>Rolle vormerken</button>
         </div>
+        {workflowState.message ? <p data-state={workflowState.type}>{workflowState.message}</p> : null}
         {message}
       </article>
     )
@@ -3164,6 +3197,52 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
     }
   }
 
+  async function runUserQuickAction(action: "invite" | "role" | "2fa") {
+    setIsModuleActionSaving(true)
+    setModuleActionState({ type: "idle", message: "" })
+
+    try {
+      if (action === "2fa") {
+        const response = await fetch("/api/account/profile", { credentials: "same-origin" })
+        const result = await response.json()
+        if (!response.ok || !result?.ok) {
+          setModuleActionState({ type: "error", message: result?.error || "2FA-Status konnte nicht geprueft werden." })
+          return
+        }
+        setModuleActionState({ type: "success", message: result.user?.twoFactorEnabled ? "2FA ist fuer diesen Admin aktiv." : "2FA ist aktuell nicht aktiv und kann unter Account Sicherheit eingerichtet werden." })
+        return
+      }
+
+      const usersSource = data.appUsers.length ? data.appUsers : fallbackAppUsers
+      const response = await fetch("/api/premium/actions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          type: "users",
+          action: action === "invite" ? "user.invite.prepare" : "role.edit.prepare",
+          label: action === "invite" ? "Benutzer einladen" : "Rolle bearbeiten",
+          payload: { source: "quick-action", users: usersSource.length, activeUsers: usersSource.filter((user) => user.status === "active").length }
+        })
+      })
+      const result = await response.json()
+      if (!response.ok || !result?.ok) {
+        setModuleActionState({ type: "error", message: result?.error || "Benutzeraktion konnte nicht ausgefuehrt werden." })
+        return
+      }
+      setModuleActionState({
+        type: "success",
+        message: action === "invite"
+          ? "Benutzereinladung ist bereit. E-Mail und Rolle oben pruefen und mit Einladen senden."
+          : "Rollenbearbeitung wurde vorbereitet und protokolliert."
+      })
+    } catch {
+      setModuleActionState({ type: "error", message: "Benutzeraktion konnte nicht erreicht werden." })
+    } finally {
+      setIsModuleActionSaving(false)
+    }
+  }
+
   return (
     <section className={styles.modulePage}>
       <article className={`${styles.panel} ${styles.moduleHero}`}>
@@ -3180,6 +3259,8 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
           <button type="button" disabled={isModuleActionSaving} onClick={() => void runExpenseQuickAction("create")}><Plus size={18} />{meta.primary}</button>
         ) : view === "reports" ? (
           <button type="button" disabled={isModuleActionSaving} onClick={() => void runReportQuickAction("documents")}><Plus size={18} />{meta.primary}</button>
+        ) : view === "users" ? (
+          <button type="button" disabled={isModuleActionSaving} onClick={() => void runUserQuickAction("invite")}><Plus size={18} />{meta.primary}</button>
         ) : (
           <Link href={withPremiumTheme(content.primaryHref, mode)}><Plus size={18} />{meta.primary}</Link>
         )}
@@ -3243,6 +3324,12 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runReportQuickAction("documents")}><Plus size={16} />Report exportieren</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runReportQuickAction("datev")}><Search size={16} />DATEV Export</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runReportQuickAction("compare")}><BarChart3 size={16} />Vergleich oeffnen</button>
+              </>
+            ) : view === "users" ? (
+              <>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runUserQuickAction("invite")}><Plus size={16} />Benutzer einladen</button>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runUserQuickAction("role")}><Search size={16} />Rolle bearbeiten</button>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runUserQuickAction("2fa")}><BarChart3 size={16} />2FA pruefen</button>
               </>
             ) : content.actions.map(([action, href], index) => (
                 <Link key={action} href={withPremiumTheme(href, mode)}>
