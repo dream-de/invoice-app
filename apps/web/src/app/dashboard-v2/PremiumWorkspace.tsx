@@ -2291,13 +2291,13 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     }
   }
 
-  async function runPremiumReport(action: "documents" | "datev" | "finance") {
+  async function runPremiumReport(action: "documents" | "datev" | "finance" | "compare") {
     const endpoint = action === "documents"
       ? "/api/documents/export"
       : action === "datev"
         ? "/api/finance/datev-export"
         : "/api/finance/report"
-    const label = action === "documents" ? "Dokumentexport" : action === "datev" ? "DATEV Export" : "Finanzbericht"
+    const label = action === "documents" ? "Dokumentexport" : action === "datev" ? "DATEV Export" : action === "finance" ? "Finanzbericht" : "Vergleich"
 
     setIsWorkflowSaving(true)
     setWorkflowState({ type: "idle", message: "" })
@@ -2310,7 +2310,7 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
       }
 
       await response.text()
-      setWorkflowState({ type: "success", message: `${label} wurde vorbereitet.` })
+      setWorkflowState({ type: "success", message: action === "compare" ? "Vergleich wurde geoeffnet und fuer den Export vorbereitet." : `${label} wurde vorbereitet.` })
     } catch {
       setWorkflowState({ type: "error", message: `${label} konnte nicht erreicht werden.` })
     } finally {
@@ -2817,9 +2817,14 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
                 <button type="submit" disabled={isWorkflowSaving}>DATEV Export</button>
               </form>
               <form action="/dashboard-v2/reports" method="get" onSubmit={(event) => { event.preventDefault(); void runPremiumReport("finance") }}>
-                <input type="hidden" name="q" value="Vergleich geoeffnet" />
+                <input type="hidden" name="q" value="Finanzbericht erstellt" />
                 <input type="hidden" name="theme" value={mode} />
                 <button type="submit" disabled={isWorkflowSaving}>Finanzbericht</button>
+              </form>
+              <form action="/dashboard-v2/reports" method="get" onSubmit={(event) => { event.preventDefault(); void runPremiumReport("compare") }}>
+                <input type="hidden" name="q" value="Vergleich geoeffnet" />
+                <input type="hidden" name="theme" value={mode} />
+                <button type="submit" disabled={isWorkflowSaving}>Vergleich</button>
               </form>
             </>
           ) : null}
@@ -2847,7 +2852,7 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
               </form>
             </>
           ) : null}
-          {links.map(([label, href]) => <Link key={href} href={withPremiumTheme(href, mode)}>{label}</Link>)}
+          {view === "audit" ? links.map(([label, href]) => <Link key={href} href={withPremiumTheme(href, mode)}>{label}</Link>) : null}
         </div>
         {workflowState.message ? <p data-state={workflowState.type}>{workflowState.message}</p> : null}
         {message}
@@ -3127,6 +3132,38 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
     }
   }
 
+  async function runReportQuickAction(action: "documents" | "datev" | "compare") {
+    const endpoint = action === "documents"
+      ? "/api/documents/export"
+      : action === "datev"
+        ? "/api/finance/datev-export"
+        : "/api/finance/report"
+    const label = action === "documents" ? "Report exportieren" : action === "datev" ? "DATEV Export" : "Vergleich"
+
+    setIsModuleActionSaving(true)
+    setModuleActionState({ type: "idle", message: "" })
+
+    try {
+      const response = await fetch(endpoint, { credentials: "same-origin" })
+      if (!response.ok) {
+        setModuleActionState({ type: "error", message: `${label} konnte nicht vorbereitet werden.` })
+        return
+      }
+
+      await response.text()
+      setModuleActionState({
+        type: "success",
+        message: action === "compare"
+          ? "Vergleich wurde geoeffnet und fuer den Export vorbereitet."
+          : `${label} wurde vorbereitet.`
+      })
+    } catch {
+      setModuleActionState({ type: "error", message: `${label} konnte nicht erreicht werden.` })
+    } finally {
+      setIsModuleActionSaving(false)
+    }
+  }
+
   return (
     <section className={styles.modulePage}>
       <article className={`${styles.panel} ${styles.moduleHero}`}>
@@ -3141,6 +3178,8 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
           <button type="button" disabled={isModuleActionSaving} onClick={() => void runTimeQuickAction("timer")}><Plus size={18} />{meta.primary}</button>
         ) : view === "expenses" ? (
           <button type="button" disabled={isModuleActionSaving} onClick={() => void runExpenseQuickAction("create")}><Plus size={18} />{meta.primary}</button>
+        ) : view === "reports" ? (
+          <button type="button" disabled={isModuleActionSaving} onClick={() => void runReportQuickAction("documents")}><Plus size={18} />{meta.primary}</button>
         ) : (
           <Link href={withPremiumTheme(content.primaryHref, mode)}><Plus size={18} />{meta.primary}</Link>
         )}
@@ -3198,6 +3237,12 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runExpenseQuickAction("create")}><Plus size={16} />Ausgabe erfassen</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runExpenseQuickAction("upload")}><Search size={16} />Beleg hochladen</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runExpenseQuickAction("export")}><BarChart3 size={16} />Export starten</button>
+              </>
+            ) : view === "reports" ? (
+              <>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runReportQuickAction("documents")}><Plus size={16} />Report exportieren</button>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runReportQuickAction("datev")}><Search size={16} />DATEV Export</button>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runReportQuickAction("compare")}><BarChart3 size={16} />Vergleich oeffnen</button>
               </>
             ) : content.actions.map(([action, href], index) => (
                 <Link key={action} href={withPremiumTheme(href, mode)}>
