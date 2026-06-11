@@ -707,6 +707,11 @@
     color-mix(in srgb, var(--panel-strong) 78%, transparent);
   padding: 18px 16px 30px;
   overflow: hidden;
+  outline: none;
+}
+
+.chartArea:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--violet) 18%, transparent);
 }
 
 .chartArea svg {
@@ -748,6 +753,19 @@
   box-shadow: var(--shadow-soft);
   font-size: 11px;
   font-weight: 800;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(6px);
+  visibility: hidden;
+  transition: opacity 160ms ease, transform 160ms ease, visibility 0s linear 160ms;
+}
+
+.chartArea:hover .chartTooltip,
+.chartArea:focus-visible .chartTooltip {
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
+  transition-delay: 0s;
 }
 
 .chartTooltip strong {
