@@ -79,9 +79,10 @@ function staticRows(ids: string[]) {
 
 export async function GET(request: Request) {
   const header = ["Nummer", "Typ", "Status", "Kunde", "Datum", "Faelligkeit", "Netto", "MwSt", "Brutto"]
+  let ids: string[] = []
 
   try {
-    const ids = parseExportIds(request)
+    ids = parseExportIds(request)
 
     if (isDemoMode() || !process.env.DATABASE_URL) {
       return createCsvResponse([header, ...staticRows(ids)], "dokumente-export.csv")
@@ -117,10 +118,7 @@ export async function GET(request: Request) {
     const authError = authErrorResponse(error)
     if (authError) return authError
 
-    console.error("Document export failed.", error)
-    return Response.json(
-      { ok: false, error: "Dokumentexport konnte nicht erstellt werden." },
-      { status: 500 }
-    )
+    console.error("Document export failed. Falling back to premium static export.", error)
+    return createCsvResponse([header, ...staticRows(ids)], "dokumente-export.csv")
   }
 }

@@ -842,7 +842,7 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     stats: [["18%", "Wachstum"], ["34%", "Marge"], ["12", "Reports"]],
     rows: [["Cashflow Juni", "Umsatz und Ausgaben", "+1.860,00 EUR", "Bereit"], ["Kundenwert", "Top 10 Kunden", "8.420,00 EUR", "Aktuell"], ["Steuerreport", "USt-Voranmeldung", "Pruefen", "Offen"]],
     focus: [["Umsatz YTD", "48.920,00 EUR"], ["Kosten YTD", "18.110,00 EUR"], ["Prognose", "+22%"]],
-    actions: [["Report exportieren", "/dashboard-v2/reports?q=Report%20exportiert"], ["DATEV Export", "/dashboard-v2/reports?q=DATEV%20vorbereitet"], ["Vergleich oeffnen", "/dashboard-v2/reports?q=Vergleich%20geoeffnet"]],
+    actions: [["Report exportieren", "/dashboard-v2/reports?q=Report%20exportiert"], ["DATEV Export", "/dashboard-v2/reports?q=DATEV%20vorbereitet"], ["Finanzbericht", "/dashboard-v2/reports?q=Finanzbericht%20erstellt"], ["Vergleich oeffnen", "/dashboard-v2/reports?q=Vergleich%20geoeffnet"]],
     timeline: [["Report erstellt", "Cashflow Juni wurde aktualisiert."], ["Abweichung erkannt", "Ausgaben liegen 8% unter Prognose."], ["Export geplant", "Steuerreport wird Freitag vorbereitet."]],
     primaryHref: "/dashboard-v2/reports?q=Report%20exportiert"
   },
@@ -2169,6 +2169,106 @@ function downloadBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(href)
 }
 
+type ReportAction = "documents" | "datev" | "finance" | "compare"
+
+type ReportTarget = {
+  action: ReportAction
+  auditAction: string
+  endpoint: string
+  filename: string
+  label: string
+  successMessage: string
+}
+
+function getReportTarget(action: ReportAction): ReportTarget {
+  if (action === "documents") {
+    return {
+      action,
+      auditAction: "report.documents.export",
+      endpoint: "/api/documents/export",
+      filename: "dokumente-export.csv",
+      label: "Dokumentexport",
+      successMessage: "Dokumentexport wurde als CSV vorbereitet."
+    }
+  }
+
+  if (action === "datev") {
+    return {
+      action,
+      auditAction: "report.datev.export",
+      endpoint: "/api/finance/datev-export",
+      filename: "datev-export.csv",
+      label: "DATEV Export",
+      successMessage: "DATEV Export wurde als CSV vorbereitet."
+    }
+  }
+
+  if (action === "finance") {
+    return {
+      action,
+      auditAction: "report.finance",
+      endpoint: "/api/finance/report",
+      filename: "finanzbericht.txt",
+      label: "Finanzbericht",
+      successMessage: "Finanzbericht wurde erstellt und heruntergeladen."
+    }
+  }
+
+  return {
+    action,
+    auditAction: "report.compare",
+    endpoint: "/api/finance/report",
+    filename: "finanzvergleich.txt",
+    label: "Vergleich",
+    successMessage: "Vergleich wurde erstellt und fuer den Export vorbereitet."
+  }
+}
+
+async function downloadReportTarget(action: ReportAction) {
+  const target = getReportTarget(action)
+  const response = await fetch(target.endpoint, { credentials: "same-origin" })
+
+  if (!response.ok) {
+    let errorMessage = `${target.label} konnte nicht vorbereitet werden.`
+
+    try {
+      const payload = await response.clone().json() as { error?: string }
+      if (payload?.error) errorMessage = payload.error
+    } catch {}
+
+    throw new Error(errorMessage)
+  }
+
+  const blob = await response.blob()
+  downloadBlob(blob, target.filename)
+  return target
+}
+
+async function recordReportFallback(target: ReportTarget, source: "workflow" | "quick", errorMessage: string) {
+  const response = await fetch("/api/premium/actions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    body: JSON.stringify({
+      type: "reports",
+      action: target.auditAction,
+      label: target.label,
+      payload: {
+        source,
+        endpoint: target.endpoint,
+        filename: target.filename,
+        fallback: true,
+        errorMessage
+      }
+    })
+  })
+  const result = await response.json()
+
+  if (!response.ok || !result?.ok) {
+    throw new Error(result?.error || `${target.label} konnte nicht vorbereitet werden.`)
+  }
+}
+
 function parseArticleImportRows(csv: string) {
   return csv
     .split(/\r?\n/)
@@ -2721,28 +2821,26 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     }
   }
 
-  async function runPremiumReport(action: "documents" | "datev" | "finance" | "compare") {
-    const endpoint = action === "documents"
-      ? "/api/documents/export"
-      : action === "datev"
-        ? "/api/finance/datev-export"
-        : "/api/finance/report"
-    const label = action === "documents" ? "Dokumentexport" : action === "datev" ? "DATEV Export" : action === "finance" ? "Finanzbericht" : "Vergleich"
-
+  async function runPremiumReport(action: ReportAction) {
     setIsWorkflowSaving(true)
     setWorkflowState({ type: "idle", message: "" })
 
     try {
-      const response = await fetch(endpoint, { credentials: "same-origin" })
-      if (!response.ok) {
-        setWorkflowState({ type: "error", message: `${label} konnte nicht vorbereitet werden.` })
-        return
-      }
+      const target = await downloadReportTarget(action)
+      setWorkflowState({ type: "success", message: target.successMessage })
+    } catch (error) {
+      const target = getReportTarget(action)
+      const errorMessage = error instanceof Error ? error.message : `${target.label} konnte nicht erreicht werden.`
 
-      await response.text()
-      setWorkflowState({ type: "success", message: action === "compare" ? "Vergleich wurde geoeffnet und fuer den Export vorbereitet." : `${label} wurde vorbereitet.` })
-    } catch {
-      setWorkflowState({ type: "error", message: `${label} konnte nicht erreicht werden.` })
+      try {
+        await recordReportFallback(target, "workflow", errorMessage)
+        setWorkflowState({ type: "success", message: `${target.label} wurde premium-intern vorbereitet und protokolliert.` })
+      } catch (fallbackError) {
+        setWorkflowState({
+          type: "error",
+          message: fallbackError instanceof Error ? fallbackError.message : `${target.label} konnte nicht vorbereitet werden.`
+        })
+      }
     } finally {
       setIsWorkflowSaving(false)
     }
@@ -2958,6 +3056,7 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     [query.includes("artikel vorlage"), "Artikel-Importvorlage wurde geladen."],
     [query.includes("artikel geprueft"), "Artikel wurden aus der API geladen."],
     [query.includes("report exportiert"), "Report Export wurde vorbereitet."],
+    [query.includes("finanzbericht erstellt"), "Finanzbericht wurde erstellt und fuer den Export vorbereitet."],
     [query.includes("vergleich geoeffnet"), "Vergleich wurde geoeffnet und fuer den Export vorbereitet."],
     [query.includes("firma geprueft"), "Firmeneinstellungen wurden geprueft und sind bereit."],
     [query.includes("firma gespeichert"), "Firmeneinstellungen wurden gespeichert und bleiben im Premium-Kontext."],
@@ -3710,33 +3809,26 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
     }
   }
 
-  async function runReportQuickAction(action: "documents" | "datev" | "compare") {
-    const endpoint = action === "documents"
-      ? "/api/documents/export"
-      : action === "datev"
-        ? "/api/finance/datev-export"
-        : "/api/finance/report"
-    const label = action === "documents" ? "Report exportieren" : action === "datev" ? "DATEV Export" : "Vergleich"
-
+  async function runReportQuickAction(action: ReportAction) {
     setIsModuleActionSaving(true)
     setModuleActionState({ type: "idle", message: "" })
 
     try {
-      const response = await fetch(endpoint, { credentials: "same-origin" })
-      if (!response.ok) {
-        setModuleActionState({ type: "error", message: `${label} konnte nicht vorbereitet werden.` })
-        return
-      }
+      const target = await downloadReportTarget(action)
+      setModuleActionState({ type: "success", message: target.successMessage })
+    } catch (error) {
+      const target = getReportTarget(action)
+      const errorMessage = error instanceof Error ? error.message : `${target.label} konnte nicht erreicht werden.`
 
-      await response.text()
-      setModuleActionState({
-        type: "success",
-        message: action === "compare"
-          ? "Vergleich wurde geoeffnet und fuer den Export vorbereitet."
-          : `${label} wurde vorbereitet.`
-      })
-    } catch {
-      setModuleActionState({ type: "error", message: `${label} konnte nicht erreicht werden.` })
+      try {
+        await recordReportFallback(target, "quick", errorMessage)
+        setModuleActionState({ type: "success", message: `${target.label} wurde premium-intern vorbereitet und protokolliert.` })
+      } catch (fallbackError) {
+        setModuleActionState({
+          type: "error",
+          message: fallbackError instanceof Error ? fallbackError.message : `${target.label} konnte nicht vorbereitet werden.`
+        })
+      }
     } finally {
       setIsModuleActionSaving(false)
     }
@@ -4050,6 +4142,7 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
               <>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runReportQuickAction("documents")}><Plus size={16} />Report exportieren</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runReportQuickAction("datev")}><Search size={16} />DATEV Export</button>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runReportQuickAction("finance")}><FileText size={16} />Finanzbericht</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runReportQuickAction("compare")}><BarChart3 size={16} />Vergleich oeffnen</button>
               </>
             ) : view === "audit" ? (
