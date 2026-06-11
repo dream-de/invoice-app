@@ -336,12 +336,40 @@
 }
 
 .topbar {
+  position: relative;
   min-height: 58px;
   display: grid;
-  grid-template-columns: minmax(210px, 250px) minmax(220px, 320px) minmax(460px, 1fr) minmax(330px, auto);
+  grid-template-columns: minmax(230px, 270px) minmax(260px, 1fr) minmax(330px, auto);
   align-items: center;
   gap: 14px;
   margin-bottom: 14px;
+}
+
+.topBrandCluster {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.appMenuButton {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel-strong) 82%, transparent);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.appMenuButton:hover,
+.appMenuButton:focus-visible {
+  border-color: color-mix(in srgb, var(--violet) 46%, var(--line));
+  background: color-mix(in srgb, var(--violet) 14%, var(--panel-strong));
+  outline: none;
 }
 
 .topBrand {
@@ -377,6 +405,171 @@
   color: var(--muted);
   font-size: 11px;
   font-weight: 800;
+}
+
+.appMenuOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  background: rgba(15, 23, 42, 0.28);
+  padding: 84px 0 24px 32px;
+}
+
+.appMenuPanel {
+  width: min(760px, calc(100vw - 64px));
+  max-height: calc(100vh - 112px);
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  gap: 14px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--shell) 96%, transparent);
+  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.26);
+  padding: 18px;
+  backdrop-filter: blur(22px);
+}
+
+.appMenuHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.appMenuHeader strong,
+.appMenuHeader span {
+  display: block;
+}
+
+.appMenuHeader strong {
+  color: var(--text);
+  font-size: 20px;
+  line-height: 1.1;
+}
+
+.appMenuHeader span {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.appMenuHeader button {
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel-strong) 82%, transparent);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.appMenuSearch {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  color: var(--faint);
+  padding: 0 13px;
+}
+
+.appMenuSearch input {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  outline: none;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.appMenuGroups {
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.appMenuGroup {
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 7px;
+}
+
+.appMenuGroup p {
+  margin: 0 0 3px;
+  color: var(--faint);
+  font-size: 10px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.appMenuGroup a {
+  min-width: 0;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--muted);
+  padding: 0 11px;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.appMenuGroup a:hover,
+.appMenuGroup a:focus-visible,
+.appMenuActive {
+  border-color: color-mix(in srgb, var(--violet) 32%, var(--line));
+  background: color-mix(in srgb, var(--violet) 13%, var(--panel-strong));
+  color: var(--text) !important;
+  outline: none;
+}
+
+.appMenuGroup a span {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.appMenuGroup em {
+  min-width: 19px;
+  height: 19px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--rose);
+  color: #fff;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 950;
+}
+
+.appMenuEmpty {
+  grid-column: 1 / -1;
+  border: 1px dashed var(--line-strong);
+  border-radius: 8px;
+  color: var(--muted);
+  padding: 18px;
+  font-size: 13px;
+  font-weight: 850;
 }
 
 .searchBox {
@@ -2418,7 +2611,7 @@
   }
 
   .topbar {
-    grid-template-columns: minmax(190px, 220px) minmax(190px, 280px) minmax(390px, 1fr) minmax(278px, auto);
+    grid-template-columns: minmax(220px, 250px) minmax(220px, 1fr) minmax(278px, auto);
     gap: 10px;
   }
 
@@ -2483,13 +2676,17 @@
     grid-template-columns: minmax(170px, auto) minmax(220px, 1fr);
   }
 
-  .desktopNav {
+  .topActions {
     grid-column: 1 / -1;
-    justify-content: flex-start;
+    justify-content: flex-end;
   }
 
-  .topActions {
-    justify-content: flex-end;
+  .appMenuPanel {
+    width: min(680px, calc(100vw - 48px));
+  }
+
+  .appMenuGroups {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .adminMenuPanel {
@@ -2613,13 +2810,22 @@
     max-width: none;
   }
 
-  .desktopNav {
-    grid-column: auto;
-  }
-
   .topActions {
     justify-content: flex-start;
     flex-wrap: wrap;
+  }
+
+  .appMenuOverlay {
+    padding: 70px 10px 10px;
+  }
+
+  .appMenuPanel {
+    width: 100%;
+    max-height: calc(100vh - 88px);
+  }
+
+  .appMenuGroups {
+    grid-template-columns: 1fr;
   }
 
   .adminMenuPanel {

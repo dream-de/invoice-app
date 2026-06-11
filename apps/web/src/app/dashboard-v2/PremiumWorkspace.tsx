@@ -20,6 +20,7 @@ import {
   HelpCircle,
   Home,
   KeyRound,
+  Menu,
   MoreVertical,
   Plus,
   Receipt,
@@ -210,13 +211,13 @@ const mainNav: NavItem[] = [
   { label: "Einstellungen", href: "/dashboard-v2/settings", icon: Settings }
 ]
 const articlesNavItem: NavItem = { label: "Artikel", href: "/dashboard-v2/articles", icon: Briefcase }
-const topNav: NavItem[] = [mainNav[0], mainNav[1], mainNav[2], mainNav[3], mainNav[4], articlesNavItem, mainNav[7]]
 
 const sideNav = [
   { section: "Hauptmenu", items: [...mainNav.slice(0, 7), articlesNavItem, mainNav[7]] },
   {
     section: "Management",
     items: [
+      mainNav[8],
       { label: "Benutzer & Rollen", href: "/dashboard-v2/users", icon: Users },
       { label: "Lizenzen", href: "/dashboard-v2/license", icon: KeyRound },
       { label: "Lizenz Admin", href: "/dashboard-v2/license-admin", icon: ShieldCheck },
@@ -982,28 +983,56 @@ function ThemeToggle({ links, mode, onChange }: { links: ThemeLinks; mode: Theme
 
 function Topbar({ mode, profile, searchInputRef, searchQuery, themeLinks, unreadCount, workspace, onModeChange, onSearchChange }: { mode: ThemeMode; profile: ReturnType<typeof profileFromData>; searchInputRef: RefObject<HTMLInputElement | null>; searchQuery: string; themeLinks: ThemeLinks; unreadCount: number; workspace: ReturnType<typeof workspaceFromData>; onModeChange: (mode: ThemeMode) => void; onSearchChange: (value: string) => void }) {
   const pathname = usePathname()
+  const [appMenuOpen, setAppMenuOpen] = useState(false)
+  const [menuQuery, setMenuQuery] = useState("")
+  const normalizedMenuQuery = menuQuery.trim().toLowerCase()
+  const visibleNavigation = sideNav.map((group) => ({
+    ...group,
+    items: normalizedMenuQuery ? group.items.filter((item) => item.label.toLowerCase().includes(normalizedMenuQuery)) : group.items
+  })).filter((group) => group.items.length > 0)
 
   return (
     <header className={styles.topbar}>
-      <Link className={styles.topBrand} href={withPremiumTheme("/dashboard-v2", mode)} aria-label="DreamInvoice Dashboard">
-        <span className={styles.logoMark}>D</span>
-        <span><strong>DreamInvoice</strong><small>{workspace.name}</small></span>
-      </Link>
+      <div className={styles.topBrandCluster}>
+        <button className={styles.appMenuButton} type="button" onClick={() => setAppMenuOpen((open) => !open)} aria-expanded={appMenuOpen} aria-label="App-Menue oeffnen"><Menu size={19} /></button>
+        <Link className={styles.topBrand} href={withPremiumTheme("/dashboard-v2", mode)} aria-label="DreamInvoice Dashboard">
+          <span className={styles.logoMark}>D</span>
+          <span><strong>DreamInvoice</strong><small>{workspace.name}</small></span>
+        </Link>
+      </div>
       <div className={styles.searchBox}><Search size={16} /><input ref={searchInputRef} value={searchQuery} onChange={(event) => onSearchChange(event.target.value)} placeholder="Suche..." aria-label="Premium Suche" />{searchQuery ? <Link href={withPremiumTheme(pathname, mode)} aria-label="Suche leeren" onClick={() => onSearchChange("")}><X size={15} /></Link> : null}</div>
-      <nav className={styles.desktopNav} aria-label="Hauptnavigation">{topNav.map((item) => { const isActive = pathname === item.href; return <Link key={item.label} className={isActive ? styles.navActive : ""} aria-current={isActive ? "page" : undefined} href={withPremiumTheme(item.href, mode)}>{item.label}</Link> })}</nav>
       <div className={styles.topActions}>
         <ThemeToggle links={themeLinks} mode={mode} onChange={onModeChange} />
         <Link href={withPremiumTheme("/dashboard-v2/invoices/new", mode)} aria-label="Neu"><Plus size={18} /></Link>
         <Link href={withPremiumTheme("/dashboard-v2/notifications?q=Alle%20gelesen", mode)} aria-label="Benachrichtigungen" className={styles.bellButton}><Bell size={18} />{unreadCount > 0 ? <span>{unreadCount}</span> : null}</Link>
-        <div className={styles.adminMenu}>
-          <button type="button" aria-label="Navigation und Einstellungen"><Settings size={18} /></button>
-          <div className={styles.adminMenuPanel}>
-            {sideNav.map((group) => <div key={group.section} className={styles.adminMenuGroup}><p>{group.section}</p>{group.items.map((item) => { const Icon = item.icon; const isActive = pathname === item.href; const badge = item.label === "Benachrichtigungen" ? unreadCount : 0; return <Link key={item.label} href={withPremiumTheme(item.href, mode)} aria-current={isActive ? "page" : undefined} className={isActive ? styles.adminMenuActive : ""}><Icon size={16} /><span>{item.label}</span>{badge > 0 ? <em>{badge}</em> : null}</Link> })}</div>)}
-          </div>
-        </div>
+        <Link href={withPremiumTheme("/dashboard-v2/settings", mode)} aria-label="Einstellungen"><Settings size={18} /></Link>
         <Link href={withPremiumTheme("/dashboard-v2/settings?q=Portal%20geoeffnet", mode)} aria-label="Hilfe"><HelpCircle size={18} /></Link>
         <div className={styles.profile}><span>{profile.initials}</span><div><strong>{profile.name}</strong><small>{profile.role}</small></div></div>
       </div>
+      {appMenuOpen ? (
+        <div className={styles.appMenuOverlay} onClick={() => setAppMenuOpen(false)}>
+          <div className={styles.appMenuPanel} onClick={(event) => event.stopPropagation()}>
+            <div className={styles.appMenuHeader}>
+              <div><strong>Navigation</strong><span>Alle Bereiche von DreamInvoice</span></div>
+              <button type="button" onClick={() => setAppMenuOpen(false)} aria-label="Menue schliessen"><X size={18} /></button>
+            </div>
+            <div className={styles.appMenuSearch}><Search size={16} /><input value={menuQuery} onChange={(event) => setMenuQuery(event.target.value)} placeholder="Bereich suchen..." aria-label="Bereich suchen" autoFocus /></div>
+            <div className={styles.appMenuGroups}>
+              {visibleNavigation.length ? visibleNavigation.map((group) => (
+                <div key={group.section} className={styles.appMenuGroup}>
+                  <p>{group.section}</p>
+                  {group.items.map((item) => {
+                    const Icon = item.icon
+                    const isActive = pathname === item.href
+                    const badge = item.label === "Benachrichtigungen" ? unreadCount : 0
+                    return <Link key={item.label} href={withPremiumTheme(item.href, mode)} aria-current={isActive ? "page" : undefined} className={isActive ? styles.appMenuActive : ""} onClick={() => setAppMenuOpen(false)}><Icon size={18} /><span>{item.label}</span>{badge > 0 ? <em>{badge}</em> : null}</Link>
+                  })}
+                </div>
+              )) : <div className={styles.appMenuEmpty}>Kein Bereich gefunden.</div>}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </header>
   )
 }
