@@ -1757,6 +1757,58 @@ function PremiumLicensePanel({ data, mode, searchQuery }: { data: PremiumData; m
     }
   }
 
+  async function runLicensePanelAction(action: "demo" | "limit" | "users") {
+    setIsSubmitting(true)
+    setState({ type: "idle", message: "" })
+
+    try {
+      if (action === "users" || action === "limit") {
+        const response = await fetch("/api/settings/users", { credentials: "same-origin" })
+        const result = await response.json()
+
+        if (!response.ok || !result?.ok) {
+          setState({ type: "error", message: result?.error || "Benutzerlimit konnte nicht geprueft werden." })
+          return
+        }
+
+        const checkedLimit = result.limit || limit
+        const checkedUsers = checkedLimit.activeUsers ?? checkedLimit.currentUsers ?? limit.currentUsers
+        const checkedMaxUsers = checkedLimit.maxUsers ?? limit.maxUsers
+        setState({
+          type: "success",
+          message: action === "users"
+            ? `Benutzer verwaltet: ${result.users?.length || checkedUsers} Benutzer geladen.`
+            : `Benutzerlimit geprueft: ${checkedUsers} / ${checkedMaxUsers} Benutzer.`
+        })
+        return
+      }
+
+      const response = await fetch("/api/premium/actions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          type: "license",
+          action: "license.demo.check",
+          label: "Demo-Key geprueft",
+          payload: { plan: limit.plan, currentUsers: limit.currentUsers, maxUsers: limit.maxUsers }
+        })
+      })
+      const result = await response.json()
+
+      if (!response.ok || !result?.ok) {
+        setState({ type: "error", message: result?.error || "Demo-Key konnte nicht geprueft werden." })
+        return
+      }
+
+      setState({ type: "success", message: "Demo-Key wurde geprueft. Echte Aktivierung erfolgt mit signiertem Lizenzschluessel." })
+    } catch {
+      setState({ type: "error", message: "Lizenzaktion konnte nicht erreicht werden." })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   return (
     <article className={`${styles.panel} ${styles.licenseActionPanel}`}>
       <div className={styles.panelHead}>
@@ -1785,7 +1837,7 @@ function PremiumLicensePanel({ data, mode, searchQuery }: { data: PremiumData; m
               Lizenzdatei hochladen
               <input type="file" accept=".lic,.license,.txt,.json,application/json,text/plain" onChange={handleLicenseFile} />
             </label>
-            <Link href={withPremiumTheme("/dashboard-v2/license?q=Lizenz%20aktiviert", mode)}>Demo-Key pruefen</Link>
+            <button type="button" disabled={isSubmitting} onClick={() => void runLicensePanelAction("demo")}>Demo-Key pruefen</button>
             <button type="submit" disabled={isSubmitting}>{isSubmitting ? "Pruefe..." : "Aktivieren"}</button>
           </div>
           {currentState.message ? <p data-state={currentState.type}>{currentState.message}</p> : null}
@@ -1795,7 +1847,7 @@ function PremiumLicensePanel({ data, mode, searchQuery }: { data: PremiumData; m
           <span>Upgrade-Check</span>
           <strong>{limit.currentUsers} / {limit.maxUsers} Benutzer</strong>
           <p>{limit.isFull ? "Limit erreicht. Ein Upgrade ist fuer weitere Benutzer noetig." : `${Math.max(limit.maxUsers - limit.currentUsers, 0)} Benutzerplaetze sind aktuell frei.`}</p>
-          <Link href={withPremiumTheme("/dashboard-v2/users?q=Benutzer%20eingeladen", mode)}>Benutzer verwalten</Link>
+          <button type="button" disabled={isSubmitting} onClick={() => void runLicensePanelAction("users")}>Benutzer verwalten</button>
         </div>
       </div>
     </article>
@@ -3243,6 +3295,54 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
     }
   }
 
+  async function runLicenseQuickAction(action: "activate" | "demo" | "limit") {
+    setIsModuleActionSaving(true)
+    setModuleActionState({ type: "idle", message: "" })
+
+    try {
+      if (action === "limit") {
+        const response = await fetch("/api/settings/users", { credentials: "same-origin" })
+        const result = await response.json()
+        if (!response.ok || !result?.ok) {
+          setModuleActionState({ type: "error", message: result?.error || "Benutzerlimit konnte nicht geprueft werden." })
+          return
+        }
+        const limit = result.limit
+        const activeUsers = limit?.activeUsers ?? limit?.currentUsers ?? "-"
+        const maxUsers = limit?.maxUsers ?? "-"
+        setModuleActionState({ type: "success", message: `Benutzerlimit geprueft: ${activeUsers} / ${maxUsers} Benutzer.` })
+        return
+      }
+
+      const response = await fetch("/api/premium/actions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          type: "license",
+          action: action === "activate" ? "license.activate.prepare" : "license.demo.check",
+          label: action === "activate" ? "Lizenz aktivieren" : "Demo-Key geprueft",
+          payload: { source: "quick-action" }
+        })
+      })
+      const result = await response.json()
+      if (!response.ok || !result?.ok) {
+        setModuleActionState({ type: "error", message: result?.error || "Lizenzaktion konnte nicht ausgefuehrt werden." })
+        return
+      }
+      setModuleActionState({
+        type: "success",
+        message: action === "activate"
+          ? "Lizenzaktivierung ist bereit. Key im Formular eintragen oder Lizenzdatei hochladen und Aktivieren klicken."
+          : "Demo-Key wurde geprueft. Echte Aktivierung erfolgt mit signiertem Lizenzschluessel."
+      })
+    } catch {
+      setModuleActionState({ type: "error", message: "Lizenzaktion konnte nicht erreicht werden." })
+    } finally {
+      setIsModuleActionSaving(false)
+    }
+  }
+
   return (
     <section className={styles.modulePage}>
       <article className={`${styles.panel} ${styles.moduleHero}`}>
@@ -3261,6 +3361,8 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
           <button type="button" disabled={isModuleActionSaving} onClick={() => void runReportQuickAction("documents")}><Plus size={18} />{meta.primary}</button>
         ) : view === "users" ? (
           <button type="button" disabled={isModuleActionSaving} onClick={() => void runUserQuickAction("invite")}><Plus size={18} />{meta.primary}</button>
+        ) : view === "license" ? (
+          <button type="button" disabled={isModuleActionSaving} onClick={() => void runLicenseQuickAction("activate")}><Plus size={18} />{meta.primary}</button>
         ) : (
           <Link href={withPremiumTheme(content.primaryHref, mode)}><Plus size={18} />{meta.primary}</Link>
         )}
@@ -3330,6 +3432,12 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runUserQuickAction("invite")}><Plus size={16} />Benutzer einladen</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runUserQuickAction("role")}><Search size={16} />Rolle bearbeiten</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runUserQuickAction("2fa")}><BarChart3 size={16} />2FA pruefen</button>
+              </>
+            ) : view === "license" ? (
+              <>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runLicenseQuickAction("activate")}><Plus size={16} />Lizenz aktivieren</button>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runLicenseQuickAction("demo")}><Search size={16} />Demo-Key pruefen</button>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runLicenseQuickAction("limit")}><BarChart3 size={16} />Benutzerlimit</button>
               </>
             ) : content.actions.map(([action, href], index) => (
                 <Link key={action} href={withPremiumTheme(href, mode)}>

@@ -1552,7 +1552,8 @@
 .licenseFormActions label,
 .licenseFormActions a,
 .licenseFormActions button,
-.licenseUpgradeBox a {
+.licenseUpgradeBox a,
+.licenseUpgradeBox button {
   min-height: 40px;
   display: inline-flex;
   align-items: center;
@@ -1575,6 +1576,11 @@
 }
 
 .licenseFormActions button:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.licenseUpgradeBox button:disabled {
   cursor: wait;
   opacity: 0.72;
 }
