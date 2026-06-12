@@ -399,20 +399,8 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
           <aside className={styles.previewColumn} id="vorschau">
             <article className={styles.invoicePreview}>
               <header>
-                <div className={styles.previewBrand}>
-                  <div className={styles.previewLogo}>D</div>
-                  <div>
-                    <strong>DreamInvoice</strong>
-                    <span>Premium Edition</span>
-                  </div>
-                </div>
                 <div className={styles.documentTitle}>
                   <h2>RECHNUNG</h2>
-                  <strong>{invoice.number}</strong>
-                </div>
-                <div className={styles.companyBlock}>
-                  <strong>DreamInvoice GmbH</strong>
-                  <span>Sonnenstrasse 25<br />80331 Muenchen<br />Deutschland</span>
                 </div>
               </header>
               <div className={styles.previewMeta}>
@@ -421,8 +409,21 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
                   <strong>{invoice.customer || "Kunde"}</strong>
                   <p>{invoice.customerAddress}</p>
                 </div>
-                <div>
-                  <p>Rechnungsdatum: {invoice.issueDate}<br />Faelligkeitsdatum: {invoice.dueDate}<br />Leistungszeitraum: {invoice.servicePeriod}<br />Betreff: {invoice.subject}</p>
+                <div className={styles.companyBlock}>
+                  <strong>DreamInvoice GmbH</strong>
+                  <span>Sonnenstrasse 25<br />80331 Muenchen<br />Deutschland</span>
+                </div>
+              </div>
+              <div className={styles.invoiceInfoRow}>
+                <div className={styles.subjectBlock}>
+                  <span>Betreff</span>
+                  <strong>{invoice.subject}</strong>
+                </div>
+                <div className={styles.invoiceFacts}>
+                  <p><span>Rechnungsdatum:</span><strong>{invoice.issueDate}</strong></p>
+                  <p><span>Faelligkeitsdatum:</span><strong>{invoice.dueDate}</strong></p>
+                  <p><span>Leistungszeitraum:</span><strong>{invoice.servicePeriod}</strong></p>
+                  <p><span>Rechnungsnummer:</span><strong>{invoice.number}</strong></p>
                 </div>
               </div>
               <div className={styles.previewItems}>
