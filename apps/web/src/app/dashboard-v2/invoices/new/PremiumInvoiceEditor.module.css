@@ -69,6 +69,7 @@
 .planCard span,
 .toolbar h1,
 .panelHead h2,
+.documentTitle strong,
 .previewBrand strong,
 .previewBrand span,
 .companyBlock strong,
@@ -513,16 +514,18 @@
 .invoicePreview {
   width: 100%;
   min-height: 820px;
+  display: flex;
+  flex-direction: column;
   padding: 34px 34px;
   background: #fff;
 }
 
 .invoicePreview header {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: flex-start;
-  justify-content: space-between;
   gap: 28px;
-  margin-bottom: 58px;
+  margin-bottom: 70px;
 }
 
 .previewBrand {
@@ -537,10 +540,29 @@
 .companyBlock span,
 .previewMeta span,
 .invoicePreview footer span,
+.documentFooter span,
 .thanks {
   color: var(--muted);
   font-size: 12px;
   font-weight: 750;
+}
+
+.documentTitle {
+  min-width: 180px;
+  text-align: center;
+}
+
+.documentTitle h2 {
+  margin: 0 0 6px;
+  color: var(--text);
+  font-size: 24px;
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+.documentTitle strong {
+  color: var(--violet);
+  font-size: 14px;
 }
 
 .companyBlock {
@@ -557,12 +579,6 @@
   gap: 34px;
   align-items: start;
   margin-bottom: 32px;
-}
-
-.previewMeta h2 {
-  margin: 0 0 4px;
-  font-size: 24px;
-  letter-spacing: 0;
 }
 
 .previewMeta > div:last-child {
@@ -661,6 +677,16 @@
   color: var(--text);
 }
 
+.documentFooter {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: auto;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  text-align: center;
+}
+
 .paymentBlock {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 126px;
@@ -757,6 +783,16 @@
     flex-direction: column;
   }
 
+  .invoicePreview header,
+  .documentFooter {
+    grid-template-columns: 1fr;
+  }
+
+  .documentTitle {
+    min-width: 0;
+    text-align: left;
+  }
+
   .toolbarActions,
   .toolbarActions button,
   .formGrid,
@@ -824,9 +860,12 @@
   }
 
   .invoicePreview {
-    width: 190mm;
-    max-width: 190mm;
-    min-height: auto;
+    width: 184mm;
+    max-width: 184mm;
+    min-height: 277mm;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
     border: 0;
     box-shadow: none;
     padding: 0;
@@ -834,12 +873,11 @@
   }
 
   .invoicePreview header {
-    display: flex;
-    flex-direction: row;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 48mm minmax(0, 1fr);
     align-items: flex-start;
-    justify-content: space-between;
-    gap: 18mm;
-    margin-bottom: 34mm;
+    gap: 12mm;
+    margin-bottom: 30mm;
   }
 
   .previewLogo {
@@ -861,12 +899,27 @@
   .companyBlock span,
   .previewMeta span,
   .invoicePreview footer span,
+  .documentFooter span,
   .thanks {
     font-size: 8pt;
   }
 
+  .documentTitle {
+    min-width: 0;
+    text-align: center;
+  }
+
+  .documentTitle h2 {
+    margin-bottom: 1.5mm;
+    font-size: 17pt;
+  }
+
+  .documentTitle strong {
+    font-size: 9.5pt;
+  }
+
   .companyBlock {
-    gap: 4mm;
+    gap: 3mm;
     font-size: 8pt;
     line-height: 1.35;
   }
@@ -874,12 +927,8 @@
   .previewMeta {
     display: grid;
     grid-template-columns: 1fr 0.85fr;
-    gap: 28mm;
-    margin-bottom: 18mm;
-  }
-
-  .previewMeta h2 {
-    font-size: 18pt;
+    gap: 26mm;
+    margin-bottom: 16mm;
   }
 
   .previewMeta strong {
@@ -938,7 +987,7 @@
     justify-content: space-between;
     align-items: flex-start;
     gap: 18mm;
-    margin-top: 8mm;
+    margin-top: 7mm;
   }
 
   .invoicePreview footer strong {
@@ -946,8 +995,18 @@
   }
 
   .thanks {
-    margin-top: 6mm;
+    margin-top: 5mm;
     font-size: 8pt;
+  }
+
+  .documentFooter {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4mm;
+    margin-top: auto;
+    padding-top: 3.5mm;
+    border-top: 0.25mm solid #d8e1ee;
+    text-align: center;
   }
 
   .paymentBlock {

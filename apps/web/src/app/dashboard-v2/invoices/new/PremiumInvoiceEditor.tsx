@@ -406,10 +406,13 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
                     <span>Premium Edition</span>
                   </div>
                 </div>
+                <div className={styles.documentTitle}>
+                  <h2>RECHNUNG</h2>
+                  <strong>{invoice.number}</strong>
+                </div>
                 <div className={styles.companyBlock}>
                   <strong>DreamInvoice GmbH</strong>
                   <span>Sonnenstrasse 25<br />80331 Muenchen<br />Deutschland</span>
-                  <span>info@dreaminvoice.de<br />www.dreaminvoice.de<br />USt-IdNr.: DE123456789</span>
                 </div>
               </header>
               <div className={styles.previewMeta}>
@@ -419,8 +422,6 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
                   <p>{invoice.customerAddress}</p>
                 </div>
                 <div>
-                  <h2>RECHNUNG</h2>
-                  <strong>{invoice.number}</strong>
                   <p>Rechnungsdatum: {invoice.issueDate}<br />Faelligkeitsdatum: {invoice.dueDate}<br />Leistungszeitraum: {invoice.servicePeriod}<br />Betreff: {invoice.subject}</p>
                 </div>
               </div>
@@ -461,6 +462,12 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
                 <div><strong>Bankverbindung</strong><span>IBAN: {creditorIban}<br />BIC: {creditorBic}</span></div>
               </footer>
               <p className={styles.thanks}>{invoice.note}</p>
+              <div className={styles.documentFooter}>
+                <span>TEL: 030 88 99300</span>
+                <span>info@dreaminvoice.de</span>
+                <span>www.dreaminvoice.de</span>
+                <span>USt-IdNr.: DE123456789</span>
+              </div>
             </article>
           </aside>
         </section>
