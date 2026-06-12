@@ -6,10 +6,10 @@ import {
   ArrowLeft,
   Download,
   Eye,
-  FileText,
+  GripVertical,
   Mail,
+  MoreHorizontal,
   Plus,
-  Printer,
   Save,
   Trash2
 } from "lucide-react"
@@ -32,10 +32,15 @@ type InvoiceItem = {
 type InvoiceState = {
   customer: string
   customerAddress: string
+  customerEmail: string
+  customerPhone: string
   number: string
   issueDate: string
   dueDate: string
+  servicePeriod: string
+  subject: string
   paymentTerms: string
+  paymentMethod: string
   note: string
 }
 
@@ -78,22 +83,29 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
   const [theme] = useState(initialTheme)
   const [invoice, setInvoice] = useState<InvoiceState>({
     customer: "Acme GmbH",
-    customerAddress: "Lindenallee 12\n10115 Berlin\nDeutschland",
+    customerAddress: "Musterstrasse 123\n12345 Musterstadt\nDeutschland",
+    customerEmail: "info@acmegmbh.de",
+    customerPhone: "+49 30 12345678",
     number: "RE-2026-0104",
     issueDate: today,
     dueDate: due,
+    servicePeriod: "Mai 2026",
+    subject: "Website Relaunch - Erstellung und Design",
     paymentTerms: "Zahlbar innerhalb von 14 Tagen ohne Abzug.",
-    note: "Vielen Dank fuer die angenehme Zusammenarbeit."
+    paymentMethod: "Ueberweisung",
+    note: "Vielen Dank fuer Ihren Auftrag. Bei Fragen kontaktieren Sie uns gerne."
   })
   const [taxRates, setTaxRates] = useState<TaxRate[]>(initialTaxRates)
   const [items, setItems] = useState<InvoiceItem[]>([
-    { id: "item-1", description: "Premium Beratung", quantity: 2, price: 149, taxRateId: "tax-19" },
-    { id: "item-2", description: "Wartungspaket", quantity: 1, price: 89, taxRateId: "tax-7" },
-    { id: "item-3", description: "Reverse-Charge Leistung", quantity: 1, price: 240, taxRateId: "tax-0" }
+    { id: "item-1", description: "Konzeption & Beratung", quantity: 10, price: 95, taxRateId: "tax-19" },
+    { id: "item-2", description: "UI/UX Design", quantity: 20, price: 85, taxRateId: "tax-19" },
+    { id: "item-3", description: "Frontend Entwicklung", quantity: 30, price: 95, taxRateId: "tax-19" },
+    { id: "item-4", description: "Projektmanagement", quantity: 5, price: 90, taxRateId: "tax-19" }
   ])
   const [newTaxLabel, setNewTaxLabel] = useState("5% MwSt")
   const [newTaxRate, setNewTaxRate] = useState("5")
   const [status, setStatus] = useState("Bereit")
+  const [draggedItemId, setDraggedItemId] = useState<string | null>(null)
 
   const totals = useMemo(() => {
     const taxMap = new Map<string, TaxSummary>()
@@ -151,6 +163,22 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
     setStatus("Position entfernt")
   }
 
+  function moveItem(targetId: string) {
+    if (!draggedItemId || draggedItemId === targetId) return
+
+    setItems((current) => {
+      const fromIndex = current.findIndex((item) => item.id === draggedItemId)
+      const toIndex = current.findIndex((item) => item.id === targetId)
+      if (fromIndex < 0 || toIndex < 0) return current
+
+      const next = [...current]
+      const [moved] = next.splice(fromIndex, 1)
+      next.splice(toIndex, 0, moved)
+      return next
+    })
+    setStatus("Positionen sortiert")
+  }
+
   function addTaxRate() {
     const rate = asNumber(newTaxRate)
     const label = newTaxLabel.trim() || `${rate}% MwSt`
@@ -178,47 +206,71 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
   return (
     <main className={styles.page} data-theme={theme}>
       <aside className={styles.sidebar}>
-        <Link className={styles.backLink} href="/dashboard-v2/invoices"><ArrowLeft size={16} /> Zurueck</Link>
         <div className={styles.brand}>
           <span>D</span>
           <div>
             <strong>DreamInvoice</strong>
-            <small>Premium Editor</small>
+            <small>Premium Edition</small>
           </div>
         </div>
         <nav>
-          {["Kunde", "Rechnungsdaten", "Positionen", "Steuern", "Vorschau"].map((item) => <a key={item} href={`#${item.toLowerCase()}`}>{item}</a>)}
+          {[
+            ["Dashboard", "/dashboard-v2"],
+            ["Kunden", "/dashboard-v2/customers"],
+            ["Projekte", "/dashboard-v2/projects"],
+            ["Rechnungen", "/dashboard-v2/invoices"],
+            ["Angebote", "/dashboard-v2/offers"],
+            ["Zeiterfassung", "/dashboard-v2/time"],
+            ["Ausgaben", "/dashboard-v2/expenses"],
+            ["Artikel", "/dashboard-v2/articles"],
+            ["Berichte", "/dashboard-v2/reports"]
+          ].map(([label, href]) => <Link key={label} className={label === "Rechnungen" ? styles.activeNav : ""} href={href}>{label}</Link>)}
         </nav>
-        <div className={styles.sidebarTotal}>
-          <span>Rechnungsbetrag</span>
-          <strong>{euro(totals.gross)}</strong>
-          <small>{status}</small>
+        <div className={styles.management}>
+          <span>Management</span>
+          <Link href="/dashboard-v2/users">Benutzer & Rollen</Link>
+          <Link href="/dashboard-v2/license">Lizenzen</Link>
+          <Link href="/dashboard-v2/settings">Einstellungen</Link>
+          <Link href="/dashboard-v2/integrations">Integrationen</Link>
+        </div>
+        <div className={styles.planCard}>
+          <strong>Premium Edition</strong>
+          <span>Ihr aktueller Plan</span>
+          <Link href="/dashboard-v2/license">Plan verwalten</Link>
         </div>
       </aside>
 
       <section className={styles.workspace}>
         <header className={styles.toolbar}>
-          <div>
-            <span>Rechnungen</span>
+          <div className={styles.titleRow}>
+            <Link href="/dashboard-v2/invoices" aria-label="Zurueck"><ArrowLeft size={18} /></Link>
             <h1>Rechnung erstellen</h1>
+            <span>Entwurf</span>
           </div>
+          <div className={styles.topMeta}><Eye size={18} /><Mail size={18} /><span>D</span><strong>Daniel</strong></div>
+        </header>
+        <div className={styles.actionBar}>
           <div className={styles.toolbarActions}>
             <button type="button" onClick={saveDraft}><Save size={16} />Entwurf speichern</button>
             <button type="button" onClick={previewPdf}><Eye size={16} />PDF ansehen</button>
             <button type="button" onClick={previewPdf}><Download size={16} />PDF herunterladen</button>
             <button type="button" onClick={sendEmail}><Mail size={16} />Per E-Mail senden</button>
+            <button type="button" aria-label="Mehr"><MoreHorizontal size={16} /></button>
           </div>
-        </header>
+        </div>
 
         <section className={styles.editorGrid}>
           <div className={styles.formColumn}>
             <section className={styles.panel} id="kunde">
               <div className={styles.panelHead}>
                 <h2>Kunde</h2>
-                <span>Empfaenger und Adresse</span>
+                <button type="button"><Plus size={15} />Neuen Kunden anlegen</button>
               </div>
               <label>Kunde<input value={invoice.customer} onChange={(event) => updateInvoice("customer", event.target.value)} /></label>
-              <label>Adresse<textarea rows={4} value={invoice.customerAddress} onChange={(event) => updateInvoice("customerAddress", event.target.value)} /></label>
+              <div className={styles.customerGrid}>
+                <p><strong>{invoice.customer}</strong><span>{invoice.customerAddress}</span></p>
+                <p><strong>E-Mail</strong><span>{invoice.customerEmail}</span><strong>Telefon</strong><span>{invoice.customerPhone}</span></p>
+              </div>
             </section>
 
             <section className={styles.panel} id="rechnungsdaten">
@@ -229,9 +281,12 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
               <div className={styles.formGrid}>
                 <label>Rechnungsnummer<input value={invoice.number} onChange={(event) => updateInvoice("number", event.target.value)} /></label>
                 <label>Rechnungsdatum<input type="date" value={invoice.issueDate} onChange={(event) => updateInvoice("issueDate", event.target.value)} /></label>
-                <label>Faelligkeit<input type="date" value={invoice.dueDate} onChange={(event) => updateInvoice("dueDate", event.target.value)} /></label>
+                <label>Faelligkeitsdatum<input type="date" value={invoice.dueDate} onChange={(event) => updateInvoice("dueDate", event.target.value)} /></label>
               </div>
-              <label>Zahlungsbedingungen<textarea rows={2} value={invoice.paymentTerms} onChange={(event) => updateInvoice("paymentTerms", event.target.value)} /></label>
+              <div className={styles.formGridTwo}>
+                <label>Leistungszeitraum<input value={invoice.servicePeriod} onChange={(event) => updateInvoice("servicePeriod", event.target.value)} /></label>
+                <label>Betreff<input value={invoice.subject} onChange={(event) => updateInvoice("subject", event.target.value)} /></label>
+              </div>
             </section>
 
             <section className={styles.panel} id="positionen">
@@ -241,21 +296,21 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
               </div>
               <div className={styles.itemTable}>
                 <div className={styles.itemHeader}>
-                  <span>Beschreibung</span><span>Menge</span><span>Preis</span><span>MwSt</span><span>Gesamt</span><span />
+                  <span /><span>Beschreibung</span><span>Menge</span><span>Preis (netto)</span><span>MwSt.</span><span>Gesamt (netto)</span><span />
                 </div>
                 {items.map((item) => {
                   const rate = taxRates.find((entry) => entry.id === item.taxRateId) ?? taxRates[0]
                   const net = itemNet(item)
-                  const gross = net + net * ((rate?.rate ?? 0) / 100)
                   return (
-                    <div className={styles.itemRow} key={item.id}>
+                    <div className={styles.itemRow} key={item.id} draggable onDragStart={() => setDraggedItemId(item.id)} onDragOver={(event) => event.preventDefault()} onDrop={() => moveItem(item.id)} onDragEnd={() => setDraggedItemId(null)}>
+                      <span className={styles.dragHandle} title="Position ziehen"><GripVertical size={16} /></span>
                       <input value={item.description} onChange={(event) => updateItem(item.id, { description: event.target.value })} />
-                      <input value={String(item.quantity)} inputMode="decimal" onChange={(event) => updateItem(item.id, { quantity: asNumber(event.target.value) })} />
+                      <div className={styles.quantityCell}><input value={String(item.quantity)} inputMode="decimal" onChange={(event) => updateItem(item.id, { quantity: asNumber(event.target.value) })} /><span>Std.</span></div>
                       <input value={String(item.price)} inputMode="decimal" onChange={(event) => updateItem(item.id, { price: asNumber(event.target.value) })} />
                       <select value={item.taxRateId} onChange={(event) => updateItem(item.id, { taxRateId: event.target.value })}>
                         {taxRates.map((taxRate) => <option key={taxRate.id} value={taxRate.id}>{taxRate.label}</option>)}
                       </select>
-                      <strong>{euro(gross)}</strong>
+                      <strong>{euro(net)}</strong>
                       <button type="button" aria-label="Position entfernen" onClick={() => removeItem(item.id)}><Trash2 size={15} /></button>
                     </div>
                   )
@@ -276,21 +331,35 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
                 <input aria-label="Prozent" placeholder="%" inputMode="decimal" value={newTaxRate} onChange={(event) => setNewTaxRate(event.target.value)} />
                 <button type="button" onClick={addTaxRate}><Plus size={15} />MwSt anlegen</button>
               </div>
-              <label>Notiz<textarea rows={3} value={invoice.note} onChange={(event) => updateInvoice("note", event.target.value)} /></label>
+            </section>
+            <section className={styles.panel} id="zahlung">
+              <div className={styles.panelHead}>
+                <h2>Zahlungsbedingungen</h2>
+                <span>{status}</span>
+              </div>
+              <div className={styles.formGridThree}>
+                <label>Zahlungsziel (Tage)<input value="14 Tage" readOnly /></label>
+                <label>Zahlungsbedingungen<input value={invoice.paymentTerms} onChange={(event) => updateInvoice("paymentTerms", event.target.value)} /></label>
+                <label>Zahlungsart<input value={invoice.paymentMethod} onChange={(event) => updateInvoice("paymentMethod", event.target.value)} /></label>
+              </div>
+              <label>Notizen / Anmerkungen<textarea rows={3} value={invoice.note} onChange={(event) => updateInvoice("note", event.target.value)} /></label>
             </section>
           </div>
 
           <aside className={styles.previewColumn} id="vorschau">
-            <div className={styles.previewToolbar}>
-              <span>Live Vorschau</span>
-              <button type="button" onClick={previewPdf}><Printer size={15} />Drucken</button>
-            </div>
             <article className={styles.invoicePreview}>
               <header>
-                <div className={styles.previewLogo}>D</div>
-                <div>
-                  <strong>DreamInvoice</strong>
-                  <span>Premium Edition</span>
+                <div className={styles.previewBrand}>
+                  <div className={styles.previewLogo}>D</div>
+                  <div>
+                    <strong>DreamInvoice</strong>
+                    <span>Premium Edition</span>
+                  </div>
+                </div>
+                <div className={styles.companyBlock}>
+                  <strong>DreamInvoice GmbH</strong>
+                  <span>Sonnenstrasse 25<br />80331 Muenchen<br />Deutschland</span>
+                  <span>info@dreaminvoice.de<br />www.dreaminvoice.de<br />USt-IdNr.: DE123456789</span>
                 </div>
               </header>
               <div className={styles.previewMeta}>
@@ -300,18 +369,21 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
                   <p>{invoice.customerAddress}</p>
                 </div>
                 <div>
-                  <span>Rechnung</span>
+                  <h2>RECHNUNG</h2>
                   <strong>{invoice.number}</strong>
-                  <p>{invoice.issueDate}<br />Faellig {invoice.dueDate}</p>
+                  <p>Rechnungsdatum: {invoice.issueDate}<br />Faelligkeitsdatum: {invoice.dueDate}<br />Leistungszeitraum: {invoice.servicePeriod}<br />Betreff: {invoice.subject}</p>
                 </div>
               </div>
               <div className={styles.previewItems}>
+                <div className={styles.previewItemsHead}><span>Beschreibung</span><span>Menge</span><span>Preis (netto)</span><span>MwSt.</span><span>Gesamt (netto)</span></div>
                 {items.map((item) => {
                   const rate = taxRates.find((entry) => entry.id === item.taxRateId) ?? taxRates[0]
                   return (
                     <div key={item.id}>
                       <span>{item.description}</span>
-                      <small>{item.quantity} x {euro(item.price)} · {rate?.label}</small>
+                      <span>{item.quantity} Std.</span>
+                      <span>{euro(item.price)}</span>
+                      <span>{rate?.rate}%</span>
                       <b>{euro(itemNet(item))}</b>
                     </div>
                   )
@@ -323,9 +395,10 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
                 <strong><span>Gesamt</span><b>{euro(totals.gross)}</b></strong>
               </div>
               <footer>
-                <FileText size={16} />
-                <span>{invoice.paymentTerms}</span>
+                <div><strong>Zahlungsbedingungen</strong><span>{invoice.paymentTerms}</span></div>
+                <div><strong>Zahlungsart</strong><span>{invoice.paymentMethod}</span></div>
               </footer>
+              <p className={styles.thanks}>{invoice.note}</p>
             </article>
           </aside>
         </section>

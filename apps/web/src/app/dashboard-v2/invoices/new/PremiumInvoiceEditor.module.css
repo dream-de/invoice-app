@@ -2,20 +2,21 @@
   --bg: #f7f8fb;
   --panel: #ffffff;
   --panel-soft: #fbfcff;
-  --line: #e6ecf5;
+  --line: #e4eaf3;
+  --line-strong: #d8e1ee;
   --text: #172033;
-  --muted: #68758b;
+  --muted: #6b778d;
+  --faint: #9aa5b8;
   --violet: #6d4aff;
-  --violet-soft: #efeafd;
+  --violet-dark: #5634d8;
+  --violet-soft: #f0edff;
   --green: #14a673;
   --shadow: 0 18px 44px rgba(23, 32, 51, 0.08);
   min-height: 100vh;
   display: grid;
-  grid-template-columns: 248px minmax(0, 1fr);
-  gap: 16px;
+  grid-template-columns: 232px minmax(0, 1fr);
   background: linear-gradient(180deg, #fbfcff, var(--bg));
   color: var(--text);
-  padding: 16px;
   letter-spacing: 0;
 }
 
@@ -30,180 +31,307 @@
   font: inherit;
 }
 
-.sidebar,
-.toolbar,
-.panel,
-.invoicePreview {
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--panel);
-  box-shadow: var(--shadow);
-}
-
 .sidebar {
   position: sticky;
-  top: 16px;
-  height: calc(100vh - 32px);
-  padding: 16px;
+  top: 0;
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  gap: 18px;
-}
-
-.backLink,
-.sidebar nav a,
-.toolbarActions button,
-.panelHead button,
-.taxCreator button,
-.previewToolbar button {
-  min-height: 38px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--panel-soft);
-  color: var(--text);
-  text-decoration: none;
-  font-size: 13px;
-  font-weight: 850;
-  cursor: pointer;
+  border-right: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.94);
+  padding: 20px 14px;
 }
 
 .brand {
   display: flex;
   align-items: center;
   gap: 10px;
+  padding: 0 2px 28px;
 }
 
 .brand > span,
-.previewLogo {
+.previewLogo,
+.topMeta span {
   width: 38px;
   height: 38px;
   display: grid;
   place-items: center;
   border-radius: 8px;
-  background: linear-gradient(135deg, var(--violet), #2563eb);
+  background: linear-gradient(135deg, var(--violet), #2563eb 58%, #16c784);
   color: #fff;
   font-weight: 950;
 }
 
 .brand strong,
-.brand small {
+.brand small,
+.brand span,
+.management span,
+.planCard span,
+.toolbar h1,
+.panelHead h2,
+.previewBrand strong,
+.previewBrand span,
+.companyBlock strong,
+.companyBlock span {
   display: block;
 }
 
-.brand small,
-.sidebarTotal small,
-.toolbar span,
-.panelHead span,
-.previewToolbar span,
-.previewMeta span,
-.previewItems small,
-.previewLogo + div span {
+.brand strong {
+  font-size: 15px;
+  line-height: 1.05;
+}
+
+.brand small {
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.sidebar nav,
+.management {
+  display: grid;
+  gap: 5px;
+}
+
+.sidebar nav a,
+.management a {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  border-radius: 8px;
+  color: var(--muted);
+  padding: 0 12px;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 850;
+}
+
+.sidebar nav a:hover,
+.management a:hover,
+.activeNav {
+  background: linear-gradient(135deg, #7c3aed, #4f46e5);
+  color: #fff !important;
+}
+
+.management {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.management span {
+  margin: 0 0 6px 4px;
+  color: var(--faint);
+  font-size: 10px;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.planCard {
+  display: grid;
+  gap: 8px;
+  margin-top: auto;
+  border: 1px solid rgba(109, 74, 255, 0.22);
+  border-radius: 8px;
+  background: linear-gradient(145deg, rgba(109, 74, 255, 0.16), rgba(59, 130, 246, 0.07));
+  padding: 16px;
+}
+
+.planCard strong {
+  font-size: 15px;
+}
+
+.planCard span {
   color: var(--muted);
   font-size: 12px;
   font-weight: 750;
 }
 
-.sidebar nav {
+.planCard a {
+  min-height: 36px;
   display: grid;
-  gap: 8px;
-}
-
-.sidebar nav a {
-  justify-content: flex-start;
-  padding: 0 12px;
-}
-
-.sidebarTotal {
-  margin-top: auto;
-  padding: 14px;
-  border-radius: 8px;
-  background: var(--violet-soft);
-}
-
-.sidebarTotal span,
-.sidebarTotal strong,
-.sidebarTotal small {
-  display: block;
-}
-
-.sidebarTotal strong {
-  margin: 5px 0;
-  font-size: 24px;
+  place-items: center;
+  border-radius: 7px;
+  background: #fff;
+  color: var(--violet);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 950;
 }
 
 .workspace {
   min-width: 0;
   display: grid;
-  gap: 16px;
+  grid-template-rows: auto auto minmax(0, 1fr);
 }
 
 .toolbar {
-  position: sticky;
-  top: 16px;
-  z-index: 5;
+  min-height: 86px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  padding: 14px 16px;
+  gap: 18px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.86);
+  padding: 0 28px;
+  backdrop-filter: blur(16px);
 }
 
-.toolbar h1,
-.panelHead h2 {
+.titleRow,
+.topMeta,
+.toolbarActions,
+.previewBrand,
+.customerGrid,
+.previewItemsHead,
+.previewItems > div:not(.previewItemsHead),
+.previewTotals p,
+.previewTotals strong,
+.invoicePreview footer {
+  display: flex;
+  align-items: center;
+}
+
+.titleRow {
+  gap: 12px;
+}
+
+.titleRow a {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.titleRow h1 {
   margin: 0;
-}
-
-.toolbar h1 {
-  font-size: 28px;
+  font-size: 21px;
   line-height: 1.1;
 }
 
-.toolbarActions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 8px;
+.titleRow > span {
+  border-radius: 999px;
+  background: #fff4dc;
+  color: #b26b00;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 950;
 }
 
-.toolbarActions button:last-child {
+.topMeta {
+  justify-content: flex-end;
+  gap: 16px;
+  color: var(--muted);
+}
+
+.topMeta span {
+  width: 30px;
+  height: 30px;
+  font-size: 13px;
+}
+
+.topMeta strong {
+  font-size: 13px;
+}
+
+.actionBar {
+  display: flex;
+  justify-content: flex-end;
+  border-bottom: 1px solid var(--line);
+  background: color-mix(in srgb, var(--panel) 88%, transparent);
+  padding: 16px 28px;
+}
+
+.toolbarActions {
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.toolbarActions button,
+.panelHead button,
+.taxCreator button {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  background: var(--panel);
+  color: var(--text);
+  padding: 0 13px;
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.toolbarActions button:nth-child(3) {
   border-color: transparent;
-  background: var(--violet);
+  background: linear-gradient(135deg, #7c3aed, #4f46e5);
   color: #fff;
 }
 
+.toolbarActions button:first-child,
+.panelHead button,
+.taxCreator button {
+  color: var(--violet);
+}
+
 .editorGrid {
+  min-width: 0;
   display: grid;
-  grid-template-columns: minmax(520px, 1fr) minmax(380px, 0.72fr);
-  gap: 16px;
+  grid-template-columns: minmax(560px, 0.95fr) minmax(620px, 1.05fr);
+  gap: 18px;
   align-items: start;
+  padding: 20px 22px 34px;
 }
 
 .formColumn,
 .previewColumn {
+  min-width: 0;
   display: grid;
-  gap: 16px;
+  gap: 14px;
 }
 
 .previewColumn {
   position: sticky;
-  top: 102px;
+  top: 18px;
+}
+
+.panel,
+.invoicePreview {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: 0 10px 28px rgba(23, 32, 51, 0.06);
 }
 
 .panel {
   padding: 16px;
 }
 
-.panelHead,
-.previewToolbar {
+.panelHead {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
+}
+
+.panelHead h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.panelHead span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .panel label {
@@ -222,12 +350,12 @@
 .itemRow select,
 .taxCreator input {
   width: 100%;
-  min-height: 38px;
+  min-height: 36px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 7px;
   background: #fff;
   color: var(--text);
-  padding: 9px 10px;
+  padding: 8px 10px;
   outline: none;
 }
 
@@ -235,51 +363,121 @@
   resize: vertical;
 }
 
-.formGrid {
+.customerGrid {
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 28px;
+  margin-top: 14px;
+}
+
+.customerGrid p {
+  margin: 0;
+  min-width: 0;
+}
+
+.customerGrid strong,
+.customerGrid span {
+  display: block;
+  white-space: pre-line;
+}
+
+.customerGrid strong {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.customerGrid span {
+  margin-top: 4px;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.formGrid,
+.formGridThree {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 
+.formGridTwo {
+  display: grid;
+  grid-template-columns: minmax(0, 0.45fr) minmax(0, 0.55fr);
+  gap: 12px;
+}
+
 .itemTable {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .itemHeader,
 .itemRow {
   display: grid;
-  grid-template-columns: minmax(180px, 1fr) 86px 112px 142px 112px 38px;
-  gap: 8px;
+  grid-template-columns: 22px minmax(150px, 1fr) 92px 112px 92px 118px 34px;
+  gap: 6px;
   align-items: center;
 }
 
 .itemHeader {
+  border-radius: 7px 7px 0 0;
+  background: #f1f4f9;
   color: var(--muted);
+  padding: 8px;
   font-size: 11px;
-  font-weight: 900;
-  text-transform: uppercase;
+  font-weight: 950;
 }
 
 .itemRow {
-  padding: 8px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 7px;
   background: var(--panel-soft);
+  padding: 7px;
+}
+
+.dragHandle {
+  display: grid;
+  place-items: center;
+  color: var(--faint);
+  cursor: grab;
 }
 
 .itemRow strong {
   text-align: right;
+  font-size: 12px;
 }
 
 .itemRow button {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 7px;
   background: #fff;
-  color: #ef4444;
+  color: #64748b;
   cursor: pointer;
+}
+
+.quantityCell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fff;
+}
+
+.quantityCell input {
+  border: 0;
+  border-radius: 0;
+}
+
+.quantityCell span {
+  display: grid;
+  place-items: center;
+  border-left: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 850;
 }
 
 .taxGrid {
@@ -290,7 +488,7 @@
 }
 
 .taxGrid span {
-  padding: 8px 10px;
+  padding: 7px 10px;
   border-radius: 999px;
   background: var(--violet-soft);
   color: var(--violet);
@@ -306,95 +504,163 @@
 }
 
 .invoicePreview {
-  min-height: 680px;
-  padding: 28px;
+  min-height: 900px;
+  padding: 38px 40px;
   background: #fff;
 }
 
-.invoicePreview header,
-.previewMeta,
-.previewTotals p,
-.previewTotals strong,
-.invoicePreview footer {
+.invoicePreview header {
   display: flex;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 22px;
+  gap: 28px;
+  margin-bottom: 70px;
 }
 
-.invoicePreview header {
-  align-items: center;
-  justify-content: flex-start;
-  margin-bottom: 42px;
+.previewBrand {
+  gap: 11px;
+}
+
+.previewBrand strong {
+  font-size: 18px;
+}
+
+.previewBrand span,
+.companyBlock span,
+.previewMeta span,
+.invoicePreview footer span,
+.thanks {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.companyBlock {
+  display: grid;
+  gap: 12px;
+  text-align: right;
+  font-size: 12px;
+  line-height: 1.42;
 }
 
 .previewMeta {
-  align-items: flex-start;
-  margin-bottom: 34px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.8fr);
+  gap: 48px;
+  align-items: start;
+  margin-bottom: 40px;
+}
+
+.previewMeta h2 {
+  margin: 0 0 4px;
+  font-size: 24px;
+  letter-spacing: 0;
 }
 
 .previewMeta > div:last-child {
-  text-align: right;
+  text-align: left;
+}
+
+.previewMeta strong {
+  display: block;
+  margin-top: 5px;
+  color: var(--violet);
+  font-size: 14px;
 }
 
 .previewMeta p {
-  margin: 8px 0 0;
+  margin: 11px 0 0;
   white-space: pre-line;
-  color: var(--muted);
+  color: var(--text);
+  font-size: 12px;
   line-height: 1.55;
 }
 
 .previewItems {
   display: grid;
-  gap: 0;
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
+  margin-top: 22px;
 }
 
-.previewItems > div {
+.previewItemsHead,
+.previewItems > div:not(.previewItemsHead) {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
-  padding: 13px 0;
+  grid-template-columns: minmax(0, 1.55fr) 0.48fr 0.62fr 0.42fr 0.75fr;
+  gap: 10px;
+  align-items: center;
+}
+
+.previewItemsHead {
+  min-height: 32px;
+  background: linear-gradient(135deg, #7c3aed, #4f46e5);
+  color: #fff;
+  padding: 0 10px;
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.previewItems > div:not(.previewItemsHead) {
+  min-height: 38px;
   border-bottom: 1px solid var(--line);
-}
-
-.previewItems > div:last-child {
-  border-bottom: 0;
-}
-
-.previewItems small {
-  grid-column: 1;
+  padding: 0 10px;
+  font-size: 12px;
 }
 
 .previewItems b {
-  grid-row: 1 / span 2;
-  grid-column: 2;
+  text-align: right;
 }
 
 .previewTotals {
-  max-width: 360px;
-  margin: 28px 0 0 auto;
+  max-width: 420px;
+  margin: 26px 0 0 auto;
 }
 
 .previewTotals p,
 .previewTotals strong {
+  justify-content: space-between;
+  gap: 20px;
   margin: 0;
   padding: 8px 0;
+  font-size: 13px;
 }
 
 .previewTotals strong {
-  border-top: 2px solid var(--text);
-  font-size: 20px;
+  border-top: 0;
+  background: var(--violet-soft);
+  color: var(--violet-dark);
+  padding: 12px;
+  font-size: 19px;
 }
 
 .invoicePreview footer {
-  justify-content: flex-start;
-  align-items: center;
-  margin-top: 44px;
-  padding-top: 18px;
-  border-top: 1px solid var(--line);
-  color: var(--muted);
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 32px;
+  margin-top: 72px;
+}
+
+.invoicePreview footer div {
+  display: grid;
+  gap: 8px;
+}
+
+.invoicePreview footer strong {
   font-size: 13px;
+}
+
+.thanks {
+  margin: 32px 0 0;
+  text-align: center;
+  color: var(--text);
+}
+
+@media (max-width: 1380px) {
+  .editorGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .previewColumn {
+    position: static;
+  }
 }
 
 @media (max-width: 1180px) {
@@ -408,26 +674,27 @@
   }
 
   .sidebar nav {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-  }
-
-  .editorGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .previewColumn {
-    position: static;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 760px) {
   .page {
-    padding: 10px;
+    display: block;
+  }
+
+  .toolbar,
+  .actionBar,
+  .editorGrid {
+    padding-left: 10px;
+    padding-right: 10px;
   }
 
   .toolbar,
   .panelHead,
-  .previewMeta {
+  .customerGrid,
+  .invoicePreview header,
+  .invoicePreview footer {
     align-items: flex-start;
     flex-direction: column;
   }
@@ -435,6 +702,8 @@
   .toolbarActions,
   .toolbarActions button,
   .formGrid,
+  .formGridTwo,
+  .formGridThree,
   .taxCreator,
   .sidebar nav {
     grid-template-columns: 1fr;
@@ -446,15 +715,25 @@
   }
 
   .itemRow {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 22px 1fr;
+  }
+
+  .previewMeta,
+  .previewItemsHead,
+  .previewItems > div:not(.previewItemsHead) {
+    grid-template-columns: 1fr;
+  }
+
+  .invoicePreview {
+    padding: 24px 18px;
   }
 }
 
 @media print {
   .sidebar,
   .toolbar,
-  .formColumn,
-  .previewToolbar {
+  .actionBar,
+  .formColumn {
     display: none;
   }
 
@@ -468,6 +747,7 @@
   .editorGrid,
   .previewColumn {
     display: block;
+    padding: 0;
   }
 
   .invoicePreview {
