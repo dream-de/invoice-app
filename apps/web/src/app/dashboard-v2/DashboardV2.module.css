@@ -51,10 +51,6 @@
     linear-gradient(180deg, #070b15, #080d19 42%, #060914);
 }
 
-.page[data-navigation="compact"] {
-  grid-template-columns: 78px minmax(0, 1fr);
-}
-
 .page *,
 .page *::before,
 .page *::after {
@@ -99,18 +95,8 @@
 .logoWrap {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 11px;
   padding: 0 4px 18px;
-}
-
-.logoHome {
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  color: inherit;
-  text-decoration: none;
 }
 
 .logoMark {
@@ -131,10 +117,6 @@
   display: block;
 }
 
-.logoText {
-  min-width: 0;
-}
-
 .logoWrap strong {
   color: var(--text);
   font-size: 18px;
@@ -146,28 +128,6 @@
   color: var(--muted);
   font-size: 12px;
   font-weight: 700;
-}
-
-.sidebarModeButton {
-  width: 34px;
-  height: 34px;
-  display: grid;
-  place-items: center;
-  flex: 0 0 auto;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--panel-strong) 82%, transparent);
-  color: var(--muted);
-  cursor: pointer;
-  transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
-}
-
-.sidebarModeButton:hover,
-.sidebarModeButton:focus-visible {
-  border-color: color-mix(in srgb, var(--violet) 42%, var(--line));
-  background: color-mix(in srgb, var(--violet) 14%, var(--panel-strong));
-  color: var(--text);
-  outline: none;
 }
 
 .workspaceButton {
@@ -280,93 +240,6 @@
   color: #fff;
   background: linear-gradient(135deg, #7c3aed, #4f46e5);
   box-shadow: 0 12px 24px rgba(124, 58, 237, 0.25);
-}
-
-.page[data-navigation="compact"] .sidebar {
-  align-items: center;
-  padding: 16px 10px;
-}
-
-.page[data-navigation="compact"] .logoWrap {
-  width: 100%;
-  flex-direction: column;
-  justify-content: flex-start;
-  gap: 10px;
-  padding: 0 0 14px;
-}
-
-.page[data-navigation="compact"] .logoHome {
-  justify-content: center;
-}
-
-.page[data-navigation="compact"] .logoText,
-.page[data-navigation="compact"] .workspaceButton span:nth-child(2),
-.page[data-navigation="compact"] .workspaceButton svg,
-.page[data-navigation="compact"] .sideSection p,
-.page[data-navigation="compact"] .sideItem span,
-.page[data-navigation="compact"] .activeSideItem span,
-.page[data-navigation="compact"] .upgradeCard strong,
-.page[data-navigation="compact"] .upgradeCard span,
-.page[data-navigation="compact"] .upgradeCard a {
-  display: none;
-}
-
-.page[data-navigation="compact"] .workspaceButton {
-  min-height: 46px;
-  justify-content: center;
-  padding: 7px;
-}
-
-.page[data-navigation="compact"] .workspaceAvatar {
-  width: 34px;
-  height: 34px;
-}
-
-.page[data-navigation="compact"] .sideSections {
-  width: 100%;
-  padding: 12px 0;
-}
-
-.page[data-navigation="compact"] .sideSection {
-  display: grid;
-  gap: 6px;
-  margin-bottom: 14px;
-}
-
-.page[data-navigation="compact"] .sideItem,
-.page[data-navigation="compact"] .activeSideItem {
-  position: relative;
-  min-height: 44px;
-  justify-content: center;
-  gap: 0;
-  padding: 0;
-}
-
-.page[data-navigation="compact"] .sideItem:hover {
-  transform: translateY(-1px);
-}
-
-.page[data-navigation="compact"] .sideItem em,
-.page[data-navigation="compact"] .activeSideItem em {
-  position: absolute;
-  right: 4px;
-  top: 4px;
-  min-width: 17px;
-  height: 17px;
-  font-size: 9px;
-}
-
-.page[data-navigation="compact"] .upgradeCard {
-  width: 46px;
-  min-height: 46px;
-  place-items: center;
-  gap: 0;
-  padding: 0;
-}
-
-.page[data-navigation="compact"] .upgradeCard svg {
-  width: 22px;
-  height: 22px;
 }
 
 .upgradeCard {
@@ -2428,10 +2301,6 @@
 
 @media (max-width: 1180px) {
   .page {
-    grid-template-columns: 1fr;
-  }
-
-  .page[data-navigation="compact"] {
     grid-template-columns: 1fr;
   }
 

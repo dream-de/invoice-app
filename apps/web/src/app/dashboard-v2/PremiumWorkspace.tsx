@@ -21,8 +21,6 @@ import {
   Home,
   KeyRound,
   MoreVertical,
-  PanelLeftClose,
-  PanelLeftOpen,
   Plus,
   Receipt,
   Search,
@@ -38,10 +36,8 @@ import {
 import styles from "./DashboardV2.module.css"
 
 type ThemeMode = "dark" | "light"
-type NavigationMode = "expanded" | "compact"
 type ThemeLinks = { light: string; dark: string }
 const PREMIUM_THEME_STORAGE_KEY = "dream-invoice-premium-theme"
-const PREMIUM_NAV_STORAGE_KEY = "dream-invoice-premium-navigation"
 type IconType = ComponentType<{ size?: number; className?: string }>
 type NavItem = { label: string; href: string; icon: IconType; badge?: string }
 type Tone = "violet" | "green" | "rose" | "blue" | "amber"
@@ -946,28 +942,11 @@ function readStoredPremiumTheme() {
   }
 }
 
-function readStoredPremiumNavigation() {
-  try {
-    const savedMode = window.localStorage.getItem(PREMIUM_NAV_STORAGE_KEY)
-    return savedMode === "compact" || savedMode === "expanded" ? savedMode : null
-  } catch {
-    return null
-  }
-}
-
 function storePremiumTheme(mode: ThemeMode) {
   try {
     window.localStorage.setItem(PREMIUM_THEME_STORAGE_KEY, mode)
   } catch {
     // Theme switching must still work in restricted browser contexts.
-  }
-}
-
-function storePremiumNavigation(mode: NavigationMode) {
-  try {
-    window.localStorage.setItem(PREMIUM_NAV_STORAGE_KEY, mode)
-  } catch {
-    // The layout preference is optional; navigation still works without storage.
   }
 }
 
@@ -1000,23 +979,14 @@ function ThemeToggle({ links, mode, onChange }: { links: ThemeLinks; mode: Theme
   )
 }
 
-function Sidebar({ mode, navigationMode, unreadCount, upgrade, workspace, onNavigationModeChange }: { mode: ThemeMode; navigationMode: NavigationMode; unreadCount: number; upgrade: UpgradeSummary; workspace: ReturnType<typeof workspaceFromData>; onNavigationModeChange: (mode: NavigationMode) => void }) {
+function Sidebar({ mode, unreadCount, upgrade, workspace }: { mode: ThemeMode; unreadCount: number; upgrade: UpgradeSummary; workspace: ReturnType<typeof workspaceFromData> }) {
   const pathname = usePathname()
-  const isCompact = navigationMode === "compact"
 
   return (
     <aside className={styles.sidebar}>
-      <div className={styles.logoWrap}>
-        <Link className={styles.logoHome} href={withPremiumTheme("/dashboard-v2", mode)} aria-label="DreamInvoice Dashboard">
-          <div className={styles.logoMark}>D</div>
-          <div className={styles.logoText}><strong>DreamInvoice</strong><span>Premium Edition</span></div>
-        </Link>
-        <button className={styles.sidebarModeButton} type="button" onClick={() => onNavigationModeChange(isCompact ? "expanded" : "compact")} aria-label={isCompact ? "Navigation erweitern" : "Navigation kompakt anzeigen"} title={isCompact ? "Navigation erweitern" : "Navigation kompakt anzeigen"}>
-          {isCompact ? <PanelLeftOpen size={17} /> : <PanelLeftClose size={17} />}
-        </button>
-      </div>
-      <Link className={styles.workspaceButton} href={withPremiumTheme("/dashboard-v2/settings", mode)} title={`Workspace: ${workspace.name}`}><span className={styles.workspaceAvatar}>{workspace.initial}</span><span><small>Workspace</small><strong>{workspace.name}</strong></span><ChevronDown size={14} /></Link>
-      <nav className={styles.sideSections} aria-label="Premium Navigation">{sideNav.map((group) => <div key={group.section} className={styles.sideSection}><p>{group.section}</p>{group.items.map((item) => { const Icon = item.icon; const isActive = pathname === item.href; const badge = item.label === "Benachrichtigungen" ? unreadCount : 0; return <Link key={item.label} href={withPremiumTheme(item.href, mode)} aria-current={isActive ? "page" : undefined} className={isActive ? styles.activeSideItem : styles.sideItem} title={item.label}><Icon size={17} /><span>{item.label}</span>{badge > 0 ? <em>{badge}</em> : null}</Link> })}</div>)}</nav>
+      <div className={styles.logoWrap}><div className={styles.logoMark}>D</div><div><strong>DreamInvoice</strong><span>Premium Edition</span></div></div>
+      <Link className={styles.workspaceButton} href={withPremiumTheme("/dashboard-v2/settings", mode)}><span className={styles.workspaceAvatar}>{workspace.initial}</span><span><small>Workspace</small><strong>{workspace.name}</strong></span><ChevronDown size={14} /></Link>
+      <nav className={styles.sideSections}>{sideNav.map((group) => <div key={group.section} className={styles.sideSection}><p>{group.section}</p>{group.items.map((item) => { const Icon = item.icon; const isActive = pathname === item.href; const badge = item.label === "Benachrichtigungen" ? unreadCount : 0; return <Link key={item.label} href={withPremiumTheme(item.href, mode)} aria-current={isActive ? "page" : undefined} className={isActive ? styles.activeSideItem : styles.sideItem}><Icon size={16} /><span>{item.label}</span>{badge > 0 ? <em>{badge}</em> : null}</Link> })}</div>)}</nav>
       <div className={styles.upgradeCard}><Crown size={26} /><strong>{upgrade.title}</strong><span>{upgrade.text}</span><Link href={withPremiumTheme(upgrade.href, mode)}>{upgrade.action}</Link></div>
     </aside>
   )
@@ -4456,7 +4426,6 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
 
 export function PremiumWorkspacePage({ view = "dashboard", initialSearchQuery = "", initialTheme }: { view?: PremiumView; initialSearchQuery?: string; initialTheme?: ThemeMode }) {
   const [mode, setMode] = useState<ThemeMode>(initialTheme ?? "dark")
-  const [navigationMode, setNavigationMode] = useState<NavigationMode>("compact")
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const [data, setData] = useState<PremiumData>({
@@ -4484,13 +4453,6 @@ export function PremiumWorkspacePage({ view = "dashboard", initialSearchQuery = 
       setMode(savedMode)
     }
   }, [initialTheme])
-
-  useEffect(() => {
-    const savedNavigationMode = readStoredPremiumNavigation()
-    if (savedNavigationMode) {
-      setNavigationMode(savedNavigationMode)
-    }
-  }, [])
 
   useEffect(() => {
     let cancelled = false
@@ -4569,11 +4531,6 @@ export function PremiumWorkspacePage({ view = "dashboard", initialSearchQuery = 
     storePremiumTheme(nextMode)
   }
 
-  function handleNavigationModeChange(nextMode: NavigationMode) {
-    setNavigationMode(nextMode)
-    storePremiumNavigation(nextMode)
-  }
-
   const workspace = workspaceFromData(data)
   const profile = profileFromData(data)
   const unreadCount = (data.notifications.length ? data.notifications : fallbackNotifications).filter((item) => !isNotificationRead(item)).length
@@ -4585,8 +4542,8 @@ export function PremiumWorkspacePage({ view = "dashboard", initialSearchQuery = 
   }), [currentPath, searchQuery])
 
   return (
-    <div className={styles.page} data-theme={mode} data-navigation={navigationMode} role="main">
-      <Sidebar mode={mode} navigationMode={navigationMode} unreadCount={unreadCount} upgrade={upgrade} workspace={workspace} onNavigationModeChange={handleNavigationModeChange} />
+    <div className={styles.page} data-theme={mode} role="main">
+      <Sidebar mode={mode} unreadCount={unreadCount} upgrade={upgrade} workspace={workspace} />
       <section className={styles.contentShell}>
         <Topbar mode={mode} profile={profile} searchInputRef={searchInputRef} searchQuery={searchQuery} themeLinks={themeLinks} unreadCount={unreadCount} onModeChange={handleModeChange} onSearchChange={setSearchQuery} />
         <CompactNav mode={mode} unreadCount={unreadCount} />
