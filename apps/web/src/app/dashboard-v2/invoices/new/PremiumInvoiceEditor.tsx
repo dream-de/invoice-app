@@ -1,7 +1,8 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
+import QRCode from "qrcode"
 import {
   ArrowLeft,
   Download,
@@ -59,6 +60,9 @@ const initialTaxRates: TaxRate[] = [
 
 const today = new Date().toISOString().slice(0, 10)
 const due = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+const creditorName = "DreamInvoice GmbH"
+const creditorIban = "DE97441523700000069757"
+const creditorBic = "WELADED1LUN"
 
 function euro(value: number) {
   return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(
@@ -79,6 +83,27 @@ function lineId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.round(Math.random() * 10000)}`
 }
 
+function formatEpcAmount(value: number) {
+  return `EUR${Math.max(value, 0).toFixed(2)}`
+}
+
+function buildEpcQrPayload(invoiceNumber: string, amount: number) {
+  return [
+    "BCD",
+    "002",
+    "1",
+    "SCT",
+    creditorBic,
+    creditorName,
+    creditorIban,
+    formatEpcAmount(amount),
+    "",
+    "",
+    invoiceNumber,
+    `Rechnung ${invoiceNumber}`
+  ].join("\n")
+}
+
 export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?: "light" | "dark" }) {
   const [theme] = useState(initialTheme)
   const [invoice, setInvoice] = useState<InvoiceState>({
@@ -92,7 +117,7 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
     servicePeriod: "Mai 2026",
     subject: "Website Relaunch - Erstellung und Design",
     paymentTerms: "Zahlbar innerhalb von 14 Tagen ohne Abzug.",
-    paymentMethod: "Ueberweisung",
+    paymentMethod: "Vorkasse (Ueberweisung)",
     note: "Vielen Dank fuer Ihren Auftrag. Bei Fragen kontaktieren Sie uns gerne."
   })
   const [taxRates, setTaxRates] = useState<TaxRate[]>(initialTaxRates)
@@ -106,6 +131,7 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
   const [newTaxRate, setNewTaxRate] = useState("5")
   const [status, setStatus] = useState("Bereit")
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null)
+  const [qrCodeUrl, setQrCodeUrl] = useState("")
 
   const totals = useMemo(() => {
     const taxMap = new Map<string, TaxSummary>()
@@ -133,6 +159,30 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
       taxes: Array.from(taxMap.values()).sort((a, b) => b.rate - a.rate)
     }
   }, [items, taxRates])
+
+  const qrPayload = useMemo(() => buildEpcQrPayload(invoice.number, totals.gross), [invoice.number, totals.gross])
+
+  useEffect(() => {
+    let cancelled = false
+
+    QRCode.toDataURL(qrPayload, {
+      errorCorrectionLevel: "M",
+      margin: 1,
+      width: 164,
+      color: {
+        dark: "#111827",
+        light: "#ffffff"
+      }
+    }).then((url) => {
+      if (!cancelled) setQrCodeUrl(url)
+    }).catch(() => {
+      if (!cancelled) setQrCodeUrl("")
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [qrPayload])
 
   function updateInvoice(field: keyof InvoiceState, value: string) {
     setInvoice((current) => ({ ...current, [field]: value }))
@@ -394,9 +444,21 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
                 {totals.taxes.map((entry) => <p key={entry.label}><span>{entry.label} auf {euro(entry.net)}</span><b>{euro(entry.tax)}</b></p>)}
                 <strong><span>Gesamt</span><b>{euro(totals.gross)}</b></strong>
               </div>
+              <section className={styles.paymentBlock}>
+                <div>
+                  <h3>Zahlungsart: {invoice.paymentMethod}</h3>
+                  <p>Bitte ueberweisen Sie den offenen Betrag unter Angabe des Verwendungszwecks {invoice.number} auf unser unten angegebenes Konto.</p>
+                  <p>Sie koennen auch den QR-GiroCode auf der rechten Seite nutzen, um die Zahlung einfach und unkompliziert ueber Ihre Online-Banking-App durchzufuehren.</p>
+                  <p><strong>Bitte beachten:</strong><br />Die Rechnung wird nach Zahlungseingang automatisch als bezahlt markiert.</p>
+                </div>
+                <div className={styles.qrBox}>
+                  {qrCodeUrl ? <img src={qrCodeUrl} alt={`GiroCode fuer ${invoice.number}`} /> : <span>QR</span>}
+                  <small>GiroCode scannen</small>
+                </div>
+              </section>
               <footer>
                 <div><strong>Zahlungsbedingungen</strong><span>{invoice.paymentTerms}</span></div>
-                <div><strong>Zahlungsart</strong><span>{invoice.paymentMethod}</span></div>
+                <div><strong>Bankverbindung</strong><span>IBAN: {creditorIban}<br />BIC: {creditorBic}</span></div>
               </footer>
               <p className={styles.thanks}>{invoice.note}</p>
             </article>
