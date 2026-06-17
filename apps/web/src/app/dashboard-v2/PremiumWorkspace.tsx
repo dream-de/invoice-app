@@ -348,8 +348,7 @@ const mainNav: NavGroup[] = [
       { label: "Banking", href: "/dashboard-v2/finance", icon: Landmark },
       { label: "Ausgaben", href: "/dashboard-v2/expenses", icon: Wallet },
       { label: "Buchhaltung", href: "/dashboard-v2/finance?q=Buchhaltung", icon: Scale },
-      { label: "Steuern", href: "/dashboard-v2/finance?q=Steuern", icon: Receipt },
-      { label: "Zahlungen", href: "/dashboard-v2/finance?q=Zahlungen", icon: Banknote }
+      { label: "Steuern", href: "/dashboard-v2/finance?q=Steuern", icon: Receipt }
     ]
   },
   {
@@ -383,8 +382,7 @@ const mainNav: NavGroup[] = [
       { label: "Umsatz", href: "/dashboard-v2/reports?q=Umsatz", icon: BarChart3 },
       { label: "Ausgaben", href: "/dashboard-v2/reports?q=Ausgaben", icon: Wallet },
       { label: "Cashflow", href: "/dashboard-v2/reports?q=Cashflow", icon: Workflow },
-      { label: "Kundenwert", href: "/dashboard-v2/reports?q=Kundenwert", icon: Users },
-      { label: "Monatsvergleich", href: "/dashboard-v2/reports?q=Monatsvergleich", icon: Grid3X3 }
+      { label: "Kundenwert", href: "/dashboard-v2/reports?q=Kundenwert", icon: Users }
     ]
   },
   {
@@ -395,8 +393,7 @@ const mainNav: NavGroup[] = [
       { label: "Dokumente", href: "/dashboard-v2/documents", icon: Archive },
       { label: "Vorlagen", href: "/dashboard-v2/documents?q=Vorlagen", icon: FileText },
       { label: "Archiv", href: "/dashboard-v2/documents?q=Archiv", icon: Folder },
-      { label: "Signaturen", href: "/dashboard-v2/documents?q=Signaturen", icon: FileKey2 },
-      { label: "Nummernkreise", href: "/dashboard-v2/settings/documents", icon: Hash }
+      { label: "Signaturen", href: "/dashboard-v2/documents?q=Signaturen", icon: FileKey2 }
     ]
   },
   {
@@ -421,11 +418,16 @@ function navPath(href: string) {
 
 function isNavItemActive(pathname: string, item: NavItem) {
   const path = navPath(item.href)
+  if (path === "/dashboard-v2") return pathname === path
+
   return pathname === path || pathname.startsWith(path + "/")
 }
 
 function activeNavGroup(pathname: string) {
-  return mainNav.find((group) => group.items.some((item) => isNavItemActive(pathname, item))) ?? mainNav[0]
+  if (pathname === "/dashboard-v2") return mainNav[0]
+
+  const groups = mainNav.slice(1)
+  return groups.find((group) => group.items.some((item) => isNavItemActive(pathname, item))) ?? mainNav[0]
 }
 
 const premiumViewMeta: Record<Exclude<PremiumView, "account-security">, { title: string; eyebrow: string; description: string; primary: string }> = {
