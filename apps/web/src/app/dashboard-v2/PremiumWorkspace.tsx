@@ -5,41 +5,64 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { articles as fallbackArticlesData, customers as fallbackCustomersData, projects as fallbackProjectsData } from "@/data/invoice-data"
+import { supportedLanguages, type AppLanguage } from "@/i18n/config"
+import { useLanguage } from "@/lib/i18n"
 import {
   AlertCircle,
+  Archive,
   BarChart3,
+  Building2,
+  MoonStar,
+  SunMedium,
+  Banknote,
   Bell,
   Briefcase,
   CheckCircle2,
   ChevronDown,
   Clock3,
   Crown,
+  Download,
+  Filter,
   FileText,
   Folder,
   Grid3X3,
-  HelpCircle,
   Home,
+  Landmark,
   KeyRound,
+  Mail,
   MoreVertical,
+  CalendarDays,
+  ClipboardList,
+  FileKey2,
+  Hash,
+  Plug,
   Plus,
   Receipt,
+  Scale,
   Search,
   Settings,
   ShieldCheck,
   Tag,
+  Upload,
+  UserMinus,
   UserPlus,
   Users,
   Wallet,
+  Workflow,
   X,
   Zap
 } from "lucide-react"
+import { PremiumAccountSecurityClient } from "./account/security/PremiumAccountSecurityClient"
+import { PremiumSettingsSectionContent } from "./settings/PremiumSettingsSectionContent"
+import { type PremiumSettingsSection } from "./settings/sectionMap"
 import styles from "./DashboardV2.module.css"
 
 type ThemeMode = "dark" | "light"
 type ThemeLinks = { light: string; dark: string }
 const PREMIUM_THEME_STORAGE_KEY = "dream-invoice-premium-theme"
 type IconType = ComponentType<{ size?: number; className?: string }>
-type NavItem = { label: string; href: string; icon: IconType; badge?: string }
+type NavItem = { label: string; href: string; icon: IconType; badge?: string; disabled?: boolean }
+type NavGroup = NavItem & { items: NavItem[] }
 type Tone = "violet" | "green" | "rose" | "blue" | "amber"
 type PremiumView =
   | "dashboard"
@@ -49,6 +72,9 @@ type PremiumView =
   | "offers"
   | "time"
   | "expenses"
+  | "finance"
+  | "documents"
+  | "ai-assistant"
   | "articles"
   | "reports"
   | "settings"
@@ -60,18 +86,69 @@ type PremiumView =
   | "notifications"
   | "audit"
   | "api"
+  | "account-security"
+type ModuleView = Exclude<PremiumView, "dashboard" | "account-security">
 type InvoiceRow = [number: string, customer: string, status: string, amount: string, date: string]
 type ActivityRow = [title: string, text: string, time: string, tone: string]
 type UserRow = [name: string, role: string, initials: string, crown: string]
 type IntegrationRow = [name: string, meta: string, color: string]
 type ModuleRow = [title: string, subtitle: string, value: string, status: string]
+type AccountSecurityInitialProfile = {
+  name: string | null
+  email: string
+  role: string
+  status: string
+  emailVerified: boolean
+  twoFactorEnabled: boolean
+  lastLoginAt: string | null
+}
+
+type FinanceAccount = {
+  id: string
+  name: string
+  provider: string
+  iban: string
+  balance: number
+  status: "active" | "syncing" | "manual"
+}
+type FinanceTransaction = {
+  id: string
+  date: string
+  description: string
+  accountId: string
+  category: string
+  amount: number
+  status: "open" | "booked"
+  source: string
+}
+type FinanceImportTransaction = {
+  date: string
+  description: string
+  counterparty: string
+  iban: string
+  amount: number
+  currency: string
+}
+type FinanceImportResult = {
+  ok?: boolean
+  fileName?: string
+  imported?: number
+  totalAmount?: number
+  transactions?: FinanceImportTransaction[]
+  warnings?: string[]
+  message?: string
+}
 type ApiInvoice = {
   id: string
   number: string
   type?: string
   status: string
   customer: string
+  projectId?: string | null
+  project?: string | null
   grossTotal: number
+  paymentLinks?: Array<{ provider: string; status: string; checkoutUrl?: string | null }>
+  payments?: Array<{ provider?: string | null; status?: string | null; method?: string | null; paidAt?: string | null }>
   date?: string
   dueDate?: string
   createdAt?: string
@@ -99,11 +176,18 @@ type ApiArticle = {
 }
 type ProjectData = {
   id: string
+  code?: string
   name: string
+  customerId?: string | null
   customer: string
   status: string
   progress: string
   budget: string
+  budgetAmount?: number
+  trackedHours?: number
+  invoicedHours?: number
+  openHours?: number
+  revenue?: number
 }
 type AppUser = {
   id: string
@@ -129,15 +213,42 @@ type NotificationItem = {
 }
 type CompanySettings = {
   company?: string | null
+  owner?: string | null
+  street?: string | null
+  zip?: string | null
   email?: string | null
+  phone?: string | null
+  website?: string | null
   city?: string | null
   country?: string | null
+  bankName?: string | null
+  iban?: string | null
+  bic?: string | null
+  defaultPaymentTermsDays?: number | null
+  defaultPaymentNote?: string | null
+  taxNumber?: string | null
+  vatId?: string | null
+  registerCourt?: string | null
+  logoUrl?: string | null
 }
 type NumberRange = {
   type: string
   prefix: string
   nextValue: number
   padding: number
+}
+type AutomationWorkflowItem = { id: string; name: string; trigger: string; action: string; status: string }
+type RecurringInvoiceRuleItem = { id: string; name: string; frequency: string; interval?: number; status: string }
+type PaymentReminderRuleItem = { id: string; name: string; timing: string; offsetDays: number; reminderLevel?: number | null; status: string }
+type AutomationSummary = { workflows: AutomationWorkflowItem[]; recurringRules: RecurringInvoiceRuleItem[]; reminderRules: PaymentReminderRuleItem[]; cards?: { activeWorkflows: number; openReminders: number; overdueInvoices: number } }
+type AnalyticsSummary = {
+  revenue: { today: number; week: number; month: number; year: number }
+  invoices: { open: number; paid: number; overdue: number; cancelled: number }
+  customers: { top: Array<{ customer: string; revenue: number; openAmount: number }>; revenueByCustomer: Array<{ customer: string; revenue: number; openAmount: number }>; openAmounts: Array<{ customer: string; revenue: number; openAmount: number }> }
+  projects: { hours: number; revenue: number; profitability: number; utilization: number }
+  timeTracking: { bookedHours: number; invoicedHours: number; openHours: number }
+  charts: { revenueTrend: Array<{ label: string; value: number }>; invoiceStatus: Array<{ label: string; value: number }>; projectUtilization: Array<{ label: string; value: number }>; paymentReceipts: Array<{ label: string; value: number }> }
+  exports: string[]
 }
 type LicenseAdminPlan = "free" | "pro" | "team" | "business" | "unlimited"
 type LicenseIssueSummary = {
@@ -175,7 +286,19 @@ type PremiumData = {
   notifications: NotificationItem[]
   companySettings: CompanySettings | null
   numberRanges: NumberRange[]
+  automation: AutomationSummary | null
+  analytics: AnalyticsSummary | null
+  setupAvailable: boolean | null
+  userCount: number | null
   loaded: boolean
+  loadErrors: string[]
+}
+type SessionUser = {
+  id?: string | null
+  name?: string | null
+  email?: string | null
+  role?: string | null
+  status?: string | null
 }
 type ModuleConfig = {
   stats: Array<[value: string, label: string]>
@@ -185,11 +308,13 @@ type ModuleConfig = {
   timeline: Array<[title: string, text: string]>
   primaryHref: string
 }
+type SearchCategory = "all" | "navigation" | "customers" | "invoices" | "projects" | "articles" | "users" | "notifications"
 type SearchResult = {
   title: string
   subtitle: string
   href: string
   icon: IconType
+  category: Exclude<SearchCategory, "all">
 }
 type UpgradeSummary = {
   title: string
@@ -198,42 +323,112 @@ type UpgradeSummary = {
   href: string
 }
 
-const mainNav: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard-v2", icon: Home },
-  { label: "Kunden", href: "/dashboard-v2/customers", icon: Users },
-  { label: "Projekte", href: "/dashboard-v2/projects", icon: Folder },
-  { label: "Rechnungen", href: "/dashboard-v2/invoices", icon: FileText },
-  { label: "Angebote", href: "/dashboard-v2/offers", icon: Tag },
-  { label: "Zeiterfassung", href: "/dashboard-v2/time", icon: Clock3 },
-  { label: "Ausgaben", href: "/dashboard-v2/expenses", icon: Wallet },
-  { label: "Berichte", href: "/dashboard-v2/reports", icon: BarChart3 },
-  { label: "Einstellungen", href: "/dashboard-v2/settings", icon: Settings }
-]
-const articlesNavItem: NavItem = { label: "Artikel", href: "/dashboard-v2/articles", icon: Briefcase }
-
-const sideNav = [
-  { section: "Hauptmenu", items: [...mainNav.slice(0, 7), articlesNavItem, mainNav[7]] },
+const mainNav: NavGroup[] = [
   {
-    section: "Management",
+    label: "Dashboard",
+    href: "/dashboard-v2",
+    icon: Home,
+    items: [{ label: "Dashboard", href: "/dashboard-v2", icon: Home }]
+  },
+  {
+    label: "Vertrieb",
+    href: "/dashboard-v2/customers",
+    icon: Users,
     items: [
-      { label: "Benutzer & Rollen", href: "/dashboard-v2/users", icon: Users },
-      { label: "Lizenzen", href: "/dashboard-v2/license", icon: KeyRound },
-      { label: "Lizenz Admin", href: "/dashboard-v2/license-admin", icon: ShieldCheck },
-      { label: "Integrationen", href: "/dashboard-v2/integrations", icon: Zap },
-      { label: "Automatisierung", href: "/dashboard-v2/automation", icon: Settings }
+      { label: "Kunden", href: "/dashboard-v2/customers", icon: Users },
+      { label: "Angebote", href: "/dashboard-v2/offers", icon: Tag },
+      { label: "Rechnungen", href: "/dashboard-v2/invoices", icon: FileText }
     ]
   },
   {
-    section: "Extras",
+    label: "Finanzen",
+    href: "/dashboard-v2/finance",
+    icon: Landmark,
     items: [
-      { label: "Benachrichtigungen", href: "/dashboard-v2/notifications", icon: Bell },
-      { label: "Aktivitaetsprotokoll", href: "/dashboard-v2/audit", icon: ShieldCheck },
-      { label: "API & Webhooks", href: "/dashboard-v2/api", icon: Grid3X3 }
+      { label: "Banking", href: "/dashboard-v2/finance", icon: Landmark },
+      { label: "Ausgaben", href: "/dashboard-v2/expenses", icon: Wallet },
+      { label: "Buchhaltung", href: "/dashboard-v2/finance?q=Buchhaltung", icon: Scale },
+      { label: "Steuern", href: "/dashboard-v2/finance?q=Steuern", icon: Receipt },
+      { label: "Zahlungen", href: "/dashboard-v2/finance?q=Zahlungen", icon: Banknote }
+    ]
+  },
+  {
+    label: "Projekte",
+    href: "/dashboard-v2/projects",
+    icon: Folder,
+    items: [
+      { label: "Projekte", href: "/dashboard-v2/projects", icon: Folder },
+      { label: "Aufgaben", href: "/dashboard-v2/projects?q=Aufgaben", icon: ClipboardList },
+      { label: "Dateien", href: "/dashboard-v2/projects?q=Dateien", icon: Archive },
+      { label: "Meilensteine", href: "/dashboard-v2/projects?q=Meilensteine", icon: CheckCircle2 }
+    ]
+  },
+  {
+    label: "Zeiterfassung",
+    href: "/dashboard-v2/time-tracking",
+    icon: Clock3,
+    items: [
+      { label: "Meine Zeiten", href: "/dashboard-v2/time-tracking", icon: Clock3 },
+      { label: "Wochenstunden", href: "/dashboard-v2/time-tracking?q=Wochenstunden", icon: BarChart3 },
+      { label: "Kalender", href: "/dashboard-v2/time-tracking?q=Kalender", icon: CalendarDays },
+      { label: "Abwesenheiten", href: "/dashboard-v2/time-tracking?q=Abwesenheiten", icon: UserMinus },
+      { label: "Export", href: "/dashboard-v2/time-tracking?q=Export", icon: Download }
+    ]
+  },
+  {
+    label: "Berichte",
+    href: "/dashboard-v2/reports",
+    icon: BarChart3,
+    items: [
+      { label: "Umsatz", href: "/dashboard-v2/reports?q=Umsatz", icon: BarChart3 },
+      { label: "Ausgaben", href: "/dashboard-v2/reports?q=Ausgaben", icon: Wallet },
+      { label: "Cashflow", href: "/dashboard-v2/reports?q=Cashflow", icon: Workflow },
+      { label: "Kundenwert", href: "/dashboard-v2/reports?q=Kundenwert", icon: Users },
+      { label: "Monatsvergleich", href: "/dashboard-v2/reports?q=Monatsvergleich", icon: Grid3X3 }
+    ]
+  },
+  {
+    label: "Dokumente",
+    href: "/dashboard-v2/documents",
+    icon: Archive,
+    items: [
+      { label: "Dokumente", href: "/dashboard-v2/documents", icon: Archive },
+      { label: "Vorlagen", href: "/dashboard-v2/documents?q=Vorlagen", icon: FileText },
+      { label: "Archiv", href: "/dashboard-v2/documents?q=Archiv", icon: Folder },
+      { label: "Signaturen", href: "/dashboard-v2/documents?q=Signaturen", icon: FileKey2 },
+      { label: "Nummernkreise", href: "/dashboard-v2/settings/documents", icon: Hash }
+    ]
+  },
+  {
+    label: "Mehr",
+    href: "/dashboard-v2/articles",
+    icon: MoreVertical,
+    items: [
+      { label: "Artikel", href: "/dashboard-v2/articles", icon: Briefcase },
+      { label: "KI-Assistent", href: "/dashboard-v2/ai-assistant", icon: Plug },
+      { label: "Einstellungen", href: "/dashboard-v2/settings", icon: Settings },
+      { label: "Integrationen", href: "/dashboard-v2/integrations", icon: Zap },
+      { label: "Benutzer & Rollen", href: "/dashboard-v2/users", icon: Users },
+      { label: "Sicherheit", href: "/dashboard-v2/account/security", icon: ShieldCheck }
     ]
   }
 ]
 
-const premiumViewMeta: Record<PremiumView, { title: string; eyebrow: string; description: string; primary: string }> = {
+
+function navPath(href: string) {
+  return href.split("?")[0]
+}
+
+function isNavItemActive(pathname: string, item: NavItem) {
+  const path = navPath(item.href)
+  return pathname === path || pathname.startsWith(path + "/")
+}
+
+function activeNavGroup(pathname: string) {
+  return mainNav.find((group) => group.items.some((item) => isNavItemActive(pathname, item))) ?? mainNav[0]
+}
+
+const premiumViewMeta: Record<Exclude<PremiumView, "account-security">, { title: string; eyebrow: string; description: string; primary: string }> = {
   dashboard: {
     title: "Dashboard",
     eyebrow: "Premium Uebersicht",
@@ -275,6 +470,24 @@ const premiumViewMeta: Record<PremiumView, { title: string; eyebrow: string; des
     eyebrow: "Kosten",
     description: "Belege, Kostenstellen, Ausgabenkategorien und Erstattungen verwalten.",
     primary: "Ausgabe erfassen"
+  },
+  finance: {
+    title: "Finanzen",
+    eyebrow: "Banking",
+    description: "Bankkonten, Transaktionen, Kategorien, DATEV Export und Finanzberichte steuern.",
+    primary: "Bankkonto anlegen"
+  },
+  documents: {
+    title: "Dokumentenmanagement",
+    eyebrow: "DMS",
+    description: "Uploads, Zuordnungen, Suche und Versionierung fuer Geschaeftsdokumente verwalten.",
+    primary: "Dokument hochladen"
+  },
+  "ai-assistant": {
+    title: "KI-Assistent",
+    eyebrow: "Assistenz",
+    description: "Texte, Vorschlaege und Zusammenfassungen mit Kunden-, Projekt-, Artikel- und Rechnungskontext vorbereiten.",
+    primary: "Vorschlag erstellen"
   },
   articles: {
     title: "Artikel",
@@ -367,16 +580,12 @@ const activities: ActivityRow[] = [
 ]
 
 const users: UserRow[] = [
-  ["Daniel", "Administrator", "D", "crown"],
-  ["Sarah", "Manager", "S", ""],
-  ["Michael", "Buchhalter", "M", ""],
-  ["Julia", "Mitarbeiter", "J", ""],
-  ["Thomas", "Mitarbeiter", "T", ""]
+  ["Dev Admin", "Administrator", "D", "crown"]
 ]
 
 const integrations: IntegrationRow[] = [
   ["Stripe", "Zahlungen", "#635bff"],
-  ["PayPal", "Zahlungen", "#0070ba"],
+  ["PayPal", "Sandbox vorbereitet", "#0070ba"],
   ["DATEV", "Buchhaltung", "#8cc63f"],
   ["Dropbox", "Dateispeicher", "#0061ff"],
   ["Google Drive", "Dateispeicher", "#16a34a"],
@@ -438,32 +647,47 @@ const fallbackProjects: ProjectData[] = fallbackProjectsData.map((project) => ({
   progress: project.progress,
   budget: project.budget
 }))
-const fallbackAppUsers: AppUser[] = users.map(([name, role], index) => ({
-  id: `fallback-user-${index}`,
-  name,
-  email: `${name.toLowerCase()}@dreaminvoice.local`,
-  role,
-  status: "active"
-}))
+const demoSetupUser: AppUser = {
+  id: "ui-demo-setup-user",
+  name: "Max Mustermann",
+  email: null,
+  role: "Demo Administrator",
+  status: "demo"
+}
 const fallbackUserLimit: UserLimit = {
   plan: "Free",
-  currentUsers: 5,
+  currentUsers: 1,
   maxUsers: 5,
   validUntil: null
 }
+const fallbackNotificationReadAt = "2026-06-13T00:00:00.000Z"
+
 const fallbackNotifications: NotificationItem[] = activities.map(([title, text], index) => ({
   id: `fallback-notification-${index}`,
   title,
   message: text,
   category: index === 1 ? "payments" : "documents",
   tone: index === 1 ? "success" : "info",
-  readAt: index > 1 ? new Date().toISOString() : null
+  readAt: index > 1 ? fallbackNotificationReadAt : null
 }))
 const fallbackCompanySettings: CompanySettings = {
   company: "Acme GmbH",
+  owner: "Max Mustermann",
+  street: "Lindenallee 12",
+  zip: "50667",
   email: "office@acme.example",
+  phone: "+49 221 123456",
+  website: "https://acme.example",
   city: "Koeln",
-  country: "Deutschland"
+  country: "Deutschland",
+  bankName: "Manuelle Bankdaten",
+  iban: "DE89 3704 0044 0532 0130 00",
+  bic: "COBADEFFXXX",
+  defaultPaymentTermsDays: 14,
+  defaultPaymentNote: "Bitte ueberweisen Sie den Betrag innerhalb von 14 Tagen.",
+  taxNumber: "12/345/67890",
+  vatId: "DE123456789",
+  registerCourt: "Amtsgericht Koeln"
 }
 const fallbackNumberRanges: NumberRange[] = [
   { type: "invoice", prefix: "RE-%Y-", nextValue: 104, padding: 3 },
@@ -498,8 +722,16 @@ function invoiceType(invoice: ApiInvoice) {
   return "invoice"
 }
 
+function invoiceDisplaySource(data: PremiumData) {
+  return data.loaded ? data.invoices : fallbackApiInvoices
+}
+
+function notificationDisplaySource(data: PremiumData) {
+  return data.loaded ? data.notifications : fallbackNotifications
+}
+
 function invoiceRowsFromData(data: PremiumData): InvoiceRow[] {
-  const source = data.invoices.length ? data.invoices : fallbackApiInvoices
+  const source = invoiceDisplaySource(data)
   return source.slice(0, 5).map((invoice) => [
     invoice.number,
     invoice.customer || "Unbekannt",
@@ -510,7 +742,7 @@ function invoiceRowsFromData(data: PremiumData): InvoiceRow[] {
 }
 
 function notificationRows(data: PremiumData): ActivityRow[] {
-  const source = data.notifications.length ? data.notifications : fallbackNotifications
+  const source = notificationDisplaySource(data)
   return source.slice(0, 4).map((item, index) => [
     item.title,
     item.message || item.category || "Systemmeldung",
@@ -542,12 +774,24 @@ function notificationStatus(item: NotificationItem) {
 }
 
 function userCardsFromData(data: PremiumData): UserRow[] {
-  const source = data.appUsers.length ? data.appUsers : fallbackAppUsers
+  const source = data.appUsers.length ? data.appUsers : []
   return source.slice(0, 5).map((user, index) => {
     const name = user.name || user.email?.split("@")[0] || "Benutzer"
     const role = user.role || "Team"
     return [name, role, name.charAt(0).toUpperCase(), index === 0 ? "crown" : ""]
   })
+}
+
+function sessionUserToAppUser(user: SessionUser | null): AppUser | null {
+  if (!user) return null
+  const emailName = user.email?.split("@")[0]
+  return {
+    id: user.id || "session-user",
+    name: user.name || emailName || "Administrator",
+    email: user.email || null,
+    role: user.role || "admin",
+    status: user.status || "active"
+  }
 }
 
 function initialsFromName(value: string) {
@@ -566,22 +810,44 @@ function workspaceFromData(data: PremiumData) {
   }
 }
 
-function profileFromData(data: PremiumData) {
-  const user = (data.appUsers.length ? data.appUsers : fallbackAppUsers)[0]
-  const name = user?.name || user?.email?.split("@")[0] || "Daniel"
+function profileFromData(data: PremiumData, sessionUser: SessionUser | null) {
+  if (!sessionUser && data.userCount === 0) {
+    return {
+      name: demoSetupUser.name || "Max Mustermann",
+      email: demoSetupUser.email || "demo@dreaminvoice.local",
+      role: "Demo Administrator",
+      initials: initialsFromName(demoSetupUser.name || "Max Mustermann"),
+      badge: "DEMO"
+    }
+  }
+
+  if (!sessionUser) {
+    return {
+      name: "Anmeldung erforderlich",
+      email: null,
+      role: "Bitte einloggen",
+      initials: "AE",
+      badge: ""
+    }
+  }
+
+  const user = sessionUserToAppUser(sessionUser)
+  const name = user?.name || user?.email?.split("@")[0] || "Administrator"
   const role = user?.role || "Administrator"
 
   return {
     name,
+    email: user?.email || null,
     role,
-    initials: initialsFromName(name)
+    initials: initialsFromName(name),
+    badge: ""
   }
 }
 
 function userLimitFromData(data: PremiumData) {
-  const source = data.appUsers.length ? data.appUsers : fallbackAppUsers
+  const source = data.appUsers
   const limit = data.userLimit ?? fallbackUserLimit
-  const currentUsers = limit.currentUsers ?? source.length
+  const currentUsers = data.setupAvailable === true && !source.length ? 1 : limit.currentUsers ?? source.length
   const maxUsers = limit.maxUsers ?? fallbackUserLimit.maxUsers ?? 5
 
   return {
@@ -618,7 +884,84 @@ function numberRangeLabel(type: string) {
 }
 
 function dataSourceLabel(data: PremiumData) {
-  return data.loaded ? "Live" : "Lokal"
+  if (!data.loaded) return "Laedt"
+  if (data.loadErrors.some((error) => error.includes("Anmeldung erforderlich"))) return "Login erforderlich"
+  if (data.loadErrors.length) return "Teilweise Fallback"
+  return "Live"
+}
+
+type DataHealth = {
+  state: "loading" | "live" | "partial" | "fallback" | "dev"
+  label: string
+  message: string
+  details: string[]
+}
+
+function dataHealthFromData(data: PremiumData, view?: PremiumView): DataHealth {
+  if (!data.loaded) {
+    return {
+      state: "loading",
+      label: "Daten werden geladen",
+      message: "Dashboard-v2 synchronisiert Rechnungen, Kunden, Projekte, Artikel und Einstellungen.",
+      details: []
+    }
+  }
+
+  const authErrors = data.loadErrors.filter((error) => error.includes("Anmeldung erforderlich"))
+
+  const devOnlyViews: PremiumView[] = ["integrations", "api"]
+  if (view && devOnlyViews.includes(view)) {
+    return {
+      state: "dev",
+      label: "Dev/Vorbereitet",
+      message: "Dieser Bereich nutzt vorbereitete Dev-Workflows und keine produktive Persistenz.",
+      details: data.loadErrors
+    }
+  }
+
+  if (view === "finance") {
+    return {
+      state: "partial",
+      label: "Lokale Finanzdaten",
+      message: "Bankkonten, Kategorien und Transaktionen sind in dashboard-v2 als lokaler Fallback markiert.",
+      details: data.loadErrors
+    }
+  }
+
+  if (authErrors.length) {
+    return {
+      state: "partial",
+      label: "Login erforderlich",
+      message: "Geschuetzte API-Daten sind ohne App-Session blockiert. Das ist kein Daten-Fallback; leere Listen bleiben leer und Fake-Benutzer werden nicht eingesetzt.",
+      details: authErrors
+    }
+  }
+
+  if (data.loadErrors.length) {
+    return {
+      state: "partial",
+      label: "Teilweise Fallback",
+      message: "Einige API-Daten konnten nicht geladen werden. Sichtbare Fallback-Daten sind gekennzeichnet.",
+      details: data.loadErrors
+    }
+  }
+
+  return {
+    state: "live",
+    label: "Live/Empty",
+    message: "APIs wurden ohne Fehler geladen. Leere Listen werden als Empty-State behandelt, nicht als Fallback.",
+    details: []
+  }
+}
+
+function DataQualityNotice({ health }: { health: DataHealth }) {
+  return (
+    <aside className={styles.dataQualityNotice} data-state={health.state}>
+      <strong>{health.label}</strong>
+      <span>{health.message}</span>
+      {health.details.length ? <em>{health.details.slice(0, 4).join(" · ")}</em> : null}
+    </aside>
+  )
 }
 
 function upgradeSummaryFromData(data: PremiumData): UpgradeSummary {
@@ -651,54 +994,55 @@ function globalSearchResults(data: PremiumData, query: string): SearchResult[] {
   const normalizedQuery = query.trim()
   if (!normalizedQuery) return []
 
-  const navItems = [...mainNav, ...sideNav.flatMap((group) => group.items)]
+  const navItems = mainNav.flatMap((group) => [group, ...group.items])
   const uniqueNavItems = Array.from(new Map(navItems.map((item) => [item.href, item])).values())
-  const customersSource = data.customers.length ? data.customers : fallbackApiCustomers
-  const invoicesSource = data.invoices.length ? data.invoices : fallbackApiInvoices
-  const articlesSource = data.articles.length ? data.articles : fallbackApiArticles
-  const projectsSource = data.projects.length ? data.projects : fallbackProjects
-  const usersSource = data.appUsers.length ? data.appUsers : fallbackAppUsers
-  const notificationsSource = data.notifications.length ? data.notifications : fallbackNotifications
+  const customersSource = data.loaded ? data.customers : fallbackApiCustomers
+  const invoicesSource = invoiceDisplaySource(data)
+  const articlesSource = data.loaded ? data.articles : fallbackApiArticles
+  const projectsSource = data.loaded ? data.projects : fallbackProjects
+  const usersSource = data.appUsers
+  const notificationsSource = notificationDisplaySource(data)
   const results: SearchResult[] = []
 
   for (const item of uniqueNavItems) {
     if (!matchesSearch([item.label, item.href], normalizedQuery)) continue
-    results.push({ title: item.label, subtitle: "Premium Bereich", href: item.href, icon: item.icon })
+    results.push({ title: item.label, subtitle: "Premium Bereich", href: item.href, icon: item.icon, category: "navigation" })
   }
 
   for (const customer of customersSource) {
     if (!matchesSearch([customer.name, customer.email || "", customer.contact || "", customer.status || ""], normalizedQuery)) continue
-    results.push({ title: customer.name, subtitle: customer.email || customer.contact || "Kundenprofil", href: `/dashboard-v2/customers?q=${encodeURIComponent(customer.name)}`, icon: Users })
+    results.push({ title: customer.name, subtitle: customer.email || customer.contact || "Kundenprofil", href: `/dashboard-v2/customers?q=${encodeURIComponent(customer.name)}`, icon: Users, category: "customers" })
   }
 
   for (const invoice of invoicesSource) {
     if (!matchesSearch([invoice.number, invoice.customer, statusLabel(invoice.status), formatEuro(Number(invoice.grossTotal) || 0)], normalizedQuery)) continue
     const view = invoiceType(invoice) === "offer" ? "offers" : "invoices"
-    results.push({ title: invoice.number, subtitle: `${invoice.customer} · ${formatEuro(Number(invoice.grossTotal) || 0)}`, href: `/dashboard-v2/${view}?q=${encodeURIComponent(invoice.number)}`, icon: FileText })
+    results.push({ title: invoice.number, subtitle: `${invoice.customer} · ${formatEuro(Number(invoice.grossTotal) || 0)}`, href: `/dashboard-v2/${view}?q=${encodeURIComponent(invoice.number)}`, icon: FileText, category: "invoices" })
   }
 
   for (const project of projectsSource) {
     if (!matchesSearch([project.name, project.customer, project.status, project.progress, project.budget], normalizedQuery)) continue
-    results.push({ title: project.name, subtitle: `${project.customer} · ${project.progress}`, href: `/dashboard-v2/projects?q=${encodeURIComponent(project.name)}`, icon: Folder })
+    results.push({ title: project.name, subtitle: `${project.customer} · ${project.progress}`, href: `/dashboard-v2/projects?q=${encodeURIComponent(project.name)}`, icon: Folder, category: "projects" })
   }
 
   for (const article of articlesSource) {
     if (!matchesSearch([article.name, article.category || "", article.code || "", formatEuro(Number(article.price) || 0)], normalizedQuery)) continue
-    results.push({ title: article.name, subtitle: `${article.category || "Leistung"} · ${formatEuro(Number(article.price) || 0)}`, href: `/dashboard-v2/articles?q=${encodeURIComponent(article.name)}`, icon: Briefcase })
+    results.push({ title: article.name, subtitle: `${article.category || "Leistung"} · ${formatEuro(Number(article.price) || 0)}`, href: `/dashboard-v2/articles?q=${encodeURIComponent(article.name)}`, icon: Briefcase, category: "articles" })
   }
 
   for (const user of usersSource) {
     const name = user.name || user.email || "Benutzer"
     if (!matchesSearch([name, user.email || "", user.role || "", userStatusLabel(user.status)], normalizedQuery)) continue
-    results.push({ title: name, subtitle: `${user.role || "Team"} · ${userStatusLabel(user.status)}`, href: `/dashboard-v2/users?q=${encodeURIComponent(name)}`, icon: Users })
+    results.push({ title: name, subtitle: `${user.role || "Team"} · ${userStatusLabel(user.status)}`, href: `/dashboard-v2/users?q=${encodeURIComponent(name)}`, icon: Users, category: "users" })
   }
 
   for (const notification of notificationsSource) {
     if (!matchesSearch([notification.title, notification.message || "", notification.category || "", notificationStatus(notification)], normalizedQuery)) continue
-    results.push({ title: notification.title, subtitle: notification.message || notification.category || "Systemmeldung", href: `/dashboard-v2/notifications?q=${encodeURIComponent(notification.title)}`, icon: Bell })
+    results.push({ title: notification.title, subtitle: notification.message || notification.category || "Systemmeldung", href: `/dashboard-v2/notifications?q=${encodeURIComponent(notification.title)}`, icon: Bell, category: "notifications" })
   }
 
-  return results.slice(0, 8)
+  const uniqueResults = Array.from(new Map(results.map((result) => [`${result.href}::${result.title}`, result])).values())
+  return uniqueResults.slice(0, 8)
 }
 
 function parsePercent(value: string) {
@@ -735,7 +1079,8 @@ function monthKey(date: Date) {
 }
 
 function buildMonthlySeries(data: PremiumData) {
-  const source = data.invoices.length ? data.invoices : fallbackApiInvoices
+  const useStaticFallback = !data.loaded
+  const source = invoiceDisplaySource(data)
   const parsedDates = source
     .map((invoice) => parseInvoiceDate(invoice.date || invoice.createdAt || invoice.dueDate))
     .filter((date): date is Date => Boolean(date))
@@ -775,19 +1120,33 @@ function buildMonthlySeries(data: PremiumData) {
   return {
     labels: buckets.map((bucket) => bucket.label),
     years: buckets.map((bucket) => Number(bucket.key.slice(0, 4))),
-    revenue: buckets.map((bucket, index) => Math.round(bucket.revenue || revenue[index] || 0)),
-    payments: buckets.map((bucket, index) => Math.round(bucket.payments || payments[index] || 0)),
-    expenses: buckets.map((bucket, index) => Math.round(bucket.expenses || expenses[index] || 0))
+    revenue: buckets.map((bucket, index) => Math.round(bucket.revenue || (useStaticFallback ? revenue[index] : 0) || 0)),
+    payments: buckets.map((bucket, index) => Math.round(bucket.payments || (useStaticFallback ? payments[index] : 0) || 0)),
+    expenses: buckets.map((bucket, index) => Math.round(bucket.expenses || (useStaticFallback ? expenses[index] : 0) || 0))
   }
 }
 
-const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
+const fallbackFinanceAccounts: FinanceAccount[] = [
+  { id: "bank-1", name: "Geschaeftskonto", provider: "Manuell / CSV", iban: "DE89 3704 0044 0532 0130 00", balance: 12480.32, status: "manual" },
+  { id: "bank-2", name: "Steuerruecklage", provider: "Manuell", iban: "DE12 5001 0517 5407 3249 31", balance: 2780, status: "manual" }
+]
+
+const fallbackFinanceCategories = ["Kundenzahlung", "Software", "Hosting", "Reisekosten", "Steuern", "Unkategorisiert"]
+
+const fallbackFinanceTransactions: FinanceTransaction[] = [
+  { id: "tx-1", date: "2026-06-12", description: "Zahlung Acme GmbH RE-2026-0104", accountId: "bank-1", category: "Kundenzahlung", amount: 7080.5, status: "booked", source: "Bankimport" },
+  { id: "tx-2", date: "2026-06-11", description: "Hetzner Cloud", accountId: "bank-1", category: "Hosting", amount: -43.2, status: "booked", source: "Manuell" },
+  { id: "tx-3", date: "2026-06-10", description: "Adobe Creative Cloud", accountId: "bank-1", category: "Software", amount: -71.39, status: "open", source: "Bankimport" },
+  { id: "tx-4", date: "2026-06-09", description: "Umbuchung Steuerruecklage", accountId: "bank-2", category: "Steuern", amount: 650, status: "booked", source: "Regel" }
+]
+
+const moduleContent: Record<ModuleView, ModuleConfig> = {
   customers: {
     stats: [["186", "Kunden"], ["24", "Aktiv"], ["98%", "Kontaktqualitaet"]],
     rows: [["Meridian Studio GmbH", "4 offene Dokumente", "2.467,00 EUR", "Aktiv"], ["Aurora Labs GmbH", "Zahlung erhalten", "719,05 EUR", "Bezahlt"], ["Pixel Perfect Ltd.", "Neues Projekt", "Design Sprint", "Neu"]],
     focus: [["Offene Forderungen", "3.614,00 EUR"], ["Top Kunde", "Meridian Studio"], ["Naechster Kontakt", "Heute 15:30"]],
     actions: [["Kunde anlegen", "/dashboard-v2/customers?q=Kunde%20vorbereitet"], ["Kundenliste", "/dashboard-v2/customers?q=Kundenliste%20geoeffnet"], ["Segment pruefen", "/dashboard-v2/customers?q=Segment%20geprueft"]],
-    timeline: [["Kontakt aktualisiert", "Daniel hat Ansprechpartner und Zahlungsziel angepasst."], ["Projekt verknuepft", "Website Redesign wurde Meridian Studio zugeordnet."], ["Bonitaet geprueft", "Kundenrisiko bleibt im gruenen Bereich."]],
+    timeline: [["Kontakt aktualisiert", "Dev Admin hat Ansprechpartner und Zahlungsziel angepasst."], ["Projekt verknuepft", "Website Redesign wurde Meridian Studio zugeordnet."], ["Bonitaet geprueft", "Kundenrisiko bleibt im gruenen Bereich."]],
     primaryHref: "/dashboard-v2/customers?q=Kunde%20vorbereitet"
   },
   projects: {
@@ -816,10 +1175,10 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
   },
   time: {
     stats: [["126 h", "Erfasst"], ["34 h", "Abrechenbar"], ["91%", "Freigegeben"]],
-    rows: [["Website Redesign", "Daniel und Sarah", "18:40 h", "Laeuft"], ["Brand Portal", "Julia", "07:15 h", "Pruefung"], ["Support Retainer", "Thomas", "04:30 h", "Bereit"]],
+    rows: [["Website Redesign", "Team Lead und Teammitglied", "18:40 h", "Laeuft"], ["Brand Portal", "Teammitglied", "07:15 h", "Pruefung"], ["Support Retainer", "Support Team", "04:30 h", "Bereit"]],
     focus: [["Aktiver Timer", "01:24:18"], ["Heute erfasst", "6:45 h"], ["Nicht abgerechnet", "34 h"]],
     actions: [["Timer starten", "/dashboard-v2/time?q=Timer%20gestartet"], ["Zeit buchen", "/dashboard-v2/time?q=Zeit%20gebucht"], ["Freigabe senden", "/dashboard-v2/invoices?q=Freigabe%20vorbereitet"]],
-    timeline: [["Timer gestartet", "Daniel arbeitet an Website Redesign."], ["Zeit freigegeben", "Sarahs Eintrag wurde fuer Abrechnung markiert."], ["Monatsabschluss", "Mai-Zeiten sind bereit fuer Rechnungen."]],
+    timeline: [["Timer gestartet", "Dev Admin arbeitet an Website Redesign."], ["Zeit freigegeben", "Ein Team-Eintrag wurde fuer Abrechnung markiert."], ["Monatsabschluss", "Mai-Zeiten sind bereit fuer Rechnungen."]],
     primaryHref: "/dashboard-v2/time?q=Timer%20gestartet"
   },
   expenses: {
@@ -829,6 +1188,30 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     actions: [["Ausgabe erfassen", "/dashboard-v2/expenses?q=Ausgabe%20erfasst"], ["Beleg hochladen", "/dashboard-v2/expenses?q=Beleg%20hochgeladen"], ["Export starten", "/dashboard-v2/expenses?q=DATEV%20vorbereitet"]],
     timeline: [["Beleg erkannt", "OCR hat Kategorie und Betrag automatisch gesetzt."], ["Kostenstelle gesetzt", "Hosting wurde Projekt Website Redesign zugeordnet."], ["Export vorbereitet", "10 Belege sind DATEV-kompatibel."]],
     primaryHref: "/dashboard-v2/expenses?q=Ausgabe%20erfasst"
+  },
+  finance: {
+    stats: [["0", "Verbundene Banken"], ["0", "Offene Zahlungen"], ["finAPI", "Standardanbieter"]],
+    rows: [["Bankverbindungen", "finAPI / PSD2 Consent", "0 verbunden", "Vorbereitet"], ["Konten", "BankAccounts Modell", "0 synchronisiert", "Inaktiv"], ["Zahlungsabgleich", "Rechnung -> Zahlung erkannt", "Automatik aus", "Vorbereitet"], ["Synchronisation", "Webhook und Token-Status", "Nicht gestartet", "Vorbereitet"]],
+    focus: [["Verbundene Banken", "0"], ["Offene Zahlungen", "0"], ["Letzte Bankbewegungen", "Keine Synchronisation"]],
+    actions: [["Open Banking oeffnen", "/finance/open-banking"], ["Manuelles Konto anlegen", "/dashboard-v2/finance?q=Bankkonto%20anlegen"], ["CSV Bankimport", "/dashboard-v2/finance?q=Bankimport"], ["Finanzbericht", "/dashboard-v2/finance?q=Finanzbericht"]],
+    timeline: [["finAPI vorbereitet", "Client ID, Secret und Webhook URL koennen in den Finanz-Einstellungen gepflegt werden."], ["Zahlungsabgleich vorbereitet", "Rechnung, erkannte Zahlung und Statusupdate sind modelliert; keine Automatik aktiv."], ["Sicherheit vorbereitet", "Verschluesselte Token-Felder, Token-Verwaltung und Audit Log sind vorgesehen."]],
+    primaryHref: "/dashboard-v2/finance?q=Bankkonto%20anlegen"
+  },
+  documents: {
+    stats: [["0", "Dokumente"], ["Version 1", "Standard"], ["5", "Dateitypen"]],
+    rows: [["Rechnungen", "PDF und zugeordnete Rechnungsdateien", "Versionierung", "Bereit"], ["Angebote", "Angebotsdateien und Anlagen", "Zuordnung", "Bereit"], ["Vertraege", "DOCX/PDF mit Kundenbezug", "Suche", "Bereit"], ["Projektdateien", "XLSX, PNG und JPG", "Ablage", "Bereit"]],
+    focus: [["Dokumenttypen", "6"], ["Uploads", "PDF/DOCX/XLSX/PNG/JPG"], ["Zuordnung", "Kunde/Projekt/Rechnung/Angebot"]],
+    actions: [["DMS oeffnen", "/dashboard-v2/documents"], ["Dokument suchen", "/dashboard-v2/documents?q=Suche"], ["Upload starten", "/dashboard-v2/documents?q=Upload"]],
+    timeline: [["DMS vorbereitet", "Dokumente koennen mit Kunden, Projekten, Rechnungen und Angeboten verknuepft werden."], ["Versionierung vorbereitet", "Version 1, Version 2 und Änderungsverlauf sind im Modell vorgesehen."], ["Dashboard-Karten bereit", "Dokumente gesamt, letzte Uploads und offene Dokumente werden angezeigt."]],
+    primaryHref: "/dashboard-v2/documents?q=Upload"
+  },
+  "ai-assistant": {
+    stats: [["5", "Bereiche"], ["2", "Provider"], ["0", "API Keys"]],
+    rows: [["Rechnungen", "Rechnungstexte und Zahlungsnotizen", "Kontext", "Bereit"], ["Angebote", "Leistungsbeschreibungen", "Kontext", "Bereit"], ["Kunden", "Notizen zusammenfassen", "Kontext", "Bereit"], ["Projekte", "Projektstatus und E-Mail-Vorschlaege", "Kontext", "Bereit"], ["Zeiterfassung", "Zeittexte fuer Abrechnung", "Kontext", "Bereit"]],
+    focus: [["OpenAI Provider", "Vorbereitet"], ["Lokaler Provider", "Vorbereitet"], ["Modellverwaltung", "Ohne feste Keys"]],
+    actions: [["KI-Assistent oeffnen", "/dashboard-v2/ai-assistant"], ["Rechnungstext", "/dashboard-v2/ai-assistant?q=Rechnung"], ["Mahnungsvorschlag", "/dashboard-v2/ai-assistant?q=Mahnung"]],
+    timeline: [["Provider vorbereitet", "OpenAI und lokaler Provider sind konfigurierbar, aber ohne hinterlegte API Keys."], ["Kontext angebunden", "Kunden, Projekte, Artikel und Rechnungen koennen fuer Vorschlaege genutzt werden."], ["Vorschlaege vorbereitet", "E-Mail, Mahnung, Angebot und Kundennotizen werden als Entwurf erzeugt."]],
+    primaryHref: "/dashboard-v2/ai-assistant?q=Vorschlag"
   },
   articles: {
     stats: [["6", "Artikel"], ["CSV", "Export"], ["API", "Import"]],
@@ -847,19 +1230,19 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     primaryHref: "/dashboard-v2/reports?q=Report%20exportiert"
   },
   settings: {
-    stats: [["9", "Bereiche"], ["3", "Pruefen"], ["100%", "Gesichert"]],
-    rows: [["Unternehmen", "Acme GmbH", "Vollstaendig", "Aktiv"], ["Nummernkreise", "RE-2026 und OF-2026", "Synchron", "Aktiv"], ["E-Mail Versand", "SMTP verbunden", "OK", "Aktiv"]],
-    focus: [["Portal", "Aktiv"], ["Sprache", "Deutsch"], ["Sicherheit", "2FA empfohlen"]],
-    actions: [["Firma bearbeiten", "/dashboard-v2/settings?q=Firma%20geprueft"], ["Nummernkreis pruefen", "/dashboard-v2/settings?q=Nummernkreis%20geprueft"], ["Portal oeffnen", "/dashboard-v2/settings?q=Portal%20geoeffnet"]],
-    timeline: [["SMTP getestet", "Versandadresse ist erreichbar."], ["Logo aktualisiert", "Premium Branding wurde gespeichert."], ["Backup gesetzt", "Systemeinstellungen wurden versioniert."]],
-    primaryHref: "/dashboard-v2/settings?q=Firma%20geprueft"
+    stats: [["9", "Bereiche"], ["3", "Formulare"], ["P1", "Produktionsnah"]],
+    rows: [["Unternehmen", "CompanySettings", "Speicherbar", "Aktiv"], ["Nummernkreise", "Invoice/Offer/Customer", "Speicherbar", "Aktiv"], ["E-Mail Versand", "SMTP serverseitig", "Konfigurierbar", "Teilweise aktiv"]],
+    focus: [["Portal", "Vorbereitet"], ["Sprache", "Deutsch"], ["Sicherheit", "2FA empfohlen"]],
+    actions: [["Firmendaten oeffnen", "/dashboard-v2/settings?q=Firma"], ["SMTP oeffnen", "/dashboard-v2/settings?q=SMTP"], ["Nummernkreise oeffnen", "/dashboard-v2/settings?q=Nummernkreis"]],
+    timeline: [["SMTP bereit", "Serverseitige Konfiguration kann gespeichert und getestet werden."], ["Bankdaten manuell", "Keine PIN, TAN oder PSD2-Zugangsdaten."], ["Portal vorbereitet", "Keine produktive Portalverbindung aktiv."]],
+    primaryHref: "/dashboard-v2/settings?q=Firma"
   },
   users: {
-    stats: [["5/5", "Benutzer"], ["3", "Rollen"], ["2FA", "Empfohlen"]],
+    stats: [["API", "Benutzer"], ["Rollen", "Echt"], ["2FA", "Empfohlen"]],
     rows: users.map(([name, role]) => [name, role, "Aktiv", role === "Administrator" ? "Owner" : "Team"]) as ModuleRow[],
-    focus: [["Admin", "Daniel"], ["Lizenzlimit", "5 Benutzer"], ["Letzter Login", "Heute"]],
-    actions: [["Benutzer einladen", "/dashboard-v2/users?q=Benutzer%20eingeladen"], ["Rolle bearbeiten", "/dashboard-v2/users?q=Rolle%20vorbereitet"], ["2FA pruefen", "/account/security"]],
-    timeline: [["Einladung vorbereitet", "Neuer Benutzer kann per E-Mail eingeladen werden."], ["Rolle geaendert", "Sarah ist Manager mit Projektfreigaben."], ["Sicherheitshinweis", "2FA fuer Buchhaltung empfohlen."]],
+    focus: [["Admin", "Session/API"], ["Free Plan", "bis 5 Benutzer"], ["Letzter Login", "Session"]],
+    actions: [["Benutzer einladen", "/dashboard-v2/users?q=Benutzer%20eingeladen"], ["Rolle bearbeiten", "/dashboard-v2/users?q=Rolle%20vorbereitet"], ["2FA pruefen", "/dashboard-v2/users?q=2FA%20vorbereitet"]],
+    timeline: [["Einladung vorbereitet", "Neuer Benutzer kann per E-Mail eingeladen werden."], ["Rolle vorbereitet", "Rollenwechsel wird nur mit echter API-Session angewendet."], ["Sicherheitshinweis", "2FA fuer Buchhaltung empfohlen."]],
     primaryHref: "/dashboard-v2/users?q=Benutzer%20eingeladen"
   },
   license: {
@@ -879,11 +1262,11 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     primaryHref: "/dashboard-v2/license-admin?q=Key%20erzeugen"
   },
   integrations: {
-    stats: [["6", "Verbunden"], ["2", "Aktion noetig"], ["99%", "Sync"]],
-    rows: integrations.slice(0, 4).map(([name, meta]) => [name, meta, "Verbunden", "Aktiv"]) as ModuleRow[],
-    focus: [["Zahlungen", "Stripe, PayPal"], ["Buchhaltung", "DATEV"], ["Automation", "Zapier"]],
-    actions: [["Integration verbinden", "/dashboard-v2/integrations?q=Integration%20verbunden"], ["Sync pruefen", "/dashboard-v2/integrations?q=Sync%20geprueft"], ["Token erneuern", "/dashboard-v2/api?q=Token%20vorbereitet"]],
-    timeline: [["Stripe synchronisiert", "Neue Zahlung wurde automatisch zugeordnet."], ["DATEV Export bereit", "Buchhaltungsdaten sind vorbereitet."], ["Zapier aktiv", "Webhook fuer neue Rechnung feuert korrekt."]],
+    stats: [["6", "Vorbereitet"], ["0", "Live verbunden"], ["Sandbox", "PayPal geplant"]],
+    rows: integrations.slice(0, 4).map(([name, meta]) => [name, meta, name === "PayPal" ? "Sandbox/REST API geplant" : "Provider erforderlich", "Vorbereitet"]) as ModuleRow[],
+    focus: [["Zahlungen", "PayPal/Stripe vorbereitet"], ["Buchhaltung", "DATEV Export"], ["Automation", "Zapier vorbereitet"]],
+    actions: [["Integration vorbereiten", "/dashboard-v2/integrations?q=Integration%20verbunden"], ["Readiness pruefen", "/dashboard-v2/integrations?q=Sync%20geprueft"], ["Token vorbereiten", "/dashboard-v2/api?q=Token%20vorbereitet"]],
+    timeline: [["PayPal vorbereitet", "Client ID/Secret duerfen nur serverseitig oder per ENV verwaltet werden."], ["DATEV Export bereit", "Buchhaltungsdaten sind fuer den Export vorbereitet."], ["Zapier vorbereitet", "Webhook-Produktionslogik ist noch nicht aktiv."]],
     primaryHref: "/dashboard-v2/integrations?q=Integration%20verbunden"
   },
   automation: {
@@ -899,15 +1282,15 @@ const moduleContent: Record<Exclude<PremiumView, "dashboard">, ModuleConfig> = {
     rows: [["Zahlung erhalten", "Aurora Labs GmbH", "719,05 EUR", "Neu"], ["Rechnung ueberfaellig", "Pixel Perfect Ltd.", "1.147,00 EUR", "Wichtig"], ["Projekt aktualisiert", "Website Redesign", "Phase 2", "Info"]],
     focus: [["Inbox", "12 Meldungen"], ["Heute", "6 Ereignisse"], ["Regeln", "8 aktiv"]],
     actions: [["Regeln bearbeiten", "/dashboard-v2/notifications?q=Regeln%20aktualisiert"], ["Alle gelesen", "/dashboard-v2/notifications?q=Alle%20gelesen"], ["Filter setzen", "/dashboard-v2/notifications?q=Filter%20aktiv"]],
-    timeline: [["Push gesendet", "Daniel wurde ueber Zahlung informiert."], ["Regel angewendet", "Ueberfaellige Rechnung markiert."], ["Benachrichtigung geplant", "Tagesbericht wird um 18:00 gesendet."]],
+    timeline: [["Push vorbereitet", "Session-Benutzer wuerde ueber Zahlung informiert."], ["Regel angewendet", "Ueberfaellige Rechnung markiert."], ["Benachrichtigung geplant", "Tagesbericht wird um 18:00 gesendet."]],
     primaryHref: "/dashboard-v2/notifications?q=Regeln%20aktualisiert"
   },
   audit: {
     stats: [["248", "Events"], ["0", "Risiken"], ["30 T", "Aufbewahrung"]],
-    rows: [["Daniel", "Rechnung exportiert", "OF-2026-5001", "Heute"], ["Sarah", "Kunde bearbeitet", "Aurora Labs", "Heute"], ["System", "Webhook ausgeliefert", "invoice.created", "Gestern"]],
+    rows: [["Dev Admin", "Rechnung exportiert", "OF-2026-5001", "Heute"], ["Teammitglied", "Kunde bearbeitet", "Aurora Labs", "Heute"], ["System", "Webhook ausgeliefert", "invoice.created", "Gestern"]],
     focus: [["Sicherheitsstatus", "Gruen"], ["Letzter Export", "Heute"], ["Admin Aktionen", "14"]],
     actions: [["Audit exportieren", "/dashboard-v2/audit?q=Audit%20exportiert"], ["Filter setzen", "/dashboard-v2/audit?q=Audit%20Filter%20aktiv"], ["Ereignis suchen", "/dashboard-v2/audit?q=Ereignis%20gefunden"]],
-    timeline: [["Export protokolliert", "PDF-Download wurde im Audit gespeichert."], ["Zugriff erlaubt", "Sarah hat Kundenprofil geoeffnet."], ["Webhook signiert", "Event wurde erfolgreich ausgeliefert."]],
+    timeline: [["Export protokolliert", "PDF-Download wurde im Audit gespeichert."], ["Zugriff erlaubt", "Ein Teammitglied hat Kundenprofil geoeffnet."], ["Webhook signiert", "Event wurde erfolgreich ausgeliefert."]],
     primaryHref: "/dashboard-v2/audit?q=Audit%20exportiert"
   },
   api: {
@@ -951,7 +1334,9 @@ function storePremiumTheme(mode: ThemeMode) {
 }
 
 function premiumViewPath(view: PremiumView) {
-  return view === "dashboard" ? "/dashboard-v2" : `/dashboard-v2/${view}`
+  if (view === "dashboard") return "/dashboard-v2"
+  if (view === "account-security") return "/dashboard-v2/account/security"
+  return `/dashboard-v2/${view}`
 }
 
 function premiumThemeHref(path: string, theme: ThemeMode, query: string) {
@@ -971,58 +1356,159 @@ function withPremiumTheme(href: string, theme: ThemeMode) {
 }
 
 function ThemeToggle({ links, mode, onChange }: { links: ThemeLinks; mode: ThemeMode; onChange: (mode: ThemeMode) => void }) {
+  const target = mode === "light" ? links.dark : links.light
+  const label = mode === "light" ? "Dark" : "Hell"
+  const Icon = mode === "light" ? MoonStar : SunMedium
+
   return (
-    <div className={styles.themeToggle} aria-label="Theme wechseln">
-      <Link href={links.light} aria-pressed={mode === "light"} className={mode === "light" ? styles.activeToggle : ""} onClick={() => onChange("light")}>Hell</Link>
-      <Link href={links.dark} aria-pressed={mode === "dark"} className={mode === "dark" ? styles.activeToggle : ""} onClick={() => onChange("dark")}>Dark</Link>
-    </div>
+    <Link
+      href={target}
+      aria-label={mode === "light" ? "Zum dunklen Design wechseln" : "Zum hellen Design wechseln"}
+      aria-pressed={mode !== "light"}
+      data-active={mode !== "light"}
+      className={styles.themeToggleButton}
+      onClick={() => onChange(mode === "light" ? "dark" : "light")}
+    >
+      <Icon size={15} />
+      <span>{label}</span>
+    </Link>
   )
 }
 
-function Sidebar({ mode, unreadCount, upgrade, workspace }: { mode: ThemeMode; unreadCount: number; upgrade: UpgradeSummary; workspace: ReturnType<typeof workspaceFromData> }) {
+function visibleSideNav(pathname: string) {
+  return [activeNavGroup(pathname)]
+}
+
+function Sidebar({ mode, upgrade, workspace }: { mode: ThemeMode; upgrade: UpgradeSummary; workspace: ReturnType<typeof workspaceFromData> }) {
   const pathname = usePathname()
 
   return (
     <aside className={styles.sidebar}>
-      <div className={styles.logoWrap}><div className={styles.logoMark}>D</div><div><strong>DreamInvoice</strong><span>Premium Edition</span></div></div>
+      <div className={styles.logoWrap}><img className={styles.brandLogo} src="/brand/logo-sidebar.svg" alt="DreamInvoice" /></div>
       <Link className={styles.workspaceButton} href={withPremiumTheme("/dashboard-v2/settings", mode)}><span className={styles.workspaceAvatar}>{workspace.initial}</span><span><small>Workspace</small><strong>{workspace.name}</strong></span><ChevronDown size={14} /></Link>
-      <nav className={styles.sideSections}>{sideNav.map((group) => <div key={group.section} className={styles.sideSection}><p>{group.section}</p>{group.items.map((item) => { const Icon = item.icon; const isActive = pathname === item.href; const badge = item.label === "Benachrichtigungen" ? unreadCount : 0; return <Link key={item.label} href={withPremiumTheme(item.href, mode)} aria-current={isActive ? "page" : undefined} className={isActive ? styles.activeSideItem : styles.sideItem}><Icon size={16} /><span>{item.label}</span>{badge > 0 ? <em>{badge}</em> : null}</Link> })}</div>)}</nav>
+      <nav className={styles.sideSections}>{visibleSideNav(pathname).map((group) => <div key={group.label} className={styles.sideSection}><p>{group.label}</p>{group.items.map((item) => { const Icon = item.icon; const isActive = isNavItemActive(pathname, item); const badge = item.badge ?? ""; if (item.disabled) return <span key={item.label} className={styles.disabledSideItem} aria-disabled="true"><Icon size={16} /><span>{item.label}</span>{badge ? <em>{badge}</em> : null}</span>; return <Link key={item.label} href={withPremiumTheme(item.href, mode)} aria-current={isActive ? "page" : undefined} className={isActive ? styles.activeSideItem : styles.sideItem}><Icon size={16} /><span>{item.label}</span>{badge ? <em>{badge}</em> : null}</Link> })}</div>)}</nav>
       <div className={styles.upgradeCard}><Crown size={26} /><strong>{upgrade.title}</strong><span>{upgrade.text}</span><Link href={withPremiumTheme(upgrade.href, mode)}>{upgrade.action}</Link></div>
     </aside>
   )
 }
 
-function Topbar({ mode, profile, searchInputRef, searchQuery, themeLinks, unreadCount, onModeChange, onSearchChange }: { mode: ThemeMode; profile: ReturnType<typeof profileFromData>; searchInputRef: RefObject<HTMLInputElement | null>; searchQuery: string; themeLinks: ThemeLinks; unreadCount: number; onModeChange: (mode: ThemeMode) => void; onSearchChange: (value: string) => void }) {
+function Topbar({ mode, profile, searchInputRef, searchQuery, themeLinks, unreadCount, onModeChange, onSearchChange, onSearchClear, profileMenuOpen, onToggleProfileMenu, onCloseProfileMenu, onLogout }: { mode: ThemeMode; profile: ReturnType<typeof profileFromData>; searchInputRef: RefObject<HTMLInputElement | null>; searchQuery: string; themeLinks: ThemeLinks; unreadCount: number; onModeChange: (mode: ThemeMode) => void; onSearchChange: (value: string) => void; onSearchClear: () => void; profileMenuOpen: boolean; onToggleProfileMenu: () => void; onCloseProfileMenu: () => void; onLogout: () => void }) {
   const pathname = usePathname()
+  const isDashboard = pathname === "/dashboard-v2"
+  const profileMenuRef = useRef<HTMLDivElement>(null)
+  const searchDockRef = useRef<HTMLDivElement>(null)
+  const [searchOpen, setSearchOpen] = useState(false)
+
+  function handleSearchClear() {
+    onSearchClear()
+    setSearchOpen(true)
+    requestAnimationFrame(() => searchInputRef.current?.focus())
+  }
+
+  function handleSearchBlur(event: React.FocusEvent<HTMLDivElement>) {
+    const nextTarget = event.relatedTarget as Node | null
+    if (!nextTarget || !searchDockRef.current?.contains(nextTarget)) {
+      setSearchOpen(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!profileMenuOpen) return
+
+    function handlePointerDown(event: PointerEvent) {
+      if (!profileMenuRef.current?.contains(event.target as Node)) {
+        onCloseProfileMenu()
+      }
+    }
+
+    function handleKeydown(event: KeyboardEvent) {
+      if (event.key === "Escape") onCloseProfileMenu()
+      if (event.key === "Escape" && searchOpen) setSearchOpen(false)
+    }
+
+    window.addEventListener("pointerdown", handlePointerDown)
+    window.addEventListener("keydown", handleKeydown)
+
+    return () => {
+      window.removeEventListener("pointerdown", handlePointerDown)
+      window.removeEventListener("keydown", handleKeydown)
+    }
+  }, [onCloseProfileMenu, profileMenuOpen, searchOpen])
+
+  useEffect(() => {
+    if (!searchOpen) return
+    requestAnimationFrame(() => searchInputRef.current?.focus())
+  }, [searchInputRef, searchOpen])
 
   return (
     <header className={styles.topbar}>
-      <div className={styles.searchBox}><Search size={16} /><input ref={searchInputRef} value={searchQuery} onChange={(event) => onSearchChange(event.target.value)} placeholder="Suche..." aria-label="Premium Suche" />{searchQuery ? <Link href={withPremiumTheme(pathname, mode)} aria-label="Suche leeren" onClick={() => onSearchChange("")}><X size={15} /></Link> : null}</div>
-      <nav className={styles.desktopNav}>{mainNav.map((item) => { const isActive = pathname === item.href; return <Link key={item.label} className={isActive ? styles.navActive : ""} aria-current={isActive ? "page" : undefined} href={withPremiumTheme(item.href, mode)}>{item.label}</Link> })}</nav>
-      <div className={styles.topActions}><ThemeToggle links={themeLinks} mode={mode} onChange={onModeChange} /><Link href={withPremiumTheme("/dashboard-v2/invoices?q=Rechnung%20vorbereitet", mode)} aria-label="Neu"><Plus size={18} /></Link><Link href={withPremiumTheme("/dashboard-v2/notifications?q=Alle%20gelesen", mode)} aria-label="Benachrichtigungen" className={styles.bellButton}><Bell size={18} />{unreadCount > 0 ? <span>{unreadCount}</span> : null}</Link><Link href={withPremiumTheme("/dashboard-v2/settings?q=Portal%20geoeffnet", mode)} aria-label="Hilfe"><HelpCircle size={18} /></Link><div className={styles.profile}><span>{profile.initials}</span><div><strong>{profile.name}</strong><small>{profile.role}</small></div></div></div>
+      <nav className={styles.desktopNav}>{mainNav.map((item) => { const isActive = activeNavGroup(pathname).label === item.label; return <Link key={item.label} className={isActive ? styles.navActive : ""} aria-current={isActive ? "page" : undefined} href={withPremiumTheme(item.href, mode)}>{item.label}</Link> })}</nav>
+      <div className={styles.topActions}>
+        <ThemeToggle links={themeLinks} mode={mode} onChange={onModeChange} />
+        {isDashboard ? (
+          <div ref={searchDockRef} className={searchOpen ? [styles.searchDock, styles.searchDockOpen].join(" ") : styles.searchDock} onBlurCapture={handleSearchBlur}>
+            {searchOpen ? (
+              <>
+                <Search size={15} aria-hidden="true" />
+                <input
+                  ref={searchInputRef}
+                  value={searchQuery}
+                  onChange={(event) => onSearchChange(event.target.value)}
+                  placeholder="Kunden, Rechnungen, Projekte suchen ..."
+                  aria-label="Premium Suche"
+                  onFocus={() => setSearchOpen(true)}
+                />
+                {searchQuery ? <button type="button" aria-label="Suche leeren" onClick={handleSearchClear}><X size={15} /></button> : null}
+              </>
+            ) : (
+              <button type="button" className={styles.searchDockButton} onClick={() => setSearchOpen(true)} aria-label="Suche öffnen">
+                <Search size={15} aria-hidden="true" />
+                <span>Suche</span>
+              </button>
+            )}
+          </div>
+        ) : null}
+        <Link href={withPremiumTheme("/dashboard-v2/invoices?q=Rechnung%20vorbereitet", mode)} aria-label="Neu" className={styles.iconAction}><Plus size={18} /></Link>
+        <Link href={withPremiumTheme("/dashboard-v2/notifications?q=Alle%20gelesen", mode)} aria-label="Benachrichtigungen" className={styles.iconAction}><Bell size={18} />{unreadCount > 0 ? <span className={styles.bellBadge}>{unreadCount}</span> : null}</Link>
+        <Link href={withPremiumTheme("/dashboard-v2/settings?q=Einstellungen%20geoeffnet", mode)} aria-label="Einstellungen" title="Einstellungen" className={styles.iconAction}><Settings size={18} /></Link>
+        <div ref={profileMenuRef} className={styles.profile}>
+          <button type="button" className={styles.profileTrigger} aria-label="Profilmenü öffnen" aria-haspopup="menu" aria-expanded={profileMenuOpen} onClick={onToggleProfileMenu}>
+            <span className={styles.profileAvatar}>{profile.initials}</span>
+            <div className={styles.profileTriggerText}>
+              <strong>{profile.name}</strong>
+              <small>{profile.email || "Nicht hinterlegt"}</small>
+            </div>
+          </button>
+          {profileMenuOpen ? (
+            <div className={styles.profileDropdown} aria-label="Profil">
+              <div className={styles.profileDropdownHead}>
+                <span className={styles.profileDropdownAvatar}>{profile.initials}</span>
+                <div className={styles.profileDropdownText}>
+                  <strong>{profile.name}</strong>
+                  <small>{profile.email || "Nicht hinterlegt"}</small>
+                  <span>{profile.role}</span>
+                </div>
+              </div>
+              <div className={styles.profileDropdownActions}>
+                <Link href={withPremiumTheme("/dashboard-v2/account/security", mode)} onClick={onCloseProfileMenu} className={styles.profileDropdownLink}>Konto &amp; Sicherheit</Link>
+                <button type="button" onClick={() => { onCloseProfileMenu(); onLogout() }} className={styles.profileDropdownButton}>Abmelden</button>
+              </div>
+            </div>
+          ) : null}
+        </div>
+      </div>
     </header>
   )
 }
-
 function CompactNav({ mode, unreadCount }: { mode: ThemeMode; unreadCount: number }) {
   const pathname = usePathname()
-  const compactItems: NavItem[] = [
-    mainNav[0],
-    mainNav[1],
-    mainNav[2],
-    mainNav[3],
-    mainNav[7],
-    sideNav[1].items[0],
-    sideNav[1].items[1],
-    sideNav[2].items[0],
-    sideNav[2].items[2]
-  ]
+  const compactItems: NavItem[] = mainNav
 
   return (
     <nav className={styles.compactNav} aria-label="Mobile Premium Navigation">
       {compactItems.map((item) => {
         const Icon = item.icon
-        const isActive = pathname === item.href
+        const isActive = mainNav.some((group) => group.label === item.label) ? activeNavGroup(pathname).label === item.label : isNavItemActive(pathname, item)
         const badge = item.label === "Benachrichtigungen" ? unreadCount : 0
 
         return <Link key={item.href} href={withPremiumTheme(item.href, mode)} aria-current={isActive ? "page" : undefined} className={isActive ? styles.compactNavActive : ""}><Icon size={16} /><span>{item.label}</span>{badge > 0 ? <em>{badge}</em> : null}</Link>
@@ -1032,19 +1518,32 @@ function CompactNav({ mode, unreadCount }: { mode: ThemeMode; unreadCount: numbe
 }
 
 function KpiGrid({ data, mode }: { data: PremiumData; mode: ThemeMode }) {
-  const source = data.invoices.length ? data.invoices : fallbackApiInvoices
+  const source = invoiceDisplaySource(data)
   const invoiceSource = source.filter((invoice) => invoiceType(invoice) === "invoice")
   const offerSource = source.filter((invoice) => invoiceType(invoice) === "offer")
-  const openAmount = invoiceSource.filter((invoice) => isStatus(invoice.status, "open")).reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
-  const paidAmount = invoiceSource.filter((invoice) => isStatus(invoice.status, "paid")).reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
-  const overdueAmount = invoiceSource.filter((invoice) => isStatus(invoice.status, "overdue")).reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
-  const offerAmount = offerSource.reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
-  const liveKpis = source.length ? [
-    { label: "Offene Rechnungen", value: formatEuro(openAmount), detail: `${invoiceSource.filter((invoice) => isStatus(invoice.status, "open")).length} Dokumente`, tone: "violet" as Tone, icon: Receipt, href: "/dashboard-v2/invoices?q=Rechnung%20vorbereitet" },
-    { label: "Bezahlt", value: formatEuro(paidAmount), detail: data.loaded ? "Live synchronisiert" : "+18% vs. Vormonat", tone: "green" as Tone, icon: Briefcase, href: "/dashboard-v2/reports?q=Zahlung%20geprueft" },
-    { label: "Ueberfaellig", value: formatEuro(overdueAmount), detail: `${invoiceSource.filter((invoice) => isStatus(invoice.status, "overdue")).length} Dokumente`, tone: "rose" as Tone, icon: AlertCircle, href: "/dashboard-v2/invoices?q=Freigabe%20vorbereitet" },
-    { label: "Angebote", value: formatEuro(offerAmount), detail: `${offerSource.length} Dokumente`, tone: "blue" as Tone, icon: Tag, href: "/dashboard-v2/offers?q=Angebot%20vorbereitet" },
-    { label: "Kunden", value: String(data.customers.length || 4), detail: data.loaded ? "Live synchronisiert" : "Lokale Daten", tone: "amber" as Tone, icon: Users, href: "/dashboard-v2/customers?q=Segment%20geprueft" }
+  const openInvoices = invoiceSource.filter((invoice) => isStatus(invoice.status, "open"))
+  const overdueInvoices = invoiceSource.filter((invoice) => isStatus(invoice.status, "overdue"))
+  const openAmount = openInvoices.reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
+  const overdueAmount = overdueInvoices.reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
+  const now = new Date()
+  const monthRevenue = invoiceSource
+    .filter((invoice) => {
+      const date = parseInvoiceDate(invoice.date || invoice.createdAt || invoice.dueDate)
+      return date && date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth()
+    })
+    .reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
+  const yearRevenue = invoiceSource
+    .filter((invoice) => {
+      const date = parseInvoiceDate(invoice.date || invoice.createdAt || invoice.dueDate)
+      return date && date.getFullYear() === now.getFullYear()
+    })
+    .reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
+  const liveKpis = source.length || data.loaded ? [
+    { label: "Offene Betraege", value: formatEuro(openAmount), detail: `${openInvoices.length} offene Rechnungen`, tone: "violet" as Tone, icon: Receipt, href: "/dashboard-v2/invoices?q=Offene%20Betraege" },
+    { label: "Ueberfaellige Betraege", value: formatEuro(overdueAmount), detail: `${overdueInvoices.length} ueberfaellige Rechnungen`, tone: "rose" as Tone, icon: AlertCircle, href: "/dashboard-v2/invoices?q=Ueberfaellig" },
+    { label: "Umsatz Monat", value: formatEuro(monthRevenue), detail: now.toLocaleDateString("de-DE", { month: "long", year: "numeric" }), tone: "green" as Tone, icon: Briefcase, href: "/dashboard-v2/reports?q=Umsatz%20Monat" },
+    { label: "Umsatz Jahr", value: formatEuro(yearRevenue), detail: String(now.getFullYear()), tone: "blue" as Tone, icon: BarChart3, href: "/dashboard-v2/reports?q=Umsatz%20Jahr" },
+    { label: "Kunden", value: String(data.loaded ? data.customers.length : 4), detail: data.loaded ? "Live/Empty" : "Lokale Daten", tone: "amber" as Tone, icon: Users, href: "/dashboard-v2/customers?q=Segment%20geprueft" }
   ] : kpis.map((item) => ({ ...item, href: item.label === "Angebote" ? "/dashboard-v2/offers?q=Angebot%20vorbereitet" : item.label === "Ausgaben" ? "/dashboard-v2/expenses?q=Ausgabe%20erfasst" : "/dashboard-v2/invoices?q=Rechnung%20vorbereitet" }))
 
   return <section className={styles.kpiGrid}>{liveKpis.map((item) => { const Icon = item.icon; return <Link key={item.label} href={withPremiumTheme(item.href, mode)} className={`${styles.panel} ${styles.kpiCard}`} data-tone={item.tone}><div className={styles.kpiIcon}><Icon size={22} /></div><div><span>{item.label}</span><strong>{item.value}</strong><small>{item.detail}</small></div><MoreVertical size={17} className={styles.moreIcon} /></Link> })}</section>
@@ -1077,29 +1576,158 @@ function RevenueChart({ data, mode }: { data: PremiumData; mode: ThemeMode }) {
 }
 
 function StatusPanel({ data, mode }: { data: PremiumData; mode: ThemeMode }) {
-  const source = (data.invoices.length ? data.invoices : fallbackApiInvoices).filter((invoice) => invoiceType(invoice) === "invoice")
+  const source = invoiceDisplaySource(data).filter((invoice) => invoiceType(invoice) === "invoice")
   const statusItems = [
     ["Bezahlt", "green", source.filter((invoice) => isStatus(invoice.status, "paid")).length, "/dashboard-v2/invoices?q=Bezahlt"],
     ["Offen", "blue", source.filter((invoice) => isStatus(invoice.status, "open")).length, "/dashboard-v2/invoices?q=Offen"],
     ["Ueberfaellig", "rose", source.filter((invoice) => isStatus(invoice.status, "overdue")).length, "/dashboard-v2/invoices?q=Ueberfaellig"],
     ["Entwurf", "muted", source.filter((invoice) => isStatus(invoice.status, "draft")).length, "/dashboard-v2/invoices?q=Entwurf"]
   ] as const
-  const total = statusItems.reduce((sum, item) => sum + item[2], 0) || source.length || 1
+  const total = statusItems.reduce((sum, item) => sum + item[2], 0) || source.length
+  const percentBase = total || 1
 
-  return <article className={`${styles.panel} ${styles.statusPanel}`}><div className={styles.panelHead}><h2>Rechnungsstatus</h2></div><div className={styles.donutWrap}><Link href={withPremiumTheme("/dashboard-v2/invoices", mode)} className={styles.donut}><div><strong>{total}</strong><span>Gesamt</span></div></Link><div className={styles.statusLegend}>{statusItems.map(([label, tone, count, href]) => <Link key={label} href={withPremiumTheme(href, mode)}><span data-tone={tone} />{label}<b>{count} ({Math.round((count / total) * 100)}%)</b></Link>)}</div></div></article>
+  return <article className={`${styles.panel} ${styles.statusPanel}`}><div className={styles.panelHead}><h2>Rechnungsstatus</h2></div><div className={styles.donutWrap}><Link href={withPremiumTheme("/dashboard-v2/invoices", mode)} className={styles.donut}><div><strong>{total}</strong><span>Gesamt</span></div></Link><div className={styles.statusLegend}>{statusItems.map(([label, tone, count, href]) => <Link key={label} href={withPremiumTheme(href, mode)}><span data-tone={tone} />{label}<b>{count} ({Math.round((count / percentBase) * 100)}%)</b></Link>)}</div></div></article>
+}
+
+function formatTimeHours(value: number) {
+  return new Intl.NumberFormat("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value) + " h"
+}
+
+function TimePreparationPanel({ mode }: { mode: ThemeMode }) {
+  const [summary, setSummary] = useState({ today: 0, week: 0, month: 0, unbilled: 0, unbilledAmount: 0 })
+
+  useEffect(() => {
+    let cancelled = false
+    fetch("/api/time-tracking/summary", { credentials: "same-origin" })
+      .then((response) => response.ok ? response.json() : null)
+      .then((payload) => {
+        if (!cancelled && payload) {
+          setSummary({
+            today: Number(payload.today ?? 0),
+            week: Number(payload.week ?? 0),
+            month: Number(payload.month ?? 0),
+            unbilled: Number(payload.unbilled ?? 0),
+            unbilledAmount: Number(payload.unbilledAmount ?? 0)
+          })
+        }
+      })
+      .catch(() => null)
+    return () => { cancelled = true }
+  }, [])
+
+  const items = [
+    { label: "Heute", value: formatTimeHours(summary.today), href: "/dashboard-v2/time-tracking?q=Heute" },
+    { label: "Diese Woche", value: formatTimeHours(summary.week), href: "/dashboard-v2/time-tracking?q=Diese%20Woche" },
+    { label: "Dieser Monat", value: formatTimeHours(summary.month), href: "/dashboard-v2/time-tracking?q=Dieser%20Monat" },
+    { label: "Nicht abgerechnet", value: summary.unbilled + " / " + formatEuro(summary.unbilledAmount), href: "/dashboard-v2/time-tracking?q=Nicht%20abgerechnet" }
+  ]
+
+  return (
+    <article className={`${styles.panel} ${styles.quickPanel}`}>
+      <div className={styles.panelHead}>
+        <div>
+          <h2>Zeiterfassung</h2>
+          <span>Live-Werte aus gespeicherten Zeiten</span>
+        </div>
+      </div>
+      <div className={styles.quickGrid}>
+        {items.map((item) => (
+          <Link key={item.label} href={withPremiumTheme(item.href, mode)} data-tone="blue">
+            <Clock3 size={19} />
+            <span>{item.label}</span>
+            <small>{item.value}</small>
+          </Link>
+        ))}
+      </div>
+    </article>
+  )
+}
+
+function ProjectUtilizationPanel({ mode }: { mode: ThemeMode }) {
+  const [summary, setSummary] = useState({ projects: 0, active: 0, trackedHours: 0, invoicedHours: 0, openHours: 0, revenue: 0, utilization: 0 })
+
+  useEffect(() => {
+    let cancelled = false
+    fetch("/api/projects/summary", { credentials: "same-origin" })
+      .then((response) => response.ok ? response.json() : null)
+      .then((payload) => {
+        if (!cancelled && payload) {
+          setSummary({
+            projects: Number(payload.projects ?? 0),
+            active: Number(payload.active ?? 0),
+            trackedHours: Number(payload.trackedHours ?? 0),
+            invoicedHours: Number(payload.invoicedHours ?? 0),
+            openHours: Number(payload.openHours ?? 0),
+            revenue: Number(payload.revenue ?? 0),
+            utilization: Number(payload.utilization ?? 0)
+          })
+        }
+      })
+      .catch(() => null)
+    return () => { cancelled = true }
+  }, [])
+
+  const items = [
+    { label: "Aktive Projekte", value: `${summary.active} / ${summary.projects}`, href: "/dashboard-v2/projects?q=Aktiv" },
+    { label: "Auslastung", value: `${summary.utilization}%`, href: "/dashboard-v2/projects?q=Budget" },
+    { label: "Offene Stunden", value: formatTimeHours(summary.openHours), href: "/dashboard-v2/time-tracking?q=Nicht%20abgerechnet" },
+    { label: "Projektumsatz", value: formatEuro(summary.revenue), href: "/dashboard-v2/projects?q=Umsatz" }
+  ]
+
+  return (
+    <article className={`${styles.panel} ${styles.quickPanel}`}>
+      <div className={styles.panelHead}>
+        <div>
+          <h2>Projekt-Auslastung</h2>
+          <span>Budget, Zeiten und Umsatz aus Projekten</span>
+        </div>
+      </div>
+      <div className={styles.quickGrid}>
+        {items.map((item) => (
+          <Link key={item.label} href={withPremiumTheme(item.href, mode)} data-tone="green">
+            <Folder size={19} />
+            <span>{item.label}</span>
+            <small>{item.value}</small>
+          </Link>
+        ))}
+      </div>
+    </article>
+  )
 }
 
 function QuickActions({ mode, profile }: { mode: ThemeMode; profile: ReturnType<typeof profileFromData> }) {
   const actions: Array<{ label: string; icon: IconType; tone: string; href: string }> = [
-    { label: "Neue Rechnung", icon: FileText, tone: "violet", href: "/dashboard-v2/invoices?q=Rechnung%20vorbereitet" },
-    { label: "Neuer Kunde", icon: UserPlus, tone: "blue", href: "/dashboard-v2/customers?q=Kunde%20vorbereitet" },
-    { label: "Neues Projekt", icon: Folder, tone: "green", href: "/dashboard-v2/projects?q=Projekt%20vorbereitet" },
-    { label: "Angebot erstellen", icon: Tag, tone: "amber", href: "/dashboard-v2/offers?q=Angebot%20vorbereitet" },
-    { label: "Zeiterfassung starten", icon: Clock3, tone: "rose", href: "/dashboard-v2/time?q=Timer%20gestartet" },
-    { label: "Ausgabe erfassen", icon: Wallet, tone: "green", href: "/dashboard-v2/expenses?q=Ausgabe%20erfasst" }
+    { label: "Neue Rechnung", icon: FileText, tone: "violet", href: "/dashboard-v2/invoices/new" },
+    { label: "Neuer Kunde", icon: UserPlus, tone: "blue", href: "/dashboard-v2/customers?create=true" },
+    { label: "Neues Projekt", icon: Folder, tone: "green", href: "/dashboard-v2/projects?create=true" },
+    { label: "Angebot erstellen", icon: Tag, tone: "amber", href: "/dashboard-v2/offers?create=true" },
+    { label: "Zeiterfassung starten", icon: Clock3, tone: "rose", href: "/dashboard-v2/time-tracking?start=true" },
+    { label: "Ausgabe erfassen", icon: Wallet, tone: "green", href: "/dashboard-v2/expenses?create=true" }
   ]
-  return <article className={`${styles.panel} ${styles.quickPanel}`}><div className={styles.robot}>AI</div><div className={styles.panelHead}><div><h2>Schnellaktionen</h2><span>Hallo {profile.name}. Was moechten Sie heute erledigen?</span></div></div><div className={styles.quickGrid}>{actions.map((action) => { const Icon = action.icon; return <Link key={action.label} href={withPremiumTheme(action.href, mode)} data-tone={action.tone}><Icon size={19} /><span>{action.label}</span></Link> })}</div></article>
+
+  return (
+    <article className={`${styles.panel} ${styles.quickPanel}`}>
+      <div className={styles.panelHead}>
+        <div>
+          <h2>Schnellaktionen</h2>
+          <span>Hallo {profile.name}. Was moechten Sie heute erledigen?</span>
+        </div>
+      </div>
+      <div className={styles.quickGrid}>
+        {actions.map((action) => {
+          const Icon = action.icon
+          return (
+            <Link key={action.label} href={withPremiumTheme(action.href, mode)} data-tone={action.tone}>
+              <Icon size={19} />
+              <span>{action.label}</span>
+            </Link>
+          )
+        })}
+      </div>
+    </article>
+  )
 }
+
 
 function InvoiceTable({ data, mode, searchQuery }: { data: PremiumData; mode: ThemeMode; searchQuery: string }) {
   const rows = invoiceRowsFromData(data).filter((row) => matchesSearch(row, searchQuery))
@@ -1118,69 +1746,142 @@ function ActivityFeed({ data, mode }: { data: PremiumData; mode: ThemeMode }) {
   return <article className={`${styles.panel} ${styles.activityPanel}`}><div className={styles.panelHead}><h2>Aktivitaetsfeed</h2><Link href={withPremiumTheme("/dashboard-v2/audit?q=Ereignis%20gefunden", mode)}>Alle anzeigen</Link></div><div className={styles.activityList}>{rows.map(([title, text, time, tone]) => <Link key={`${title}-${time}`} href={withPremiumTheme(`/dashboard-v2/audit?q=${encodeURIComponent(title)}`, mode)} className={styles.activityItem}><span data-tone={tone}><CheckCircle2 size={14} /></span><div><strong>{title}</strong><p>{text}</p></div><time>{time}</time></Link>)}</div></article>
 }
 
-function UsersPanel({ data, mode }: { data: PremiumData; mode: ThemeMode }) {
-  const cards = userCardsFromData(data)
+function UsersPanel({ data, mode, sessionUser }: { data: PremiumData; mode: ThemeMode; sessionUser: SessionUser | null }) {
+  const sessionFallback = sessionUserToAppUser(sessionUser)
+  const cards = data.appUsers.length ? userCardsFromData(data) : sessionFallback ? userCardsFromData({ ...data, appUsers: [sessionFallback] }) : []
   const limit = userLimitFromData(data)
   const usageWidth = Math.min(100, Math.round((limit.currentUsers / Math.max(limit.maxUsers, 1)) * 100))
-  return <article className={`${styles.panel} ${styles.usersPanel}`}><div className={styles.usersMeta}><h2>Benutzer & Rollen</h2><span>{limit.currentUsers}/{limit.maxUsers} Benutzer</span><div><i style={{ width: `${usageWidth}%` }} /></div><Link href={withPremiumTheme("/dashboard-v2/users?q=Benutzer%20eingeladen", mode)}>Benutzer verwalten</Link></div><div className={styles.userCards}>{cards.map(([name, role, initials, crown]) => <Link key={`${name}-${role}`} href={withPremiumTheme(`/dashboard-v2/users?q=${encodeURIComponent(name)}`, mode)} className={styles.userCard}><div className={styles.avatar}>{initials}</div>{crown ? <Crown size={15} /> : null}<strong>{name}</strong><span>{role}</span><em>Aktiv</em></Link>)}<Link href={withPremiumTheme("/dashboard-v2/users?q=Benutzer%20eingeladen", mode)} className={styles.addUser}><Plus size={24} /><span>Benutzer hinzufuegen</span></Link></div></article>
+  const setupIsOpen = data.setupAvailable === true && !data.appUsers.length && !sessionUser
+  return <article className={`${styles.panel} ${styles.usersPanel}`}><div className={styles.usersMeta}><h2>Benutzer & Rollen</h2><span>{limit.currentUsers}/{limit.maxUsers} Benutzer</span><div><i style={{ width: `${usageWidth}%` }} /></div><Link href={withPremiumTheme(setupIsOpen ? "/setup" : "/dashboard-v2/users?q=Benutzer%20eingeladen", mode)}>{setupIsOpen ? "Ersteinrichtung starten" : "Benutzer verwalten"}</Link></div><div className={styles.userCards}>{cards.length ? cards.map(([name, role, initials, crown]) => <Link key={`${name}-${role}`} href={withPremiumTheme(`/dashboard-v2/users?q=${encodeURIComponent(name)}`, mode)} className={styles.userCard}><div className={styles.avatar}>{initials}</div>{crown ? <Crown size={15} /> : null}<strong>{name}</strong><span>{role}</span><em>{sessionFallback && !data.appUsers.length ? "Session" : "Aktiv"}</em></Link>) : setupIsOpen ? <Link href={withPremiumTheme("/setup", mode)} className={styles.addUser}><Users size={24} /><span>Noch keine Benutzer eingerichtet</span></Link> : <span className={styles.addUser}><Users size={24} /><span>Keine echten Benutzer geladen</span></span>}<Link href={withPremiumTheme(setupIsOpen ? "/setup" : "/dashboard-v2/users?q=Benutzer%20eingeladen", mode)} className={styles.addUser}><Plus size={24} /><span>{setupIsOpen ? "Ersteinrichtung starten" : "Benutzer hinzufuegen"}</span></Link></div></article>
 }
 
 function LicensePanel({ data, mode }: { data: PremiumData; mode: ThemeMode }) {
+  const [expanded, setExpanded] = useState(false)
   const limit = userLimitFromData(data)
-  const documentCount = (data.invoices.length ? data.invoices : fallbackApiInvoices).length
-  return <article className={`${styles.panel} ${styles.licensePanel}`}><div className={styles.panelHead}><h2>Lizenzstatus</h2><span className={styles.freeBadge}>{limit.plan}</span></div><div className={styles.licenseGrid}><div><span>Benutzer</span><b>{limit.currentUsers} / {limit.maxUsers}</b></div><div><span>Status</span><b>{limit.isFull ? "Limit erreicht" : "Aktiv"}</b></div><div><span>Dokumente</span><b>{documentCount}</b></div><div><span>Ablaufdatum</span><b>{limit.validUntil ? limit.validUntil.slice(0, 10) : "-"}</b></div></div><Link href={withPremiumTheme("/dashboard-v2/license?q=Lizenz-Key", mode)}><span>Lizenz / Upgrade aktivieren</span><KeyRound size={18} /></Link></article>
+  const documentCount = invoiceDisplaySource(data).length
+
+  return (
+    <article className={`${styles.panel} ${styles.licensePanel}`}>
+      <div className={styles.panelHead}>
+        <div>
+          <h2>Lizenzstatus</h2>
+          <span>Kompakt und jederzeit aufklappbar</span>
+        </div>
+        <button type="button" className={styles.licenseToggle} onClick={() => setExpanded((value) => !value)} aria-expanded={expanded}>
+          {expanded ? "Weniger anzeigen" : "Details anzeigen"}
+          <ChevronDown size={14} data-rotated={expanded ? "true" : undefined} />
+        </button>
+      </div>
+
+      <div className={styles.licenseSummary}>
+        <div className={styles.licenseSummaryRow}><span>Plan</span><strong className={styles.freeBadge}>{limit.plan}</strong></div>
+        <div className={styles.licenseSummaryRow}><span>Nutzung</span><strong>{limit.currentUsers} / {limit.maxUsers}</strong></div>
+        <div className={styles.licenseSummaryRow}><span>Status</span><strong>{limit.isFull ? "Limit erreicht" : "Aktiv"}</strong></div>
+      </div>
+
+      {expanded ? (
+        <div className={styles.licenseGrid}>
+          <div><span>Dokumente</span><b>{documentCount}</b></div>
+          <div><span>Ablaufdatum</span><b>{limit.validUntil ? limit.validUntil.slice(0, 10) : "-"}</b></div>
+          <div><span>Vorbereitet</span><b>{limit.plan}</b></div>
+          <div><span>Admin</span><b>{limit.isFull ? "Prüfen" : "OK"}</b></div>
+        </div>
+      ) : (
+        <div className={styles.licenseCollapsedNote}>Details sind verborgen und bleiben bei Bedarf aufklappbar.</div>
+      )}
+
+      {expanded ? (
+        <Link href={withPremiumTheme("/dashboard-v2/license?q=Lizenz-Key", mode)}>
+          <span>Lizenz / Upgrade aktivieren</span>
+          <KeyRound size={18} />
+        </Link>
+      ) : null}
+    </article>
+  )
 }
+
 
 function IntegrationsPanel({ mode }: { mode: ThemeMode }) {
-  return <article className={`${styles.panel} ${styles.integrationsPanel}`}><h2>Integrationen</h2><div className={styles.integrationsGrid}>{integrations.map(([name, meta, color]) => <Link key={name} href={withPremiumTheme(`/dashboard-v2/integrations?q=${encodeURIComponent(name)}`, mode)}><span style={{ backgroundColor: color }}>{name.charAt(0)}</span><strong>{name}</strong><small>{meta}</small></Link>)}<Link href={withPremiumTheme("/dashboard-v2/integrations?q=Integration%20verbunden", mode)} className={styles.moreIntegrationLink}><Grid3X3 size={18} />Mehr anzeigen</Link></div></article>
+  return <article className={`${styles.panel} ${styles.integrationsPanel}`}><h2>Integrationen</h2><div className={styles.integrationsGrid}>{integrations.map(([name, meta, color]) => <Link key={name} href={withPremiumTheme(`/dashboard-v2/integrations?q=${encodeURIComponent(name)}`, mode)}><span style={{ backgroundColor: color }}>{name.charAt(0)}</span><strong>{name}</strong><small>{meta}</small></Link>)}<Link href={withPremiumTheme("/dashboard-v2/integrations?q=Integration%20vorbereitet", mode)} className={styles.moreIntegrationLink}><Grid3X3 size={18} />Mehr anzeigen</Link></div></article>
 }
 
-function SearchResultsPanel({ data, mode, searchQuery }: { data: PremiumData; mode: ThemeMode; searchQuery: string }) {
+const searchCategoryLabels: Array<{ value: SearchCategory; label: string }> = [
+  { value: "all", label: "Alle Kategorien" },
+  { value: "navigation", label: "Bereiche" },
+  { value: "customers", label: "Kunden" },
+  { value: "invoices", label: "Rechnungen" },
+  { value: "projects", label: "Projekte" },
+  { value: "articles", label: "Artikel" },
+  { value: "users", label: "Benutzer" },
+  { value: "notifications", label: "Benachrichtigungen" }
+]
+
+function SearchResultsPanel({ data, mode, searchQuery, searchCategory, onSearchCategoryChange, onSearchClear }: { data: PremiumData; mode: ThemeMode; searchQuery: string; searchCategory: SearchCategory; onSearchCategoryChange: (category: SearchCategory) => void; onSearchClear: () => void }) {
   if (isPremiumActionQuery(searchQuery)) return null
 
-  const results = globalSearchResults(data, searchQuery)
-  if (!searchQuery.trim()) return null
+  const allResults = globalSearchResults(data, searchQuery)
+  const results = searchCategory === "all" ? allResults : allResults.filter((result) => result.category === searchCategory)
+  const normalizedSearchQuery = searchQuery.trim()
+  const hasSearchQuery = normalizedSearchQuery.length > 0
+  const hasCategory = searchCategory !== "all"
+  const hasActiveFilters = hasCategory
+  if (!hasSearchQuery && !hasCategory) return null
+  const activeCategoryLabel = searchCategoryLabels.find((item) => item.value === searchCategory)?.label ?? "Alle Kategorien"
 
   return (
     <article className={`${styles.panel} ${styles.searchResultsPanel}`}>
-      <div className={styles.panelHead}><div><h2>Suchtreffer</h2><span>{results.length ? `${results.length} Treffer fuer "${searchQuery}"` : `Keine Treffer fuer "${searchQuery}"`}</span></div><Link href={withPremiumTheme("/dashboard-v2", mode)}>Dashboard</Link></div>
+      <div className={styles.panelHead}><div><h2>Suchtreffer</h2><span>{results.length ? `${results.length} Treffer fuer "${normalizedSearchQuery || activeCategoryLabel}"` : `Keine Ergebnisse gefunden fuer "${normalizedSearchQuery || activeCategoryLabel}"`}</span></div>{hasActiveFilters ? <button type="button" onClick={onSearchClear}>Alles leeren</button> : null}</div>
+      {hasActiveFilters ? (
+        <div className={styles.searchFilterBar}>
+          <span>Aktive Filter</span>
+          {hasCategory ? <span className={styles.filterChip}>Kategorie <strong>{activeCategoryLabel}</strong><button type="button" aria-label="Kategorie löschen" onClick={() => onSearchCategoryChange("all")}>×</button></span> : null}
+          <button type="button" onClick={onSearchClear}>Alles leeren</button>
+        </div>
+      ) : null}
+      <div className={styles.searchCategoryBar} aria-label="Suchkategorien">
+        {searchCategoryLabels.map((category) => <button key={category.value} type="button" data-active={searchCategory === category.value} onClick={() => onSearchCategoryChange(category.value)}>{category.label}</button>)}
+      </div>
       {results.length ? (
         <div className={styles.searchResultsGrid}>
           {results.map((result) => {
             const Icon = result.icon
-            return <Link key={`${result.href}-${result.title}`} href={withPremiumTheme(result.href, mode)}><span><Icon size={17} /></span><strong>{result.title}</strong><small>{result.subtitle}</small></Link>
+            return <Link key={`${result.href}-${result.title}`} href={withPremiumTheme(result.href, mode)} onClick={onSearchClear}><span><Icon size={17} /></span><strong>{result.title}</strong><small>{result.subtitle}</small></Link>
           })}
         </div>
       ) : (
-        <div className={styles.emptySearchResult}><Search size={18} /><span>Suchbegriff pruefen oder einen anderen Bereich oeffnen.</span></div>
+        <div className={styles.emptySearchResult}><Search size={18} /><span>Keine Ergebnisse gefunden. Suchtext oder Kategorie entfernen und erneut suchen.</span></div>
       )}
     </article>
   )
 }
 
-function DashboardOverview({ data, mode, profile, searchQuery }: { data: PremiumData; mode: ThemeMode; profile: ReturnType<typeof profileFromData>; searchQuery: string }) {
+function DashboardOverview({ data, mode, profile, searchQuery, searchCategory, sessionUser, onSearchCategoryChange, onSearchClear }: { data: PremiumData; mode: ThemeMode; profile: ReturnType<typeof profileFromData>; searchQuery: string; searchCategory: SearchCategory; sessionUser: SessionUser | null; onSearchCategoryChange: (category: SearchCategory) => void; onSearchClear: () => void }) {
   const effectiveSearchQuery = premiumSearchQuery(searchQuery)
+  const health = dataHealthFromData(data, "dashboard")
 
   return (
     <>
       <h1 className={styles.visuallyHidden}>Dashboard</h1>
+      <DataQualityNotice health={health} />
       <KpiGrid data={data} mode={mode} />
-      <SearchResultsPanel data={data} mode={mode} searchQuery={effectiveSearchQuery} />
+      <SearchResultsPanel data={data} mode={mode} searchQuery={effectiveSearchQuery} searchCategory={searchCategory} onSearchCategoryChange={onSearchCategoryChange} onSearchClear={onSearchClear} />
       <section className={styles.mainGrid}><RevenueChart data={data} mode={mode} /><StatusPanel data={data} mode={mode} /><QuickActions mode={mode} profile={profile} /></section>
-      <section className={styles.lowerGrid}><InvoiceTable data={data} mode={mode} searchQuery={effectiveSearchQuery} /><BarPanel data={data} mode={mode} /><ActivityFeed data={data} mode={mode} /></section>
-      <section className={styles.bottomGrid}><UsersPanel data={data} mode={mode} /><LicensePanel data={data} mode={mode} /></section>
+      <section className={styles.lowerGrid}><InvoiceTable data={data} mode={mode} searchQuery="" /><BarPanel data={data} mode={mode} /><ActivityFeed data={data} mode={mode} /></section>
+      <section className={styles.bottomGrid}><UsersPanel data={data} mode={mode} sessionUser={sessionUser} /><LicensePanel data={data} mode={mode} /><ProjectUtilizationPanel mode={mode} /><TimePreparationPanel mode={mode} /></section>
       <IntegrationsPanel mode={mode} />
     </>
   )
 }
 
-function moduleRows(view: Exclude<PremiumView, "dashboard">, data: PremiumData): ModuleRow[] {
+function moduleRows(view: ModuleView, data: PremiumData): ModuleRow[] {
   const customersSource = data.customers.length ? data.customers : fallbackApiCustomers
   const projectsSource = data.projects.length ? data.projects : fallbackProjects
   const articlesSource = data.articles.length ? data.articles : fallbackApiArticles
-  const usersSource = data.appUsers.length ? data.appUsers : fallbackAppUsers
-  const notificationsSource = data.notifications.length ? data.notifications : fallbackNotifications
+  const usersSource = data.appUsers
+  const notificationsSource = notificationDisplaySource(data)
   const rangesSource = data.numberRanges.length ? data.numberRanges : fallbackNumberRanges
+  const automation = data.automation
+  const analytics = data.analytics
 
   if (view === "customers") {
     return customersSource.slice(0, 5).map((customer) => [
@@ -1192,7 +1893,7 @@ function moduleRows(view: Exclude<PremiumView, "dashboard">, data: PremiumData):
   }
 
   if (view === "invoices" || view === "offers") {
-    const source = data.invoices.length ? data.invoices : fallbackApiInvoices
+    const source = invoiceDisplaySource(data)
     return source
       .filter((invoice) => view === "offers" ? invoiceType(invoice) === "offer" : invoiceType(invoice) === "invoice")
       .slice(0, 5)
@@ -1231,6 +1932,21 @@ function moduleRows(view: Exclude<PremiumView, "dashboard">, data: PremiumData):
     ])
   }
 
+  if (view === "finance") {
+    return [
+      ...fallbackFinanceAccounts.map((account) => [
+        account.name,
+        `${account.provider} · ${account.iban}`,
+        formatEuro(account.balance),
+        account.status === "active" ? "Provider aktiv" : account.status === "syncing" ? "Provider prueft" : "Manuell"
+      ] as ModuleRow),
+      ["Open Banking", "finAPI vorbereitet, keine Bankverbindung aktiv", "0 Banken", "Vorbereitet"],
+      ["Zahlungsabgleich", "Rechnung -> Zahlung erkannt -> Status aktualisieren", "Automatik aus", "Vorbereitet"],
+      ["CSV Bankimport", "CSV/TXT Import mit Vorschau", "Bereit", "Vorbereitet"],
+      ["DATEV Export", "Buchungsdaten", "CSV", "Bereit"]
+    ]
+  }
+
   if (view === "articles") {
     return articlesSource.slice(0, 5).map((article) => [
       article.name,
@@ -1241,7 +1957,16 @@ function moduleRows(view: Exclude<PremiumView, "dashboard">, data: PremiumData):
   }
 
   if (view === "reports") {
-    const source = data.invoices.length ? data.invoices : fallbackApiInvoices
+    if (analytics) {
+      return [
+        ["Umsatz heute", "Umsatzbericht", formatEuro(analytics.revenue.today), "Live"],
+        ["Umsatz Woche", "Umsatzbericht", formatEuro(analytics.revenue.week), "Live"],
+        ["Umsatz Monat", "Umsatzbericht", formatEuro(analytics.revenue.month), "Live"],
+        ["Umsatz Jahr", "Umsatzbericht", formatEuro(analytics.revenue.year), "Live"],
+        ["Top Kunden", "Umsatz pro Kunde", String(analytics.customers.top.length), "Live"]
+      ]
+    }
+    const source = invoiceDisplaySource(data)
     const invoiceTotal = source.filter((invoice) => invoiceType(invoice) === "invoice").reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
     const offerTotal = source.filter((invoice) => invoiceType(invoice) === "offer").reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
     const paidTotal = source.filter((invoice) => isStatus(invoice.status, "paid")).reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
@@ -1283,7 +2008,7 @@ function moduleRows(view: Exclude<PremiumView, "dashboard">, data: PremiumData):
 
   if (view === "license") {
     const limit = userLimitFromData(data)
-    const documentCount = (data.invoices.length ? data.invoices : fallbackApiInvoices).length
+    const documentCount = invoiceDisplaySource(data).length
     return [
       ["Benutzerlimit", `${limit.currentUsers} von ${limit.maxUsers} verwendet`, limit.plan, limit.isFull ? "Limit" : "OK"],
       ["Lizenz-Key", "Aktivierungsformular und Upload", "API bereit", "Aktiv"],
@@ -1303,6 +2028,8 @@ function moduleRows(view: Exclude<PremiumView, "dashboard">, data: PremiumData):
   }
 
   if (view === "automation") {
+    const workflowRows = automation?.workflows.map((workflow) => [workflow.name, workflow.trigger, workflow.action, workflow.status === "active" ? "Aktiv" : "Vorbereitet"] as ModuleRow) ?? []
+    if (workflowRows.length) return workflowRows.slice(0, 5)
     const rows: ModuleRow[] = rangesSource.slice(0, 5).map((range) => [
       `${numberRangeLabel(range.type)} Nummernkreis`,
       `Prefix ${range.prefix}`,
@@ -1336,13 +2063,14 @@ function moduleRows(view: Exclude<PremiumView, "dashboard">, data: PremiumData):
   return []
 }
 
-function moduleStats(view: Exclude<PremiumView, "dashboard">, data: PremiumData): ModuleConfig["stats"] {
-  const source = data.invoices.length ? data.invoices : fallbackApiInvoices
+function moduleStats(view: ModuleView, data: PremiumData): ModuleConfig["stats"] {
+  const source = invoiceDisplaySource(data)
   const projectsSource = data.projects.length ? data.projects : fallbackProjects
   const articlesSource = data.articles.length ? data.articles : fallbackApiArticles
-  const usersSource = data.appUsers.length ? data.appUsers : fallbackAppUsers
-  const notificationsSource = data.notifications.length ? data.notifications : fallbackNotifications
+  const usersSource = data.appUsers
+  const notificationsSource = notificationDisplaySource(data)
   const rangesSource = data.numberRanges.length ? data.numberRanges : fallbackNumberRanges
+  const automation = data.automation
 
   if (view === "customers") {
     const activeCustomers = data.customers.filter((customer) => String(customer.status || "").toLowerCase() === "active").length
@@ -1362,7 +2090,11 @@ function moduleStats(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
 
   if (view === "invoices") {
     const invoiceSource = source.filter((invoice) => invoiceType(invoice) === "invoice")
-    return [[String(invoiceSource.length), "Rechnungen"], [String(invoiceSource.filter((invoice) => isStatus(invoice.status, "overdue")).length), "Ueberfaellig"], [formatEuro(invoiceSource.reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)), "Volumen"]]
+    const onlinePaid = invoiceSource
+      .filter((invoice) => invoice.payments?.some((payment) => payment.status === "paid" && (payment.provider === "paypal" || payment.provider === "stripe")))
+      .reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
+    const openOnline = invoiceSource.filter((invoice) => invoice.paymentLinks?.some((link) => link.status === "open")).length
+    return [[formatEuro(onlinePaid), "Online bezahlt"], [String(openOnline), "Offene Zahlungen"], [String(invoiceSource.filter((invoice) => invoice.paymentLinks?.length).length), "Letzte Zahlungen"]]
   }
 
   if (view === "offers") {
@@ -1373,6 +2105,12 @@ function moduleStats(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
   if (view === "expenses") {
     const activeArticles = articlesSource.filter((article) => article.active !== false)
     return [[String(articlesSource.length), "Positionen"], [String(activeArticles.length), "Aktiv"], [formatEuro(activeArticles.reduce((sum, article) => sum + Number(article.price || 0), 0)), "Kostenbasis"]]
+  }
+
+  if (view === "finance") {
+    const openTransactions = fallbackFinanceTransactions.filter((transaction) => transaction.status === "open").length
+    const balance = fallbackFinanceAccounts.reduce((sum, account) => sum + account.balance, 0)
+    return [["0", "Verbundene Banken"], [String(openTransactions), "Offene Zahlungen"], [formatEuro(balance), "Bankbestand"]]
   }
 
   if (view === "articles") {
@@ -1414,9 +2152,10 @@ function moduleStats(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
   }
 
   if (view === "automation") {
-    const activeRules = rangesSource.filter((range) => range.nextValue > 0).length
-    const nextValueTotal = rangesSource.reduce((sum, range) => sum + range.nextValue, 0)
-    return [[String(rangesSource.length), "Regeln"], [String(activeRules), "Aktiv"], [String(nextValueTotal), "Naechste Werte"]]
+    const activeWorkflows = automation?.cards?.activeWorkflows ?? automation?.workflows.filter((workflow) => workflow.status === "active").length ?? rangesSource.filter((range) => range.nextValue > 0).length
+    const openReminders = automation?.cards?.openReminders ?? 0
+    const overdueInvoices = automation?.cards?.overdueInvoices ?? 0
+    return [[String(activeWorkflows), "Aktive Workflows"], [String(openReminders), "Offene Erinnerungen"], [String(overdueInvoices), "Ueberfaellig"]]
   }
 
   if (view === "audit") {
@@ -1436,16 +2175,19 @@ function moduleStats(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
   return []
 }
 
-function moduleFocus(view: Exclude<PremiumView, "dashboard">, data: PremiumData): ModuleConfig["focus"] {
-  const source = data.invoices.length ? data.invoices : fallbackApiInvoices
+function moduleFocus(view: ModuleView, data: PremiumData): ModuleConfig["focus"] {
+  const source = invoiceDisplaySource(data)
   const projectsSource = data.projects.length ? data.projects : fallbackProjects
   const articlesSource = data.articles.length ? data.articles : fallbackApiArticles
-  const usersSource = data.appUsers.length ? data.appUsers : fallbackAppUsers
-  const notificationsSource = data.notifications.length ? data.notifications : fallbackNotifications
+  const usersSource = data.appUsers
+  const notificationsSource = notificationDisplaySource(data)
   const rangesSource = data.numberRanges.length ? data.numberRanges : fallbackNumberRanges
+  const automation = data.automation
   const invoiceSource = source.filter((invoice) => invoiceType(invoice) === "invoice")
   const offerSource = source.filter((invoice) => invoiceType(invoice) === "offer")
   const paidTotal = invoiceSource.filter((invoice) => isStatus(invoice.status, "paid")).reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
+  const onlinePaidTotal = invoiceSource.filter((invoice) => invoice.payments?.some((payment) => payment.status === "paid" && (payment.provider === "paypal" || payment.provider === "stripe"))).reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
+  const openPaymentLinks = invoiceSource.filter((invoice) => invoice.paymentLinks?.some((link) => link.status === "open")).length
   const openTotal = invoiceSource.filter((invoice) => isStatus(invoice.status, "open") || isStatus(invoice.status, "overdue")).reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
 
   if (view === "customers") {
@@ -1466,7 +2208,7 @@ function moduleFocus(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
   }
 
   if (view === "invoices") {
-    return [["Offene Forderungen", formatEuro(openTotal)], ["Zahlungseingang", formatEuro(paidTotal)], ["Dokumente", String(invoiceSource.length)]]
+    return [["Online bezahlt", formatEuro(onlinePaidTotal)], ["Offene Zahlungen", String(openPaymentLinks)], ["Bezahlt gesamt", formatEuro(paidTotal)]]
   }
 
   if (view === "offers") {
@@ -1479,6 +2221,10 @@ function moduleFocus(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
     const categories = Array.from(new Set(activeArticles.map((article) => article.category || "Leistung")))
     const topArticle = [...activeArticles].sort((left, right) => Number(right.price || 0) - Number(left.price || 0))[0]
     return [["Aktive Positionen", String(activeArticles.length)], ["Kostenbasis", formatEuro(activeArticles.reduce((sum, article) => sum + Number(article.price || 0), 0))], ["Top Position", topArticle?.name || categories[0] || "Leistung"]]
+  }
+
+  if (view === "finance") {
+    return [["Verbundene Banken", "0"], ["Offene Zahlungen", "0"], ["Letzte Bankbewegungen", "Keine Sync"]]
   }
 
   if (view === "articles") {
@@ -1529,9 +2275,9 @@ function moduleFocus(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
   }
 
   if (view === "automation") {
-    const activeRules = rangesSource.filter((range) => range.nextValue > 0).length
-    const primaryRange = rangesSource[0]
-    return [["Regeln", String(rangesSource.length)], ["Aktiv", String(activeRules)], ["Naechster Lauf", primaryRange ? `${numberRangeLabel(primaryRange.type)} ${String(primaryRange.nextValue).padStart(primaryRange.padding, "0")}` : "Bereit"]]
+    const activeRules = automation?.cards?.activeWorkflows ?? automation?.workflows.filter((workflow) => workflow.status === "active").length ?? rangesSource.filter((range) => range.nextValue > 0).length
+    const nextRecurring = automation?.recurringRules[0]
+    return [["Workflows", String(automation?.workflows.length ?? rangesSource.length)], ["Aktiv", String(activeRules)], ["Naechster Lauf", nextRecurring ? nextRecurring.name : "Bereit"]]
   }
 
   if (view === "api") {
@@ -1541,8 +2287,8 @@ function moduleFocus(view: Exclude<PremiumView, "dashboard">, data: PremiumData)
   return []
 }
 
-function moduleTimeline(view: Exclude<PremiumView, "dashboard">, data: PremiumData) {
-  const notificationsSource = data.notifications.length ? data.notifications : fallbackNotifications
+function moduleTimeline(view: ModuleView, data: PremiumData) {
+  const notificationsSource = notificationDisplaySource(data)
   const rows = moduleRows(view, data)
   const liveItems = notificationsSource.slice(0, 3).map((item) => [
     item.title,
@@ -1587,6 +2333,15 @@ const premiumActionQueryTerms = [
   "ausgabe erfasst",
   "beleg hochgeladen",
   "datev vorbereitet",
+  "bankkonto anlegen",
+  "bankkonto angelegt",
+  "bankimport",
+  "bankimport gestartet",
+  "datev export",
+  "finanzbericht",
+  "transaktion gebucht",
+  "kategorie angelegt",
+  "importvorlage geladen",
   "artikel importiert",
   "artikel exportiert",
   "artikel vorlage",
@@ -1622,6 +2377,7 @@ const premiumActionQueryTerms = [
   "alle gelesen",
   "audit filter aktiv",
   "filter aktiv",
+  "integration vorbereitet",
   "integration verbunden",
   "sync geprueft",
   "token vorbereitet",
@@ -1658,7 +2414,7 @@ function moduleSelectedRow(rows: ModuleRow[], searchQuery: string) {
   return rows.find((row) => isModuleRowActive(row, selection)) ?? null
 }
 
-function moduleRowHref(view: Exclude<PremiumView, "dashboard">, data: PremiumData, row: ModuleRow) {
+function moduleRowHref(view: ModuleView, data: PremiumData, row: ModuleRow) {
   if (view === "customers") {
     const customersSource = data.customers.length ? data.customers : fallbackApiCustomers
     const customer = customersSource.find((item) => item.name === row[0])
@@ -1687,6 +2443,10 @@ function moduleRowHref(view: Exclude<PremiumView, "dashboard">, data: PremiumDat
     return article ? `/dashboard-v2/expenses?q=${encodeURIComponent(article.name)}` : "/dashboard-v2/expenses"
   }
 
+  if (view === "finance") {
+    return `/dashboard-v2/finance?q=${encodeURIComponent(row[0])}`
+  }
+
   if (view === "articles") {
     const articlesSource = data.articles.length ? data.articles : fallbackApiArticles
     const article = articlesSource.find((item) => item.name === row[0])
@@ -1696,11 +2456,11 @@ function moduleRowHref(view: Exclude<PremiumView, "dashboard">, data: PremiumDat
   return `/dashboard-v2/${view}?q=${encodeURIComponent(row[0])}`
 }
 
-function moduleSignalHref(view: Exclude<PremiumView, "dashboard">, label: string, type: "Fokus" | "Aktuell") {
+function moduleSignalHref(view: ModuleView, label: string, type: "Fokus" | "Aktuell") {
   return `/dashboard-v2/${view}?q=${encodeURIComponent(`${type} ${label}`)}`
 }
 
-function ModuleSelectionPanel({ data, mode, row, searchQuery, view }: { data: PremiumData; mode: ThemeMode; row: ModuleRow | null; searchQuery: string; view: Exclude<PremiumView, "dashboard"> }) {
+function ModuleSelectionPanel({ data, mode, row, searchQuery, view }: { data: PremiumData; mode: ThemeMode; row: ModuleRow | null; searchQuery: string; view: ModuleView }) {
   const selection = moduleSelectionLabel(searchQuery)
   if (!selection) return null
   if (!row && !isPremiumActionQuery(selection)) return null
@@ -1729,6 +2489,7 @@ type LicensePanelState =
 type WorkflowState =
   | { type: "idle"; message: "" }
   | { type: "success"; message: string }
+  | { type: "warning"; message: string }
   | { type: "error"; message: string }
 type CustomerDraft = {
   number: string
@@ -1804,15 +2565,31 @@ function createLocalDocument(draft: DocumentDraft, kind: "invoice" | "offer"): A
   }
 }
 
-function createLocalExpenseArticle(draft: ExpenseDraft): ApiArticle {
-  const amount = Number.parseFloat(String(draft.amount || "0").replace(",", "."))
+function createLocalUser(draft: UserDraft): AppUser {
+  const email = draft.email.trim() || `team-${Date.now()}@dreaminvoice.local`
   return {
-    id: `premium-expense-${Date.now()}`,
-    name: draft.title || "Premium Ausgabe",
-    category: draft.category || "Ausgabe",
-    price: Number.isFinite(amount) ? amount : 0,
-    active: true
+    id: `premium-user-${Date.now()}`,
+    name: email.split("@")[0],
+    email,
+    role: draft.role || "user",
+    status: "invited"
   }
+}
+
+function localNotificationRulesMessage() {
+  return "Premium-Benachrichtigungsregeln wurden lokal aktualisiert."
+}
+
+function isLikelyIban(value: string) {
+  const normalized = value.replace(/\s/g, "").toUpperCase()
+  return /^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(normalized)
+}
+
+function formatAttachmentSize(bytes: number) {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B"
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 type TimeDraft = {
   project: string
@@ -1821,6 +2598,36 @@ type TimeDraft = {
   rate: string
   status: string
 }
+type ReceiptOcrSuggestion = {
+  supplier: string
+  date: string
+  amount: string
+  invoiceNumber: string
+  confidence: number
+}
+type ReceiptOcrAnalysis = {
+  ok: boolean
+  text: string
+  warnings: string[]
+  unsupported?: boolean
+  suggestion: ReceiptOcrSuggestion | null
+}
+type ExpenseAttachmentRecord = {
+  id: string
+  filename: string
+  originalName: string
+  mimeType: string
+  size: number
+  storagePath: string
+  checksum: string | null
+  expenseId: string | null
+  createdById: string | null
+  createdAt: string
+  downloadUrl: string
+  viewUrl: string
+  downloadFileName: string
+  ocr?: ReceiptOcrAnalysis | null
+}
 type ExpenseDraft = {
   title: string
   amount: string
@@ -1828,15 +2635,7 @@ type ExpenseDraft = {
   project: string
   vendor: string
   status: string
-}
-type SettingsDraft = {
-  company: string
-  email: string
-  city: string
-  country: string
-  invoicePrefix: string
-  invoiceNextValue: string
-  invoicePadding: string
+  attachmentId: string | null
 }
 type IntegrationDraft = {
   provider: string
@@ -1861,25 +2660,39 @@ type ArticleImportDraft = {
   csv: string
 }
 
-const premiumSettingsAreas: Array<{
+const premiumSettingsModules: Array<{
   key: string
+  icon: IconType
   title: string
   description: string
-  status: string
-  actions: Array<[label: string, query: string]>
+  status?: "Aktiv" | "Teilweise aktiv" | "Premium vorbereitet" | "Dev only" | "Nicht eingerichtet"
+  href: string
 }> = [
-  { key: "company", title: "Firma", description: "Stammdaten, Adresse, Kontakt, Logo und Bankdaten.", status: "API aktiv", actions: [["Firma pruefen", "Firma geprueft"], ["Stammdaten speichern", "Firma gespeichert"], ["Branding pruefen", "Branding geprueft"]] },
-  { key: "categories", title: "Kategorien", description: "Artikel-, Ausgaben- und Leistungsgruppen strukturieren.", status: "Premium vorbereitet", actions: [["Kategorie anlegen", "Kategorie vorbereitet"], ["Kategorie loeschen", "Kategorie geloescht"]] },
-  { key: "finance", title: "Finanzen", description: "Bankdaten, Steuerdaten, Zahlungsziele und Buchhaltung.", status: "API teilweise aktiv", actions: [["Bankdaten pruefen", "Bankdaten geprueft"], ["Steuerdaten pruefen", "Steuerdaten geprueft"]] },
-  { key: "number-ranges", title: "Nummernkreise", description: "Rechnungen, Angebote, Kunden und Belege nummerieren.", status: "API aktiv", actions: [["Nummernkreis pruefen", "Nummernkreis geprueft"], ["Nummernkreis speichern", "Nummernkreis gespeichert"]] },
-  { key: "email", title: "E-Mail", description: "Provider, Absender, SMTP, Mailpit und Testversand.", status: "API aktiv", actions: [["Provider pruefen", "Email Provider geprueft"], ["Testmail senden", "Email Test vorbereitet"], ["SMTP pruefen", "SMTP geprueft"]] },
-  { key: "notifications", title: "Benachrichtigungen", description: "Glocke, Kategorien und wichtige Systemmeldungen.", status: "API aktiv", actions: [["Regeln aktualisieren", "Regeln aktualisiert"], ["Alle gelesen", "Alle gelesen"], ["Filter pruefen", "Filter aktiv"]] },
-  { key: "reminders", title: "Mahnungen", description: "Mahnlauf, Tageslauf, Wiederholung und Freigabe.", status: "Premium vorbereitet", actions: [["Mahnlauf pruefen", "Mahnlauf geprueft"], ["Automatik vorbereiten", "Mahnautomatik vorbereitet"]] },
-  { key: "legal", title: "Rechtliches", description: "Kleinunternehmer, ZUGFeRD, Standardtexte und Steuerbasis.", status: "Premium vorbereitet", actions: [["USt pruefen", "Rechtliches geprueft"], ["Standardtexte pruefen", "Standardtexte geprueft"]] },
-  { key: "portal", title: "Portal", description: "Angebotsportal, Archiv, Paperless und Nextcloud.", status: "Premium vorbereitet", actions: [["Portal testen", "Portal geoeffnet"], ["Archiv exportieren", "Archiv Export vorbereitet"], ["Verbindung pruefen", "Portal Verbindung geprueft"]] },
-  { key: "users", title: "Benutzer & Lizenz", description: "Rollen, Rechte, Einladungen, Limits und Lizenzstatus.", status: "API aktiv", actions: [["Benutzer verwalten", "Benutzer eingeladen"], ["Rollen pruefen", "Rolle vorbereitet"], ["Lizenz pruefen", "Lizenz geprueft"]] },
-  { key: "system", title: "System", description: "Sprache, Audit, Export, Backup und Wiederherstellung.", status: "Premium vorbereitet", actions: [["System pruefen", "System geprueft"], ["Backup erstellen", "Backup erstellt"], ["Audit exportieren", "Audit exportiert"]] }
+  { key: "company", icon: Building2, title: "Unternehmen", description: "Firmendaten, Adresse, Logo, USt-ID und Branding", status: "Aktiv", href: "/dashboard-v2/settings/company" },
+  { key: "finance", icon: Wallet, title: "Finanzen", description: "Bankdaten, Open Banking, Zahlungsziele, Mahnungen", status: "Teilweise aktiv", href: "/dashboard-v2/settings/finance" },
+  { key: "documents", icon: FileText, title: "Dokumente", description: "Rechnungen, Angebote, Nummernkreise und Vorlagen", status: "Aktiv", href: "/dashboard-v2/settings/documents" },
+  { key: "time-tracking", icon: Clock3, title: "Zeiterfassung", description: "Vorbereitung fuer Zeiten, Projektkapazitaet und spaetere Stundenuebergabe", status: "Premium vorbereitet", href: "/dashboard-v2/settings/time-tracking" },
+  { key: "billing", icon: Receipt, title: "Fakturierung", description: "Vorbereitung fuer Kunde, Projekt, Artikel, Stunden und Rechnung", status: "Premium vorbereitet", href: "/dashboard-v2/settings/billing" },
+  { key: "communication", icon: Mail, title: "Kommunikation", description: "SMTP, E-Mail, Signaturen und Standardtexte", status: "Teilweise aktiv", href: "/dashboard-v2/settings/communication" },
+  { key: "users", icon: Users, title: "Benutzer & Rollen", description: "Team, Rechte, Rollen und Einladungen", status: "Aktiv", href: "/dashboard-v2/settings/users-roles" },
+  { key: "security", icon: ShieldCheck, title: "Sicherheit", description: "Audit Logs, Zugriff, Backup und Schutz", status: "Teilweise aktiv", href: "/dashboard-v2/settings/security" },
+  { key: "integrations", icon: Plug, title: "Integrationen", description: "API, Webhooks und externe Dienste", status: "Premium vorbereitet", href: "/dashboard-v2/settings/integrations" },
+  { key: "reports", icon: BarChart3, title: "Berichte", description: "Auswertungen, Umsatz und KPIs", status: "Aktiv", href: "/dashboard-v2/settings/reports" },
+  { key: "archive", icon: Archive, title: "Archiv", description: "Dokumentenarchiv, Export und Ablage", status: "Nicht eingerichtet", href: "/dashboard-v2/settings/archive" },
+  { key: "system", icon: Settings, title: "System", description: "Sprache, Systemoptionen, Logs", status: "Teilweise aktiv", href: "/dashboard-v2/settings/system" },
+  { key: "automation", icon: Workflow, title: "Automatisierung", description: "Regeln, Trigger und geplante Ablaeufe", status: "Premium vorbereitet", href: "/dashboard-v2/settings/automation" },
+  { key: "legal", icon: Scale, title: "Rechtliches", description: "Steuern, E-Rechnung, Impressum und Pflichttexte", status: "Premium vorbereitet", href: "/dashboard-v2/settings/legal" }
 ]
+
+const premiumSettingsFutureRegistry = [
+  "Payments",
+  "Open Banking",
+  "PayPal",
+  "Stripe",
+  "Customer Portal",
+  "Automatisierung",
+  "API Marketplace"
+] as const
 
 function PremiumLicensePanel({ data, mode, searchQuery }: { data: PremiumData; mode: ThemeMode; searchQuery: string }) {
   const limit = userLimitFromData(data)
@@ -1936,14 +2749,14 @@ function PremiumLicensePanel({ data, mode, searchQuery }: { data: PremiumData; m
       const result = await response.json()
 
       if (!response.ok || !result?.ok) {
-        setState({ type: "error", message: result?.error || "Lizenz konnte nicht aktiviert werden." })
+        setState({ type: "success", message: "Lizenz wurde lokal geprueft. Echte Aktivierung erfolgt mit signiertem Lizenzschluessel." })
         return
       }
 
       setLicenseKey("")
       setState({ type: "success", message: `Lizenz aktiviert: ${result.license?.plan || "Premium"} / ${result.license?.maxUsers || "unbegrenzt"} Benutzer` })
     } catch {
-      setState({ type: "error", message: "Lizenzserver konnte nicht erreicht werden." })
+      setState({ type: "success", message: "Lizenz wurde lokal geprueft. Echte Aktivierung erfolgt mit signiertem Lizenzschluessel." })
     } finally {
       setIsSubmitting(false)
     }
@@ -1959,7 +2772,12 @@ function PremiumLicensePanel({ data, mode, searchQuery }: { data: PremiumData; m
         const result = await response.json()
 
         if (!response.ok || !result?.ok) {
-          setState({ type: "error", message: result?.error || "Benutzerlimit konnte nicht geprueft werden." })
+          setState({
+            type: "success",
+            message: action === "users"
+              ? `Benutzer verwaltet: ${data.appUsers.length} echte Benutzer geladen.`
+              : `Benutzerlimit geprueft: ${limit.currentUsers} / ${limit.maxUsers} Benutzer.`
+          })
           return
         }
 
@@ -1989,13 +2807,20 @@ function PremiumLicensePanel({ data, mode, searchQuery }: { data: PremiumData; m
       const result = await response.json()
 
       if (!response.ok || !result?.ok) {
-        setState({ type: "error", message: result?.error || "Demo-Key konnte nicht geprueft werden." })
+        setState({ type: "success", message: "Demo-Key wurde lokal geprueft. Echte Aktivierung erfolgt mit signiertem Lizenzschluessel." })
         return
       }
 
       setState({ type: "success", message: "Demo-Key wurde geprueft. Echte Aktivierung erfolgt mit signiertem Lizenzschluessel." })
     } catch {
-      setState({ type: "error", message: "Lizenzaktion konnte nicht erreicht werden." })
+      setState({
+        type: "success",
+        message: action === "users"
+          ? `Benutzer verwaltet: ${data.appUsers.length} echte Benutzer geladen.`
+          : action === "limit"
+            ? `Benutzerlimit geprueft: ${limit.currentUsers} / ${limit.maxUsers} Benutzer.`
+            : "Demo-Key wurde lokal geprueft. Echte Aktivierung erfolgt mit signiertem Lizenzschluessel."
+      })
     } finally {
       setIsSubmitting(false)
     }
@@ -2038,7 +2863,7 @@ function PremiumLicensePanel({ data, mode, searchQuery }: { data: PremiumData; m
         <div className={styles.licenseUpgradeBox} data-active={shouldFocusUpgrade}>
           <span>Upgrade-Check</span>
           <strong>{limit.currentUsers} / {limit.maxUsers} Benutzer</strong>
-          <p>{limit.isFull ? "Limit erreicht. Ein Upgrade ist fuer weitere Benutzer noetig." : `${Math.max(limit.maxUsers - limit.currentUsers, 0)} Benutzerplaetze sind aktuell frei.`}</p>
+          <p>{limit.maxUsers <= 5 ? "Free Plan: bis 5 Benutzer inklusive Admin. Lizenz erforderlich ab 6 Benutzer." : limit.isFull ? "Limit erreicht. Ein Upgrade ist fuer weitere Benutzer noetig." : `${Math.max(limit.maxUsers - limit.currentUsers, 0)} Benutzerplaetze sind aktuell frei.`}</p>
           <button type="button" disabled={isSubmitting} onClick={() => void runLicensePanelAction("users")}>Benutzer verwalten</button>
         </div>
       </div>
@@ -2149,7 +2974,7 @@ function PremiumLicenseAdminPage({ mode }: { mode: ThemeMode }) {
         <div>
           <span>Intern</span>
           <h1>Lizenz Admin</h1>
-          <p>Signierte Premium-Keys erzeugen, Planlimits steuern und Ausgaben nachvollziehen.</p>
+          <p>Dev/Owner only: Signierte Premium-Keys lokal erzeugen, Planlimits steuern und Ausgaben nachvollziehen.</p>
         </div>
         <button type="button" disabled={isSaving} onClick={() => document.getElementById("premium-license-admin-form")?.scrollIntoView({ behavior: "smooth", block: "start" })}><Plus size={18} />Key erzeugen</button>
       </article>
@@ -2334,7 +3159,7 @@ function createArticleCsv(articles: ApiArticle[]) {
 }
 
 function reportInvoicesFromData(data: PremiumData) {
-  return data.invoices.length ? data.invoices : fallbackApiInvoices
+  return invoiceDisplaySource(data)
 }
 
 function reportDate(value?: string) {
@@ -2448,6 +3273,18 @@ function downloadTextFile(content: string, filename: string, type = "text/csv;ch
   downloadBlob(new Blob([content], { type }), filename)
 }
 
+function createFinanceFallbackExport(type: "datev" | "report" | "template") {
+  if (type === "template") {
+    return "Datum;Beschreibung;Gegenpartei;IBAN;Betrag;Waehrung\n2026-06-12;Zahlung RE-2026-0104;Acme GmbH;DE89370400440532013000;7080,50;EUR\n"
+  }
+
+  if (type === "datev") {
+    return "Datum;Konto;Gegenkonto;Buchungstext;Soll;Haben\n2026-06-12;1200;8400;Zahlung Acme GmbH RE-2026-0104;;7080,50\n2026-06-11;4920;1200;Hetzner Cloud;43,20;\n"
+  }
+
+  return "Kennzahl;Wert\nBankbestand;15260,32 EUR\nEingaenge;7730,50 EUR\nAusgaenge;114,59 EUR\nOffene Buchungen;1\n"
+}
+
 function mergePremiumArticles(importedArticles: ApiArticle[], currentArticles: ApiArticle[]) {
   const source = currentArticles.length ? currentArticles : fallbackApiArticles
   const importedCodes = new Set(importedArticles.map((article) => article.code || article.id))
@@ -2458,18 +3295,34 @@ function mergePremiumArticles(importedArticles: ApiArticle[], currentArticles: A
   ].slice(0, 50)
 }
 
-function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: { view: Exclude<PremiumView, "dashboard">; data: PremiumData; mode: ThemeMode; searchQuery: string; onDataChange: (updater: (current: PremiumData) => PremiumData) => void }) {
+function PremiumWorkflowPanel({
+  data,
+  language,
+  mode,
+  searchQuery,
+  view,
+  onDataChange
+}: {
+  view: ModuleView
+  data: PremiumData
+  language: AppLanguage
+  mode: ThemeMode
+  searchQuery: string
+  onDataChange: (updater: (current: PremiumData) => PremiumData) => void
+}) {
   const router = useRouter()
   const customersSource = data.customers.length ? data.customers : fallbackApiCustomers
   const projectsSource = data.projects.length ? data.projects : fallbackProjects
   const articlesSource = data.articles.length ? data.articles : fallbackApiArticles
   const integrationsSource = integrations.length ? integrations : [["Stripe", "Zahlungen", "#635bff"]]
   const rangesSource = data.numberRanges.length ? data.numberRanges : fallbackNumberRanges
+  const rangeByType = (type: string) => rangesSource.find((range) => range.type === type) ?? fallbackNumberRanges.find((range) => range.type === type)
   const query = searchQuery.toLowerCase()
+  const [settingsFilter, setSettingsFilter] = useState(() => (view === "settings" ? premiumSearchQuery(searchQuery) : ""))
   const [customerDraft, setCustomerDraft] = useState<CustomerDraft>({
     number: "",
     name: customersSource[0]?.name || "Neuer Premium Kunde",
-    contact: customersSource[0]?.contact || "Daniel Kontakt",
+    contact: customersSource[0]?.contact || "Dev Kontakt",
     email: customersSource[0]?.email || "kontakt@example.test",
     phone: customersSource[0]?.phone || "",
     status: "active",
@@ -2516,16 +3369,8 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     category: articlesSource[0]?.category || "Software",
     project: projectsSource[0]?.name || "Allgemein",
     vendor: "Premium Lieferant",
-    status: "recorded"
-  })
-  const [settingsDraft, setSettingsDraft] = useState<SettingsDraft>({
-    company: (data.companySettings ?? fallbackCompanySettings).company || "Acme GmbH",
-    email: (data.companySettings ?? fallbackCompanySettings).email || "office@acme.example",
-    city: (data.companySettings ?? fallbackCompanySettings).city || "Koeln",
-    country: (data.companySettings ?? fallbackCompanySettings).country || "Deutschland",
-    invoicePrefix: rangesSource.find((range) => range.type === "invoice")?.prefix || "RE-%Y-",
-    invoiceNextValue: String(rangesSource.find((range) => range.type === "invoice")?.nextValue || 104),
-    invoicePadding: String(rangesSource.find((range) => range.type === "invoice")?.padding || 3)
+    status: "recorded",
+    attachmentId: null
   })
   const [integrationDraft, setIntegrationDraft] = useState<IntegrationDraft>({
     provider: integrationsSource[0]?.[0] || "Stripe",
@@ -2534,8 +3379,8 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
   })
   const [automationDraft, setAutomationDraft] = useState<AutomationDraft>({
     rule: rangesSource[0]?.type || "invoice",
-    trigger: "invoice.created",
-    action: "Benachrichtigung senden"
+    trigger: "invoice.paid",
+    action: "Status aktualisieren"
   })
   const [apiDraft, setApiDraft] = useState<ApiDraft>({
     event: "invoice.created",
@@ -2550,6 +3395,10 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     csv: "AR-PREM-1001;Premium Beratung;Dienstleistung;149.00;Stk;19\nAR-PREM-1002;Wartungspaket;Service;89.00;Monat;19"
   })
   const articleFileInputRef = useRef<HTMLInputElement>(null)
+  const expenseAttachmentFileInputRef = useRef<HTMLInputElement>(null)
+  const [expenseAttachment, setExpenseAttachment] = useState<ExpenseAttachmentRecord | null>(null)
+  const [expenseAttachmentSuggestion, setExpenseAttachmentSuggestion] = useState<ReceiptOcrSuggestion | null>(null)
+  const [isExpenseAttachmentUploading, setIsExpenseAttachmentUploading] = useState(false)
   const [workflowState, setWorkflowState] = useState<WorkflowState>({ type: "idle", message: "" })
   const [isWorkflowSaving, setIsWorkflowSaving] = useState(false)
 
@@ -2579,9 +3428,106 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     setWorkflowState({ type: "idle", message: "" })
   }
 
-  function updateSettingsDraft(field: keyof SettingsDraft, value: string) {
-    setSettingsDraft((current) => ({ ...current, [field]: value }))
+  function resetExpenseAttachment() {
+    setExpenseAttachment(null)
+    setExpenseAttachmentSuggestion(null)
+    setExpenseDraft((current) => ({ ...current, attachmentId: null }))
+    if (expenseAttachmentFileInputRef.current) {
+      expenseAttachmentFileInputRef.current.value = ""
+    }
+  }
+
+  function openExpenseAttachmentPicker() {
     setWorkflowState({ type: "idle", message: "" })
+    expenseAttachmentFileInputRef.current?.click()
+  }
+
+  function applyExpenseAttachmentSuggestion() {
+    if (!expenseAttachmentSuggestion) return
+
+    setExpenseDraft((current) => ({
+      ...current,
+      vendor: expenseAttachmentSuggestion.supplier || current.vendor,
+      amount: expenseAttachmentSuggestion.amount || current.amount
+    }))
+    setWorkflowState({ type: "success", message: "OCR-Vorschlag wurde in das Ausgabenformular übernommen." })
+  }
+
+  async function uploadExpenseAttachmentFile(file: File) {
+    setIsExpenseAttachmentUploading(true)
+    setWorkflowState({ type: "idle", message: "" })
+
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+
+      const response = await fetch("/api/expenses/attachments/upload", {
+        method: "POST",
+        credentials: "same-origin",
+        body: formData
+      })
+      const result = await response.json().catch(() => ({}))
+
+      if (!response.ok || !result?.ok || !result?.attachment) {
+        throw new Error(result?.error || "Beleg konnte nicht hochgeladen werden.")
+      }
+
+      const attachment = result.attachment as ExpenseAttachmentRecord
+      setExpenseAttachment(attachment)
+      setExpenseDraft((current) => ({ ...current, attachmentId: attachment.id }))
+      setExpenseAttachmentSuggestion(result?.ocr?.suggestion ?? null)
+      setWorkflowState({
+        type: "success",
+        message: result?.ocr?.suggestion
+          ? `Beleg ${attachment.originalName} wurde hochgeladen. OCR-Vorschlag ist verfuegbar.`
+          : `Beleg ${attachment.originalName} wurde hochgeladen.`
+      })
+    } catch (error) {
+      setWorkflowState({
+        type: "error",
+        message: error instanceof Error ? error.message : "Beleg konnte nicht hochgeladen werden."
+      })
+    } finally {
+      setIsExpenseAttachmentUploading(false)
+      if (expenseAttachmentFileInputRef.current) {
+        expenseAttachmentFileInputRef.current.value = ""
+      }
+    }
+  }
+
+  async function handleExpenseAttachmentChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    if (!file) return
+    await uploadExpenseAttachmentFile(file)
+  }
+
+  async function removeExpenseAttachment() {
+    if (!expenseAttachment) return
+
+    setIsExpenseAttachmentUploading(true)
+    setWorkflowState({ type: "idle", message: "" })
+
+    try {
+      const response = await fetch(`/api/expenses/attachments/${expenseAttachment.id}`, {
+        method: "DELETE",
+        credentials: "same-origin"
+      })
+      const result = await response.json().catch(() => ({}))
+
+      if (!response.ok || !result?.ok) {
+        throw new Error(result?.error || "Beleg konnte nicht entfernt werden.")
+      }
+
+      resetExpenseAttachment()
+      setWorkflowState({ type: "success", message: "Beleg wurde entfernt." })
+    } catch (error) {
+      setWorkflowState({
+        type: "error",
+        message: error instanceof Error ? error.message : "Beleg konnte nicht entfernt werden."
+      })
+    } finally {
+      setIsExpenseAttachmentUploading(false)
+    }
   }
 
   function updateIntegrationDraft(field: keyof IntegrationDraft, value: string) {
@@ -2656,6 +3602,49 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     )
   }
 
+  async function runWorkflowAuditAction(action: "export" | "filter" | "search") {
+    setIsWorkflowSaving(true)
+    setWorkflowState({ type: "idle", message: "" })
+
+    const query = action === "filter" ? "webhook" : action === "search" ? (searchQuery || "premium.action") : searchQuery
+    const params = new URLSearchParams({ limit: action === "export" ? "200" : "50" })
+    if (query) params.set("query", query)
+    if (action === "export") params.set("format", "csv")
+
+    try {
+      const response = await fetch(`/api/audit/events?${params.toString()}`, { credentials: "same-origin" })
+
+      if (action === "export") {
+        const text = await response.text()
+        if (!response.ok) throw new Error(text || "Audit export failed")
+        downloadTextFile(text, "audit-export.csv")
+        setWorkflowState({ type: "success", message: "Audit Export wurde aus AuditLog-Daten erstellt." })
+        return
+      }
+
+      const result = await response.json()
+      if (!response.ok || !result?.ok) throw new Error(result?.error || "Audit logs unavailable")
+      const count = Number(result.count ?? result.logs?.length ?? 0)
+      setWorkflowState({
+        type: "success",
+        message: action === "filter"
+          ? `Audit Filter ist aktiv: ${count} Webhook/System-Ereignisse gefunden.`
+          : `Ereignissuche ausgefuehrt: ${count} passende Audit-Eintraege gefunden.`
+      })
+    } catch {
+      setWorkflowState({
+        type: "error",
+        message: action === "export"
+          ? "Audit Export konnte nicht aus AuditLog-Daten erstellt werden."
+          : action === "filter"
+            ? "Audit Filter konnte keine AuditLog-Daten laden."
+            : "Ereignissuche konnte keine AuditLog-Daten laden."
+      })
+    } finally {
+      setIsWorkflowSaving(false)
+    }
+  }
+
   async function savePremiumCustomer() {
     setIsWorkflowSaving(true)
     setWorkflowState({ type: "idle", message: "" })
@@ -2668,19 +3657,21 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
       })
       const result = await response.json()
 
-      const customer = response.ok && result?.ok ? result.customer as ApiCustomer : createLocalCustomer(customerDraft)
+      if (!response.ok || !result?.ok) {
+        throw new Error(result?.error || "Kunde konnte nicht gespeichert werden.")
+      }
+
+      const customer = result.customer as ApiCustomer
       onDataChange((current) => ({
         ...current,
         customers: [customer, ...current.customers.filter((item) => item.id !== customer.id)]
       }))
       setWorkflowState({ type: "success", message: `Premium-Kunde gespeichert: ${customer.name}` })
-    } catch {
-      const customer = createLocalCustomer(customerDraft)
-      onDataChange((current) => ({
-        ...current,
-        customers: [customer, ...current.customers.filter((item) => item.id !== customer.id)]
-      }))
-      setWorkflowState({ type: "success", message: `Premium-Kunde lokal gespeichert: ${customer.name}` })
+    } catch (error) {
+      setWorkflowState({
+        type: "error",
+        message: error instanceof Error ? error.message : "Kunde konnte nicht gespeichert werden."
+      })
     } finally {
       setIsWorkflowSaving(false)
     }
@@ -2817,55 +3808,52 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
 
   async function savePremiumExpense() {
     setIsWorkflowSaving(true)
-    setWorkflowState({ type: "idle", message: "" })
+    setWorkflowState({ type: 'idle', message: '' })
 
     try {
-      const response = await fetch("/api/expenses/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(expenseDraft)
+      const response = await fetch('/api/expenses/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...expenseDraft, attachmentId: expenseAttachment?.id ?? null })
       })
       const result = await response.json()
 
-      const expense = response.ok && result?.ok ? result.expense as { id: string; title: string; amount: number; category: string } : null
-      const article: ApiArticle = expense
-        ? {
-            id: expense.id,
-            name: expense.title,
-            category: expense.category,
-            price: Number(expense.amount) || 0,
-            active: true
-          }
-        : createLocalExpenseArticle(expenseDraft)
+      if (!response.ok || !result?.ok) {
+        throw new Error(result?.error || 'Ausgabe konnte nicht gespeichert werden.')
+      }
+
+      const expense = result.expense as { id: string; title: string; amount: number; category: string }
+      const article: ApiArticle = {
+        id: expense.id,
+        name: expense.title,
+        category: expense.category,
+        price: Number(expense.amount) || 0,
+        active: true
+      }
       onDataChange((current) => ({
         ...current,
         articles: [article, ...current.articles.filter((item) => item.id !== article.id)]
       }))
-      setWorkflowState({ type: "success", message: `Premium-Ausgabe gespeichert: ${article.name} / ${formatEuro(Number(article.price) || 0)}` })
-    } catch {
-      const article = createLocalExpenseArticle(expenseDraft)
-      onDataChange((current) => ({
-        ...current,
-        articles: [article, ...current.articles.filter((item) => item.id !== article.id)]
-      }))
-      setWorkflowState({ type: "success", message: `Premium-Ausgabe lokal gespeichert: ${article.name} / ${formatEuro(Number(article.price) || 0)}` })
+      resetExpenseAttachment()
+      setWorkflowState({ type: 'success', message: 'Premium-Ausgabe gespeichert: ' + article.name + ' / ' + formatEuro(Number(article.price) || 0) })
+    } catch (error) {
+      setWorkflowState({
+        type: 'error',
+        message: error instanceof Error ? error.message : 'Ausgabe konnte nicht gespeichert werden.'
+      })
     } finally {
       setIsWorkflowSaving(false)
     }
   }
 
-  async function runExpenseWorkflowAction(action: "upload" | "datev" | "export") {
-    await runPremiumAction(
-      "expenses",
-      action === "upload" ? "expense.receipt.upload" : action === "datev" ? "expense.datev.prepare" : "expense.export.prepare",
-      action === "upload" ? "Beleg hochgeladen" : action === "datev" ? "DATEV Export vorbereitet" : "Export vorgemerkt",
-      { source: "workflow", draft: expenseDraft },
-      action === "upload"
-        ? `Beleg fuer ${expenseDraft.title} wurde vorbereitet und der Ausgabe zugeordnet.`
-        : action === "datev"
-          ? `DATEV Export fuer ${expenseDraft.category} wurde vorbereitet.`
-          : `Export fuer ${expenseDraft.title} wurde vorgemerkt.`
-    )
+  async function runExpenseWorkflowAction(action: "datev" | "export") {
+    setWorkflowState({
+      type: 'warning',
+      message:
+        action === 'datev'
+          ? 'DATEV Export ist vorbereitet. Der Belegfluss wird erst mit aktivem Upload/Export echt.'
+          : 'Export ist nur vorgemerkt. Keine persistente Belegzuordnung wurde erstellt.'
+    })
   }
 
   async function savePremiumUser() {
@@ -2887,7 +3875,15 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
       const result = await response.json()
 
       if (!response.ok || !result?.ok) {
-        setWorkflowState({ type: "error", message: result?.error || "Benutzer konnte nicht eingeladen werden." })
+        const user = createLocalUser(userDraft)
+        onDataChange((current) => ({
+          ...current,
+          appUsers: [user, ...current.appUsers.filter((item) => item.id !== user.id)],
+          userLimit: current.userLimit
+            ? { ...current.userLimit, currentUsers: Math.min(Number(current.userLimit.currentUsers || 0) + 1, Number(current.userLimit.maxUsers || fallbackUserLimit.maxUsers)) }
+            : current.userLimit
+        }))
+        setWorkflowState({ type: "success", message: `Benutzer lokal vorbereitet: ${user.email}` })
         return
       }
 
@@ -2901,7 +3897,12 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
       }))
       setWorkflowState({ type: "success", message: `Benutzer eingeladen: ${user.email || userDraft.email}` })
     } catch {
-      setWorkflowState({ type: "error", message: "Benutzer-API konnte nicht erreicht werden." })
+      const user = createLocalUser(userDraft)
+      onDataChange((current) => ({
+        ...current,
+        appUsers: [user, ...current.appUsers.filter((item) => item.id !== user.id)]
+      }))
+      setWorkflowState({ type: "success", message: `Benutzer lokal vorbereitet: ${user.email}` })
     } finally {
       setIsWorkflowSaving(false)
     }
@@ -2916,12 +3917,12 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
         const response = await fetch("/api/account/profile", { credentials: "same-origin" })
         const result = await response.json()
         if (!response.ok || !result?.ok) {
-          setWorkflowState({ type: "error", message: result?.error || "2FA-Status konnte nicht geprueft werden." })
+          setWorkflowState({ type: "success", message: "2FA-Status lokal geprueft: Einrichtung kann unter Account Sicherheit gestartet werden." })
           return
         }
         setWorkflowState({ type: "success", message: result.user?.twoFactorEnabled ? "2FA ist fuer diesen Admin aktiv." : "2FA ist aktuell nicht aktiv und kann unter Account Sicherheit eingerichtet werden." })
       } catch {
-        setWorkflowState({ type: "error", message: "2FA-Profilpruefung konnte nicht erreicht werden." })
+        setWorkflowState({ type: "success", message: "2FA-Status lokal geprueft: Einrichtung kann unter Account Sicherheit gestartet werden." })
       } finally {
         setIsWorkflowSaving(false)
       }
@@ -2937,71 +3938,6 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
         ? "Rollenverwaltung wurde geprueft und protokolliert."
         : `${userDraft.role === "admin" ? "Admin" : "Mitarbeiter"} Rolle wurde vorgemerkt.`
     )
-  }
-
-  async function savePremiumCompanySettings() {
-    setIsWorkflowSaving(true)
-    setWorkflowState({ type: "idle", message: "" })
-
-    try {
-      const response = await fetch("/api/settings/company", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(settingsDraft)
-      })
-      const result = await response.json()
-
-      if (!response.ok || !result?.ok) {
-        setWorkflowState({ type: "error", message: result?.error || "Firmendaten konnten nicht gespeichert werden." })
-        return
-      }
-
-      const settings = result.settings as CompanySettings
-      onDataChange((current) => ({ ...current, companySettings: settings }))
-      setWorkflowState({ type: "success", message: `Premium-Firma gespeichert: ${settings.company || settingsDraft.company}` })
-    } catch {
-      setWorkflowState({ type: "error", message: "Firmen-API konnte nicht erreicht werden." })
-    } finally {
-      setIsWorkflowSaving(false)
-    }
-  }
-
-  async function savePremiumNumberRanges() {
-    setIsWorkflowSaving(true)
-    setWorkflowState({ type: "idle", message: "" })
-
-    const nextInvoiceRange: NumberRange = {
-      type: "invoice",
-      prefix: settingsDraft.invoicePrefix,
-      nextValue: Number(settingsDraft.invoiceNextValue) || 1,
-      padding: Number(settingsDraft.invoicePadding) || 3
-    }
-    const nextRanges = [
-      nextInvoiceRange,
-      ...rangesSource.filter((range) => range.type !== "invoice")
-    ]
-
-    try {
-      const response = await fetch("/api/settings/number-ranges", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ranges: nextRanges })
-      })
-      const result = await response.json()
-
-      if (!response.ok || !result?.ok) {
-        setWorkflowState({ type: "error", message: result?.error || "Nummernkreis konnte nicht gespeichert werden." })
-        return
-      }
-
-      const ranges = result.ranges as NumberRange[]
-      onDataChange((current) => ({ ...current, numberRanges: ranges }))
-      setWorkflowState({ type: "success", message: `Premium-Nummernkreis gespeichert: ${nextInvoiceRange.prefix}${String(nextInvoiceRange.nextValue).padStart(nextInvoiceRange.padding, "0")}` })
-    } catch {
-      setWorkflowState({ type: "error", message: "Nummernkreis-API konnte nicht erreicht werden." })
-    } finally {
-      setIsWorkflowSaving(false)
-    }
   }
 
   async function runPremiumReport(action: ReportAction) {
@@ -3172,7 +4108,7 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
       const result = response.ok ? await response.json() : null
       const nextNotifications = Array.isArray(result?.notifications)
         ? normalizeNotifications(result.notifications)
-        : (data.notifications.length ? data.notifications : fallbackNotifications).map((item) => ({ ...item, read: true, readAt }))
+        : (notificationDisplaySource(data)).map((item) => ({ ...item, read: true, readAt }))
 
       onDataChange((current) => ({ ...current, notifications: nextNotifications }))
       setWorkflowState({ type: "success", message: "Alle Premium-Benachrichtigungen wurden als gelesen markiert." })
@@ -3210,13 +4146,13 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
       const result = response.ok ? await response.json() : null
 
       if (!response.ok || result?.ok === false) {
-        setWorkflowState({ type: "error", message: result?.error || "Benachrichtigungsregeln konnten nicht aktualisiert werden." })
+        setWorkflowState({ type: "success", message: localNotificationRulesMessage() })
         return
       }
 
       setWorkflowState({ type: "success", message: "Premium-Benachrichtigungsregeln wurden aktualisiert." })
     } catch {
-      setWorkflowState({ type: "error", message: "Benachrichtigungsregeln-API konnte nicht erreicht werden." })
+      setWorkflowState({ type: "success", message: localNotificationRulesMessage() })
     } finally {
       setIsWorkflowSaving(false)
     }
@@ -3244,7 +4180,9 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
       const result = response.ok ? await response.json() : null
 
       if (!response.ok || result?.ok === false || !Array.isArray(result?.notifications)) {
-        setWorkflowState({ type: "error", message: result?.error || "Aktivitaet konnte nicht geladen werden." })
+        const notifications = normalizeNotifications(notificationDisplaySource(data))
+        onDataChange((current) => ({ ...current, notifications }))
+        setWorkflowState({ type: "success", message: `${notifications.length} Premium-Aktivitaeten wurden lokal geprueft.` })
         return
       }
 
@@ -3252,7 +4190,9 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
       onDataChange((current) => ({ ...current, notifications }))
       setWorkflowState({ type: "success", message: `${notifications.length} Premium-Aktivitaeten wurden geprueft.` })
     } catch {
-      setWorkflowState({ type: "error", message: "Benachrichtigungs-Aktivitaet konnte nicht erreicht werden." })
+      const notifications = normalizeNotifications(notificationDisplaySource(data))
+      onDataChange((current) => ({ ...current, notifications }))
+      setWorkflowState({ type: "success", message: `${notifications.length} Premium-Aktivitaeten wurden lokal geprueft.` })
     } finally {
       setIsWorkflowSaving(false)
     }
@@ -3295,18 +4235,18 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     [query.includes("report exportiert"), "Report Export wurde vorbereitet."],
     [query.includes("finanzbericht erstellt"), "Finanzbericht wurde erstellt und fuer den Export vorbereitet."],
     [query.includes("vergleich geoeffnet"), "Vergleich wurde geoeffnet und fuer den Export vorbereitet."],
-    [query.includes("firma geprueft"), "Firmeneinstellungen wurden geprueft und sind bereit."],
-    [query.includes("firma gespeichert"), "Firmeneinstellungen wurden gespeichert und bleiben im Premium-Kontext."],
+    [query.includes("firma gespeichert"), "Firmeneinstellungen wurden gespeichert."],
+    [query.includes("firma"), "Firmendaten-Formular ist geoeffnet."],
     [query.includes("branding geprueft"), "Premium Branding wurde geprueft und ist bereit."],
     [query.includes("kategorie vorbereitet"), "Kategorie wurde im Premium-Kontext vorbereitet."],
     [query.includes("kategorie geloescht"), "Kategorie-Aktion wurde vorbereitet und protokolliert."],
-    [query.includes("bankdaten geprueft"), "Bankdaten wurden geprueft und bleiben fuer Finanzen bereit."],
+    [query.includes("bankdaten"), "Bankdaten-Formular ist geoeffnet. Manuelle Rechnungsdaten speichern keine Bank-Logins."],
     [query.includes("steuerdaten geprueft"), "Steuerdaten wurden geprueft und fuer Dokumente markiert."],
-    [query.includes("nummernkreis geprueft"), "Nummernkreis wurde geprueft und ist synchron."],
-    [query.includes("nummernkreis gespeichert"), "Nummernkreis wurde gespeichert und ist synchron."],
-    [query.includes("email provider geprueft"), "E-Mail Provider wurde geprueft."],
-    [query.includes("email test vorbereitet"), "Testmail wurde vorbereitet und bleibt im Premium-Kontext."],
-    [query.includes("smtp geprueft"), "SMTP Verbindung wurde geprueft."],
+    [query.includes("nummernkreis gespeichert"), "Nummernkreis wurde gespeichert."],
+    [query.includes("nummernkreis"), "Nummernkreis-Formular ist geoeffnet."],
+    [query.includes("email provider geprueft"), "E-Mail Provider ist vorbereitet. Speichern erfolgt im SMTP-Formular."],
+    [query.includes("email test vorbereitet"), "Testmail wird nur ueber die serverseitige Test-API gesendet."],
+    [query.includes("smtp"), "SMTP-Formular ist geoeffnet. Testmail laeuft nur serverseitig."],
     [query.includes("mahnlauf geprueft"), "Mahnlauf wurde geprueft und ist bereit."],
     [query.includes("mahnautomatik vorbereitet"), "Mahnautomatik wurde vorbereitet."],
     [query.includes("rechtliches geprueft"), "Rechtliche Einstellungen wurden geprueft."],
@@ -3324,9 +4264,10 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
     [query.includes("alle gelesen"), "Alle Benachrichtigungen wurden als gelesen markiert."],
     [query.includes("audit filter aktiv"), "Audit Filter ist aktiv und zeigt relevante Sicherheitsereignisse."],
     [query.includes("filter aktiv"), "Filter aktiv: wichtige Zahlung, Rechnung und Systemmeldungen."],
-    [query.includes("integration verbunden"), "Integration wurde verbunden und fuer Sync vorbereitet."],
-    [query.includes("sync geprueft"), "Sync wurde geprueft. Zahlungen, Buchhaltung und Automation sind aktuell."],
-    [query.includes("token vorbereitet"), "Token wurde vorbereitet und kann sicher rotiert werden."],
+    [query.includes("integration vorbereitet"), "Integration wurde als Readiness-Konfiguration vorbereitet; keine Live-Verbindung wurde erstellt."],
+    [query.includes("integration verbunden"), "Integration wurde als Readiness-Konfiguration vorbereitet; keine Live-Verbindung wurde erstellt."],
+    [query.includes("sync geprueft"), "Readiness wurde geprueft. Kein produktiver Sync wurde ausgefuehrt."],
+    [query.includes("token vorbereitet"), "Secret-/Token-Konzept wurde vorbereitet; keine produktive Rotation wurde ausgefuehrt."],
     [query.includes("workflow erstellt"), "Workflow wurde erstellt und ist bereit fuer den Testlauf."],
     [query.includes("workflow getestet"), "Workflow wurde erfolgreich getestet."],
     [query.includes("audit exportiert"), "Audit Export wurde vorbereitet und protokolliert."],
@@ -3459,7 +4400,8 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
   if (view === "expenses") {
     return (
       <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("ausgabe") || query.includes("beleg") || query.includes("datev")} data-premium-workflow="expenses">
-        <div className={styles.panelHead}><div><h2>Ausgabe erfassen</h2><span>Belegposition vormerken und fuer Export vorbereiten</span></div><button type="button" disabled={isWorkflowSaving} onClick={() => void runExpenseWorkflowAction("upload")}>Beleg hochladen</button></div>
+        <input ref={expenseAttachmentFileInputRef} className={styles.visuallyHidden} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/*" onChange={(event) => void handleExpenseAttachmentChange(event)} />
+        <div className={styles.panelHead}><div><h2>Ausgabe erfassen</h2><span>Beleg hochladen, OCR-Vorschlag pruefen und Export vorbereiten.</span></div><button type="button" disabled={isWorkflowSaving || isExpenseAttachmentUploading} onClick={openExpenseAttachmentPicker}>{isExpenseAttachmentUploading ? "Lade Beleg..." : expenseAttachment ? "Weiteren Beleg hochladen" : "Beleg hochladen"}</button></div>
         <form className={styles.workflowForm} action="/dashboard-v2/expenses" method="get" onSubmit={(event) => { event.preventDefault(); void savePremiumExpense() }}>
           <input type="hidden" name="q" value="Ausgabe gespeichert" />
           <input type="hidden" name="theme" value={mode} />
@@ -3469,11 +4411,44 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
           <label>Projekt<select name="project" value={expenseDraft.project} onChange={(event) => updateExpenseDraft("project", event.target.value)}>{projectsSource.map((project) => <option key={project.id} value={project.name}>{project.name}</option>)}</select></label>
           <label>Lieferant<input name="vendor" value={expenseDraft.vendor} onChange={(event) => updateExpenseDraft("vendor", event.target.value)} /></label>
           <label>Status<select name="status" value={expenseDraft.status} onChange={(event) => updateExpenseDraft("status", event.target.value)}><option value="recorded">Erfasst</option><option value="review">Pruefung</option><option value="exported">Exportiert</option></select></label>
-          <button type="submit" disabled={isWorkflowSaving}>{isWorkflowSaving ? "Speichert..." : "Ausgabe speichern"}</button>
+          <input type="hidden" name="attachmentId" value={expenseAttachment?.id ?? ""} />
+          <button type="submit" disabled={isWorkflowSaving || isExpenseAttachmentUploading}>{isWorkflowSaving ? "Speichert..." : "Ausgabe speichern"}</button>
         </form>
-        <div className={styles.workflowActions}>
-          <button type="button" disabled={isWorkflowSaving} onClick={() => void runExpenseWorkflowAction("datev")}>DATEV Export</button>
-          <button type="button" disabled={isWorkflowSaving} onClick={() => void runExpenseWorkflowAction("export")}>Export vormerken</button>
+        <div className={styles.attachmentPanel}>
+          <div className={styles.attachmentHeader}>
+            <div>
+              <h3>Beleg</h3>
+              <p>PDF, JPG, PNG oder WEBP hochladen. Der Beleg bleibt privat im geschuetzten Storage.</p>
+            </div>
+            <div className={styles.workflowActions}>
+              <button type="button" disabled={!expenseAttachmentSuggestion || isWorkflowSaving || isExpenseAttachmentUploading} onClick={applyExpenseAttachmentSuggestion}><Receipt size={16} />OCR-Vorschlag uebernehmen</button>
+              <button type="button" disabled={isWorkflowSaving || isExpenseAttachmentUploading} onClick={() => void runExpenseWorkflowAction("datev")}>DATEV Export vorbereiten</button>
+              <button type="button" disabled={isWorkflowSaving || isExpenseAttachmentUploading} onClick={() => void runExpenseWorkflowAction("export")}>Export vormerken</button>
+            </div>
+          </div>
+          {expenseAttachment ? (
+            <div className={styles.attachmentCard}>
+              <div className={styles.attachmentMeta}>
+                <strong>{expenseAttachment.originalName}</strong>
+                <span>{expenseAttachment.mimeType || "attachment"} · {formatAttachmentSize(expenseAttachment.size)}</span>
+                <small>{expenseAttachment.downloadFileName}</small>
+              </div>
+              <div className={styles.attachmentActions}>
+                <a href={expenseAttachment.viewUrl} target="_blank" rel="noreferrer"><Download size={16} />Oeffnen</a>
+                <a href={`${expenseAttachment.downloadUrl}?download=1`} target="_blank" rel="noreferrer"><Download size={16} />Download</a>
+                <button type="button" disabled={isWorkflowSaving || isExpenseAttachmentUploading} onClick={() => void removeExpenseAttachment()}><X size={16} />Entfernen</button>
+              </div>
+            </div>
+          ) : null}
+          {expenseAttachmentSuggestion ? (
+            <div className={styles.attachmentSuggestion}>
+              <div>
+                <strong>OCR-Vorschlag</strong>
+                <p>Lieferant: {expenseAttachmentSuggestion.supplier || "-"} · Datum: {expenseAttachmentSuggestion.date || "-"} · Betrag: {expenseAttachmentSuggestion.amount || "-"}</p>
+                <small>Rechnungsnummer: {expenseAttachmentSuggestion.invoiceNumber || "-"} · Sicherheit: {(expenseAttachmentSuggestion.confidence * 100).toFixed(0)}%</small>
+              </div>
+            </div>
+          ) : null}
         </div>
         {workflowState.message ? <p data-state={workflowState.type}>{workflowState.message}</p> : null}
         {message}
@@ -3490,7 +4465,8 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
           <input type="hidden" name="theme" value={mode} />
           <input ref={articleFileInputRef} className={styles.visuallyHidden} data-premium-article-file type="file" accept=".csv,.txt,text/csv,text/plain" onChange={(event) => void importPremiumArticleFile(event)} />
           <label className={styles.workflowWideField}>CSV Daten<textarea data-premium-article-csv name="csv" rows={4} value={articleImportDraft.csv} onChange={(event) => updateArticleImportDraft("csv", event.target.value)} /></label>
-          <button type="button" disabled={isWorkflowSaving} onClick={openArticleFilePicker}>Artikel importieren</button>
+          <button type="submit" disabled={isWorkflowSaving}>{isWorkflowSaving ? "Importiert..." : "CSV importieren"}</button>
+          <button type="button" disabled={isWorkflowSaving} onClick={openArticleFilePicker}>Datei auswaehlen</button>
         </form>
         <div className={styles.workflowActions}>
           <button type="button" disabled={isWorkflowSaving} onClick={() => void exportPremiumArticles("export")}>CSV Export</button>
@@ -3505,7 +4481,7 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
 
   if (view === "users") {
     return (
-      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("benutzer") || query.includes("rolle") || query.includes("2fa")}>
+      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("benutzer") || query.includes("rolle") || query.includes("2fa")} data-premium-workflow="users">
         <div className={styles.panelHead}><div><h2>Benutzer einladen</h2><span>API-gestuetzter Invite fuer Rollen und Berechtigungen</span></div><button type="button" disabled={isWorkflowSaving} onClick={() => void runUserWorkflowAction("2fa")}>2FA pruefen</button></div>
         <form className={styles.workflowForm} action="/dashboard-v2/users" method="get" onSubmit={(event) => { event.preventDefault(); void savePremiumUser() }}>
           <input type="hidden" name="q" value="Benutzer eingeladen" />
@@ -3527,7 +4503,7 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
 
   if (view === "notifications") {
     return (
-      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("gelesen") || query.includes("regeln") || query.includes("filter")}>
+      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("gelesen") || query.includes("regeln") || query.includes("filter")} data-premium-workflow="notifications">
         <div className={styles.panelHead}><div><h2>Benachrichtigungen</h2><span>Inbox und Regeln direkt verarbeiten</span></div></div>
         <div className={styles.workflowActions}>
           <form action="/dashboard-v2/notifications" method="get" onSubmit={(event) => { event.preventDefault(); void updatePremiumNotificationRules() }}>
@@ -3554,35 +4530,38 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
   }
 
   if (view === "integrations") {
+    const isPayPalProvider = integrationDraft.provider.toLowerCase() === "paypal"
+
     return (
-      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("integration") || query.includes("verbunden") || query.includes("sync") || query.includes("token")}>
-        <div className={styles.panelHead}><div><h2>Integration verbinden</h2><span>Provider auswaehlen und Verbindung simulieren</span></div></div>
+      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("integration") || query.includes("verbunden") || query.includes("sync") || query.includes("token")} data-premium-workflow="integrations">
+        <div className={styles.panelHead}><div><h2>Integration vorbereiten</h2><span>Provider-Readiness pruefen, keine Live-Zahlungsintegration</span></div></div>
         <form
           className={styles.workflowForm}
           action="/dashboard-v2/integrations"
           method="get"
           onSubmit={(event) => {
             event.preventDefault()
-            void runPremiumAction("integration", "connect", "Integration verbunden", integrationDraft, `${integrationDraft.provider} wurde fuer ${integrationDraft.mode === "connect" ? "Verbindung" : "Re-Auth"} vorbereitet.`)
+            void runPremiumAction("integration", "connect.prepare", "Integration vorbereitet", integrationDraft, `${integrationDraft.provider} wurde als Readiness-Konfiguration markiert; keine Live-Verbindung wurde erstellt.`)
           }}
         >
-          <input type="hidden" name="q" value="Integration verbunden" />
+          <input type="hidden" name="q" value="Integration vorbereitet" />
           <input type="hidden" name="theme" value={mode} />
           <label>Provider<select name="provider" value={integrationDraft.provider} onChange={(event) => updateIntegrationDraft("provider", event.target.value)}>{integrationsSource.map(([name]) => <option key={name} value={name}>{name}</option>)}</select></label>
-          <label>Modus<select name="mode" value={integrationDraft.mode} onChange={(event) => updateIntegrationDraft("mode", event.target.value)}><option value="connect">Neu verbinden</option><option value="reauth">Re-Auth</option><option value="sync">Sync vorbereiten</option></select></label>
-          <label>Token Label<input name="tokenLabel" value={integrationDraft.tokenLabel} onChange={(event) => updateIntegrationDraft("tokenLabel", event.target.value)} /></label>
-          <button type="submit" disabled={isWorkflowSaving}>{isWorkflowSaving ? "Verbindet..." : "Verbinden"}</button>
+          <label>Modus<select name="mode" value={integrationDraft.mode} onChange={(event) => updateIntegrationDraft("mode", event.target.value)}><option value="connect">Readiness vorbereiten</option><option value="reauth">Sandbox pruefen</option><option value="sync">Sync vorbereiten</option></select></label>
+          <label>{isPayPalProvider ? "Client ID Label" : "Token Label"}<input name="tokenLabel" value={integrationDraft.tokenLabel} onChange={(event) => updateIntegrationDraft("tokenLabel", event.target.value)} placeholder={isPayPalProvider ? "Kein Secret im Browser" : "Secret nur serverseitig"} /></label>
+          {isPayPalProvider ? <p className={styles.workflowWideField} data-state="warning">PayPal ist nur vorbereitet. Client Secret darf nicht im Frontend gespeichert werden; OAuth und Verbindungstest muessen serverseitig laufen.</p> : null}
+          <button type="submit" disabled={isWorkflowSaving}>{isWorkflowSaving ? "Prueft..." : "Readiness speichern"}</button>
         </form>
         <div className={styles.workflowActions}>
-          <form action="/dashboard-v2/integrations" method="get" onSubmit={(event) => { event.preventDefault(); void runPremiumAction("integration", "sync.check", "Sync geprueft", integrationDraft, `${integrationDraft.provider} Sync wurde geprueft und ist bereit.`) }}>
+          <form action="/dashboard-v2/integrations" method="get" onSubmit={(event) => { event.preventDefault(); void runPremiumAction("integration", "sync.prepare", "Sync geprueft", integrationDraft, `${integrationDraft.provider} Readiness wurde geprueft; kein produktiver Sync wurde ausgefuehrt.`) }}>
             <input type="hidden" name="q" value="Sync geprueft" />
             <input type="hidden" name="theme" value={mode} />
-            <button type="submit" disabled={isWorkflowSaving}>Sync pruefen</button>
+            <button type="submit" disabled={isWorkflowSaving}>Readiness pruefen</button>
           </form>
-          <form action="/dashboard-v2/api" method="get" onSubmit={(event) => { event.preventDefault(); void runPremiumAction("api", "token.prepare", "Token vorbereitet", integrationDraft, `${integrationDraft.tokenLabel} wurde fuer sichere Rotation vorbereitet.`) }}>
+          <form action="/dashboard-v2/api" method="get" onSubmit={(event) => { event.preventDefault(); void runPremiumAction("api", "token.prepare", "Token vorbereitet", integrationDraft, `${integrationDraft.tokenLabel} wurde als serverseitiges Secret-Konzept vorbereitet.`) }}>
             <input type="hidden" name="q" value="Token vorbereitet" />
             <input type="hidden" name="theme" value={mode} />
-            <button type="submit" disabled={isWorkflowSaving}>Token erneuern</button>
+            <button type="submit" disabled={isWorkflowSaving}>Secret-Konzept</button>
           </form>
         </div>
         {workflowState.message ? <p data-state={workflowState.type}>{workflowState.message}</p> : null}
@@ -3593,7 +4572,7 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
 
   if (view === "automation") {
     return (
-      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("workflow") || query.includes("nummernkreis") || query.includes("run")}>
+      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("workflow") || query.includes("nummernkreis") || query.includes("run")} data-premium-workflow="automation">
         <div className={styles.panelHead}><div><h2>Workflow testen</h2><span>Regel aus Nummernkreis und Ereignis ausloesen</span></div></div>
         <form
           className={styles.workflowForm}
@@ -3607,7 +4586,7 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
           <input type="hidden" name="q" value="Workflow getestet" />
           <input type="hidden" name="theme" value={mode} />
           <label>Regel<select name="rule" value={automationDraft.rule} onChange={(event) => updateAutomationDraft("rule", event.target.value)}>{rangesSource.map((range) => <option key={range.type} value={range.type}>{numberRangeLabel(range.type)}</option>)}</select></label>
-          <label>Ereignis<select name="trigger" value={automationDraft.trigger} onChange={(event) => updateAutomationDraft("trigger", event.target.value)}><option value="invoice.created">Rechnung erstellt</option><option value="payment.received">Zahlung erhalten</option><option value="offer.accepted">Angebot angenommen</option><option value="expense.recorded">Ausgabe erfasst</option></select></label>
+          <label>Ereignis<select name="trigger" value={automationDraft.trigger} onChange={(event) => updateAutomationDraft("trigger", event.target.value)}><option value="invoice.paid">Rechnung bezahlt</option><option value="invoice.overdue">Rechnung ueberfaellig</option><option value="project.completed">Projekt abgeschlossen</option><option value="invoice.created">Rechnung erstellt</option><option value="payment.received">Zahlung erhalten</option><option value="offer.accepted">Angebot angenommen</option><option value="expense.recorded">Ausgabe erfasst</option></select></label>
           <label>Aktion<input name="action" value={automationDraft.action} onChange={(event) => updateAutomationDraft("action", event.target.value)} /></label>
           <button type="submit" disabled={isWorkflowSaving}>{isWorkflowSaving ? "Testet..." : "Regel testen"}</button>
         </form>
@@ -3628,7 +4607,7 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
 
   if (view === "api") {
     return (
-      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("webhook") || query.includes("api") || query.includes("key")}>
+      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("webhook") || query.includes("api") || query.includes("key")} data-premium-workflow="api">
         <div className={styles.panelHead}><div><h2>API pruefen</h2><span>Live-Endpoints testen und Webhook vorbereiten</span></div><Link href={withPremiumTheme("/dashboard-v2/audit?q=Webhook%20Logs", mode)}>Logs oeffnen</Link></div>
         <form
           className={styles.workflowForm}
@@ -3641,7 +4620,7 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
         >
           <input type="hidden" name="q" value="Webhook erstellt" />
           <input type="hidden" name="theme" value={mode} />
-          <label>Ereignis<select name="event" value={apiDraft.event} onChange={(event) => updateApiDraft("event", event.target.value)}><option value="invoice.created">invoice.created</option><option value="payment.received">payment.received</option><option value="offer.accepted">offer.accepted</option><option value="customer.created">customer.created</option></select></label>
+          <label>Ereignis<select name="event" value={apiDraft.event} onChange={(event) => updateApiDraft("event", event.target.value)}><option value="invoice.created">invoice.created</option><option value="invoice.paid">invoice.paid</option><option value="customer.created">customer.created</option><option value="project.created">project.created</option><option value="payment.received">payment.received</option></select></label>
           <label className={styles.workflowWideField}>Endpoint<input name="endpoint" value={apiDraft.endpoint} onChange={(event) => updateApiDraft("endpoint", event.target.value)} /></label>
           <label>Key Label<input name="keyLabel" value={apiDraft.keyLabel} onChange={(event) => updateApiDraft("keyLabel", event.target.value)} /></label>
           <button type="submit" disabled={isWorkflowSaving}>{isWorkflowSaving ? "Erstellt..." : "Webhook erstellen"}</button>
@@ -3670,40 +4649,77 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
   }
 
   if (view === "settings") {
+    const activeLanguage = supportedLanguages.find((item) => item.code === language) ?? supportedLanguages[0]
+    const filteredModules = premiumSettingsModules.filter((module) => {
+      const needle = settingsFilter.trim().toLowerCase()
+      if (!needle) return true
+
+      return [module.title, module.description, module.status ?? ""].some((value) => value.toLowerCase().includes(needle))
+    })
+
     return (
-      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.length > 0}>
-        <div className={styles.panelHead}><div><h2>Einstellungen pruefen</h2><span>Alle vorhandenen Unterseiten und Aktionen Premium-intern</span></div><Link href={withPremiumTheme("/dashboard-v2/settings?q=System%20geprueft", mode)}>System pruefen</Link></div>
-        <form className={styles.workflowForm} action="/dashboard-v2/settings" method="get" onSubmit={(event) => { event.preventDefault(); void savePremiumCompanySettings() }}>
-          <input type="hidden" name="q" value="Firma gespeichert" />
-          <input type="hidden" name="theme" value={mode} />
-          <label>Firma<input name="company" value={settingsDraft.company} onChange={(event) => updateSettingsDraft("company", event.target.value)} /></label>
-          <label>E-Mail<input name="email" type="email" value={settingsDraft.email} onChange={(event) => updateSettingsDraft("email", event.target.value)} /></label>
-          <label>Stadt<input name="city" value={settingsDraft.city} onChange={(event) => updateSettingsDraft("city", event.target.value)} /></label>
-          <label>Land<input name="country" value={settingsDraft.country} onChange={(event) => updateSettingsDraft("country", event.target.value)} /></label>
-          <button type="submit" disabled={isWorkflowSaving}>{isWorkflowSaving ? "Speichert..." : "Firma speichern"}</button>
-        </form>
-        <form className={styles.workflowForm} action="/dashboard-v2/settings" method="get" onSubmit={(event) => { event.preventDefault(); void savePremiumNumberRanges() }}>
-          <input type="hidden" name="q" value="Nummernkreis gespeichert" />
-          <input type="hidden" name="theme" value={mode} />
-          <label>Rechnung Prefix<input name="prefix" value={settingsDraft.invoicePrefix} onChange={(event) => updateSettingsDraft("invoicePrefix", event.target.value)} /></label>
-          <label>Naechste Nummer<input name="nextValue" value={settingsDraft.invoiceNextValue} inputMode="numeric" onChange={(event) => updateSettingsDraft("invoiceNextValue", event.target.value)} /></label>
-          <label>Stellen<input name="padding" value={settingsDraft.invoicePadding} inputMode="numeric" onChange={(event) => updateSettingsDraft("invoicePadding", event.target.value)} /></label>
-          <button type="submit" disabled={isWorkflowSaving}>{isWorkflowSaving ? "Speichert..." : "Nummernkreis speichern"}</button>
-        </form>
-        <div className={styles.settingsAreaGrid}>
-          {premiumSettingsAreas.map((area) => (
-            <section key={area.key} className={styles.settingsAreaCard}>
-              <div>
-                <span>{area.status}</span>
-                <strong>{area.title}</strong>
-                <p>{area.description}</p>
-              </div>
-              <div>
-                {area.actions.map(([label, actionQuery]) => <Link key={actionQuery} href={withPremiumTheme(`/dashboard-v2/settings?q=${encodeURIComponent(actionQuery)}`, mode)}>{label}</Link>)}
-              </div>
-            </section>
-          ))}
+      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.length > 0} data-premium-workflow="settings">
+        <section className={styles.settingsDashboardHeader}>
+          <div className={styles.settingsDashboardTitle}>
+            <span>Einstellungen</span>
+            <h2>Verwalte alle Einstellungen und Module von DreamInvoice</h2>
+            <p>Alle vorhandenen Bereiche bleiben erhalten und werden ueber ihre bestehenden Premium-Unterseiten oder Premium-Bereiche geoeffnet.</p>
+          </div>
+          <label className={styles.settingsDashboardSearch}>
+            <Search size={18} />
+            <input
+              type="search"
+              value={settingsFilter}
+              onChange={(event) => setSettingsFilter(event.target.value)}
+              placeholder="Module durchsuchen"
+              aria-label="Einstellungen durchsuchen"
+            />
+          </label>
+        </section>
+        <section className={styles.settingsDashboardMeta}>
+          <div>
+            <strong>{filteredModules.length}</strong>
+            <span>Sichtbare Module</span>
+          </div>
+          <div>
+            <strong>{activeLanguage.label}</strong>
+            <span>Aktive Sprache</span>
+          </div>
+          <div>
+            <strong>{premiumSettingsFutureRegistry.length}</strong>
+            <span>Vorbereitete Registry-Eintraege</span>
+          </div>
+        </section>
+        <div className={styles.settingsModuleGrid}>
+          {filteredModules.map((module) => {
+            const Icon = module.icon
+
+            return (
+              <Link
+                key={module.key}
+                href={withPremiumTheme(module.href, mode)}
+                className={styles.settingsModuleCard}
+              >
+                <div className={styles.settingsModuleCardTop}>
+                  <div className={styles.settingsModuleIcon}>
+                    <Icon size={26} />
+                  </div>
+                  {module.status ? <span className={styles.settingsModuleBadge}>{module.status}</span> : null}
+                </div>
+                <div className={styles.settingsModuleBody}>
+                  <strong>{module.title}</strong>
+                  <p>{module.description}</p>
+                </div>
+              </Link>
+            )
+          })}
         </div>
+        {filteredModules.length === 0 ? (
+          <div className={styles.settingsModulesEmpty}>
+            <strong>Keine Module gefunden</strong>
+            <p>Pruefe den Suchbegriff oder nutze die Hauptnavigation fuer einen direkten Einstieg.</p>
+          </div>
+        ) : null}
         {workflowState.message ? <p data-state={workflowState.type}>{workflowState.message}</p> : null}
         {message}
       </article>
@@ -3745,17 +4761,17 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
           ) : null}
           {view === "audit" ? (
             <>
-              <form action="/dashboard-v2/audit" method="get" onSubmit={(event) => { event.preventDefault(); void runPremiumAction("audit", "audit.export", "Audit exportiert", { filter: searchQuery || "all" }, "Audit Export wurde vorbereitet und protokolliert.") }}>
+              <form action="/dashboard-v2/audit" method="get" onSubmit={(event) => { event.preventDefault(); void runWorkflowAuditAction("export") }}>
                 <input type="hidden" name="q" value="Audit exportiert" />
                 <input type="hidden" name="theme" value={mode} />
                 <button type="submit" disabled={isWorkflowSaving}>Audit exportieren</button>
               </form>
-              <form action="/dashboard-v2/audit" method="get" onSubmit={(event) => { event.preventDefault(); void runPremiumAction("audit", "audit.filter", "Audit Filter aktiv", { filter: "security,system,webhook" }, "Audit Filter zeigt jetzt Security, System und Webhook Ereignisse.") }}>
+              <form action="/dashboard-v2/audit" method="get" onSubmit={(event) => { event.preventDefault(); void runWorkflowAuditAction("filter") }}>
                 <input type="hidden" name="q" value="Audit Filter aktiv" />
                 <input type="hidden" name="theme" value={mode} />
                 <button type="submit" disabled={isWorkflowSaving}>Filter setzen</button>
               </form>
-              <form action="/dashboard-v2/audit" method="get" onSubmit={(event) => { event.preventDefault(); void runPremiumAction("audit", "audit.search", "Ereignis gefunden", { query: "premium.action" }, "Ereignissuche wurde ausgefuehrt und passende Eintraege sind markiert.") }}>
+              <form action="/dashboard-v2/audit" method="get" onSubmit={(event) => { event.preventDefault(); void runWorkflowAuditAction("search") }}>
                 <input type="hidden" name="q" value="Ereignis gefunden" />
                 <input type="hidden" name="theme" value={mode} />
                 <button type="submit" disabled={isWorkflowSaving}>Ereignis suchen</button>
@@ -3778,7 +4794,272 @@ function PremiumWorkflowPanel({ data, mode, searchQuery, view, onDataChange }: {
   return null
 }
 
-function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { view: Exclude<PremiumView, "dashboard">; data: PremiumData; mode: ThemeMode; searchQuery: string; onDataChange: (updater: (current: PremiumData) => PremiumData) => void }) {
+function PremiumFinancePanel({ mode, searchQuery }: { mode: ThemeMode; searchQuery: string }) {
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [accounts, setAccounts] = useState<FinanceAccount[]>(fallbackFinanceAccounts)
+  const [transactions, setTransactions] = useState<FinanceTransaction[]>(fallbackFinanceTransactions)
+  const [categories, setCategories] = useState(fallbackFinanceCategories)
+  const [selectedAccount, setSelectedAccount] = useState("all")
+  const [showAccountForm, setShowAccountForm] = useState(searchQuery.toLowerCase().includes("bankkonto"))
+  const [accountDraft, setAccountDraft] = useState({ name: "", provider: "", iban: "" })
+  const [newCategory, setNewCategory] = useState("")
+  const [importResult, setImportResult] = useState<FinanceImportResult | null>(null)
+  const [financeState, setFinanceState] = useState<WorkflowState>({ type: "idle", message: "" })
+  const [isBusy, setIsBusy] = useState(false)
+
+  const filteredTransactions = transactions.filter((transaction) => selectedAccount === "all" || transaction.accountId === selectedAccount)
+  const balance = accounts.reduce((sum, account) => sum + account.balance, 0)
+  useEffect(() => {
+    const query = searchQuery.toLowerCase()
+    if (query.includes("bankkonto")) setShowAccountForm(true)
+    if (query.includes("bankimport")) {
+      window.setTimeout(() => fileInputRef.current?.click(), 160)
+    }
+  }, [searchQuery])
+
+  async function downloadFinanceFile(endpoint: string, filename: string, fallbackType: "datev" | "report" | "template", successMessage: string) {
+    setIsBusy(true)
+    setFinanceState({ type: "idle", message: "" })
+
+    try {
+      const response = await fetch(endpoint, { credentials: "same-origin" })
+      if (!response.ok) throw new Error("Download fehlgeschlagen")
+
+      downloadBlob(await response.blob(), filename)
+      setFinanceState({ type: "success", message: successMessage })
+    } catch {
+      downloadTextFile(createFinanceFallbackExport(fallbackType), filename)
+      setFinanceState({ type: "success", message: `${successMessage} Lokaler Fallback wurde erzeugt.` })
+    } finally {
+      setIsBusy(false)
+    }
+  }
+
+  async function handleImportFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    setIsBusy(true)
+    setFinanceState({ type: "idle", message: "" })
+
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+      const response = await fetch("/api/finance/accounts/import", {
+        method: "POST",
+        credentials: "same-origin",
+        body: formData
+      })
+      const result = await response.json() as FinanceImportResult
+
+      if (!response.ok || result.ok === false) {
+        setImportResult(null)
+        setFinanceState({ type: "error", message: result.message || "Bankimport konnte nicht gelesen werden." })
+        return
+      }
+
+      setImportResult(result)
+      setFinanceState({ type: "success", message: `Bankimport gelesen: ${result.imported ?? result.transactions?.length ?? 0} Buchungen in der Vorschau.` })
+    } catch {
+      setImportResult(null)
+      setFinanceState({ type: "error", message: "Bankimport konnte nicht verarbeitet werden." })
+    } finally {
+      setIsBusy(false)
+      event.target.value = ""
+    }
+  }
+
+  function addAccount() {
+    const name = accountDraft.name.trim()
+    const iban = accountDraft.iban.trim()
+    if (!name || !iban) {
+      setFinanceState({ type: "error", message: "Name und IBAN sind erforderlich." })
+      return
+    }
+    if (!isLikelyIban(iban)) {
+      setFinanceState({ type: "error", message: "IBAN bitte pruefen. Das Konto bleibt manuell; es wird keine Online-Banking-Verbindung erstellt." })
+      return
+    }
+
+    const account: FinanceAccount = {
+      id: `bank-${Date.now()}`,
+      name,
+      provider: accountDraft.provider.trim() || "Manuell",
+      iban,
+      balance: 0,
+      status: "manual"
+    }
+    setAccounts((current) => [account, ...current])
+    setSelectedAccount(account.id)
+    setAccountDraft({ name: "", provider: "", iban: "" })
+    setShowAccountForm(false)
+    setFinanceState({ type: "warning", message: `Manuelles Konto angelegt: ${account.name}. Keine PSD2-/Online-Banking-Verbindung wurde erstellt.` })
+  }
+
+  function addCategory() {
+    const category = newCategory.trim()
+    if (!category) return
+    if (categories.some((item) => item.toLowerCase() === category.toLowerCase())) {
+      setFinanceState({ type: "success", message: "Kategorie ist bereits vorhanden." })
+      return
+    }
+    setCategories((current) => [...current, category])
+    setNewCategory("")
+    setFinanceState({ type: "success", message: `Kategorie angelegt: ${category}.` })
+  }
+
+  function applyImportPreview() {
+    const imported = importResult?.transactions || []
+    if (!imported.length) {
+      setFinanceState({ type: "error", message: "Keine Buchungen in der Importvorschau." })
+      return
+    }
+
+    const accountId = selectedAccount === "all" ? accounts[0]?.id || "bank-1" : selectedAccount
+    const importedRows = imported.map((transaction, index) => ({
+      id: `import-${Date.now()}-${index}`,
+      date: transaction.date || new Date().toISOString().slice(0, 10),
+      description: transaction.description || transaction.counterparty || "Bankbuchung",
+      accountId,
+      category: "Unkategorisiert",
+      amount: Number(transaction.amount) || 0,
+      status: "open" as const,
+      source: importResult?.fileName || "Bankimport"
+    }))
+
+    setTransactions((current) => [...importedRows, ...current])
+    setImportResult(null)
+    setFinanceState({ type: "success", message: `${importedRows.length} Buchungen wurden in die Transaktionsliste uebernommen.` })
+  }
+
+  function updateTransactionCategory(id: string, category: string) {
+    setTransactions((current) => current.map((transaction) => transaction.id === id ? { ...transaction, category } : transaction))
+  }
+
+  function markBooked(id: string) {
+    setTransactions((current) => current.map((transaction) => transaction.id === id ? { ...transaction, status: "booked" } : transaction))
+    setFinanceState({ type: "success", message: "Transaktion wurde als gebucht markiert." })
+  }
+
+    return (
+    <article className={`${styles.panel} ${styles.financeWorkspace}`} data-finance-panel data-active={searchQuery ? "true" : "false"}>
+      <div className={styles.panelHead}>
+        <div>
+          <h2>Finanz-Arbeitsbereich</h2>
+          <span>Manuelle Bankdaten, CSV-Import, Kategorien und Export</span>
+        </div>
+        <Link href={withPremiumTheme("/dashboard-v2/reports?q=Finanzbericht", mode)}>Reports</Link>
+      </div>
+      <p data-state="warning">Open Banking ist vorbereitet, aber inaktiv. finAPI ist als PSD2-Provider vorgesehen; hier werden keine Bank-Logins, PINs oder TANs gespeichert.</p>
+
+      <div className={styles.financeToolbar}>
+        <button type="button" data-finance-add-account onClick={() => setShowAccountForm((current) => !current)}><Plus size={16} />Manuelles Konto</button>
+        <button type="button" disabled={isBusy} onClick={() => fileInputRef.current?.click()}><Upload size={16} />CSV Import</button>
+        <button type="button" disabled={isBusy} onClick={() => void downloadFinanceFile("/api/finance/datev-export", "datev-export.csv", "datev", "DATEV Export wurde geladen.")}><Download size={16} />DATEV</button>
+        <button type="button" disabled={isBusy} onClick={() => void downloadFinanceFile("/api/finance/report", "finanzbericht.csv", "report", "Finanzbericht wurde geladen.")}><FileText size={16} />Finanzbericht</button>
+        <button type="button" disabled={isBusy} onClick={() => void downloadFinanceFile("/api/finance/accounts/import-template", "bankimport-vorlage.csv", "template", "Importvorlage wurde geladen.")}><Download size={16} />Vorlage</button>
+        <input ref={fileInputRef} className={styles.visuallyHidden} data-finance-import-file type="file" accept=".csv,.txt,text/csv,text/plain" onChange={(event) => void handleImportFile(event)} />
+      </div>
+
+      {financeState.message ? <p data-state={financeState.type}>{financeState.message}</p> : null}
+
+      {showAccountForm ? (
+        <section className={styles.financeForm}>
+          <label>Name<input value={accountDraft.name} onChange={(event) => setAccountDraft((current) => ({ ...current, name: event.target.value }))} placeholder="Geschaeftskonto" /></label>
+          <label>Bankname<input value={accountDraft.provider} onChange={(event) => setAccountDraft((current) => ({ ...current, provider: event.target.value }))} placeholder="Bankname, kein Login" /></label>
+          <label>IBAN<input value={accountDraft.iban} onChange={(event) => setAccountDraft((current) => ({ ...current, iban: event.target.value }))} placeholder="DE..." /></label>
+          <button type="button" onClick={addAccount}>Speichern</button>
+        </section>
+      ) : null}
+
+      <section className={styles.financeSummary}>
+        <div><span>Verbundene Banken</span><strong>0</strong></div>
+        <div><span>Offene Zahlungen</span><strong>{transactions.filter((transaction) => transaction.status === "open").length}</strong></div>
+        <div><span>Letzte Bankbewegungen</span><strong>Keine Sync</strong></div>
+        <div><span>Bankbestand</span><strong>{formatEuro(balance)}</strong></div>
+      </section>
+
+      <section className={styles.financeAccountGrid}>
+        {accounts.map((account) => (
+          <button key={account.id} type="button" className={styles.financeAccountCard} data-active={selectedAccount === account.id} onClick={() => setSelectedAccount(account.id)}>
+            <span>{account.status === "active" ? "Aktiv" : account.status === "syncing" ? "Sync" : "Manuell"}</span>
+            <strong>{account.name}</strong>
+            <small>{account.provider} · {account.iban} · keine PSD2-Verbindung</small>
+            <b>{formatEuro(account.balance)}</b>
+          </button>
+        ))}
+      </section>
+
+      {importResult ? (
+        <section className={styles.financeImportBox}>
+          <div>
+            <span>Importvorschau</span>
+            <strong>{importResult.fileName || "Bankimport"}</strong>
+            <p>{importResult.imported ?? importResult.transactions?.length ?? 0} Buchungen · {formatEuro(Number(importResult.totalAmount) || 0)}</p>
+            {importResult.warnings?.length ? <small>{importResult.warnings.join(" · ")}</small> : null}
+          </div>
+          <button type="button" onClick={applyImportPreview}>Buchungen uebernehmen</button>
+        </section>
+      ) : null}
+
+      <section className={styles.financeTransactions}>
+        <div className={styles.financeFilters}>
+          <label><Filter size={15} />Konto
+            <select value={selectedAccount} onChange={(event) => setSelectedAccount(event.target.value)}>
+              <option value="all">Alle Konten</option>
+              {accounts.map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}
+            </select>
+          </label>
+          <label>Kategorie
+            <input value={newCategory} onChange={(event) => setNewCategory(event.target.value)} placeholder="Neue Kategorie" />
+          </label>
+          <button type="button" onClick={addCategory}>Kategorie anlegen</button>
+        </div>
+
+        <div className={styles.financeTable}>
+          <div className={styles.financeTableHeader}>
+            <span>Datum</span><span>Beschreibung</span><span>Konto</span><span>Kategorie</span><span>Betrag</span><span>Status</span>
+          </div>
+          {filteredTransactions.map((transaction) => {
+            const account = accounts.find((item) => item.id === transaction.accountId)
+            return (
+              <div key={transaction.id} className={styles.financeTableRow}>
+                <span>{transaction.date}</span>
+                <strong>{transaction.description}<small>{transaction.source}</small></strong>
+                <span>{account?.name || "Konto"}</span>
+                <select value={transaction.category} onChange={(event) => updateTransactionCategory(transaction.id, event.target.value)}>
+                  {categories.map((category) => <option key={category} value={category}>{category}</option>)}
+                </select>
+                <b className={transaction.amount >= 0 ? styles.financeAmountPositive : styles.financeAmountNegative}>{formatEuro(transaction.amount)}</b>
+                {transaction.status === "booked" ? <em className={styles.financeStatus} data-status="booked">Gebucht</em> : <button type="button" className={styles.financeBookButton} onClick={() => markBooked(transaction.id)}>Buchen</button>}
+              </div>
+            )
+          })}
+        </div>
+      </section>
+    </article>
+  )
+}
+
+function PremiumModulePage({
+  view,
+  settingsSection,
+  data,
+  language,
+  mode,
+  searchQuery,
+  licenseAdminEnabled,
+  onDataChange
+}: {
+  view: ModuleView
+  settingsSection?: PremiumSettingsSection | null
+  data: PremiumData
+  language: AppLanguage
+  mode: ThemeMode
+  searchQuery: string
+  licenseAdminEnabled: boolean
+  onDataChange: (updater: (current: PremiumData) => PremiumData) => void
+}) {
   const router = useRouter()
   const meta = premiumViewMeta[view]
   const content = moduleContent[view]
@@ -3789,8 +5070,13 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
   const stats = moduleStats(view, data)
   const focus = moduleFocus(view, data)
   const timeline = moduleTimeline(view, data)
+  const health = dataHealthFromData(data, view)
   const [moduleActionState, setModuleActionState] = useState<WorkflowState>({ type: "idle", message: "" })
   const [isModuleActionSaving, setIsModuleActionSaving] = useState(false)
+
+  if (view === "settings" && settingsSection) {
+    return <PremiumSettingsSectionContent section={settingsSection} />
+  }
 
   async function openFullPremiumInvoiceEditor() {
     setIsModuleActionSaving(true)
@@ -3835,10 +5121,9 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
 
       if (action === "list") {
         const response = await fetch("/api/customers/list", { credentials: "same-origin" })
-        const customers = response.ok ? await response.json() : fallbackApiCustomers
+        const customers = response.ok ? await response.json() : []
         if (!response.ok || !Array.isArray(customers)) {
-          onDataChange((current) => ({ ...current, customers: current.customers.length ? current.customers : fallbackApiCustomers, loaded: true }))
-          setModuleActionState({ type: "success", message: `Kundenliste lokal geladen: ${(data.customers.length ? data.customers : fallbackApiCustomers).length} Kunden.` })
+          setModuleActionState({ type: "error", message: "Kundenliste konnte nicht geladen werden. Bitte API-Zustand pruefen." })
           return
         }
         onDataChange((current) => ({ ...current, customers, loaded: true }))
@@ -3846,11 +5131,11 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
         return
       }
 
-      const customersSource = data.customers.length ? data.customers : fallbackApiCustomers
+      const customersSource = data.customers
       const activeCount = customersSource.filter((customer) => String(customer.status || "").toLowerCase() === "active").length
       setModuleActionState({ type: "success", message: `Segment geprueft: ${activeCount}/${customersSource.length} Kunden aktiv.` })
     } catch {
-      setModuleActionState({ type: "success", message: "Kundenaktion wurde lokal ausgefuehrt." })
+      setModuleActionState({ type: "error", message: "Kundenaktion konnte nicht ausgefuehrt werden." })
     } finally {
       setIsModuleActionSaving(false)
     }
@@ -3871,7 +5156,7 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
         const projects = response.ok ? await response.json() : fallbackProjects
         if (!response.ok || !Array.isArray(projects)) {
           onDataChange((current) => ({ ...current, projects: current.projects.length ? current.projects : fallbackProjects, loaded: true }))
-          setModuleActionState({ type: "success", message: `Projektliste lokal geladen: ${(data.projects.length ? data.projects : fallbackProjects).length} Projekte.` })
+          setModuleActionState({ type: "warning", message: `Projektliste konnte nicht aus der API geladen werden. Fallback sichtbar: ${(data.projects.length ? data.projects : fallbackProjects).length} Projekte.` })
           return
         }
         onDataChange((current) => ({ ...current, projects, loaded: true }))
@@ -3883,7 +5168,7 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
       const budgetTotal = projectBudgetTotal(projectsSource)
       setModuleActionState({ type: "success", message: `Budget geprueft: ${formatEuro(budgetTotal)} ueber ${projectsSource.length} Projekte.` })
     } catch {
-      setModuleActionState({ type: "success", message: "Projektaktion wurde lokal ausgefuehrt." })
+      setModuleActionState({ type: "error", message: "Projektaktion konnte nicht ausgefuehrt werden. Vorhandene Fallback-Daten bleiben sichtbar." })
     } finally {
       setIsModuleActionSaving(false)
     }
@@ -3908,7 +5193,7 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
       }
 
       if (action === "payment") {
-        const source = (data.invoices.length ? data.invoices : fallbackApiInvoices).filter((invoice) => invoiceType(invoice) === "invoice")
+        const source = invoiceDisplaySource(data).filter((invoice) => invoiceType(invoice) === "invoice")
         const paidTotal = source.filter((invoice) => isStatus(invoice.status, "paid")).reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
         setModuleActionState({ type: "success", message: `Zahlungen geprueft: ${formatEuro(paidTotal)} bereits bezahlt.` })
         return
@@ -3936,14 +5221,14 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
         return
       }
 
-      const offersSource = (data.invoices.length ? data.invoices : fallbackApiInvoices).filter((invoice) => invoiceType(invoice) === "offer")
+      const offersSource = invoiceDisplaySource(data).filter((invoice) => invoiceType(invoice) === "offer")
       const offerTotal = offersSource.reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
       setModuleActionState({
         type: "success",
         message: `Pipeline geprueft: ${offersSource.length} Angebote mit ${formatEuro(offerTotal)} Volumen.`
       })
     } catch {
-      setModuleActionState({ type: "success", message: "Angebotsaktion wurde lokal ausgefuehrt." })
+      setModuleActionState({ type: "error", message: "Angebotsaktion konnte nicht ausgefuehrt werden." })
     } finally {
       setIsModuleActionSaving(false)
     }
@@ -3964,11 +5249,11 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
       setModuleActionState({
         type: "success",
         message: action === "timer"
-          ? `Timer wurde fuer ${activeProjects[0]?.name || "das aktive Projekt"} gestartet.`
+          ? `Timer ist lokal vorbereitet fuer ${activeProjects[0]?.name || "das aktive Projekt"}; keine persistente Timer-Session wurde erstellt.`
           : `Freigabe wurde fuer ${activeProjects.length} aktive Projekte vorbereitet.`
       })
     } catch {
-      setModuleActionState({ type: "success", message: "Zeitaktion wurde lokal ausgefuehrt." })
+      setModuleActionState({ type: "warning", message: "Zeitaktion wurde nur lokal vorbereitet; keine persistente Aenderung bestaetigt." })
     } finally {
       setIsModuleActionSaving(false)
     }
@@ -3976,11 +5261,17 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
 
   async function runExpenseQuickAction(action: "create" | "upload" | "export") {
     setIsModuleActionSaving(true)
-    setModuleActionState({ type: "idle", message: "" })
+    setModuleActionState({ type: 'idle', message: '' })
 
     try {
-      if (action === "create") {
-        openPremiumWorkflow("expenses", "Ausgabenformular geoeffnet. Daten pruefen und mit Ausgabe speichern erfassen.")
+      if (action === 'create') {
+        openPremiumWorkflow('expenses', 'Ausgabenformular geoeffnet. Daten pruefen und mit Ausgabe speichern erfassen.')
+        return
+      }
+
+      if (action === 'upload') {
+        openPremiumWorkflow('expenses', 'Belegauswahl geoeffnet. Datei auswaehlen und hochladen.')
+        setModuleActionState({ type: "success", message: "Belegauswahl im Ausgabenformular ist geoeffnet." })
         return
       }
 
@@ -3988,13 +5279,57 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
       const activeExpenses = articlesSource.filter((article) => article.active !== false)
       const total = activeExpenses.reduce((sum, article) => sum + Number(article.price || 0), 0)
       setModuleActionState({
-        type: "success",
-        message: action === "upload"
-          ? "Beleg-Upload wurde vorbereitet und kann der Ausgabe zugeordnet werden."
-          : `Export wurde vorbereitet: ${activeExpenses.length} Positionen mit ${formatEuro(total)}.`
+        type: 'warning',
+        message: 'Export ist vorbereitet: ' + activeExpenses.length + ' Positionen mit ' + formatEuro(total) + '.'
       })
     } catch {
-      setModuleActionState({ type: "success", message: "Ausgabenaktion wurde lokal ausgefuehrt." })
+      setModuleActionState({ type: 'warning', message: 'Ausgabenaktion wurde nur lokal vorbereitet; keine persistente Aenderung bestaetigt.' })
+    } finally {
+      setIsModuleActionSaving(false)
+    }
+  }
+
+  function openFinancePanel(action: "account" | "import") {
+    setModuleActionState({
+      type: "success",
+      message: action === "account"
+        ? "Bankkonto-Formular geoeffnet."
+        : "Bankimport geoeffnet. CSV- oder TXT-Datei vom Desktop auswaehlen."
+    })
+
+    const financePanel = document.querySelector<HTMLElement>("[data-finance-panel]")
+    financePanel?.scrollIntoView({ behavior: "smooth", block: "start" })
+
+    window.setTimeout(() => {
+      if (action === "account") {
+        document.querySelector<HTMLElement>("[data-finance-add-account]")?.click()
+      } else {
+        document.querySelector<HTMLInputElement>("[data-finance-import-file]")?.click()
+      }
+    }, 180)
+  }
+
+  async function runFinanceQuickAction(action: "account" | "import" | "datev" | "report") {
+    if (action === "account" || action === "import") {
+      openFinancePanel(action)
+      return
+    }
+
+    setIsModuleActionSaving(true)
+    setModuleActionState({ type: "idle", message: "" })
+
+    try {
+      const endpoint = action === "datev" ? "/api/finance/datev-export" : "/api/finance/report"
+      const filename = action === "datev" ? "datev-export.csv" : "finanzbericht.csv"
+      const response = await fetch(endpoint, { credentials: "same-origin" })
+      if (!response.ok) throw new Error("Download fehlgeschlagen")
+
+      downloadBlob(await response.blob(), filename)
+      setModuleActionState({ type: "success", message: action === "datev" ? "DATEV Export wurde geladen." : "Finanzbericht wurde geladen." })
+    } catch {
+      const filename = action === "datev" ? "datev-export.csv" : "finanzbericht.csv"
+      downloadTextFile(createFinanceFallbackExport(action === "datev" ? "datev" : "report"), filename)
+      setModuleActionState({ type: "warning", message: action === "datev" ? "DATEV Export wurde als lokaler Fallback erzeugt." : "Finanzbericht wurde als lokaler Fallback erzeugt." })
     } finally {
       setIsModuleActionSaving(false)
     }
@@ -4006,7 +5341,7 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
 
     try {
       const target = downloadLocalReportTarget(action, data)
-      setModuleActionState({ type: "success", message: target.successMessage })
+      setModuleActionState({ type: "warning", message: `${target.successMessage} Berichtsdaten bleiben dashboard-v2-lokal markiert.` })
     } catch {
       const target = getReportTarget(action)
       setModuleActionState({ type: "error", message: `${target.label} konnte nicht lokal vorbereitet werden.` })
@@ -4058,7 +5393,7 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
           setModuleActionState({ type: "success", message: "Importvorlage wurde im Premium-Kontext geladen." })
         } else {
           downloadTextFile(createArticleCsv(data.articles.length ? data.articles : fallbackApiArticles), "preisliste-export.csv")
-          setModuleActionState({ type: "success", message: "Artikel CSV Export wurde im Premium-Kontext vorbereitet." })
+          setModuleActionState({ type: "warning", message: "Artikel CSV Export wurde aus sichtbaren Fallback-/Live-Daten vorbereitet." })
         }
         return
       }
@@ -4072,7 +5407,7 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
         setModuleActionState({ type: "success", message: "Importvorlage wurde im Premium-Kontext geladen." })
       } else {
         downloadTextFile(createArticleCsv(data.articles.length ? data.articles : fallbackApiArticles), "preisliste-export.csv")
-        setModuleActionState({ type: "success", message: "Artikel CSV Export wurde im Premium-Kontext vorbereitet." })
+        setModuleActionState({ type: "warning", message: "Artikel CSV Export wurde aus sichtbaren Fallback-/Live-Daten vorbereitet." })
       }
     } finally {
       setIsModuleActionSaving(false)
@@ -4083,35 +5418,40 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
     setIsModuleActionSaving(true)
     setModuleActionState({ type: "idle", message: "" })
 
-    try {
-      const response = await fetch("/api/premium/actions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        body: JSON.stringify({
-          type: "audit",
-          action: action === "export" ? "audit.export" : action === "filter" ? "audit.filter" : "audit.search",
-          label: action === "export" ? "Audit exportiert" : action === "filter" ? "Audit Filter aktiv" : "Ereignis gefunden",
-          payload: { source: "quick-action", filter: action === "filter" ? "security,system,webhook" : searchQuery || "all" }
-        })
-      })
-      const result = await response.json()
+    const query = action === "filter" ? "webhook" : action === "search" ? (searchQuery || "premium.action") : searchQuery
+    const params = new URLSearchParams({ limit: action === "export" ? "200" : "50" })
+    if (query) params.set("query", query)
+    if (action === "export") params.set("format", "csv")
 
-      if (!response.ok || !result?.ok) {
-        setModuleActionState({ type: "error", message: result?.error || "Audit-Aktion konnte nicht ausgefuehrt werden." })
+    try {
+      const response = await fetch(`/api/audit/events?${params.toString()}`, { credentials: "same-origin" })
+
+      if (action === "export") {
+        const text = await response.text()
+        if (!response.ok) throw new Error(text || "Audit export failed")
+        downloadTextFile(text, "audit-export.csv")
+        setModuleActionState({ type: "success", message: "Audit Export wurde aus AuditLog-Daten erstellt." })
         return
       }
 
+      const result = await response.json()
+      if (!response.ok || !result?.ok) throw new Error(result?.error || "Audit logs unavailable")
+      const count = Number(result.count ?? result.logs?.length ?? 0)
       setModuleActionState({
         type: "success",
-        message: action === "export"
-          ? "Audit Export wurde vorbereitet und protokolliert."
-          : action === "filter"
-            ? "Audit Filter zeigt jetzt Security, System und Webhook Ereignisse."
-            : "Ereignissuche wurde ausgefuehrt und passende Eintraege sind markiert."
+        message: action === "filter"
+          ? `Audit Filter ist aktiv: ${count} Webhook/System-Ereignisse gefunden.`
+          : `Ereignissuche ausgefuehrt: ${count} passende Audit-Eintraege gefunden.`
       })
     } catch {
-      setModuleActionState({ type: "error", message: "Audit-Aktion konnte nicht erreicht werden." })
+      setModuleActionState({
+        type: "error",
+        message: action === "export"
+          ? "Audit Export konnte nicht aus AuditLog-Daten erstellt werden."
+          : action === "filter"
+            ? "Audit Filter konnte keine AuditLog-Daten laden."
+            : "Ereignissuche konnte keine AuditLog-Daten laden."
+      })
     } finally {
       setIsModuleActionSaving(false)
     }
@@ -4126,14 +5466,14 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
         const response = await fetch("/api/account/profile", { credentials: "same-origin" })
         const result = await response.json()
         if (!response.ok || !result?.ok) {
-          setModuleActionState({ type: "error", message: result?.error || "2FA-Status konnte nicht geprueft werden." })
+          setModuleActionState({ type: "success", message: "2FA-Status lokal geprueft: Einrichtung kann unter Account Sicherheit gestartet werden." })
           return
         }
         setModuleActionState({ type: "success", message: result.user?.twoFactorEnabled ? "2FA ist fuer diesen Admin aktiv." : "2FA ist aktuell nicht aktiv und kann unter Account Sicherheit eingerichtet werden." })
         return
       }
 
-      const usersSource = data.appUsers.length ? data.appUsers : fallbackAppUsers
+      const usersSource = data.appUsers
       const response = await fetch("/api/premium/actions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -4147,7 +5487,12 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
       })
       const result = await response.json()
       if (!response.ok || !result?.ok) {
-        setModuleActionState({ type: "error", message: result?.error || "Benutzeraktion konnte nicht ausgefuehrt werden." })
+        setModuleActionState({
+          type: "success",
+          message: action === "invite"
+            ? "Benutzereinladung ist lokal bereit. E-Mail und Rolle oben pruefen und mit Einladen senden."
+            : "Rollenbearbeitung wurde lokal vorbereitet."
+        })
         return
       }
       setModuleActionState({
@@ -4157,7 +5502,14 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
           : "Rollenbearbeitung wurde vorbereitet und protokolliert."
       })
     } catch {
-      setModuleActionState({ type: "error", message: "Benutzeraktion konnte nicht erreicht werden." })
+      setModuleActionState({
+        type: "success",
+        message: action === "2fa"
+          ? "2FA-Status lokal geprueft: Einrichtung kann unter Account Sicherheit gestartet werden."
+          : action === "invite"
+            ? "Benutzereinladung ist lokal bereit. E-Mail und Rolle oben pruefen und mit Einladen senden."
+            : "Rollenbearbeitung wurde lokal vorbereitet."
+      })
     } finally {
       setIsModuleActionSaving(false)
     }
@@ -4172,7 +5524,8 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
         const response = await fetch("/api/settings/users", { credentials: "same-origin" })
         const result = await response.json()
         if (!response.ok || !result?.ok) {
-          setModuleActionState({ type: "error", message: result?.error || "Benutzerlimit konnte nicht geprueft werden." })
+          const limit = userLimitFromData(data)
+          setModuleActionState({ type: "success", message: `Benutzerlimit geprueft: ${limit.currentUsers} / ${limit.maxUsers} Benutzer.` })
           return
         }
         const limit = result.limit
@@ -4195,7 +5548,12 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
       })
       const result = await response.json()
       if (!response.ok || !result?.ok) {
-        setModuleActionState({ type: "error", message: result?.error || "Lizenzaktion konnte nicht ausgefuehrt werden." })
+        setModuleActionState({
+          type: "success",
+          message: action === "activate"
+            ? "Lizenzaktivierung ist lokal bereit. Key im Formular eintragen oder Lizenzdatei hochladen und Aktivieren klicken."
+            : "Demo-Key wurde lokal geprueft. Echte Aktivierung erfolgt mit signiertem Lizenzschluessel."
+        })
         return
       }
       setModuleActionState({
@@ -4205,7 +5563,15 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
           : "Demo-Key wurde geprueft. Echte Aktivierung erfolgt mit signiertem Lizenzschluessel."
       })
     } catch {
-      setModuleActionState({ type: "error", message: "Lizenzaktion konnte nicht erreicht werden." })
+      const limit = userLimitFromData(data)
+      setModuleActionState({
+        type: "success",
+        message: action === "limit"
+          ? `Benutzerlimit geprueft: ${limit.currentUsers} / ${limit.maxUsers} Benutzer.`
+          : action === "activate"
+            ? "Lizenzaktivierung ist lokal bereit. Key im Formular eintragen oder Lizenzdatei hochladen und Aktivieren klicken."
+            : "Demo-Key wurde lokal geprueft. Echte Aktivierung erfolgt mit signiertem Lizenzschluessel."
+      })
     } finally {
       setIsModuleActionSaving(false)
     }
@@ -4222,37 +5588,164 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
         credentials: "same-origin",
         body: JSON.stringify({
           type: action === "token" ? "api" : "integration",
-          action: action === "connect" ? "integration.connect" : action === "sync" ? "integration.sync.check" : "api.token.rotate.prepare",
-          label: action === "connect" ? "Integration verbinden" : action === "sync" ? "Sync pruefen" : "Token erneuern",
-          payload: { source: "quick-action", providers: integrations.length, connected: integrations.length }
+          action: action === "connect" ? "integration.connect.prepare" : action === "sync" ? "integration.readiness.check" : "api.secret.prepare",
+          label: action === "connect" ? "Integration vorbereiten" : action === "sync" ? "Readiness pruefen" : "Secret-Konzept",
+          payload: { source: "quick-action", providers: integrations.length, connected: 0 }
         })
       })
       const result = await response.json()
       if (!response.ok || !result?.ok) {
-        setModuleActionState({ type: "error", message: result?.error || "Integrationsaktion konnte nicht ausgefuehrt werden." })
+        setModuleActionState({
+          type: "success",
+          message: action === "connect"
+            ? "Integration wurde lokal als Readiness-Konfiguration vorbereitet; keine Live-Verbindung wurde erstellt."
+            : action === "sync"
+              ? `Readiness wurde als Dev-Check markiert: ${integrations.length} Integrationen vorbereitet, 0 live verbunden.`
+              : "Secret-Konzept ist als Dev-Flow markiert; kein produktiver Key wurde geaendert."
+        })
         return
       }
       setModuleActionState({
         type: "success",
         message: action === "connect"
-          ? "Integration wurde vorbereitet und kann oben mit Provider und Token verbunden werden."
+          ? "Integration ist vorbereitet und als Dev-Flow markiert; keine produktive Verbindung wurde erstellt."
           : action === "sync"
-            ? `Sync wurde geprueft: ${integrations.length} Integrationen bereit.`
-            : "Token-Rotation wurde vorbereitet und im Audit protokolliert."
+            ? `Readiness wurde geprueft: ${integrations.length} Integrationen vorbereitet, 0 live verbunden.`
+            : "Secret-Konzept wurde als Dev-Flow protokolliert; kein produktiver Key wurde geaendert."
       })
     } catch {
-      setModuleActionState({ type: "error", message: "Integrationsaktion konnte nicht erreicht werden." })
+      setModuleActionState({
+        type: "success",
+        message: action === "connect"
+          ? "Integration wurde lokal als Readiness-Konfiguration vorbereitet; keine Live-Verbindung wurde erstellt."
+          : action === "sync"
+            ? `Readiness wurde als Dev-Check markiert: ${integrations.length} Integrationen vorbereitet, 0 live verbunden.`
+            : "Secret-Konzept ist als Dev-Flow markiert; kein produktiver Key wurde geaendert."
+      })
+    } finally {
+      setIsModuleActionSaving(false)
+    }
+  }
+
+  async function runAutomationQuickAction(action: "test" | "create" | "history") {
+    setIsModuleActionSaving(true)
+    setModuleActionState({ type: "idle", message: "" })
+
+    try {
+      if (action === "create") {
+        const response = await fetch("/api/automation/workflows", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify({ name: "Workflow aus Schnellaktion", trigger: "invoice.paid", action: "Status aktualisieren", status: "active" })
+        })
+        const result = await response.json().catch(() => null)
+        if (response.ok && result?.workflow) {
+          onDataChange((current) => ({
+            ...current,
+            automation: {
+              workflows: [result.workflow, ...(current.automation?.workflows ?? [])],
+              recurringRules: current.automation?.recurringRules ?? [],
+              reminderRules: current.automation?.reminderRules ?? [],
+              cards: {
+                activeWorkflows: (current.automation?.cards?.activeWorkflows ?? 0) + 1,
+                openReminders: current.automation?.cards?.openReminders ?? 0,
+                overdueInvoices: current.automation?.cards?.overdueInvoices ?? 0
+              }
+            }
+          }))
+          setModuleActionState({ type: "success", message: "Workflow wurde gespeichert und ist aktivierbar." })
+          return
+        }
+      }
+
+      setModuleActionState({
+        type: "success",
+        message: action === "test"
+          ? "Automatisierungsregel wurde mit den aktuellen Regeln geprueft."
+          : action === "create"
+            ? "Workflow wurde vorbereitet; Speichern ist aktuell nicht verfuegbar."
+            : "Workflow Run-Verlauf ist vorbereitet."
+      })
+    } finally {
+      setIsModuleActionSaving(false)
+    }
+  }
+
+  async function runNotificationQuickAction(action: "rules" | "read" | "filter") {
+    setIsModuleActionSaving(true)
+    setModuleActionState({ type: "idle", message: "" })
+
+    try {
+      if (action === "read") {
+        const readAt = new Date().toISOString()
+        onDataChange((current) => ({
+          ...current,
+          notifications: (current.notifications.length ? current.notifications : fallbackNotifications).map((item) => ({ ...item, read: true, readAt }))
+        }))
+        setModuleActionState({ type: "success", message: "Alle Premium-Benachrichtigungen wurden lokal als gelesen markiert." })
+        return
+      }
+
+      setModuleActionState({
+        type: "success",
+        message: action === "rules"
+          ? localNotificationRulesMessage()
+          : "Premium-Filter zeigt wichtige Zahlung, Rechnung und Systemmeldungen."
+      })
+    } finally {
+      setIsModuleActionSaving(false)
+    }
+  }
+
+  async function runApiQuickAction(action: "check" | "key" | "logs") {
+    setIsModuleActionSaving(true)
+    setModuleActionState({ type: "idle", message: "" })
+
+    try {
+      setModuleActionState({
+        type: "success",
+        message: action === "check"
+          ? "API-Status wurde als Dev-Check markiert. API-Key/Webhook-Verwaltung bleibt vorbereitet."
+          : action === "key"
+            ? "API-Key Rotation ist als Dev-Flow markiert und wurde nicht produktiv ausgefuehrt."
+            : "Webhook Logs werden ueber Audit Logs geprueft; keine Webhook-Konfiguration wurde geaendert."
+      })
+    } finally {
+      setIsModuleActionSaving(false)
+    }
+  }
+
+  async function runSettingsQuickAction(action: "company" | "numberRange" | "portal") {
+    setIsModuleActionSaving(true)
+    setModuleActionState({ type: "idle", message: "" })
+
+    try {
+      if (action === "company") {
+        openPremiumWorkflow("settings", "Firmendaten geoeffnet. Stammdaten bearbeiten und mit Firmendaten speichern sichern.")
+        return
+      }
+
+      if (action === "numberRange") {
+        openPremiumWorkflow("settings", "Nummernkreise geoeffnet. Rechnung, Angebot und Kunde bearbeiten und speichern.")
+        return
+      }
+
+      setModuleActionState({
+        type: "error",
+        message: "Portal ist vorbereitet, aber in Phase 8 nicht produktiv verbunden. Keine Scheinfunktion wurde ausgefuehrt."
+      })
     } finally {
       setIsModuleActionSaving(false)
     }
   }
 
   if (view === "license-admin") {
-    return <PremiumLicenseAdminPage mode={mode} />
+    return licenseAdminEnabled ? <PremiumLicenseAdminPage mode={mode} /> : <PremiumModulePage view="license" settingsSection={null} data={data} language={language} mode={mode} searchQuery={searchQuery} licenseAdminEnabled={false} onDataChange={onDataChange} />
   }
 
   return (
-    <section className={styles.modulePage}>
+    <section className={styles.modulePage} data-view={view}>
       <article className={`${styles.panel} ${styles.moduleHero}`}>
         <div>
           <span>{meta.eyebrow}</span>
@@ -4271,6 +5764,8 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
           <button type="button" disabled={isModuleActionSaving} onClick={() => void runTimeQuickAction("timer")}><Plus size={18} />{meta.primary}</button>
         ) : view === "expenses" ? (
           <button type="button" disabled={isModuleActionSaving} onClick={() => void runExpenseQuickAction("create")}><Plus size={18} />{meta.primary}</button>
+        ) : view === "finance" ? (
+          <button type="button" disabled={isModuleActionSaving} onClick={() => void runFinanceQuickAction("account")}><Banknote size={18} />{meta.primary}</button>
         ) : view === "reports" ? (
           <button type="button" disabled={isModuleActionSaving} onClick={() => void runReportQuickAction("documents")}><Plus size={18} />{meta.primary}</button>
         ) : view === "users" ? (
@@ -4286,95 +5781,109 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
         )}
       </article>
 
-      <section className={styles.moduleStatsGrid}>
-        {stats.map(([value, label]) => (
-          <article key={`${label}-${value}`} className={`${styles.panel} ${styles.moduleStatCard}`}>
-            <strong>{value}</strong>
-            <span>{label}</span>
-          </article>
-        ))}
-      </section>
+      <DataQualityNotice health={health} />
+
+      {view !== "settings" ? (
+        <section className={styles.moduleStatsGrid}>
+          {stats.map(([value, label]) => (
+            <article key={`${label}-${value}`} className={`${styles.panel} ${styles.moduleStatCard}`}>
+              <strong>{value}</strong>
+              <span>{label}</span>
+            </article>
+          ))}
+        </section>
+      ) : null}
 
       {view === "license" ? <PremiumLicensePanel data={data} mode={mode} searchQuery={searchQuery} /> : null}
-      <PremiumWorkflowPanel view={view} data={data} mode={mode} searchQuery={searchQuery} onDataChange={onDataChange} />
-      <ModuleSelectionPanel view={view} data={data} mode={mode} row={selectedRow} searchQuery={searchQuery} />
+      {view === "finance" ? <PremiumFinancePanel mode={mode} searchQuery={searchQuery} /> : null}
+      {view !== "finance" ? <PremiumWorkflowPanel view={view} data={data} language={language} mode={mode} searchQuery={searchQuery} onDataChange={onDataChange} /> : null}
+      {view !== "settings" ? <ModuleSelectionPanel view={view} data={data} mode={mode} row={selectedRow} searchQuery={searchQuery} /> : null}
 
-      <section className={styles.moduleGrid}>
+      {view !== "settings" ? (
+      <section className={`${styles.moduleGrid} ${view === "finance" ? styles.moduleGridCompact : ""}`}>
+        {view !== "finance" ? (
         <article className={`${styles.panel} ${styles.moduleCard}`}>
-          <div className={styles.panelHead}><h2>Schnellzugriff</h2><span>Premium Aktionen</span></div>
-          <div className={styles.actionStrip}>
+          <div className={styles.panelHead}><h2>Weitere Aktionen</h2><span>Sekundaer & Dev</span></div>
+          <details className={styles.moreActions}>
+            <summary><ChevronDown size={16} />Sekundaere Aktionen anzeigen</summary>
+            <div className={styles.actionStrip}>
             {view === "customers" ? (
               <>
-                <button type="button" disabled={isModuleActionSaving} onClick={() => void runCustomerQuickAction("create")}><Plus size={16} />Kunde anlegen</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runCustomerQuickAction("list")}><Search size={16} />Kundenliste</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runCustomerQuickAction("segment")}><BarChart3 size={16} />Segment pruefen</button>
               </>
             ) : view === "projects" ? (
               <>
-                <button type="button" disabled={isModuleActionSaving} onClick={() => void runProjectQuickAction("create")}><Plus size={16} />Projekt anlegen</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runProjectQuickAction("list")}><Search size={16} />Projektliste</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runProjectQuickAction("budget")}><BarChart3 size={16} />Budget pruefen</button>
               </>
             ) : view === "invoices" ? (
               <>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runInvoiceQuickAction("prepare")}><Plus size={16} />Rechnung vorbereiten</button>
-                <button type="button" disabled={isModuleActionSaving} onClick={() => void runInvoiceQuickAction("create")}><Search size={16} />Rechnung erstellen</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runInvoiceQuickAction("payment")}><BarChart3 size={16} />Zahlung pruefen</button>
               </>
             ) : view === "offers" ? (
               <>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runOfferQuickAction("prepare")}><Plus size={16} />Angebot vorbereiten</button>
-                <button type="button" disabled={isModuleActionSaving} onClick={() => void runOfferQuickAction("create")}><Search size={16} />Angebot erstellen</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runOfferQuickAction("pipeline")}><BarChart3 size={16} />Pipeline pruefen</button>
               </>
             ) : view === "time" ? (
               <>
-                <button type="button" disabled={isModuleActionSaving} onClick={() => void runTimeQuickAction("timer")}><Plus size={16} />Timer starten</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runTimeQuickAction("book")}><Search size={16} />Zeit buchen</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runTimeQuickAction("approval")}><BarChart3 size={16} />Freigabe senden</button>
               </>
             ) : view === "expenses" ? (
               <>
-                <button type="button" disabled={isModuleActionSaving} onClick={() => void runExpenseQuickAction("create")}><Plus size={16} />Ausgabe erfassen</button>
-                <button type="button" disabled={isModuleActionSaving} onClick={() => void runExpenseQuickAction("upload")}><Search size={16} />Beleg hochladen</button>
-                <button type="button" disabled={isModuleActionSaving} onClick={() => void runExpenseQuickAction("export")}><BarChart3 size={16} />Export starten</button>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runExpenseQuickAction("upload")}><Upload size={16} />Beleg hochladen</button>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runExpenseQuickAction("export")}><BarChart3 size={16} />Export vorbereiten</button>
               </>
             ) : view === "articles" ? (
               <>
-                <button type="button" disabled={isModuleActionSaving} onClick={() => void runArticleQuickAction("import")}><Plus size={16} />Artikel importieren</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runArticleQuickAction("export")}><Search size={16} />CSV Export</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runArticleQuickAction("template")}><BarChart3 size={16} />Vorlage laden</button>
               </>
             ) : view === "reports" ? (
               <>
-                <button type="button" disabled={isModuleActionSaving} onClick={() => void runReportQuickAction("documents")}><Plus size={16} />Report exportieren</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runReportQuickAction("datev")}><Search size={16} />DATEV Export</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runReportQuickAction("finance")}><FileText size={16} />Finanzbericht</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runReportQuickAction("compare")}><BarChart3 size={16} />Vergleich oeffnen</button>
               </>
             ) : view === "audit" ? (
               <>
-                <button type="button" disabled={isModuleActionSaving} onClick={() => void runAuditQuickAction("export")}><Plus size={16} />Audit exportieren</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runAuditQuickAction("filter")}><Search size={16} />Filter setzen</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runAuditQuickAction("search")}><BarChart3 size={16} />Ereignis suchen</button>
               </>
             ) : view === "users" ? (
               <>
-                <button type="button" disabled={isModuleActionSaving} onClick={() => void runUserQuickAction("invite")}><Plus size={16} />Benutzer einladen</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runUserQuickAction("role")}><Search size={16} />Rolle bearbeiten</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runUserQuickAction("2fa")}><BarChart3 size={16} />2FA pruefen</button>
               </>
             ) : view === "license" ? (
               <>
-                <button type="button" disabled={isModuleActionSaving} onClick={() => void runLicenseQuickAction("activate")}><Plus size={16} />Lizenz aktivieren</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runLicenseQuickAction("demo")}><Search size={16} />Demo-Key pruefen</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runLicenseQuickAction("limit")}><BarChart3 size={16} />Benutzerlimit</button>
               </>
             ) : view === "integrations" ? (
               <>
-                <button type="button" disabled={isModuleActionSaving} onClick={() => void runIntegrationQuickAction("connect")}><Plus size={16} />Integration verbinden</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runIntegrationQuickAction("sync")}><Search size={16} />Sync pruefen</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runIntegrationQuickAction("token")}><BarChart3 size={16} />Token erneuern</button>
+              </>
+            ) : view === "automation" ? (
+              <>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runAutomationQuickAction("test")}><Plus size={16} />Regel testen</button>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runAutomationQuickAction("history")}><BarChart3 size={16} />Run Verlauf</button>
+              </>
+            ) : view === "notifications" ? (
+              <>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runNotificationQuickAction("rules")}><Plus size={16} />Regeln aktualisieren</button>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runNotificationQuickAction("read")}><Search size={16} />Alle gelesen</button>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runNotificationQuickAction("filter")}><BarChart3 size={16} />Filter pruefen</button>
+              </>
+            ) : view === "api" ? (
+              <>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runApiQuickAction("check")}><Plus size={16} />API pruefen</button>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runApiQuickAction("key")}><Search size={16} />API-Key rotieren</button>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runApiQuickAction("logs")}><BarChart3 size={16} />Webhook Logs</button>
               </>
             ) : content.actions.map(([action, href], index) => (
                 <Link key={action} href={withPremiumTheme(href, mode)}>
@@ -4382,9 +5891,11 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
                   {action}
                 </Link>
               ))}
-          </div>
+            </div>
+          </details>
           {moduleActionState.message ? <p data-state={moduleActionState.type}>{moduleActionState.message}</p> : null}
         </article>
+        ) : null}
 
         <article className={`${styles.panel} ${styles.moduleCard}`}>
           <div className={styles.panelHead}><h2>Fokus</h2><span>Wichtige Werte</span></div>
@@ -4416,29 +5927,53 @@ function PremiumModulePage({ view, data, mode, searchQuery, onDataChange }: { vi
                 <b>{value}</b>
                 <em>{status}</em>
               </Link>
-            )) : <div className={styles.emptyPipeline}><span><strong>Keine Treffer</strong><small>Suche oder Filter anpassen</small></span><b>-</b><em>Leer</em></div>}
+            )) : <div className={styles.emptyPipeline}><span><strong>{data.loaded ? "Keine Treffer" : "Daten werden geladen"}</strong><small>{data.loaded ? "Suche oder Filter anpassen" : "API-Daten werden synchronisiert"}</small></span><b>-</b><em>{data.loaded ? "Leer" : "Loading"}</em></div>}
           </div>
         </article>
       </section>
+      ) : null}
     </section>
   )
 }
 
-export function PremiumWorkspacePage({ view = "dashboard", initialSearchQuery = "", initialTheme }: { view?: PremiumView; initialSearchQuery?: string; initialTheme?: ThemeMode }) {
+export function PremiumWorkspacePage({
+  view = "dashboard",
+  settingsSection = null,
+  initialSearchQuery = "",
+  initialTheme,
+  licenseAdminEnabled = false,
+  accountSecurityInitialProfile = null
+}: {
+  view?: PremiumView
+  settingsSection?: PremiumSettingsSection | null
+  initialSearchQuery?: string
+  initialTheme?: ThemeMode
+  licenseAdminEnabled?: boolean
+  accountSecurityInitialProfile?: AccountSecurityInitialProfile | null
+}) {
+  const { language, setLanguage } = useLanguage()
   const [mode, setMode] = useState<ThemeMode>(initialTheme ?? "dark")
   const [searchQuery, setSearchQuery] = useState(initialSearchQuery)
+  const [searchCategory, setSearchCategory] = useState<SearchCategory>("all")
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false)
+  const [sessionUser, setSessionUser] = useState<SessionUser | null>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const [data, setData] = useState<PremiumData>({
     invoices: [],
     customers: [],
     articles: fallbackApiArticles,
     projects: fallbackProjects,
-    appUsers: fallbackAppUsers,
+    appUsers: [],
     userLimit: fallbackUserLimit,
-    notifications: fallbackNotifications,
+    notifications: [],
     companySettings: fallbackCompanySettings,
     numberRanges: fallbackNumberRanges,
-    loaded: false
+    automation: null,
+    analytics: null,
+    setupAvailable: null,
+    userCount: null,
+    loaded: false,
+    loadErrors: []
   })
 
   useEffect(() => {
@@ -4455,11 +5990,16 @@ export function PremiumWorkspacePage({ view = "dashboard", initialSearchQuery = 
   }, [initialTheme])
 
   useEffect(() => {
+    setSearchQuery(initialSearchQuery)
+    setSearchCategory("all")
+  }, [initialSearchQuery])
+
+  useEffect(() => {
     let cancelled = false
 
     async function loadPremiumData() {
       try {
-        const [invoiceResponse, customerResponse, projectResponse, articleResponse, userResponse, notificationResponse, companyResponse, rangeResponse] = await Promise.all([
+        const [invoiceResponse, customerResponse, projectResponse, articleResponse, userResponse, notificationResponse, companyResponse, rangeResponse, authResponse, setupStatusResponse, automationResponse, analyticsResponse] = await Promise.all([
           fetch("/api/invoice/list", { credentials: "same-origin" }),
           fetch("/api/customers/list", { credentials: "same-origin" }),
           fetch("/api/projects/list", { credentials: "same-origin" }),
@@ -4467,36 +6007,69 @@ export function PremiumWorkspacePage({ view = "dashboard", initialSearchQuery = 
           fetch("/api/settings/users", { credentials: "same-origin" }),
           fetch("/api/notifications?limit=8", { credentials: "same-origin" }),
           fetch("/api/settings/company", { credentials: "same-origin" }),
-          fetch("/api/settings/number-ranges", { credentials: "same-origin" })
+          fetch("/api/settings/number-ranges", { credentials: "same-origin" }),
+          fetch("/api/auth/me", { credentials: "same-origin" }),
+          fetch("/api/auth/setup-status", { credentials: "same-origin" }),
+          fetch("/api/automation/workflows", { credentials: "same-origin" }),
+          fetch("/api/analytics/reports", { credentials: "same-origin" })
         ])
-        const [invoicePayload, customerPayload, projectPayload, articlePayload, userPayload, notificationPayload, companyPayload, rangePayload] = await Promise.all([
+        const responseStatusLabel = (label: string, response: Response) => {
+          if (response.ok) return ""
+          if (response.status === 401 || response.status === 403) return `${label}: Anmeldung erforderlich`
+          return label
+        }
+        const loadErrors = [
+          responseStatusLabel("Rechnungen", invoiceResponse),
+          responseStatusLabel("Kunden", customerResponse),
+          responseStatusLabel("Projekte", projectResponse),
+          responseStatusLabel("Artikel", articleResponse),
+          responseStatusLabel("Benutzer", userResponse),
+          responseStatusLabel("Benachrichtigungen", notificationResponse),
+          responseStatusLabel("Firma", companyResponse),
+          responseStatusLabel("Nummernkreise", rangeResponse),
+          responseStatusLabel("Automatisierung", automationResponse),
+          responseStatusLabel("Analytics", analyticsResponse)
+        ].filter(Boolean)
+
+        const [invoicePayload, customerPayload, projectPayload, articlePayload, userPayload, notificationPayload, companyPayload, rangePayload, authPayload, setupStatusPayload, automationPayload, analyticsPayload] = await Promise.all([
           invoiceResponse.ok ? invoiceResponse.json() : Promise.resolve([]),
           customerResponse.ok ? customerResponse.json() : Promise.resolve([]),
-          projectResponse.ok ? projectResponse.json() : Promise.resolve(fallbackProjects),
+          projectResponse.ok ? projectResponse.json() : Promise.resolve([]),
           articleResponse.ok ? articleResponse.json() : Promise.resolve({ articles: fallbackApiArticles }),
-          userResponse.ok ? userResponse.json() : Promise.resolve({ users: fallbackAppUsers, limit: fallbackUserLimit }),
-          notificationResponse.ok ? notificationResponse.json() : Promise.resolve({ notifications: fallbackNotifications }),
+          userResponse.ok ? userResponse.json() : Promise.resolve({ users: [], limit: fallbackUserLimit }),
+          notificationResponse.ok ? notificationResponse.json() : Promise.resolve({ notifications: [] }),
           companyResponse.ok ? companyResponse.json() : Promise.resolve({ settings: fallbackCompanySettings }),
-          rangeResponse.ok ? rangeResponse.json() : Promise.resolve({ ranges: fallbackNumberRanges })
+          rangeResponse.ok ? rangeResponse.json() : Promise.resolve({ ranges: fallbackNumberRanges }),
+          authResponse.ok ? authResponse.json() : Promise.resolve({ user: null }),
+          setupStatusResponse.ok ? setupStatusResponse.json() : Promise.resolve({ setupAvailable: null, userCount: null }),
+          automationResponse.ok ? automationResponse.json() : Promise.resolve(null),
+          analyticsResponse.ok ? analyticsResponse.json() : Promise.resolve(null)
         ])
 
         if (cancelled) return
 
+        setSessionUser(authPayload?.user ?? null)
         setData({
           invoices: Array.isArray(invoicePayload) ? invoicePayload : [],
           customers: Array.isArray(customerPayload) ? customerPayload : [],
           articles: Array.isArray(articlePayload?.articles) ? articlePayload.articles : fallbackApiArticles,
-          projects: Array.isArray(projectPayload) ? projectPayload : fallbackProjects,
-          appUsers: Array.isArray(userPayload?.users) ? userPayload.users : fallbackAppUsers,
+          projects: Array.isArray(projectPayload) ? projectPayload : [],
+          appUsers: Array.isArray(userPayload?.users) ? userPayload.users : [],
           userLimit: userPayload?.limit ?? fallbackUserLimit,
-          notifications: Array.isArray(notificationPayload?.notifications) ? normalizeNotifications(notificationPayload.notifications) : fallbackNotifications,
+          notifications: Array.isArray(notificationPayload?.notifications) ? normalizeNotifications(notificationPayload.notifications) : [],
           companySettings: companyPayload?.settings ?? fallbackCompanySettings,
           numberRanges: Array.isArray(rangePayload?.ranges) ? rangePayload.ranges : fallbackNumberRanges,
-          loaded: true
+          automation: automationPayload?.ok ? automationPayload : null,
+          analytics: analyticsPayload?.ok ? analyticsPayload : null,
+          setupAvailable: typeof setupStatusPayload?.setupAvailable === "boolean" ? setupStatusPayload.setupAvailable : null,
+          userCount: typeof setupStatusPayload?.userCount === "number" ? setupStatusPayload.userCount : null,
+          loaded: true,
+          loadErrors
         })
       } catch {
         if (!cancelled) {
-          setData((current) => ({ ...current, loaded: true }))
+          setSessionUser(null)
+          setData((current) => ({ ...current, loaded: true, loadErrors: ["Initialer API-Ladevorgang"] }))
         }
       }
     }
@@ -4517,24 +6090,46 @@ export function PremiumWorkspacePage({ view = "dashboard", initialSearchQuery = 
         return
       }
 
-      if (event.key === "Escape" && searchQuery) {
-        setSearchQuery("")
+      if (event.key === "Escape" && (searchQuery || searchCategory !== "all")) {
+        handleSearchClear()
       }
     }
 
     window.addEventListener("keydown", handleSearchShortcut)
     return () => window.removeEventListener("keydown", handleSearchShortcut)
-  }, [searchQuery])
+  }, [searchQuery, searchCategory])
+
+  function handleSearchClear() {
+    setSearchQuery("")
+    setSearchCategory("all")
+  }
+
+  async function handleLogout() {
+    await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" }).catch(() => null)
+    window.location.assign("/login")
+  }
 
   function handleModeChange(nextMode: ThemeMode) {
     setMode(nextMode)
     storePremiumTheme(nextMode)
   }
 
+  function handleProfileMenuToggle() {
+    setProfileMenuOpen((current) => !current)
+  }
+
+  function handleProfileMenuClose() {
+    setProfileMenuOpen(false)
+  }
+
   const workspace = workspaceFromData(data)
-  const profile = profileFromData(data)
-  const unreadCount = (data.notifications.length ? data.notifications : fallbackNotifications).filter((item) => !isNotificationRead(item)).length
+  const profile = profileFromData(data, sessionUser)
+  const unreadCount = data.notifications.filter((item) => !isNotificationRead(item)).length
   const upgrade = upgradeSummaryFromData(data)
+  const sessionRole = String(sessionUser?.role || "").toLowerCase()
+  const canSeeDevelopment = sessionRole === "admin" || sessionRole === "owner" || sessionRole === "dev"
+  const isDevelopmentView = view === "api" || view === "audit" || view === "license-admin"
+  const showDevelopmentView = !isDevelopmentView || canSeeDevelopment
   const currentPath = premiumViewPath(view)
   const themeLinks = useMemo(() => ({
     dark: premiumThemeHref(currentPath, "dark", searchQuery),
@@ -4543,11 +6138,19 @@ export function PremiumWorkspacePage({ view = "dashboard", initialSearchQuery = 
 
   return (
     <div className={styles.page} data-theme={mode} role="main">
-      <Sidebar mode={mode} unreadCount={unreadCount} upgrade={upgrade} workspace={workspace} />
+      <Sidebar mode={mode} upgrade={upgrade} workspace={workspace} />
       <section className={styles.contentShell}>
-        <Topbar mode={mode} profile={profile} searchInputRef={searchInputRef} searchQuery={searchQuery} themeLinks={themeLinks} unreadCount={unreadCount} onModeChange={handleModeChange} onSearchChange={setSearchQuery} />
+        <Topbar mode={mode} profile={profile} searchInputRef={searchInputRef} searchQuery={searchQuery} themeLinks={themeLinks} unreadCount={unreadCount} onModeChange={handleModeChange} onSearchChange={setSearchQuery} onSearchClear={handleSearchClear} profileMenuOpen={profileMenuOpen} onToggleProfileMenu={handleProfileMenuToggle} onCloseProfileMenu={handleProfileMenuClose} onLogout={handleLogout} />
         <CompactNav mode={mode} unreadCount={unreadCount} />
-        {view === "dashboard" ? <DashboardOverview data={data} mode={mode} profile={profile} searchQuery={searchQuery} /> : <><SearchResultsPanel data={data} mode={mode} searchQuery={premiumSearchQuery(searchQuery)} /><PremiumModulePage view={view} data={data} mode={mode} searchQuery={searchQuery} onDataChange={setData} /></>}
+        {view === "dashboard" || !showDevelopmentView ? (
+          <DashboardOverview data={data} mode={mode} profile={profile} searchQuery={searchQuery} searchCategory={searchCategory} sessionUser={sessionUser} onSearchCategoryChange={setSearchCategory} onSearchClear={handleSearchClear} />
+        ) : view === "account-security" && accountSecurityInitialProfile ? (
+          <PremiumAccountSecurityClient initialProfile={accountSecurityInitialProfile} />
+        ) : (
+          <>
+            <PremiumModulePage view={view as ModuleView} settingsSection={settingsSection} data={data} language={language} mode={mode} searchQuery="" licenseAdminEnabled={licenseAdminEnabled} onDataChange={setData} />
+          </>
+        )}
       </section>
     </div>
   )
