@@ -1,8 +1,5 @@
-import { PremiumWorkspacePage } from "../PremiumWorkspace"
-import { type DashboardV2SearchPageProps, dashboardV2ParamsFromSearchParams } from "../routeSearch"
+import { ApiCenterClient } from "../phase18-19-client"
 
-export default async function PremiumApiPage({ searchParams }: DashboardV2SearchPageProps) {
-  const { query, theme } = await dashboardV2ParamsFromSearchParams(searchParams)
-
-  return <PremiumWorkspacePage view="api" initialSearchQuery={query} initialTheme={theme} />
+export default function PremiumApiPage() {
+  return <ApiCenterClient />
 }

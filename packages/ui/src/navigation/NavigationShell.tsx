@@ -166,7 +166,7 @@ export function NavigationShell({
   currentUser = null,
   showSettings = true,
   profileLabel = "Profil",
-  profileHref = "/account/security",
+  profileHref = "/dashboard-v2/account/security",
   accountLabel = "Konto & Sicherheit",
   logoutLabel = "Abmelden",
   onLogout

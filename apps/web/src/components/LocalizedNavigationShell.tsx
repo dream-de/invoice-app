@@ -117,7 +117,7 @@ export function LocalizedNavigationShell({
       showSettings={can("settings:manage")}
       profileLabel={isEnglish ? "User menu" : "Benutzermenue"}
       accountLabel={isEnglish ? "Account & Security" : "Konto & Sicherheit"}
-      profileHref="/account/security"
+      profileHref="/dashboard-v2/account/security"
       logoutLabel={isEnglish ? "Sign out" : "Abmelden"}
       onLogout={handleLogout}
     >
