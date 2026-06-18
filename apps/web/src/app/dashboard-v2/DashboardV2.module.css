@@ -417,9 +417,8 @@
   align-items: center;
   justify-content: flex-start;
   gap: 4px;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: none;
+  overflow: visible;
+  position: relative;
   padding-bottom: 2px;
 }
 
@@ -427,7 +426,9 @@
   display: none;
 }
 
-.desktopNav a {
+.desktopNav a,
+.moreNavTrigger,
+.navMeasure span {
   flex: 0 0 auto;
   border-radius: 8px;
   color: var(--muted);
@@ -436,6 +437,58 @@
   font-size: 12px;
   font-weight: 850;
   white-space: nowrap;
+}
+
+.moreNav {
+  position: relative;
+  flex: 0 0 auto;
+}
+
+.moreNavTrigger {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.moreNavTrigger:hover,
+.moreNavTrigger[aria-expanded="true"] {
+  color: #fff;
+  background: linear-gradient(135deg, #7c3aed, #4f46e5);
+}
+
+.moreNavDropdown {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 8px);
+  z-index: 45;
+  min-width: 190px;
+  display: grid;
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--panel-strong) 96%, transparent);
+  box-shadow: 0 22px 44px rgba(15, 23, 42, 0.18);
+  padding: 8px;
+  backdrop-filter: blur(18px);
+}
+
+.moreNavDropdown a {
+  width: 100%;
+}
+
+.navMeasure {
+  position: absolute;
+  inset: auto auto 100% 0;
+  display: flex;
+  gap: 4px;
+  height: 0;
+  overflow: hidden;
+  pointer-events: none;
+  visibility: hidden;
 }
 
 .desktopNav a:hover,
@@ -463,6 +516,10 @@
 .profile {
   min-width: 0;
   position: relative;
+}
+
+.profile {
+  flex: 0 0 auto;
 }
 
 .themeToggle {
@@ -596,7 +653,7 @@
 
 .profileTriggerText {
   min-width: 0;
-  max-width: 132px;
+  max-width: 128px;
   display: grid;
   gap: 1px;
 }
@@ -620,6 +677,9 @@
 
 .profileTriggerText small {
   color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   font-size: 10px;
   font-weight: 800;
 }
@@ -681,6 +741,56 @@
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+}
+
+.companyTriggerText {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-left: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 950;
+  padding-left: 10px;
+  white-space: nowrap;
+}
+
+.companySwitch {
+  display: grid;
+  gap: 6px;
+  border-bottom: 1px solid var(--line);
+  padding: 0 0 12px;
+}
+
+.companySwitch strong {
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.companySwitch button {
+  min-height: 34px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 850;
+  text-align: left;
+  padding: 0 10px;
+}
+
+.companySwitch button:hover,
+.companySwitch button[aria-current="true"] {
+  background: color-mix(in srgb, var(--panel-strong) 86%, transparent);
+  color: var(--text);
+}
+
+.companySwitch span {
+  height: 1px;
+  background: var(--line);
+  margin: 3px 0;
 }
 
 .profileDropdownActions {
@@ -2568,6 +2678,120 @@
   line-height: 1.45;
 }
 
+.settingsGroupNav {
+  display: flex;
+  gap: 8px;
+  margin: 0 0 10px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+
+.settingsGroupLink {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel-strong) 90%, transparent);
+  color: var(--text);
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 950;
+  padding: 0 12px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.settingsGroupLink:hover,
+.settingsGroupLink:focus-visible,
+.settingsGroupLinkActive {
+  border-color: color-mix(in srgb, var(--violet) 36%, var(--line));
+  background: color-mix(in srgb, var(--violet) 10%, var(--panel-strong));
+  outline: none;
+}
+
+.settingsSubmoduleRail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 16px;
+}
+
+.settingsSubmoduleRail a {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--line) 84%, var(--text) 16%);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--panel-strong) 88%, transparent);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 950;
+  padding: 0 10px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.settingsSubmoduleRail a:hover,
+.settingsSubmoduleRail a:focus-visible {
+  border-color: color-mix(in srgb, var(--violet) 40%, var(--line));
+  outline: none;
+}
+
+.settingsSubmoduleNav {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 16px;
+}
+
+.settingsSubmoduleGroup {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel-strong) 82%, transparent);
+  padding: 10px;
+}
+
+.settingsSubmoduleGroup strong {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.settingsSubmoduleGroup div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.settingsSubmoduleGroup a {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--line) 84%, var(--text) 16%);
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--panel) 88%, transparent);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 900;
+  padding: 0 9px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.settingsSubmoduleGroup a:hover,
+.settingsSubmoduleGroup a:focus-visible {
+  border-color: color-mix(in srgb, var(--violet) 40%, var(--line));
+  outline: none;
+}
+
 .settingsModuleGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(236px, 1fr));
@@ -3881,10 +4105,11 @@
 }
 
 .profileTrigger {
+  min-width: 128px;
   min-height: 40px;
-  padding: 0 12px 0 8px;
+  padding: 0 14px;
   gap: 8px;
-  max-width: 240px;
+  max-width: 174px;
 }
 
 .profileAvatar {
@@ -3893,7 +4118,7 @@
 }
 
 .profileTriggerText {
-  max-width: 126px;
+  max-width: 128px;
 }
 
 .profileTrigger em {
@@ -4295,5 +4520,18 @@
   .searchDock[data-open="true"],
   .searchDockOpen {
     width: min(100%, 260px);
+  }
+}
+
+
+@media (max-width: 720px) {
+  .themeToggleButton {
+    width: 40px;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .themeToggleButton span {
+    display: none;
   }
 }

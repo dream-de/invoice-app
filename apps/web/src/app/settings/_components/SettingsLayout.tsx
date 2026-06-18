@@ -1,46 +1,11 @@
 "use client"
 
 import Link from "next/link"
-import type { ComponentType, ReactNode } from "react"
-import { usePathname, useSearchParams } from "next/navigation"
-import {
-  Banknote,
-  BellRing,
-  Building2,
-  FileKey2,
-  FolderTree,
-  Gavel,
-  Globe2,
-  Hash,
-  Mail,
-  Settings,
-  UsersRound
-} from "lucide-react"
+import type { ReactNode } from "react"
+import { Settings } from "lucide-react"
+import { usePathname } from "next/navigation"
 import { useLanguage } from "@/lib/i18n"
-import { premiumSettingsSections } from "../../dashboard-v2/settings/sectionMap"
-
-type TranslationKey = Parameters<ReturnType<typeof useLanguage>["t"]>[0]
-
-type Item = {
-  href: string
-  labelKey: TranslationKey
-  subKey: TranslationKey
-  icon: ComponentType<{ className?: string }>
-}
-
-const items: Item[] = [
-  { href: "/settings/company", labelKey: "settings.nav.company", subKey: "settings.nav.company.sub", icon: Building2 },
-  { href: "/settings/categories", labelKey: "settings.nav.categories", subKey: "settings.nav.categories.sub", icon: FolderTree },
-  { href: "/settings/finance", labelKey: "settings.nav.finance", subKey: "settings.nav.finance.sub", icon: Banknote },
-  { href: "/settings/number-ranges", labelKey: "settings.nav.numberRanges", subKey: "settings.nav.numberRanges.sub", icon: Hash },
-  { href: "/settings/email", labelKey: "settings.nav.email", subKey: "settings.nav.email.sub", icon: Mail },
-  { href: "/settings/notifications", labelKey: "settings.nav.notifications", subKey: "settings.nav.notifications.sub", icon: BellRing },
-  { href: "/settings/reminders", labelKey: "settings.nav.reminders", subKey: "settings.nav.reminders.sub", icon: BellRing },
-  { href: "/settings/legal", labelKey: "settings.nav.legal", subKey: "settings.nav.legal.sub", icon: Gavel },
-  { href: "/settings/portal", labelKey: "settings.nav.portal", subKey: "settings.nav.portal.sub", icon: Globe2 },
-  { href: "/settings/users", labelKey: "settings.nav.users", subKey: "settings.nav.users.sub", icon: UsersRound },
-  { href: "/settings/system", labelKey: "settings.nav.system", subKey: "settings.nav.system.sub", icon: FileKey2 }
-]
+import { legacySettingsNav } from "@/lib/settings-nav"
 
 export function SettingsLayout({
   title,
@@ -56,11 +21,8 @@ export function SettingsLayout({
   status?: string
 }) {
   const pathname = usePathname()
-  const searchParams = useSearchParams()
   const { t } = useLanguage()
   const isPremium = pathname?.startsWith("/dashboard-v2/settings/")
-  const currentTheme = searchParams.get("theme")
-  const withTheme = (href: string) => currentTheme ? `${href}?theme=${encodeURIComponent(currentTheme)}` : href
   const rootStyle = isPremium ? ({
     ["--settings-panel" as string]: "color-mix(in srgb, var(--panel) 84%, transparent)",
     ["--settings-surface" as string]: "color-mix(in srgb, var(--panel-strong) 94%, transparent)",
@@ -102,36 +64,6 @@ export function SettingsLayout({
   if (isPremium) {
     return (
       <div className="space-y-3" style={rootStyle}>
-        <div className="rounded-lg border border-[var(--settings-line)] bg-[var(--settings-surface)]/80 px-2 py-1.5 shadow-[0_8px_18px_color-mix(in_srgb,var(--shadow-color)_5%,transparent)]">
-          <div className="flex items-center gap-1.5 overflow-x-auto overscroll-x-contain pb-0.5 [scrollbar-width:thin]">
-            <Link
-              href={withTheme("/dashboard-v2/settings")}
-              className="inline-flex h-7 shrink-0 items-center rounded-md border border-transparent px-2 text-[11px] font-extrabold text-[var(--settings-muted)] transition hover:bg-[var(--settings-subtle)] hover:text-[var(--settings-title)]"
-            >
-              {t("settings.title")}
-            </Link>
-            <span className="h-4 w-px shrink-0 bg-[var(--settings-line)]" />
-            <div className="flex min-w-max items-center gap-1">
-              {premiumSettingsSections.map((section) => {
-                const active = pathname === section.href
-                return (
-                  <Link
-                    key={section.key}
-                    href={withTheme(section.href)}
-                    className={`inline-flex h-7 shrink-0 items-center whitespace-nowrap rounded-md border px-2 text-[11px] font-bold leading-none transition ${
-                      active
-                        ? "border-[var(--settings-accent)] bg-[var(--settings-accent-soft)] text-[var(--settings-title)]"
-                        : "border-transparent text-[var(--settings-muted)] hover:border-[var(--settings-line)] hover:bg-[var(--settings-subtle)] hover:text-[var(--settings-title)]"
-                    }`}
-                  >
-                    {section.title}
-                  </Link>
-                )
-              })}
-            </div>
-          </div>
-        </div>
-
         <div className="rounded-lg border border-[var(--settings-line)] bg-[var(--settings-panel)] shadow-[var(--settings-card-shadow)] backdrop-blur">
           <div className="border-b border-[var(--settings-line)] px-4 py-4 sm:px-5">
             <h1 className="text-[22px] font-extrabold tracking-tight text-[var(--settings-title)]">
@@ -180,7 +112,7 @@ export function SettingsLayout({
           </h2>
 
           <div className="space-y-3">
-            {items.map((item) => {
+            {legacySettingsNav.map((item) => {
               const active = pathname === item.href || pathname?.startsWith(item.href + "/")
               const Icon = item.icon
 
@@ -205,12 +137,12 @@ export function SettingsLayout({
 
                     <div className="min-w-0">
                       <p className="truncate text-base font-extrabold">
-                        {t(item.labelKey)}
+                        {item.title}
                       </p>
                       <p className={`mt-0.5 line-clamp-2 text-xs font-semibold transition ${
                         active ? "text-[var(--settings-placeholder)]" : "text-[var(--settings-placeholder)] group-hover:text-[var(--settings-muted)]"
                       }`}>
-                        {t(item.subKey)}
+                        {item.description}
                       </p>
                     </div>
                   </div>

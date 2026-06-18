@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useSearchParams } from "next/navigation"
 import type { ComponentType } from "react"
 import { useEffect, useMemo, useState } from "react"
 import {
@@ -14,7 +15,6 @@ import {
   Link2,
   LockKeyhole,
   Plug,
-  Search,
   ShieldCheck,
   Users2,
   Workflow
@@ -32,8 +32,85 @@ import { UsersAndPermissionsClient } from "../../settings/users/UsersAndPermissi
 import { SettingCard } from "../../settings/_components/SettingsControls"
 import { SettingsLayout } from "../../settings/_components/SettingsLayout"
 import { type PremiumSettingsSection } from "./sectionMap"
+import { settingsItemByKey } from "@/lib/settings-nav"
 
 type SettingsIcon = ComponentType<{ className?: string }>
+
+type ModuleSubpoint = { key: string; title: string }
+
+const defaultModuleSubpoints: ModuleSubpoint[] = [
+  { key: "uebersicht", title: "Uebersicht" },
+  { key: "einstellungen", title: "Einstellungen" },
+  { key: "regeln", title: "Regeln" },
+  { key: "protokoll", title: "Protokoll" }
+]
+
+const moduleSubpoints: Record<string, ModuleSubpoint[]> = {
+  company: [
+    { key: "profil", title: "Profil" },
+    { key: "standorte", title: "Standorte" },
+    { key: "mandanten", title: "Mandanten" },
+    { key: "gruppen", title: "Gruppen" },
+    { key: "branding", title: "Branding" },
+    { key: "dokumentkopf", title: "Dokumentkopf" }
+  ],
+  locations: [
+    { key: "standorte", title: "Standorte" },
+    { key: "adressen", title: "Adressen" },
+    { key: "kontakte", title: "Kontakte" },
+    { key: "zuordnung", title: "Zuordnung" }
+  ],
+  tenants: [
+    { key: "mandanten", title: "Mandanten" },
+    { key: "gruppen", title: "Gruppen" },
+    { key: "rollen", title: "Rollen" },
+    { key: "zugriff", title: "Zugriff" }
+  ],
+  branding: [
+    { key: "logo", title: "Logo" },
+    { key: "farben", title: "Farben" },
+    { key: "dokumentkopf", title: "Dokumentkopf" },
+    { key: "layout", title: "Layout" }
+  ]
+}
+
+function SettingsSectionNavigation({ activeKey }: { activeKey: string }) {
+  const searchParams = useSearchParams()
+  const activeTab = searchParams.get("tab") ?? (moduleSubpoints[activeKey] ?? defaultModuleSubpoints)[0]?.key
+  const activeModule = settingsItemByKey(activeKey)
+  const subpoints = moduleSubpoints[activeKey] ?? defaultModuleSubpoints
+  const theme = searchParams.get("theme")
+
+  function hrefFor(tab: string) {
+    const params = new URLSearchParams()
+    if (theme) params.set("theme", theme)
+    params.set("tab", tab)
+    return `${activeModule?.href ?? "/dashboard-v2/settings/" + activeKey}?${params.toString()}`
+  }
+
+  return (
+    <div className="mb-6 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-black uppercase text-slate-400">Modul</p>
+          <h2 className="text-lg font-black text-slate-950">{activeModule?.title ?? activeKey}</h2>
+        </div>
+        <Link href="/dashboard-v2/settings" className="inline-flex h-8 items-center rounded-md border border-slate-200 px-2.5 text-[11px] font-black text-slate-600 no-underline hover:bg-slate-50">Alle Module</Link>
+      </div>
+      <nav className="flex flex-wrap gap-1.5" aria-label={`Unterpunkte im Modul ${activeModule?.title ?? activeKey}`}>
+        {subpoints.map((item) => (
+          <Link
+            key={item.key}
+            href={hrefFor(item.key)}
+            className={`inline-flex min-h-8 items-center rounded-md border px-2 text-[11px] font-black no-underline transition ${item.key === activeTab ? "border-violet-300 bg-violet-50 text-violet-800 shadow-sm" : "border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300"}`}
+          >
+            {item.title}
+          </Link>
+        ))}
+      </nav>
+    </div>
+  )
+}
 
 type UsersRolesPayload = {
   users: Array<{
@@ -99,17 +176,8 @@ function ManagementPage({
   filters?: string[]
   activity: Array<[string, string, ManagementRow["status"]]>
 }) {
-  const [query, setQuery] = useState("")
   const [filter, setFilter] = useState(filters[0] ?? "Alle")
-  const visibleRows = useMemo(() => {
-    const needle = query.trim().toLowerCase()
-    return rows.filter((row) => {
-      const matchesFilter = filter === "Alle" || row.status === filter
-      const matchesQuery = !needle || [row.name, row.detail, row.owner, row.status, row.activity].some((value) => value.toLowerCase().includes(needle))
-      return matchesFilter && matchesQuery
-    })
-  }, [filter, query, rows])
-
+  const visibleRows = useMemo(() => rows.filter((row) => filter === "Alle" || row.status === filter), [filter, rows])
   const activeCount = rows.filter((row) => row.status === "Aktiv").length
   const preparedCount = rows.filter((row) => row.status === "Vorbereitet").length
 
@@ -129,35 +197,19 @@ function ManagementPage({
         ))}
       </div>
 
-      <SettingCard title="Verwaltung" description="Suchen, filtern und Status direkt in der Settings-Detailseite pruefen.">
-        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <label className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-lg border border-[var(--settings-input-border)] bg-[var(--settings-input-bg)] px-3 text-sm font-semibold text-[var(--settings-title)]">
-            <Search className="h-4 w-4 shrink-0 text-[var(--settings-muted)]" />
-            <input
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder="Suchen"
-              className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-[var(--settings-placeholder)]"
-              type="search"
-            />
-          </label>
-          <div className="flex items-center gap-2 overflow-x-auto pb-0.5 [scrollbar-width:thin]">
-            <Filter className="h-4 w-4 shrink-0 text-[var(--settings-muted)]" />
-            {filters.map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => setFilter(item)}
-                className={`h-8 shrink-0 rounded-md border px-2.5 text-[11px] font-extrabold transition ${
-                  filter === item
-                    ? "border-[var(--settings-accent)] bg-[var(--settings-accent-soft)] text-[var(--settings-title)]"
-                    : "border-[var(--settings-line)] bg-[var(--settings-subtle)] text-[var(--settings-muted)] hover:text-[var(--settings-title)]"
-                }`}
-              >
-                {item}
-              </button>
-            ))}
-          </div>
+      <SettingCard title="Verwaltung" description="Status und Zustaendigkeiten direkt in der Settings-Detailseite pruefen.">
+        <div className="mb-4 flex items-center gap-2 overflow-x-auto pb-0.5 [scrollbar-width:thin]">
+          <Filter className="h-4 w-4 shrink-0 text-[var(--settings-muted)]" />
+          {filters.map((item) => (
+            <button
+              key={item}
+              type="button"
+              onClick={() => setFilter(item)}
+              className={`h-8 shrink-0 rounded-md border px-2.5 text-[11px] font-extrabold transition ${filter === item ? "border-[var(--settings-accent)] bg-[var(--settings-accent-soft)] text-[var(--settings-title)]" : "border-[var(--settings-line)] bg-[var(--settings-subtle)] text-[var(--settings-muted)] hover:text-[var(--settings-title)]"}`}
+            >
+              {item}
+            </button>
+          ))}
         </div>
 
         <div className="overflow-x-auto rounded-lg border border-[var(--settings-line)]">
@@ -178,9 +230,7 @@ function ManagementPage({
                   <tr key={row.name} className="bg-[var(--settings-surface)]">
                     <td className="px-3 py-3">
                       <div className="flex items-start gap-3">
-                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--settings-accent-soft)] text-[var(--settings-accent)]">
-                          <Icon className="h-4 w-4" />
-                        </span>
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--settings-accent-soft)] text-[var(--settings-accent)]"><Icon className="h-4 w-4" /></span>
                         <div>
                           <strong className="block text-sm font-extrabold text-[var(--settings-title)]">{row.name}</strong>
                           <span className="mt-0.5 block text-xs font-medium leading-5 text-[var(--settings-muted)]">{row.detail}</span>
@@ -191,9 +241,7 @@ function ManagementPage({
                     <td className="px-3 py-3"><StatusPill status={row.status} /></td>
                     <td className="px-3 py-3 text-xs font-medium text-[var(--settings-muted)]">{row.activity}</td>
                     <td className="px-3 py-3 text-right">
-                      <Link href={row.href} className="inline-flex h-8 items-center rounded-md border border-[var(--settings-line)] px-2.5 text-xs font-extrabold text-[var(--settings-title)] no-underline hover:bg-[var(--settings-subtle)]">
-                        Oeffnen
-                      </Link>
+                      <Link href={row.href} className="inline-flex h-8 items-center rounded-md border border-[var(--settings-line)] px-2.5 text-xs font-extrabold text-[var(--settings-title)] no-underline hover:bg-[var(--settings-subtle)]">Oeffnen</Link>
                     </td>
                   </tr>
                 )
@@ -222,29 +270,61 @@ function ManagementPage({
 
 function DocumentsSettingsPage() {
   return (
-    <>
-      <NumberRangesSettingsPage />
-      <LegalSettingsPage />
-    </>
+    <ManagementPage
+      title="Dokumente"
+      description="Dokumenttypen, Vorlagen und Ablage zentral verwalten; Nummernkreise bleiben im eigenen Modul."
+      rows={[
+        { name: "Rechnungen", detail: "Dokumentfluss und PDF-Ausgabe", owner: "Operations", status: "Aktiv", activity: "Editor aktiv", href: "/dashboard-v2/invoices", icon: FileText },
+        { name: "Angebote", detail: "Angebotsdokumente und Freigaben", owner: "Sales", status: "Aktiv", activity: "Angebotsbereich aktiv", href: "/dashboard-v2/offers", icon: FileText },
+        { name: "Vorlagen", detail: "Dokumentvorlagen und Standardtexte", owner: "Admin", status: "Vorbereitet", activity: "Vorlagenstruktur vorbereitet", href: "/dashboard-v2/settings/documents?q=Vorlagen", icon: Archive },
+        { name: "Ablage", detail: "Uploads und Dokumentenmanagement", owner: "Operations", status: "Teilweise aktiv", activity: "DMS-Bereich vorhanden", href: "/dashboard-v2/documents", icon: Archive }
+      ]}
+      activity={[
+        ["Dokumentfluss", "Bestehende Dokumentrouten bleiben erreichbar.", "Aktiv"],
+        ["Nummern", "Nummernkreise sind ausschliesslich im Modul Nummernkreise gebuendelt.", "Aktiv"],
+        ["Vorlagen", "Vorlagen bleiben als vorbereiteter Bereich sichtbar.", "Vorbereitet"]
+      ]}
+    />
   )
 }
 
 function TimeTrackingSettingsPage() {
-  return <RemindersSettingsPage />
+  return (
+    <ManagementPage
+      title="Zeiterfassung"
+      description="Zeitbuchungen, Projektbezug und spaetere Uebergabe in Rechnungen verwalten."
+      rows={[
+        { name: "Zeitbuchungen", detail: "Erfasste Zeiten und Tagesuebersicht", owner: "Team", status: "Teilweise aktiv", activity: "Zeitbereich vorhanden", href: "/dashboard-v2/time", icon: Clock3 },
+        { name: "Projektbezug", detail: "Zeiten Projekten und Kunden zuordnen", owner: "Projektleitung", status: "Vorbereitet", activity: "Projektbereich aktiv", href: "/dashboard-v2/projects", icon: Link2 },
+        { name: "Freigaben", detail: "Review und spaetere Abrechnung", owner: "Operations", status: "Vorbereitet", activity: "Freigabe vorbereitet", href: "/dashboard-v2/settings/time-tracking?q=Freigaben", icon: Activity }
+      ]}
+      activity={[
+        ["Erfassung", "Zeitfunktionen bleiben erreichbar.", "Teilweise aktiv"],
+        ["Abrechnung", "Faktura-Uebergabe bleibt vorbereitet.", "Vorbereitet"],
+        ["Routen", "Bestehende Zeitrouten werden nicht entfernt.", "Aktiv"]
+      ]}
+    />
+  )
 }
 
 function BillingSettingsPage() {
   return (
-    <>
-      <FinanceSettingsPage />
-      <NumberRangesSettingsPage />
-      <RemindersSettingsPage />
-    </>
+    <ManagementPage
+      title="Fakturierung"
+      description="Fakturierung buendelt Prozessstatus und verweist auf eigenstaendige Fachmodule ohne Formular-Doppelungen."
+      rows={[
+        { name: "Rechnungsfluss", detail: "Rechnung erstellen, pruefen und versenden", owner: "Finance", status: "Aktiv", activity: "Rechnungseditor aktiv", href: "/dashboard-v2/invoices", icon: FileText },
+        { name: "Zahlungsziele", detail: "Zahlungsbedingungen bleiben im Finanzmodul", owner: "Finance", status: "Teilweise aktiv", activity: "Finanzen verknuepft", href: "/dashboard-v2/settings/finance", icon: Link2 },
+        { name: "Nummernkreise", detail: "Rechnungs- und Angebotsnummern separat verwalten", owner: "Admin", status: "Teilweise aktiv", activity: "Eigenes Modul", href: "/dashboard-v2/settings/number-ranges", icon: FileText },
+        { name: "Mahnlogik", detail: "Erinnerungen und Mahnfolgen separat verwalten", owner: "Finance", status: "Teilweise aktiv", activity: "Reminder-Modul", href: "/dashboard-v2/settings/reminders", icon: Clock3 }
+      ]}
+      activity={[
+        ["Prozess", "Fakturierung bleibt als eigener Prozessbereich sichtbar.", "Aktiv"],
+        ["Keine Kopien", "Finanz-, Nummernkreis- und Reminder-Formulare werden nicht dupliziert.", "Aktiv"],
+        ["Verweise", "Fachmodule bleiben ueber klare Links erreichbar.", "Teilweise aktiv"]
+      ]}
+    />
   )
-}
-
-function CommunicationSettingsPage() {
-  return <EmailSettingsPage />
 }
 
 function UsersRolesSettingsPage() {
@@ -367,7 +447,7 @@ function AuditLogsSettingsPage() {
         { name: "Login Ereignisse", detail: "Erfolgreiche und blockierte Anmeldungen", owner: "Security", status: "Aktiv", activity: "IP-Metadaten vorbereitet", href: "/dashboard-v2/audit?q=Login", icon: ShieldCheck },
         { name: "Datenzugriff", detail: "Aenderungen an Rechnungen, Kunden und Projekten", owner: "Audit", status: "Teilweise aktiv", activity: "Audit Helper vorhanden", href: "/dashboard-v2/audit?q=Datenzugriff", icon: FileText },
         { name: "Export Verlauf", detail: "CSV, PDF und Report-Aktivitaeten", owner: "Operations", status: "Vorbereitet", activity: "Exportbereiche sichtbar", href: "/dashboard-v2/reports?q=Export", icon: Archive },
-        { name: "Sicherheitscenter", detail: "2FA, Passwort und Session-Historie", owner: "Security", status: "Aktiv", activity: "Account-Seite aktiv", href: "/dashboard-v2/account/security", icon: LockKeyhole }
+        { name: "Audit Trail", detail: "Nachvollziehbare Ereignisse und Systemaktivitaeten", owner: "Audit", status: "Teilweise aktiv", activity: "Audit-Ansicht aktiv", href: "/dashboard-v2/audit?q=Audit%20Trail", icon: Activity }
       ]}
       filters={["Alle", "Aktiv", "Teilweise aktiv", "Vorbereitet"]}
       activity={[
@@ -465,7 +545,7 @@ const premiumSettingsSectionComponents: Record<PremiumSettingsSection, Component
   documents: DocumentsSettingsPage,
   "time-tracking": TimeTrackingSettingsPage,
   billing: BillingSettingsPage,
-  email: CommunicationSettingsPage,
+  email: EmailSettingsPage,
   users: UsersRolesSettingsPage,
   security: SecuritySettingsPage,
   "audit-logs": AuditLogsSettingsPage,
@@ -480,10 +560,25 @@ const premiumSettingsSectionComponents: Record<PremiumSettingsSection, Component
   reminders: RemindersSettingsPage,
   "number-ranges": NumberRangesSettingsPage,
   "add-ons": ApiWebhooksSettingsPage,
+  locations: CompanySettingsPage,
+  tenants: CompanySettingsPage,
+  branding: CompanySettingsPage,
+  "payment-terms": FinanceSettingsPage,
+  sessions: SecuritySettingsPage,
+  permissions: UsersRolesSettingsPage,
+  api: ApiWebhooksSettingsPage,
+  webhooks: ApiWebhooksSettingsPage,
+  audit: AuditLogsSettingsPage,
+  templates: DocumentsSettingsPage,
   portal: PortalSettingsPage
 }
 
 export function PremiumSettingsSectionContent({ section }: { section: PremiumSettingsSection }) {
   const Component = premiumSettingsSectionComponents[section]
-  return <Component />
+  return (
+    <>
+      <SettingsSectionNavigation activeKey={section} />
+      <Component />
+    </>
+  )
 }

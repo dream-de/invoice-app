@@ -1,6 +1,6 @@
 "use client"
 
-import type { CSSProperties, ChangeEvent, ComponentType, FormEvent, RefObject } from "react"
+import type { CSSProperties, ChangeEvent, ComponentType, FocusEvent, FormEvent, RefObject } from "react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -11,13 +11,11 @@ import {
   AlertCircle,
   Archive,
   BarChart3,
-  Building2,
   MoonStar,
   SunMedium,
   Banknote,
   Bell,
   Briefcase,
-  CalendarClock,
   CheckCircle2,
   ChevronDown,
   Clock3,
@@ -28,19 +26,14 @@ import {
   Folder,
   Grid3X3,
   Home,
-  Hash,
-  Landmark,
   KeyRound,
-  Mail,
+  Landmark,
   MoreVertical,
   Plug,
-  Puzzle,
   Plus,
   Receipt,
-  Scale,
   Search,
   Settings,
-  ShieldCheck,
   Tag,
   Upload,
   UserPlus,
@@ -53,6 +46,7 @@ import {
 import { PremiumAccountSecurityClient } from "./account/security/PremiumAccountSecurityClient"
 import { PremiumSettingsSectionContent } from "./settings/PremiumSettingsSectionContent"
 import { type PremiumSettingsSection } from "./settings/sectionMap"
+import { visiblePremiumSettingsNav } from "@/lib/settings-nav"
 import styles from "./DashboardV2.module.css"
 
 type ThemeMode = "dark" | "light"
@@ -332,7 +326,8 @@ const mainNav: NavItem[] = [
   { label: "Finanzen", href: "/dashboard-v2/finance", icon: Landmark },
   { label: "Dokumente", href: "/dashboard-v2/documents", icon: Archive },
   { label: "KI-Assistent", href: "/dashboard-v2/ai-assistant", icon: Plug },
-  { label: "Berichte", href: "/dashboard-v2/reports", icon: BarChart3 }
+  { label: "Berichte", href: "/dashboard-v2/reports", icon: BarChart3 },
+  { label: "Einstellungen", href: "/dashboard-v2/settings", icon: Settings }
 ]
 
 const sideNav: Array<{ section: string; marker?: string; items: NavItem[] }> = [
@@ -457,9 +452,9 @@ const premiumViewMeta: Record<Exclude<PremiumView, "account-security">, { title:
   },
   settings: {
     title: "Einstellungen",
-    eyebrow: "Workspace",
-    description: "Unternehmensdaten, Nummernkreise, E-Mail, Portal und Systemoptionen.",
-    primary: "Einstellungen pruefen"
+    eyebrow: "Settings",
+    description: "Zentrale Settings-Struktur mit eindeutigen Modulen und stabilen Routen.",
+    primary: "Einstellungen"
   },
   users: {
     title: "Benutzer & Rollen",
@@ -1364,10 +1359,18 @@ function Sidebar({ mode, unreadCount, upgrade, canSeeDevelopment, licenseAdminEn
 
 function Topbar({ mode, profile, searchInputRef, searchQuery, themeLinks, unreadCount, onModeChange, onSearchChange, onSearchClear, profileMenuOpen, onToggleProfileMenu, onCloseProfileMenu, onLogout }: { mode: ThemeMode; profile: ReturnType<typeof profileFromData>; searchInputRef: RefObject<HTMLInputElement | null>; searchQuery: string; themeLinks: ThemeLinks; unreadCount: number; onModeChange: (mode: ThemeMode) => void; onSearchChange: (value: string) => void; onSearchClear: () => void; profileMenuOpen: boolean; onToggleProfileMenu: () => void; onCloseProfileMenu: () => void; onLogout: () => void }) {
   const pathname = usePathname()
+  const topbarRef = useRef<HTMLElement>(null)
+  const navRef = useRef<HTMLElement>(null)
+  const navMeasureRef = useRef<HTMLDivElement>(null)
+  const moreMenuRef = useRef<HTMLDivElement>(null)
   const profileMenuRef = useRef<HTMLDivElement>(null)
   const searchDockRef = useRef<HTMLDivElement>(null)
-  const [searchOpen, setSearchOpen] = useState(Boolean(searchQuery))
-  const isSearchExpanded = searchOpen || Boolean(searchQuery)
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [visibleNavCount, setVisibleNavCount] = useState(mainNav.length)
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false)
+  const isSearchExpanded = searchOpen
+  const visibleNavItems = mainNav.slice(0, visibleNavCount)
+  const overflowNavItems = mainNav.slice(visibleNavCount)
 
   function handleSearchOpen() {
     setSearchOpen(true)
@@ -1376,35 +1379,84 @@ function Topbar({ mode, profile, searchInputRef, searchQuery, themeLinks, unread
 
   function handleSearchClear() {
     onSearchClear()
-    requestAnimationFrame(() => searchInputRef.current?.focus())
+    setSearchOpen(false)
   }
 
   function handleSearchBlur() {
-    if (!searchQuery.trim()) setSearchOpen(false)
+    window.setTimeout(() => setSearchOpen(false), 120)
+  }
+
+  function closeMoreMenu() {
+    setMoreMenuOpen(false)
+  }
+
+  function handleMoreMenuBlur(event: FocusEvent<HTMLDivElement>) {
+    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+      closeMoreMenu()
+    }
   }
 
   useEffect(() => {
-    if (!isSearchExpanded || searchQuery.trim()) return
+    function measureNavigation() {
+      const nav = navRef.current
+      const measure = navMeasureRef.current
+      if (!nav || !measure) return
 
-    function handlePointerDown(event: PointerEvent) {
-      if (!searchDockRef.current?.contains(event.target as Node)) setSearchOpen(false)
+      const navWidth = nav.clientWidth
+      const items = Array.from(measure.querySelectorAll<HTMLElement>("[data-nav-measure-item]"))
+      const more = measure.querySelector<HTMLElement>("[data-nav-measure-more]")
+      const itemWidths = items.map((item) => Math.ceil(item.getBoundingClientRect().width))
+      const moreWidth = Math.ceil(more?.getBoundingClientRect().width ?? 76)
+      const gap = 4
+      const totalWidth = itemWidths.reduce((sum, width) => sum + width, 0) + Math.max(0, itemWidths.length - 1) * gap
+
+      let nextVisibleCount = itemWidths.length
+      if (totalWidth > navWidth) {
+        const availableWidth = Math.max(0, navWidth - moreWidth - gap)
+        let usedWidth = 0
+        nextVisibleCount = 0
+
+        for (const width of itemWidths) {
+          const nextWidth = usedWidth + width + (nextVisibleCount > 0 ? gap : 0)
+          if (nextWidth > availableWidth) break
+          usedWidth = nextWidth
+          nextVisibleCount += 1
+        }
+
+        nextVisibleCount = Math.max(1, nextVisibleCount)
+      }
+
+      setVisibleNavCount((current) => current === nextVisibleCount ? current : nextVisibleCount)
     }
 
-    window.addEventListener("pointerdown", handlePointerDown)
-    return () => window.removeEventListener("pointerdown", handlePointerDown)
-  }, [isSearchExpanded, searchQuery])
+    measureNavigation()
+    const resizeObserver = new ResizeObserver(() => measureNavigation())
+    if (topbarRef.current) resizeObserver.observe(topbarRef.current)
+    if (navRef.current) resizeObserver.observe(navRef.current)
+    if (searchDockRef.current) resizeObserver.observe(searchDockRef.current)
+    window.addEventListener("resize", measureNavigation)
+    document.fonts?.ready.then(measureNavigation).catch(() => null)
+
+    return () => {
+      resizeObserver.disconnect()
+      window.removeEventListener("resize", measureNavigation)
+    }
+  }, [isSearchExpanded])
 
   useEffect(() => {
-    if (!profileMenuOpen) return
+    if (!profileMenuOpen && !moreMenuOpen) return
 
     function handlePointerDown(event: PointerEvent) {
-      if (!profileMenuRef.current?.contains(event.target as Node)) {
-        onCloseProfileMenu()
-      }
+      const target = event.target as Node
+      if (profileMenuOpen && !profileMenuRef.current?.contains(target)) onCloseProfileMenu()
+      if (moreMenuOpen && !moreMenuRef.current?.contains(target)) setMoreMenuOpen(false)
     }
 
     function handleKeydown(event: KeyboardEvent) {
-      if (event.key === "Escape") onCloseProfileMenu()
+      if (event.key === "Escape") {
+        if (profileMenuOpen) onCloseProfileMenu()
+        setMoreMenuOpen(false)
+      }
     }
 
     window.addEventListener("pointerdown", handlePointerDown)
@@ -1414,11 +1466,39 @@ function Topbar({ mode, profile, searchInputRef, searchQuery, themeLinks, unread
       window.removeEventListener("pointerdown", handlePointerDown)
       window.removeEventListener("keydown", handleKeydown)
     }
-  }, [onCloseProfileMenu, profileMenuOpen])
+  }, [moreMenuOpen, onCloseProfileMenu, profileMenuOpen])
+
+  useEffect(() => {
+    if (!overflowNavItems.length) setMoreMenuOpen(false)
+  }, [overflowNavItems.length])
 
   return (
-    <header className={styles.topbar}>
-      <nav className={styles.desktopNav}>{mainNav.map((item) => { const isActive = pathname === item.href; return <Link key={item.label} className={isActive ? styles.navActive : ""} aria-current={isActive ? "page" : undefined} href={withPremiumTheme(item.href, mode)}>{item.label}</Link> })}</nav>
+    <header ref={topbarRef} className={styles.topbar}>
+      <nav ref={navRef} className={styles.desktopNav} aria-label="Hauptnavigation">
+        {visibleNavItems.map((item) => {
+          const isActive = pathname === item.href
+          return <Link key={item.label} className={isActive ? styles.navActive : ""} aria-current={isActive ? "page" : undefined} href={withPremiumTheme(item.href, mode)}>{item.label}</Link>
+        })}
+        {overflowNavItems.length ? (
+          <div ref={moreMenuRef} className={styles.moreNav} onBlur={handleMoreMenuBlur} onMouseLeave={closeMoreMenu}>
+            <button type="button" className={styles.moreNavTrigger} aria-haspopup="menu" aria-expanded={moreMenuOpen} onClick={() => setMoreMenuOpen((current) => !current)}>
+              Mehr <ChevronDown size={13} />
+            </button>
+            {moreMenuOpen ? (
+              <div className={styles.moreNavDropdown} role="menu">
+                {overflowNavItems.map((item) => {
+                  const isActive = pathname === item.href
+                  return <Link key={item.label} role="menuitem" aria-current={isActive ? "page" : undefined} className={isActive ? styles.navActive : ""} href={withPremiumTheme(item.href, mode)} onClick={closeMoreMenu}>{item.label}</Link>
+                })}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+        <div ref={navMeasureRef} className={styles.navMeasure} aria-hidden="true">
+          {mainNav.map((item) => <span key={item.label} data-nav-measure-item>{item.label}</span>)}
+          <span data-nav-measure-more>Mehr <ChevronDown size={13} /></span>
+        </div>
+      </nav>
       <div className={styles.topActions}>
         <ThemeToggle links={themeLinks} mode={mode} onChange={onModeChange} />
         <div ref={searchDockRef} className={styles.searchDock} data-open={isSearchExpanded ? "true" : "false"}>
@@ -1431,32 +1511,25 @@ function Topbar({ mode, profile, searchInputRef, searchQuery, themeLinks, unread
             onChange={(event) => onSearchChange(event.target.value)}
             onFocus={() => setSearchOpen(true)}
             onBlur={handleSearchBlur}
-            placeholder="Suchen..."
+            placeholder={isSearchExpanded ? "Suchen..." : ""}
             aria-label="Globale Suche"
             tabIndex={isSearchExpanded ? 0 : -1}
           />
           {searchQuery ? <button type="button" aria-label="Suche leeren" onClick={handleSearchClear}><X size={15} /></button> : null}
         </div>
-        <Link href={withPremiumTheme("/dashboard-v2/invoices?q=Rechnung%20vorbereitet", mode)} aria-label="Neu" className={styles.iconAction}><Plus size={18} /></Link>
         <Link href={withPremiumTheme("/dashboard-v2/notifications?q=Alle%20gelesen", mode)} aria-label="Benachrichtigungen" className={styles.iconAction}><Bell size={18} />{unreadCount > 0 ? <span className={styles.bellBadge}>{unreadCount}</span> : null}</Link>
-        <Link href={withPremiumTheme("/dashboard-v2/settings", mode)} aria-label="Einstellungen" title="Einstellungen" className={styles.iconAction}><Settings size={18} /></Link>
+        <Link href={withPremiumTheme("/dashboard-v2/settings", mode)} aria-label="Einstellungen" className={styles.iconAction}><Settings size={18} /></Link>
         <div ref={profileMenuRef} className={styles.profile}>
-          <button type="button" className={styles.profileTrigger} aria-label="Profilmenü öffnen" aria-haspopup="menu" aria-expanded={profileMenuOpen} onClick={onToggleProfileMenu}>
-            <span className={styles.profileAvatar}>{profile.initials}</span>
+          <button type="button" className={styles.profileTrigger} aria-label="Profil und Firma öffnen" aria-haspopup="menu" aria-expanded={profileMenuOpen} onClick={onToggleProfileMenu}>
             <div className={styles.profileTriggerText}>
               <strong>{profile.name}</strong>
-              <small>{profile.email || "Nicht hinterlegt"}</small>
+              <small>Acme GmbH <ChevronDown size={13} /></small>
             </div>
           </button>
           {profileMenuOpen ? (
-            <div className={styles.profileDropdown} aria-label="Profil">
-              <div className={styles.profileDropdownHead}>
-                <span className={styles.profileDropdownAvatar}>{profile.initials}</span>
-                <div className={styles.profileDropdownText}>
-                  <strong>{profile.name}</strong>
-                  <small>{profile.email || "Nicht hinterlegt"}</small>
-                  <span>{profile.role}</span>
-                </div>
+            <div className={styles.profileDropdown} aria-label="Profil und Firma">
+              <div className={styles.companySwitch}>
+                <strong>Aktive Firma: Acme GmbH</strong>
               </div>
               <div className={styles.profileDropdownActions}>
                 <Link href={withPremiumTheme("/dashboard-v2/account/security", mode)} onClick={onCloseProfileMenu} className={styles.profileDropdownLink}>Konto &amp; Sicherheit</Link>
@@ -2644,37 +2717,7 @@ type ArticleImportDraft = {
   csv: string
 }
 
-const premiumSettingsModules: Array<{
-  key: string
-  icon: IconType
-  title: string
-  description: string
-  status: "Aktiv" | "Teilweise aktiv" | "Premium vorbereitet" | "Nicht eingerichtet"
-  href: string
-  accent: string
-  accentSoft: string
-}> = [
-  { key: "company", icon: Building2, title: "Unternehmen", description: "Firmendaten, Adresse, Logo, USt-ID und Branding", status: "Aktiv", href: "/dashboard-v2/settings/company", accent: "#2563eb", accentSoft: "#dbeafe" },
-  { key: "finance", icon: Wallet, title: "Finanzen", description: "Bankdaten, Open Banking, Zahlungsziele und Mahnungen", status: "Teilweise aktiv", href: "/dashboard-v2/settings/finance", accent: "#0f766e", accentSoft: "#ccfbf1" },
-  { key: "documents", icon: FileText, title: "Dokumente", description: "Rechnungen, Angebote, Nummernkreise und Vorlagen", status: "Aktiv", href: "/dashboard-v2/settings/documents", accent: "#7c3aed", accentSoft: "#ede9fe" },
-  { key: "email", icon: Mail, title: "E-Mail", description: "SMTP, E-Mail-Versand, Signaturen und Standardtexte", status: "Teilweise aktiv", href: "/dashboard-v2/settings/email", accent: "#0891b2", accentSoft: "#cffafe" },
-  { key: "users", icon: Users, title: "Benutzer & Rollen", description: "Team, Rechte, Rollen und Einladungen", status: "Aktiv", href: "/dashboard-v2/settings/users", accent: "#4f46e5", accentSoft: "#e0e7ff" },
-  { key: "security", icon: ShieldCheck, title: "Sicherheit", description: "Passwort, 2FA, Kontoschutz, Sitzungen und Login-Sicherheit", status: "Teilweise aktiv", href: "/dashboard-v2/settings/security", accent: "#dc2626", accentSoft: "#fee2e2" },
-  { key: "audit-logs", icon: FileText, title: "Audit Logs", description: "Sicherheitsereignisse, Zugriff und Systemaktivitaeten", status: "Teilweise aktiv", href: "/dashboard-v2/settings/audit-logs", accent: "#0f172a", accentSoft: "#e2e8f0" },
-  { key: "license", icon: KeyRound, title: "Lizenzverwaltung", description: "Lizenzstatus, Aktivierung, Benutzerlimit und Key-Verwaltung", status: "Aktiv", href: "/dashboard-v2/settings/license", accent: "#6d28d9", accentSoft: "#ede9fe" },
-  { key: "integrations", icon: Plug, title: "Integrationen", description: "API, Webhooks und externe Dienste", status: "Premium vorbereitet", href: "/dashboard-v2/settings/integrations", accent: "#9333ea", accentSoft: "#f3e8ff" },
-  { key: "reports", icon: BarChart3, title: "Berichte", description: "Auswertungen, Umsatz, KPIs und Exporte", status: "Aktiv", href: "/dashboard-v2/settings/reports", accent: "#16a34a", accentSoft: "#dcfce7" },
-  { key: "archive", icon: Archive, title: "Archiv", description: "Dokumentenarchiv, Export und Ablage", status: "Nicht eingerichtet", href: "/dashboard-v2/settings/archive", accent: "#64748b", accentSoft: "#e2e8f0" },
-  { key: "system", icon: Settings, title: "System", description: "Sprache, Systemoptionen, Logs und Wartung", status: "Teilweise aktiv", href: "/dashboard-v2/settings/system", accent: "#475569", accentSoft: "#e2e8f0" },
-  { key: "automation", icon: Workflow, title: "Automatisierung", description: "Regeln, Trigger und geplante Ablaeufe", status: "Premium vorbereitet", href: "/dashboard-v2/settings/automation", accent: "#c2410c", accentSoft: "#ffedd5" },
-  { key: "legal", icon: Scale, title: "Rechtliches", description: "Steuern, E-Rechnung, Impressum und Pflichttexte", status: "Premium vorbereitet", href: "/dashboard-v2/settings/legal", accent: "#a16207", accentSoft: "#fef3c7" },
-  { key: "time-tracking", icon: Clock3, title: "Zeiterfassung", description: "Zeiten, Projektbezug und spaetere Stundenuebergabe", status: "Teilweise aktiv", href: "/dashboard-v2/settings/time-tracking", accent: "#0284c7", accentSoft: "#e0f2fe" },
-  { key: "billing", icon: Receipt, title: "Fakturierung", description: "Kunde, Projekt, Artikel, Stunden und Rechnung", status: "Teilweise aktiv", href: "/dashboard-v2/settings/billing", accent: "#db2777", accentSoft: "#fce7f3" },
-  { key: "number-ranges", icon: Hash, title: "Nummernkreise", description: "Rechnungs-, Angebots- und Kundennummern", status: "Teilweise aktiv", href: "/dashboard-v2/settings/number-ranges", accent: "#0d9488", accentSoft: "#ccfbf1" },
-  { key: "notifications", icon: Bell, title: "Benachrichtigungen", description: "Glocke, Ereigniskategorien und Systemhinweise", status: "Teilweise aktiv", href: "/dashboard-v2/settings/notifications", accent: "#ea580c", accentSoft: "#ffedd5" },
-  { key: "reminders", icon: CalendarClock, title: "Erinnerungen", description: "Mahnlogik, Wiedervorlagen und E-Mail-Folgen", status: "Teilweise aktiv", href: "/dashboard-v2/settings/reminders", accent: "#ca8a04", accentSoft: "#fef9c3" },
-  { key: "add-ons", icon: Puzzle, title: "Add-ons", description: "Premium-Erweiterungen und spaetere Zusatzmodule", status: "Premium vorbereitet", href: "/dashboard-v2/settings/add-ons", accent: "#7e22ce", accentSoft: "#f3e8ff" }
-]
+const premiumSettingsModules = visiblePremiumSettingsNav
 
 const premiumSettingsFutureRegistry = [
   "Payments",
@@ -4644,8 +4687,8 @@ function PremiumWorkflowPanel({
       <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.length > 0} data-premium-workflow="settings">
         <section className={styles.settingsDashboardHeader}>
           <div className={styles.settingsDashboardTitle}>
-            <h2>Alle Einstellungen auf einen Blick</h2>
-            <p>Module, Status und vorbereitete Premium-Bereiche bleiben zentral erreichbar, ohne bestehende Funktionen oder Routen zu ersetzen.</p>
+            <h2>Einstellungen</h2>
+            <p>Alle Settings-Module sind einzeln erreichbar. Im Modul erscheinen nur dessen Unterpunkte.</p>
           </div>
         </section>
         <div className={styles.settingsModuleGrid}>
