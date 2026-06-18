@@ -115,8 +115,12 @@ function translatePage(language: "de" | "en") {
 export function PageTranslationBridge() {
   const pathname = usePathname()
   const { language } = useLanguage()
+  const currentPathname = pathname ?? ""
+  const usesOwnDashboardShell = currentPathname === "/dashboard-v2" || currentPathname.startsWith("/dashboard-v2/")
 
   useEffect(() => {
+    if (usesOwnDashboardShell) return
+
     let frame = 0
 
     function scheduleTranslate() {
@@ -148,7 +152,7 @@ export function PageTranslationBridge() {
       observer.disconnect()
       window.removeEventListener("popstate", scheduleTranslate)
     }
-  }, [language, pathname])
+  }, [language, pathname, usesOwnDashboardShell])
 
   return null
 }

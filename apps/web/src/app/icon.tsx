@@ -1,69 +1,22 @@
 import { ImageResponse } from "next/og"
 
-export const size = {
-  width: 32,
-  height: 32
-}
-
+export const size = { width: 192, height: 192 }
 export const contentType = "image/png"
 
 export default function Icon() {
   return new ImageResponse(
     (
-      <div
-        style={{
-          width: "32px",
-          height: "32px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          borderRadius: "9px",
-          background: "linear-gradient(135deg, #101827 0%, #123f73 58%, #d9f944 100%)",
-          boxShadow: "inset 0 1px 2px rgba(255,255,255,0.28)",
-          position: "relative"
-        }}
-      >
-        <div
-          style={{
-            width: "17px",
-            height: "21px",
-            display: "flex",
-            borderRadius: "4px",
-            background: "rgba(255,255,255,0.96)",
-            boxShadow: "0 5px 10px rgba(0,0,0,0.24)",
-            position: "relative"
-          }}
-        >
-          <div
-            style={{
-              width: "6px",
-              height: "6px",
-              display: "flex",
-              background: "#d9f944",
-              clipPath: "polygon(100% 0, 100% 100%, 0 0)",
-              position: "absolute",
-              right: "0px",
-              top: "0px"
-            }}
-          />
-          <div
-            style={{
-              width: "9px",
-              height: "5px",
-              display: "flex",
-              borderLeft: "3px solid #123f73",
-              borderBottom: "3px solid #123f73",
-              transform: "rotate(-45deg)",
-              position: "absolute",
-              left: "4px",
-              top: "8px"
-            }}
-          />
+      <div style={{ width: "192px", height: "192px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "42px", background: "linear-gradient(135deg, #101827 0%, #6d28d9 52%, #14b8a6 100%)", position: "relative" }}>
+        <div style={{ width: "140px", height: "140px", display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "34px", background: "rgba(255,255,255,0.14)", boxShadow: "inset 0 1px 2px rgba(255,255,255,0.26)" }}>
+          <div style={{ width: "74px", height: "74px", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+            <div style={{ position: "absolute", left: "6px", top: "2px", color: "#fff", fontSize: "62px", fontWeight: 900, lineHeight: 1, fontFamily: "Arial, Helvetica, sans-serif" }}>D</div>
+            <div style={{ position: "absolute", right: "2px", top: "22px", width: "18px", height: "4px", borderRadius: "999px", background: "#fff" }} />
+            <div style={{ position: "absolute", right: "2px", top: "34px", width: "15px", height: "4px", borderRadius: "999px", background: "#fff", opacity: 0.92 }} />
+            <div style={{ position: "absolute", right: "2px", top: "46px", width: "20px", height: "4px", borderRadius: "999px", background: "#fff", opacity: 0.84 }} />
+          </div>
         </div>
       </div>
     ),
-    {
-      ...size
-    }
+    { ...size }
   )
 }

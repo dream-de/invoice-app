@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
 import { writeAuditLog } from "@/lib/audit/log"
+import { AuthServiceError, mapAuthError, requireCurrentUserRole } from "@/lib/auth/service"
 import { demoModeResponse, isDemoMode } from "@/lib/demo-mode"
 
 export const dynamic = "force-dynamic"
@@ -21,8 +22,15 @@ const fallbackCompanySettings = {
   iban: "DE12 1005 0000 1234 5678 90",
   bic: "BELA DE BE XXX",
   bankName: "Koelner Sparkasse",
+  defaultPaymentTermsDays: 14,
+  defaultPaymentNote: "Bitte ueberweisen Sie den Betrag innerhalb von 14 Tagen.",
   registerCourt: "Amtsgericht Charlottenburg HRB 12345",
   logoUrl: null
+}
+
+function parsePaymentTermsDays(value: unknown) {
+  const parsed = Number.parseInt(String(value ?? fallbackCompanySettings.defaultPaymentTermsDays), 10)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallbackCompanySettings.defaultPaymentTermsDays
 }
 
 function companySettingsFromData(data: Record<string, unknown>) {
@@ -42,9 +50,23 @@ function companySettingsFromData(data: Record<string, unknown>) {
     iban: data.iban ? String(data.iban).trim() : null,
     bic: data.bic ? String(data.bic).trim() : null,
     bankName: data.bankName ? String(data.bankName).trim() : null,
+    defaultPaymentTermsDays: parsePaymentTermsDays(data.defaultPaymentTermsDays),
+    defaultPaymentNote: data.defaultPaymentNote ? String(data.defaultPaymentNote).trim().slice(0, 1000) : null,
     registerCourt: data.registerCourt ? String(data.registerCourt).trim() : null,
     logoUrl: data.logoUrl ? String(data.logoUrl).trim() : null
   }
+}
+
+function authErrorResponse(error: unknown) {
+  if (error instanceof AuthServiceError) {
+    const mapped = mapAuthError(error)
+    return NextResponse.json(
+      { ok: false, error: mapped.error, code: mapped.code },
+      { status: mapped.status }
+    )
+  }
+
+  return null
 }
 
 export async function GET() {
@@ -53,12 +75,17 @@ export async function GET() {
   }
 
   try {
+    await requireCurrentUserRole(["admin"])
+
     const settings = await prisma.companySettings.findFirst({
       orderBy: { createdAt: "desc" }
     })
 
     return NextResponse.json({ ok: true, settings: settings ?? fallbackCompanySettings })
   } catch (error) {
+    const authError = authErrorResponse(error)
+    if (authError) return authError
+
     console.error(error)
     return NextResponse.json({ ok: true, settings: fallbackCompanySettings, mode: "demo" })
   }
@@ -82,6 +109,8 @@ export async function PUT(request: Request) {
       }))
     }
 
+    await requireCurrentUserRole(["admin"])
+
     const existing = await prisma.companySettings.findFirst({
       orderBy: { createdAt: "desc" }
     })
@@ -101,6 +130,8 @@ export async function PUT(request: Request) {
       iban: data.iban || null,
       bic: data.bic || null,
       bankName: data.bankName || null,
+      defaultPaymentTermsDays: parsePaymentTermsDays(data.defaultPaymentTermsDays),
+      defaultPaymentNote: data.defaultPaymentNote ? String(data.defaultPaymentNote).trim().slice(0, 1000) : null,
       registerCourt: data.registerCourt || null,
       logoUrl: data.logoUrl || null
     }
@@ -128,6 +159,9 @@ export async function PUT(request: Request) {
 
     return NextResponse.json({ ok: true, settings })
   } catch (error) {
+    const authError = authErrorResponse(error)
+    if (authError) return authError
+
     console.error(error)
     return NextResponse.json(
       { ok: false, error: "Stammdaten konnten nicht gespeichert werden." },

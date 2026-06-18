@@ -35,8 +35,11 @@ services:
       DREAM_INVOICE_AUTH_PASSWORD: ${DREAM_INVOICE_AUTH_PASSWORD:-}
       DREAM_INVOICE_AUTH_REQUIRED: ${DREAM_INVOICE_AUTH_REQUIRED:-false}
       LICENSE_PUBLIC_KEY: ${LICENSE_PUBLIC_KEY:-}
+      DREAM_INVOICE_UPLOAD_DIR: ${DREAM_INVOICE_UPLOAD_DIR:-/app/data/uploads/receipts}
       DATABASE_URL: postgresql://${POSTGRES_USER:-dream_invoice}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-dream_invoice}
       PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
+    volumes:
+      - ./data:/app/data
     expose:
       - "3010"
     ports:

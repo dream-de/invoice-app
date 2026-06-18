@@ -5,3 +5,4 @@ export type { PositionImportResult, RecognizedPosition } from "./schemas/positio
 export { recognizeArticlesFromFile } from "./services/recognize-articles"
 export { recognizeRecipientFromFile } from "./services/recognize-recipient"
 export { recognizePositionsFromFile } from "./services/recognize-positions"
+export { extractTextFromFile } from "./extractors/document-text"

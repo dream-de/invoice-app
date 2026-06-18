@@ -1,6 +1,6 @@
-<img src="apps/web/public/brand/dream-invoice-readme-logo.png" alt="Dream Invoice" width="220" />
+<img src="apps/web/public/brand/logo-horizontal.svg" alt="DreamInvoice" width="220" />
 
-## Dream Invoice
+## DreamInvoice
 
 [![CI](https://github.com/dream-de/invoice-app/actions/workflows/ci.yml/badge.svg)](https://github.com/dream-de/invoice-app/actions/workflows/ci.yml)
 ![TypeScript](https://img.shields.io/badge/TypeScript-ready-3178c6)
@@ -9,11 +9,17 @@
 
 ---
 
-Dream Invoice is a modern invoicing and business management platform for self-hosted teams, freelancers, and small companies. It helps manage invoices, offers, customers, articles, projects, finance workflows, document templates, PDF generation, exports, user roles, and operational settings in one focused workspace.
+DreamInvoice is a modern invoicing and business management platform for self-hosted teams, freelancers, and small companies. It helps manage invoices, offers, customers, articles, projects, finance workflows, document templates, PDF generation, exports, user roles, and operational settings in one focused workspace.
 
 The application can be used as a self-hosted web app and includes an isolated public demo environment for evaluation.
 
-> **Note:** Dream Invoice is currently in active development. Some features, workflows, and UI details may still change before the first stable release. Feedback and issue reports are welcome.
+> **Note:** DreamInvoice is currently in active development. Some features, workflows, and UI details may still change before the first stable release. Feedback and issue reports are welcome.
+
+- 🛡 Sicher: Schutzmechanismen, Audit Trails und role-based access sind im Produkt verankert.
+- ⚡ Schnell: fokussierte Workflows und kompakte Oberflaechen reduzieren Reibung.
+- 📊 Effizient: Uebersichten, Kennzahlen und Auswertungen bleiben direkt greifbar.
+- ☁ Digital: Belege, PDF, Export und Freigaben sind auf digitale Abläufe ausgelegt.
+- 🤝 Vertrauenswuerdig: klare Status, saubere Protokolle und nachvollziehbare Aktionen.
 
 ## Live Demo
 
@@ -26,11 +32,11 @@ Demo access:
 
 All demo data is fictional. Changes are simulated and are not saved permanently.
 
-![Dream Invoice dashboard](docs/assets/screenshots/dashboard.jpg)
+![DreamInvoice dashboard](docs/assets/screenshots/dashboard.jpg)
 
-![Dream Invoice documents](docs/assets/screenshots/documents.jpg)
+![DreamInvoice documents](docs/assets/screenshots/documents.jpg)
 
-![Dream Invoice articles](docs/assets/screenshots/articles.jpg)
+![DreamInvoice articles](docs/assets/screenshots/articles.jpg)
 
 ## Features
 
@@ -42,9 +48,9 @@ All demo data is fictional. Changes are simulated and are not saved permanently.
 
 ## GoBD-Oriented Workflows
 
-Dream Invoice provides technical building blocks for traceable business workflows, including role-based access, audit logging, document history, PDF generation, and structured exports such as CSV.
+DreamInvoice provides technical building blocks for traceable business workflows, including role-based access, audit logging, document history, PDF generation, and structured exports such as CSV.
 
-GoBD readiness depends on the concrete deployment, operating procedures, retention policy, user roles, backup strategy, country-specific requirements, and tax advisor review. Dream Invoice does not claim official tax-authority certification.
+GoBD readiness depends on the concrete deployment, operating procedures, retention policy, user roles, backup strategy, country-specific requirements, and tax advisor review. DreamInvoice does not claim official tax-authority certification.
 
 ## Workspace
 
@@ -198,7 +204,7 @@ pnpm security:audit      # Run dependency audit from pnpm
 <details>
 <summary>Docker commands</summary>
 
-Start the product Docker stack manually. This pulls the published Dream Invoice image and starts Dream Invoice with PostgreSQL. Demo and landing-page services are handled by their own stack:
+Start the product Docker stack manually. This pulls the published DreamInvoice image and starts DreamInvoice with PostgreSQL. Demo and landing-page services are handled by their own stack:
 
 ```bash
 docker compose pull

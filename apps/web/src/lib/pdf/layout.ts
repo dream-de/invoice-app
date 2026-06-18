@@ -23,6 +23,7 @@ type PdfLayoutProps = {
   title: string
   number: string
   date: string
+  dueDate?: string | null
   customer: PdfCustomer | null
   company: PdfCompany
   positions: {
@@ -36,6 +37,7 @@ type PdfLayoutProps = {
   template?: DocumentTemplate | null
   paymentQrDataUrl?: string | null
   paymentNote?: string | null
+  paymentInstructions?: string | null
 }
 
 function escapeHtml(value: string | number | null | undefined) {
@@ -75,9 +77,12 @@ function replacePlaceholders(content: string | undefined, props: PdfLayoutProps)
     .replaceAll("{{gross}}", formatCurrency(props.total))
     .replaceAll("{{invoice.number}}", props.number)
     .replaceAll("{{invoice.date}}", props.date)
-    .replaceAll("{{invoice.dueDate}}", props.date)
+    .replaceAll("{{invoice.dueDate}}", props.dueDate ?? props.date)
     .replaceAll("{{invoice.servicePeriod}}", props.date)
     .replaceAll("{{invoice.serviceDate}}", props.date)
+    .replaceAll("{{invoice.paymentTerms}}", props.paymentInstructions ?? "")
+    .replaceAll("{{payment.instructions}}", props.paymentInstructions ?? "")
+    .replaceAll("{{payment.note}}", props.paymentNote ?? "")
     .replaceAll("{{client.name}}", props.customer?.name ?? "")
     .replaceAll("{{client.address}}", [props.customer?.name, props.customer?.street, [props.customer?.zip, props.customer?.city].filter(Boolean).join(" "), props.customer?.country].filter(Boolean).join("\n"))
     .replaceAll("{{client.email}}", "")
@@ -209,6 +214,8 @@ function renderFallback(props: PdfLayoutProps) {
           <p class="eyebrow">Direkt bezahlen</p>
           <h2>SEPA QR-Code</h2>
           <p class="muted">Mit der Banking-App scannen. Empfänger, IBAN, Betrag und Verwendungszweck werden vorausgefüllt.</p>
+          ${props.paymentInstructions ? `<p class="muted"><strong>Zahlungshinweis:</strong><br />${escapeHtml(props.paymentInstructions)}</p>` : ""}
+          ${props.paymentNote ? `<p class="muted"><strong>Verwendungszweck:</strong><br />${escapeHtml(props.paymentNote)}</p>` : ""}
         </div>
         <img class="qr" src="${props.paymentQrDataUrl}" alt="SEPA QR-Code" />
       </section>

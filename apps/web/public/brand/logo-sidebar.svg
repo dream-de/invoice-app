@@ -1,0 +1,22 @@
+<svg width="360" height="92" viewBox="0 0 360 92" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="DreamInvoice SMART SIMPLE SECURE">
+
+  <defs>
+    <linearGradient id="brandMark" x1="18" y1="14" x2="110" y2="110" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#123f78"/>
+      <stop offset="0.52" stop-color="#6d28d9"/>
+      <stop offset="1" stop-color="#14b8a6"/>
+    </linearGradient>
+    <linearGradient id="brandWord" x1="140" y1="34" x2="360" y2="86" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0f172a"/>
+      <stop offset="1" stop-color="#1e293b"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="352" height="84" rx="24" fill="#ffffff" stroke="#dbe4f0"/>
+  <rect x="16" y="12" width="68" height="68" rx="20" fill="url(#brandMark)"/>
+  <text x="36" y="59" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="38" font-weight="900">D</text>
+  <rect x="61" y="32" width="14" height="3.5" rx="1.75" fill="#ffffff"/>
+  <rect x="61" y="42" width="12" height="3.5" rx="1.75" fill="#ffffff" opacity="0.92"/>
+  <rect x="61" y="52" width="16" height="3.5" rx="1.75" fill="#ffffff" opacity="0.84"/>
+  <text x="98" y="44" fill="url(#brandWord)" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="800">DreamInvoice</text>
+  <text x="98" y="64" fill="#64748b" font-family="Arial, Helvetica, sans-serif" font-size="9.5" font-weight="700" letter-spacing="0.22em">SMART • SIMPLE • SECURE</text>
+</svg>

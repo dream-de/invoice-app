@@ -77,6 +77,9 @@ export async function GET() {
       orderBy: { issueDate: "desc" },
       include: {
         customer: true,
+        project: true,
+        paymentLinks: true,
+        payments: true,
         positions: {
           orderBy: { sortOrder: "asc" }
         }
@@ -103,10 +106,34 @@ export async function GET() {
         dueDate: inv.dueDate,
         createdAt: inv.createdAt,
         status: inv.status,
+        paidAt: inv.paidAt,
+        paymentMethod: inv.paymentMethod,
+        bankTransactionId: inv.bankTransactionId,
+        matchedBy: inv.matchedBy,
+        bankMatch: inv.bankTransactionId ? {
+          label: "Bezahlt durch Bankabgleich",
+          date: inv.paidAt,
+          bankTransactionId: inv.bankTransactionId,
+          matchedBy: inv.matchedBy
+        } : null,
         customer: inv.customer?.name ?? "Unbekannt",
+        projectId: inv.projectId,
+        project: inv.project?.name ?? null,
         netTotal,
         vatTotal,
-        grossTotal
+        grossTotal,
+        paymentLinks: inv.paymentLinks.map((link) => ({
+          provider: link.provider,
+          status: link.status,
+          checkoutUrl: link.checkoutUrl,
+          providerPaymentId: link.providerPaymentId
+        })),
+        payments: inv.payments.map((payment) => ({
+          provider: payment.provider,
+          status: payment.status,
+          method: payment.method,
+          paidAt: payment.paidAt
+        }))
       }
     })
 

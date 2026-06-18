@@ -1,0 +1,19 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="DreamInvoice app icon">
+  <defs>
+    <linearGradient id="appBg" x1="64" y1="56" x2="448" y2="452" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#101827"/>
+      <stop offset="0.48" stop-color="#6d28d9"/>
+      <stop offset="1" stop-color="#14b8a6"/>
+    </linearGradient>
+    <linearGradient id="appGlow" x1="124" y1="96" x2="388" y2="388" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.16"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.04"/>
+    </linearGradient>
+  </defs>
+  <rect x="48" y="48" width="416" height="416" rx="104" fill="url(#appBg)"/>
+  <rect x="96" y="96" width="320" height="320" rx="84" fill="url(#appGlow)"/>
+  <text x="144" y="312" fill="#ffffff" font-family="Arial, Helvetica, sans-serif" font-size="172" font-weight="900">D</text>
+  <rect x="286" y="176" width="58" height="14" rx="7" fill="#ffffff"/>
+  <rect x="286" y="208" width="50" height="14" rx="7" fill="#ffffff" opacity="0.92"/>
+  <rect x="286" y="240" width="66" height="14" rx="7" fill="#ffffff" opacity="0.84"/>
+</svg>

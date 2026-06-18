@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
+import { AuthServiceError, mapAuthError, requireCurrentUser } from "@/lib/auth/service"
+import { hasUserPermission } from "@/lib/auth/permissions"
 import { demoModeResponse, isDemoMode } from "@/lib/demo-mode"
 
 function demoCustomerFromData(data: Record<string, unknown>) {
@@ -20,6 +22,15 @@ function demoCustomerFromData(data: Record<string, unknown>) {
   }
 }
 
+async function requireCustomerEditPermission() {
+  const user = await requireCurrentUser()
+  if (!hasUserPermission(user, "customers", "edit")) {
+    throw new AuthServiceError("forbidden", "Keine Berechtigung fuer diese Kundenaktion.", 403)
+  }
+
+  return user
+}
+
 export async function POST(req: Request) {
   try {
     const data = await req.json()
@@ -37,6 +48,8 @@ export async function POST(req: Request) {
         customer: demoCustomerFromData(data)
       }))
     }
+
+    await requireCustomerEditPermission()
 
     const requestedNumber = data.number?.trim()
     let number = requestedNumber
@@ -69,6 +82,14 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ ok: true, customer })
   } catch (error: any) {
+    if (error instanceof AuthServiceError) {
+      const mapped = mapAuthError(error)
+      return NextResponse.json(
+        { ok: false, error: mapped.error, code: mapped.code },
+        { status: mapped.status }
+      )
+    }
+
     if (error?.code === "P2002") {
       return NextResponse.json(
         { error: "Kundennummer existiert bereits." },

@@ -1,16 +1,18 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { type FormEvent, type PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
+import { createPortal } from "react-dom"
 import QRCode from "qrcode"
 import {
   ArrowLeft,
   Download,
-  Eye,
   GripVertical,
   Mail,
   MoreHorizontal,
+  Pencil,
   Plus,
+  Printer,
   Save,
   Trash2
 } from "lucide-react"
@@ -20,17 +22,48 @@ type TaxRate = {
   id: string
   label: string
   rate: number
+  locked?: boolean
 }
 
 type InvoiceItem = {
   id: string
+  articleId?: string
   description: string
-  quantity: number
-  price: number
+  quantity: string
+  unit: string
+  price: string
   taxRateId: string
+  customTaxRate?: string
+}
+
+type InvoiceTemplate = "classic" | "modern"
+
+type CustomerRecord = {
+  id: string
+  number: string
+  name: string
+  email?: string | null
+  phone?: string | null
+  street?: string | null
+  zip?: string | null
+  city?: string | null
+  country?: string | null
+  status?: string | null
+}
+
+type ArticleRecord = {
+  id: string
+  code?: string | null
+  name: string
+  description?: string | null
+  unit?: string | null
+  price?: number | string | null
+  tax?: number | string | null
+  active?: boolean | null
 }
 
 type InvoiceState = {
+  customerId: string
   customer: string
   customerAddress: string
   customerEmail: string
@@ -42,6 +75,7 @@ type InvoiceState = {
   subject: string
   paymentTerms: string
   paymentMethod: string
+  status: string
   note: string
 }
 
@@ -52,17 +86,74 @@ type TaxSummary = {
   tax: number
 }
 
-const initialTaxRates: TaxRate[] = [
-  { id: "tax-19", label: "19% MwSt", rate: 19 },
-  { id: "tax-7", label: "7% MwSt", rate: 7 },
-  { id: "tax-0", label: "0% steuerfrei", rate: 0 }
-]
+type PersistedInvoice = {
+  id: string
+  number?: string
+}
 
-const today = new Date().toISOString().slice(0, 10)
-const due = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
-const creditorName = "DreamInvoice GmbH"
-const creditorIban = "DE97441523700000069757"
-const creditorBic = "WELADED1LUN"
+type CompanySettings = {
+  company?: string | null
+  bankName?: string | null
+  iban?: string | null
+  bic?: string | null
+  defaultPaymentTermsDays?: number | null
+  defaultPaymentNote?: string | null
+}
+
+type EmailSettings = {
+  provider?: "disabled" | "smtp" | "resend" | null
+  fromEmail?: string | null
+  smtpHost?: string | null
+  resendApiKey?: string | null
+}
+
+const initialTaxRates: TaxRate[] = [
+  { id: "tax-19", label: "19% MwSt", rate: 19, locked: true },
+  { id: "tax-7", label: "7% MwSt", rate: 7, locked: true },
+  { id: "tax-0", label: "0% steuerfrei", rate: 0, locked: true }
+]
+const customTaxRateId = "custom"
+
+const defaultIssueDate = "2026-06-13"
+const defaultPaymentTermsDays = 14
+const defaultDueDate = addDays(defaultIssueDate, defaultPaymentTermsDays)
+const fallbackCreditorName = "DreamInvoice GmbH"
+const fallbackCreditorIban = "DE97441523700000069757"
+const fallbackCreditorBic = "WELADED1LUN"
+const fallbackCreditorBankName = "Manuelle Bankdaten"
+const fallbackPaymentNote = "Bitte ueberweisen Sie den Betrag innerhalb von 14 Tagen."
+const noteTemplates = [
+  {
+    id: "standard",
+    label: "Standard",
+    text: "Vielen Dank fuer Ihren Auftrag. Bei Fragen kontaktieren Sie uns gerne."
+  },
+  {
+    id: "freundlich",
+    label: "Freundlich",
+    text: "Vielen Dank fuer Ihr Vertrauen. Bitte ueberweisen Sie den Rechnungsbetrag fristgerecht. Fuer Rueckfragen sind wir jederzeit gerne erreichbar."
+  },
+  {
+    id: "modern",
+    label: "Modern",
+    text: "Danke fuer die gute Zusammenarbeit. Bitte geben Sie bei der Ueberweisung die Rechnungsnummer an."
+  },
+  {
+    id: "vorkasse",
+    label: "Vorkasse",
+    text: "Diese Rechnung ist als Vorkasse gestellt. Bitte ueberweisen Sie den Betrag vor Leistungsbeginn unter Angabe der Rechnungsnummer."
+  },
+  {
+    id: "bankueberweisung",
+    label: "Bankueberweisung",
+    text: "Bitte ueberweisen Sie den offenen Betrag auf das angegebene Geschaeftskonto. Verwendungszweck: Rechnungsnummer."
+  },
+  {
+    id: "qr-code-zahlung",
+    label: "QR-Code Zahlung",
+    text: "Sie koennen den Betrag bequem per QR-Code oder klassisch per Bankueberweisung begleichen. Bitte nutzen Sie die Rechnungsnummer als Referenz."
+  }
+] as const
 
 function euro(value: number) {
   return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(
@@ -70,13 +161,62 @@ function euro(value: number) {
   )
 }
 
-function asNumber(value: string) {
-  const parsed = Number.parseFloat(value.replace(",", "."))
+function asNumber(value: unknown) {
+  const parsed = Number.parseFloat(String(value ?? "").replace(",", "."))
   return Number.isFinite(parsed) ? parsed : 0
 }
 
+function decimalInput(value: string) {
+  return value.replace(/[^\d.,]/g, "")
+}
+
+function unitInput(value: string) {
+  return value.replace(/[^\p{L}\d ._-]/gu, "").slice(0, 12)
+}
+
+function addDays(isoDate: string, days: number) {
+  const date = new Date(`${isoDate}T00:00:00.000Z`)
+  date.setUTCDate(date.getUTCDate() + days)
+  return date.toISOString().slice(0, 10)
+}
+
+function paymentTermsText(days: number) {
+  return `Zahlbar innerhalb von ${days} Tagen ohne Abzug.`
+}
+
+function formatCustomerAddress(customer: CustomerRecord | null) {
+  if (!customer) return ""
+
+  const lines = [
+    customer.street?.trim(),
+    [customer.zip?.trim(), customer.city?.trim()].filter(Boolean).join(" "),
+    customer.country?.trim() || "Deutschland"
+  ].filter(Boolean)
+
+  return lines.join("\n")
+}
+
+function customerOptionLabel(customer: CustomerRecord) {
+  return customer.number ? `${customer.name} (${customer.number})` : customer.name
+}
+
+function articleOptionLabel(article: ArticleRecord) {
+  const code = article.code?.trim()
+  return code ? `${article.name} (${code})` : article.name
+}
+
 function itemNet(item: InvoiceItem) {
-  return Math.max(item.quantity, 0) * Math.max(item.price, 0)
+  return Math.max(asNumber(item.quantity), 0) * Math.max(asNumber(item.price), 0)
+}
+
+function resolveTaxRate(item: InvoiceItem): TaxRate {
+  if (item.taxRateId === customTaxRateId) {
+    const customRate = Math.max(asNumber(item.customTaxRate), 0)
+    const customLabel = `${customRate.toString().replace(".", ",")}% MwSt`
+    return { id: customTaxRateId, label: customLabel, rate: customRate }
+  }
+
+  return initialTaxRates.find((entry) => entry.id === item.taxRateId) ?? initialTaxRates[0]
 }
 
 function lineId(prefix: string) {
@@ -87,7 +227,7 @@ function formatEpcAmount(value: number) {
   return `EUR${Math.max(value, 0).toFixed(2)}`
 }
 
-function buildEpcQrPayload(invoiceNumber: string, amount: number) {
+function buildEpcQrPayload(invoiceNumber: string, amount: number, creditorName: string, creditorIban: string, creditorBic: string) {
   return [
     "BCD",
     "002",
@@ -105,33 +245,58 @@ function buildEpcQrPayload(invoiceNumber: string, amount: number) {
 }
 
 export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?: "light" | "dark" }) {
+  const noteFieldRef = useRef<HTMLTextAreaElement | null>(null)
+  const profileMenuRef = useRef<HTMLDivElement | null>(null)
+  const emailPanelRef = useRef<HTMLFormElement | null>(null)
+  const emailDragOffsetRef = useRef<{ x: number; y: number } | null>(null)
   const [theme] = useState(initialTheme)
+  const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null)
+  const [emailSettings, setEmailSettings] = useState<EmailSettings | null>(null)
+  const [emailSettingsLoaded, setEmailSettingsLoaded] = useState(false)
+  const [companyDefaultsApplied, setCompanyDefaultsApplied] = useState(false)
+  const [customers, setCustomers] = useState<CustomerRecord[]>([])
+  const [customersLoading, setCustomersLoading] = useState(true)
+  const [customersError, setCustomersError] = useState("")
+  const [customerLookup, setCustomerLookup] = useState("")
+  const [articles, setArticles] = useState<ArticleRecord[]>([])
+  const [articlesLoading, setArticlesLoading] = useState(true)
+  const [articlesError, setArticlesError] = useState("")
+  const [articleLookup, setArticleLookup] = useState<Record<string, string>>({})
   const [invoice, setInvoice] = useState<InvoiceState>({
+    customerId: "",
     customer: "Acme GmbH",
     customerAddress: "Musterstrasse 123\n12345 Musterstadt\nDeutschland",
     customerEmail: "info@acmegmbh.de",
     customerPhone: "+49 30 12345678",
     number: "RE-2026-0104",
-    issueDate: today,
-    dueDate: due,
+    issueDate: defaultIssueDate,
+    dueDate: defaultDueDate,
     servicePeriod: "Mai 2026",
     subject: "Website Relaunch - Erstellung und Design",
-    paymentTerms: "Zahlbar innerhalb von 14 Tagen ohne Abzug.",
+    paymentTerms: paymentTermsText(defaultPaymentTermsDays),
     paymentMethod: "Vorkasse (Ueberweisung)",
+    status: "draft",
     note: "Vielen Dank fuer Ihren Auftrag. Bei Fragen kontaktieren Sie uns gerne."
   })
-  const [taxRates, setTaxRates] = useState<TaxRate[]>(initialTaxRates)
   const [items, setItems] = useState<InvoiceItem[]>([
-    { id: "item-1", description: "Konzeption & Beratung", quantity: 10, price: 95, taxRateId: "tax-19" },
-    { id: "item-2", description: "UI/UX Design", quantity: 20, price: 85, taxRateId: "tax-19" },
-    { id: "item-3", description: "Frontend Entwicklung", quantity: 30, price: 95, taxRateId: "tax-19" },
-    { id: "item-4", description: "Projektmanagement", quantity: 5, price: 90, taxRateId: "tax-19" }
+    { id: "item-1", description: "Konzeption & Beratung", quantity: "10", unit: "Std.", price: "95", taxRateId: "tax-19" },
+    { id: "item-2", description: "UI/UX Design", quantity: "20", unit: "Std.", price: "85", taxRateId: "tax-19" },
+    { id: "item-3", description: "Frontend Entwicklung", quantity: "30", unit: "Std.", price: "95", taxRateId: "tax-19" },
+    { id: "item-4", description: "Projektmanagement", quantity: "5", unit: "Std.", price: "90", taxRateId: "tax-19" }
   ])
-  const [newTaxLabel, setNewTaxLabel] = useState("5% MwSt")
-  const [newTaxRate, setNewTaxRate] = useState("5")
+  const [invoiceTemplate, setInvoiceTemplate] = useState<InvoiceTemplate>("classic")
   const [status, setStatus] = useState("Bereit")
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null)
   const [qrCodeUrl, setQrCodeUrl] = useState("")
+  const [savedInvoiceId, setSavedInvoiceId] = useState<string | null>(null)
+  const [isWorking, setIsWorking] = useState(false)
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false)
+  const [emailOpen, setEmailOpen] = useState(false)
+  const [emailDialogPosition, setEmailDialogPosition] = useState<{ left: number; top: number } | null>(null)
+  const [emailTo, setEmailTo] = useState(invoice.customerEmail)
+  const [emailSubject, setEmailSubject] = useState(`Rechnung ${invoice.number}`)
+  const [emailMessage, setEmailMessage] = useState(`Hallo,\n\nanbei erhalten Sie die Rechnung ${invoice.number} als PDF.\n\nViele Gruesse\nDreamInvoice`)
+  const [selectedNoteTemplate, setSelectedNoteTemplate] = useState("")
 
   const totals = useMemo(() => {
     const taxMap = new Map<string, TaxSummary>()
@@ -139,7 +304,7 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
     let tax = 0
 
     for (const item of items) {
-      const rate = taxRates.find((entry) => entry.id === item.taxRateId) ?? taxRates[0]
+      const rate = resolveTaxRate(item)
       const lineNet = itemNet(item)
       const lineTax = lineNet * ((rate?.rate ?? 0) / 100)
       net += lineNet
@@ -158,9 +323,21 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
       gross: net + tax,
       taxes: Array.from(taxMap.values()).sort((a, b) => b.rate - a.rate)
     }
-  }, [items, taxRates])
+  }, [items])
 
-  const qrPayload = useMemo(() => buildEpcQrPayload(invoice.number, totals.gross), [invoice.number, totals.gross])
+  const paymentTermsDays = Math.max(1, Number(companySettings?.defaultPaymentTermsDays ?? defaultPaymentTermsDays) || defaultPaymentTermsDays)
+  const creditorName = companySettings?.company?.trim() || fallbackCreditorName
+  const creditorIban = companySettings?.iban?.trim() || fallbackCreditorIban
+  const creditorBic = companySettings?.bic?.trim() || fallbackCreditorBic
+  const creditorBankName = companySettings?.bankName?.trim() || fallbackCreditorBankName
+  const companyPaymentNote = companySettings?.defaultPaymentNote?.trim() || fallbackPaymentNote
+  const emailTransportReady = emailSettingsLoaded && Boolean(
+    emailSettings && (
+      emailSettings.provider === "smtp" && emailSettings.smtpHost?.trim() && emailSettings.fromEmail?.trim()
+        || emailSettings.provider === "resend" && emailSettings.resendApiKey?.trim() && emailSettings.fromEmail?.trim()
+    )
+  )
+  const qrPayload = useMemo(() => buildEpcQrPayload(invoice.number, totals.gross, creditorName, creditorIban, creditorBic), [invoice.number, totals.gross, creditorName, creditorIban, creditorBic])
 
   useEffect(() => {
     let cancelled = false
@@ -184,14 +361,387 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
     }
   }, [qrPayload])
 
+  useEffect(() => {
+    function handlePointerDown(event: MouseEvent) {
+      if (!profileMenuRef.current?.contains(event.target as Node)) {
+        setProfileMenuOpen(false)
+      }
+    }
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setProfileMenuOpen(false)
+      }
+    }
+
+    document.addEventListener("mousedown", handlePointerDown)
+    document.addEventListener("keydown", handleEscape)
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown)
+      document.removeEventListener("keydown", handleEscape)
+    }
+  }, [])
+
+  function clampEmailDialogPosition(left: number, top: number) {
+    if (typeof window === "undefined") return { left, top }
+    const panel = emailPanelRef.current
+    const width = panel?.offsetWidth ?? 520
+    const height = panel?.offsetHeight ?? 520
+    const padding = 24
+    const maxLeft = Math.max(padding, window.innerWidth - width - padding)
+    const maxTop = Math.max(padding, window.innerHeight - height - padding)
+
+    return {
+      left: Math.min(Math.max(padding, left), maxLeft),
+      top: Math.min(Math.max(padding, top), maxTop)
+    }
+  }
+
+  function centerEmailDialog() {
+    if (typeof window === "undefined") return
+    if (window.innerWidth <= 760) {
+      setEmailDialogPosition(null)
+      return
+    }
+
+    const panel = emailPanelRef.current
+    const width = panel?.offsetWidth ?? 520
+    const height = panel?.offsetHeight ?? 520
+    setEmailDialogPosition(
+      clampEmailDialogPosition(
+        (window.innerWidth - width) / 2,
+        (window.innerHeight - height) / 2
+      )
+    )
+  }
+
+  useEffect(() => {
+    if (!emailOpen) {
+      setEmailDialogPosition(null)
+      return
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      centerEmailDialog()
+    })
+
+    function handleResize() {
+      centerEmailDialog()
+    }
+
+    window.addEventListener("resize", handleResize)
+    return () => {
+      window.cancelAnimationFrame(frame)
+      window.removeEventListener("resize", handleResize)
+    }
+  }, [emailOpen])
+
+  function handleEmailDragStart(event: ReactPointerEvent<HTMLDivElement>) {
+    if (typeof window === "undefined" || window.innerWidth <= 760) return
+    const target = event.target as HTMLElement
+    if (target.closest("button")) return
+
+    const panel = emailPanelRef.current
+    if (!panel) return
+
+    const rect = panel.getBoundingClientRect()
+    emailDragOffsetRef.current = {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top
+    }
+
+    const handleMove = (moveEvent: PointerEvent) => {
+      const offset = emailDragOffsetRef.current
+      if (!offset) return
+      setEmailDialogPosition(
+        clampEmailDialogPosition(
+          moveEvent.clientX - offset.x,
+          moveEvent.clientY - offset.y
+        )
+      )
+    }
+
+    const handleUp = () => {
+      emailDragOffsetRef.current = null
+      window.removeEventListener("pointermove", handleMove)
+      window.removeEventListener("pointerup", handleUp)
+      window.removeEventListener("pointercancel", handleUp)
+    }
+
+    window.addEventListener("pointermove", handleMove)
+    window.addEventListener("pointerup", handleUp)
+    window.addEventListener("pointercancel", handleUp)
+  }
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadCompanySettings() {
+      try {
+        const response = await fetch("/api/settings/company", {
+          credentials: "same-origin"
+        })
+        const result = await response.json().catch(() => null)
+
+        if (!cancelled && response.ok && result?.ok && result.settings) {
+          setCompanySettings(result.settings as CompanySettings)
+        }
+      } catch {
+        // Keep local fallback values.
+      }
+    }
+
+    void loadCompanySettings()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadEmailSettings() {
+      try {
+        const response = await fetch("/api/settings/email", {
+          cache: "no-store",
+          credentials: "same-origin"
+        })
+        const result = await response.json().catch(() => null)
+
+        if (cancelled) return
+
+        if (response.ok && result?.ok && result.settings) {
+          setEmailSettings(result.settings as EmailSettings)
+        }
+      } catch {
+        // Keep transport disabled until settings are available.
+      } finally {
+        if (!cancelled) {
+          setEmailSettingsLoaded(true)
+        }
+      }
+    }
+
+    void loadEmailSettings()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!companySettings || companyDefaultsApplied) return
+
+    const nextDays = Math.max(1, Number(companySettings.defaultPaymentTermsDays ?? defaultPaymentTermsDays) || defaultPaymentTermsDays)
+    const nextTerms = paymentTermsText(nextDays)
+
+    setInvoice((current) => {
+      const stillDefault = current.dueDate === defaultDueDate && current.paymentTerms === paymentTermsText(defaultPaymentTermsDays)
+      if (!stillDefault) return current
+
+      return {
+        ...current,
+        dueDate: addDays(current.issueDate, nextDays),
+        paymentTerms: nextTerms
+      }
+    })
+
+    setCompanyDefaultsApplied(true)
+  }, [companySettings, companyDefaultsApplied])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadCustomers() {
+      setCustomersLoading(true)
+      setCustomersError("")
+
+      try {
+        const response = await fetch("/api/customers/list", { credentials: "same-origin" })
+        const result = await response.json().catch(() => null)
+        if (cancelled) return
+
+        if (!response.ok) {
+          throw new Error(result?.error || "Kunden konnten nicht geladen werden.")
+        }
+
+        const customerRows = Array.isArray(result)
+          ? result
+          : Array.isArray(result?.customers)
+            ? result.customers
+            : []
+
+        setCustomers(customerRows)
+      } catch (error) {
+        if (!cancelled) {
+          setCustomers([])
+          setCustomersError(error instanceof Error ? error.message : "Kunden konnten nicht geladen werden.")
+        }
+      } finally {
+        if (!cancelled) setCustomersLoading(false)
+      }
+    }
+
+    void loadCustomers()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadArticles() {
+      try {
+        const response = await fetch("/api/articles/list", { credentials: "include", cache: "no-store" })
+        const result = await response.json().catch(() => null)
+
+        if (!response.ok || result?.ok === false) {
+          throw new Error(result?.error || "Artikel konnten nicht geladen werden.")
+        }
+
+        const articleRows = Array.isArray(result)
+          ? result
+          : Array.isArray(result?.articles)
+            ? result.articles
+            : []
+
+        if (!cancelled) {
+          setArticles(articleRows)
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setArticles([])
+          setArticlesError(error instanceof Error ? error.message : "Artikel konnten nicht geladen werden.")
+        }
+      } finally {
+        if (!cancelled) setArticlesLoading(false)
+      }
+    }
+
+    void loadArticles()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!invoice.customerId) {
+      setCustomerLookup("")
+      return
+    }
+
+    const selectedCustomer = customers.find((entry) => entry.id === invoice.customerId)
+    if (selectedCustomer) {
+      setCustomerLookup(customerOptionLabel(selectedCustomer))
+    }
+  }, [customers, invoice.customerId])
+
   function updateInvoice(field: keyof InvoiceState, value: string) {
-    setInvoice((current) => ({ ...current, [field]: value }))
+    const customerFields = field === "customer" || field === "customerAddress" || field === "customerEmail" || field === "customerPhone"
+
+    setInvoice((current) => ({
+      ...current,
+      [field]: value,
+      ...(customerFields ? { customerId: "" } : {})
+    }))
     setStatus("Entwurf geaendert")
+  }
+
+  function applyCustomerSelection(customerId: string) {
+    const selected = customers.find((customer) => customer.id === customerId) ?? null
+
+    if (!selected) {
+      setCustomerLookup("")
+      setInvoice((current) => ({ ...current, customerId }))
+      setStatus(customerId ? "Kunde aus Auswahl uebernommen" : "Kundenauswahl zurueckgesetzt")
+      return
+    }
+
+    setInvoice((current) => ({
+      ...current,
+      customerId: selected.id,
+      customer: selected.name,
+      customerEmail: selected.email || "",
+      customerPhone: selected.phone || "",
+      customerAddress: formatCustomerAddress(selected) || current.customerAddress
+    }))
+    setCustomerLookup(customerOptionLabel(selected))
+    setStatus("Kunde " + selected.name + " uebernommen")
+  }
+
+  function handleCustomerLookup(value: string) {
+    setCustomerLookup(value)
+
+    if (!value.trim()) {
+      applyCustomerSelection("")
+      return
+    }
+
+    const selected = customers.find((customer) => customerOptionLabel(customer) === value.trim())
+    if (selected) {
+      applyCustomerSelection(selected.id)
+    }
+  }
+
+  function showMoreActions() {
+    setStatus("Weitere Rechnungsaktionen sind vorbereitet. Speichern, PDF und E-Mail sind aktiv verbunden.")
+  }
+
+  function openCustomerCreation() {
+    setStatus("Kundenanlage wird im Dashboard-v2 geoeffnet.")
+    window.location.href = "/dashboard-v2/customers?q=Kunde%20anlegen"
   }
 
   function updateItem(id: string, patch: Partial<InvoiceItem>) {
     setItems((current) => current.map((item) => item.id === id ? { ...item, ...patch } : item))
     setStatus("Live neu berechnet")
+  }
+
+  function setArticleLookupValue(itemId: string, value: string) {
+    setArticleLookup((current) => ({ ...current, [itemId]: value }))
+  }
+
+  function applyArticleSelection(itemId: string, articleId: string) {
+    const selected = articles.find((article) => article.id === articleId) ?? null
+
+    if (!selected) {
+      setArticleLookupValue(itemId, "")
+      updateItem(itemId, { articleId: undefined })
+      setStatus("Artikelauswahl zurueckgesetzt")
+      return
+    }
+
+    const taxRate = Math.max(asNumber(selected.tax), 0)
+    const standardTaxRate = initialTaxRates.find((entry) => entry.rate === taxRate)
+
+    updateItem(itemId, {
+      articleId: selected.id,
+      description: selected.description?.trim() || selected.name,
+      unit: unitInput(selected.unit || "Stk."),
+      price: String(selected.price ?? "0"),
+      taxRateId: standardTaxRate?.id ?? customTaxRateId,
+      customTaxRate: standardTaxRate ? "" : String(taxRate).replace(".", ",")
+    })
+    setArticleLookupValue(itemId, articleOptionLabel(selected))
+    setStatus("Artikel " + selected.name + " uebernommen")
+  }
+
+  function handleArticleLookup(itemId: string, value: string) {
+    setArticleLookupValue(itemId, value)
+
+    if (!value.trim()) {
+      updateItem(itemId, { articleId: undefined })
+      return
+    }
+
+    const selected = articles.find((article) => articleOptionLabel(article) === value.trim())
+    if (selected) {
+      applyArticleSelection(itemId, selected.id)
+    }
   }
 
   function addItem() {
@@ -200,9 +750,10 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
       {
         id: lineId("item"),
         description: "Neue Position",
-        quantity: 1,
-        price: 0,
-        taxRateId: taxRates[0]?.id ?? "tax-19"
+        quantity: "1",
+        unit: "Stk.",
+        price: "0",
+        taxRateId: initialTaxRates[0]?.id ?? "tax-19"
       }
     ])
     setStatus("Position hinzugefuegt")
@@ -229,28 +780,337 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
     setStatus("Positionen sortiert")
   }
 
-  function addTaxRate() {
-    const rate = asNumber(newTaxRate)
-    const label = newTaxLabel.trim() || `${rate}% MwSt`
-    const nextRate = { id: lineId("tax"), label, rate }
-    setTaxRates((current) => [...current, nextRate])
-    setNewTaxLabel("")
-    setNewTaxRate("")
-    setStatus(`${label} wurde angelegt`)
+  function invoiceFileName(number: string) {
+    return `${number.trim().replace(/[^A-Za-z0-9_.-]+/g, "-") || "rechnung"}.pdf`
   }
 
-  function saveDraft() {
-    window.localStorage.setItem("dream-invoice-premium-draft", JSON.stringify({ invoice, items, taxRates }))
-    setStatus("Entwurf lokal gespeichert")
+  function localDraftPayload() {
+    return { invoice, items, savedInvoiceId }
   }
 
-  function previewPdf() {
-    setStatus("PDF-Vorschau im Druckdialog bereit")
-    window.setTimeout(() => window.print(), 80)
+  function setItemTaxRate(itemId: string, value: string) {
+    if (value === customTaxRateId) {
+      setItems((current) => current.map((item) => item.id === itemId ? { ...item, taxRateId: customTaxRateId, customTaxRate: item.customTaxRate || "" } : item))
+      setStatus("Benutzerdefinierte MwSt aktiviert")
+      return
+    }
+
+    setItems((current) => current.map((item) => item.id === itemId ? { ...item, taxRateId: value, customTaxRate: "" } : item))
+    const nextRate = initialTaxRates.find((entry) => entry.id === value)
+    setStatus(`${nextRate?.label || "MwSt"} uebernommen`)
+  }
+
+  function updateCustomTaxRate(itemId: string, value: string) {
+    setItems((current) => current.map((item) => item.id === itemId ? { ...item, taxRateId: customTaxRateId, customTaxRate: decimalInput(value) } : item))
+    setStatus("Benutzerdefinierte MwSt aktualisiert")
+  }
+
+  function focusNoteField() {
+    noteFieldRef.current?.focus()
+    noteFieldRef.current?.setSelectionRange(noteFieldRef.current.value.length, noteFieldRef.current.value.length)
+    setStatus("Notizfeld aktiv")
+  }
+
+  function clearNoteField() {
+    updateInvoice("note", "")
+    setSelectedNoteTemplate("")
+    setStatus("Notiztext geleert")
+  }
+
+  function applyNoteTemplate(templateId: string) {
+    setSelectedNoteTemplate(templateId)
+
+    if (!templateId) {
+      setStatus("Notizvorlage zurueckgesetzt")
+      return
+    }
+
+    const template = noteTemplates.find((entry) => entry.id === templateId)
+    if (!template) return
+
+    updateInvoice("note", template.text)
+    setStatus(`Notizvorlage ${template.label} uebernommen`)
+  }
+
+  function previewPdfPayload() {
+    return {
+      template: invoiceTemplate,
+      customer: invoice.customer,
+      customerAddress: invoice.customerAddress,
+      number: invoice.number,
+      issueDate: invoice.issueDate,
+      dueDate: invoice.dueDate,
+      servicePeriod: invoice.servicePeriod,
+      subject: invoice.subject,
+      paymentTerms: invoice.paymentTerms,
+      paymentMethod: invoice.paymentMethod,
+      paymentInstructions: companyPaymentNote,
+      companyName: creditorName,
+      companyBankName: creditorBankName,
+      companyIban: creditorIban,
+      companyBic: creditorBic,
+      note: invoice.note,
+      status: invoice.status,
+      customerId: invoice.customerId || undefined,
+      items: items.map((item) => {
+        const rate = resolveTaxRate(item)
+
+        return {
+          description: item.description,
+          quantity: asNumber(item.quantity),
+          unit: item.unit.trim() || "Std.",
+          price: asNumber(item.price),
+          vatRate: rate?.rate ?? 0
+        }
+      })
+    }
+  }
+
+  function saveLocalDraft(nextSavedInvoiceId = savedInvoiceId, nextNumber = invoice.number) {
+    window.localStorage.setItem(
+      "dream-invoice-premium-draft",
+      JSON.stringify({
+        invoice: { ...invoice, number: nextNumber },
+        items,
+        savedInvoiceId: nextSavedInvoiceId
+      })
+    )
+  }
+
+  function invoicePayload() {
+    return {
+      number: invoice.number,
+      date: invoice.issueDate,
+      dueDate: invoice.dueDate,
+      note: invoice.note,
+      customerId: invoice.customerId || undefined,
+      customerName: invoice.customer,
+      customerEmail: invoice.customerEmail,
+      customerAddress: invoice.customerAddress,
+      status: invoice.status,
+      taxRate: 0.19,
+      tip: 0,
+      items: items.map((item) => {
+        const rate = resolveTaxRate(item)
+        return {
+          name: item.description,
+          quantity: asNumber(item.quantity),
+          price: asNumber(item.price),
+          category: invoice.subject,
+          vatRate: rate?.rate ?? 0
+        }
+      })
+    }
+  }
+
+  async function persistInvoice() {
+    const response = await fetch(savedInvoiceId ? `/api/invoice/update/${savedInvoiceId}` : "/api/invoice/create", {
+      method: savedInvoiceId ? "PUT" : "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify(invoicePayload())
+    })
+    const result = await response.json().catch(() => null)
+
+    if (!response.ok || !result?.invoice?.id) {
+      throw new Error(result?.error || "Rechnung konnte nicht gespeichert werden.")
+    }
+
+    const persisted = result.invoice as PersistedInvoice
+    setSavedInvoiceId(persisted.id)
+    if (persisted.number && persisted.number !== invoice.number) {
+      setInvoice((current) => ({ ...current, number: persisted.number || current.number }))
+    }
+    saveLocalDraft(persisted.id, persisted.number || invoice.number)
+
+    return persisted
+  }
+
+  async function fetchPreviewPdfBlob() {
+    const response = await fetch("/api/invoice/preview-pdf", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      cache: "no-store",
+      body: JSON.stringify(previewPdfPayload())
+    })
+
+    if (!response.ok) {
+      throw new Error("PDF konnte nicht erstellt werden.")
+    }
+
+    return response.blob()
+  }
+
+  function printPdfBlob(blob: Blob) {
+    const url = URL.createObjectURL(blob)
+    const frame = document.createElement("iframe")
+    frame.style.position = "fixed"
+    frame.style.right = "0"
+    frame.style.bottom = "0"
+    frame.style.width = "0"
+    frame.style.height = "0"
+    frame.style.border = "0"
+    frame.src = url
+    frame.onload = () => {
+      frame.contentWindow?.focus()
+      frame.contentWindow?.print()
+      window.setTimeout(() => {
+        frame.remove()
+        URL.revokeObjectURL(url)
+      }, 30_000)
+    }
+    document.body.append(frame)
+  }
+
+  function printLocalInvoiceDocument(statusMessage: string) {
+    const preview = document.querySelector(`.${styles.invoicePreview}`)
+    if (!preview) {
+      window.print()
+      setStatus(statusMessage)
+      return
+    }
+
+    const frame = document.createElement("iframe")
+    frame.style.position = "fixed"
+    frame.style.right = "0"
+    frame.style.bottom = "0"
+    frame.style.width = "0"
+    frame.style.height = "0"
+    frame.style.border = "0"
+    document.body.append(frame)
+
+    const frameDocument = frame.contentDocument
+    if (!frameDocument) {
+      frame.remove()
+      window.print()
+      setStatus(statusMessage)
+      return
+    }
+
+    const stylesheets = Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+      .map((node) => node.outerHTML)
+      .join("\n")
+
+    frameDocument.open()
+    frameDocument.write(`<!doctype html>
+      <html>
+        <head>
+          <base href="${window.location.origin}">
+          <title>${invoiceFileName(invoice.number)}</title>
+          ${stylesheets}
+        </head>
+        <body>
+          <main class="${styles.page}">
+            <section class="${styles.editorGrid}">
+              <aside class="${styles.previewColumn}">
+                ${preview.outerHTML}
+              </aside>
+            </section>
+          </main>
+        </body>
+      </html>`)
+    frameDocument.close()
+
+    frame.onload = () => {
+      frame.contentWindow?.focus()
+      frame.contentWindow?.print()
+      window.setTimeout(() => frame.remove(), 30_000)
+    }
+    setStatus(statusMessage)
+  }
+
+  async function saveDraft() {
+    setIsWorking(true)
+    setStatus("Rechnung wird gespeichert...")
+    try {
+      const persisted = await persistInvoice()
+      setStatus(`Rechnung gespeichert: ${persisted.number || invoice.number}`)
+    } catch (error) {
+      window.localStorage.setItem("dream-invoice-premium-draft", JSON.stringify(localDraftPayload()))
+      setStatus("Entwurf wurde lokal gespeichert.")
+    } finally {
+      setIsWorking(false)
+    }
+  }
+
+  async function previewPdf() {
+    setIsWorking(true)
+    setStatus("PDF wird vorbereitet...")
+    try {
+      const blob = await fetchPreviewPdfBlob()
+      printPdfBlob(blob)
+      setStatus("PDF-Druckdialog bereit.")
+    } catch {
+      window.localStorage.setItem("dream-invoice-premium-draft", JSON.stringify(localDraftPayload()))
+      printLocalInvoiceDocument("Lokaler PDF-Druckdialog ist bereit.")
+    } finally {
+      setIsWorking(false)
+    }
+  }
+
+  async function downloadPdf() {
+    setIsWorking(true)
+    setStatus("PDF wird erstellt...")
+    try {
+      const blob = await fetchPreviewPdfBlob()
+      const url = URL.createObjectURL(blob)
+      const anchor = document.createElement("a")
+      anchor.href = url
+      anchor.download = invoiceFileName(invoice.number)
+      document.body.append(anchor)
+      anchor.click()
+      anchor.remove()
+      URL.revokeObjectURL(url)
+      setStatus(`PDF heruntergeladen: ${invoiceFileName(invoice.number)}`)
+    } catch {
+      window.localStorage.setItem("dream-invoice-premium-draft", JSON.stringify(localDraftPayload()))
+      printLocalInvoiceDocument("Im Druckdialog als PDF speichern.")
+    } finally {
+      setIsWorking(false)
+    }
   }
 
   function sendEmail() {
-    setStatus(`E-Mail Versand fuer ${invoice.customer || "Kunde"} vorbereitet`)
+    setEmailTo(invoice.customerEmail)
+    setEmailSubject(`Rechnung ${invoice.number}`)
+    setEmailMessage(`Hallo,\n\nanbei erhalten Sie die Rechnung ${invoice.number} als PDF.\n\nViele Gruesse\nDreamInvoice`)
+    setEmailOpen(true)
+    setStatus(emailTransportReady ? "Empfaenger-E-Mail eintragen und Versand starten." : "SMTP-Konfiguration fehlt noch. E-Mail-Maske ist vorbereitet.")
+  }
+
+  async function submitEmail(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setIsWorking(true)
+    setStatus("Rechnung wird gespeichert und per E-Mail versendet...")
+
+    try {
+      const persisted = await persistInvoice()
+      const response = await fetch(`/api/invoice/send/${persisted.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          to: emailTo,
+          subject: emailSubject,
+          message: emailMessage
+        })
+      })
+      const result = await response.json().catch(() => null)
+
+      if (!response.ok || !result?.ok) {
+        throw new Error(result?.error || "E-Mail konnte nicht gesendet werden.")
+      }
+
+      setEmailOpen(false)
+      setStatus(`E-Mail gesendet an ${emailTo}`)
+    } catch (error) {
+      window.localStorage.setItem("dream-invoice-premium-draft", JSON.stringify(localDraftPayload()))
+      const message = error instanceof Error ? error.message : "E-Mail konnte nicht gesendet werden."
+      setStatus(message)
+    } finally {
+      setIsWorking(false)
+    }
   }
 
   return (
@@ -297,29 +1157,156 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
             <h1>Rechnung erstellen</h1>
             <span>Entwurf</span>
           </div>
-          <div className={styles.topMeta}><Eye size={18} /><Mail size={18} /><span>D</span><strong>Daniel</strong></div>
+          <div ref={profileMenuRef} className={styles.topMetaWrap}>
+            <button
+              type="button"
+              className={styles.topMetaButton}
+              aria-label="Profil öffnen"
+              aria-haspopup="menu"
+              aria-expanded={profileMenuOpen}
+              onClick={() => setProfileMenuOpen((open) => !open)}
+            >
+              <span>A</span>
+              <strong>Administrator</strong>
+            </button>
+            {profileMenuOpen ? (
+              <div className={styles.topMetaMenu} aria-label="Profilmenü">
+                <Link href="/dashboard-v2/account/security" className={styles.topMetaMenuLink} onClick={() => setProfileMenuOpen(false)}>
+                  Konto &amp; Sicherheit
+                </Link>
+              </div>
+            ) : null}
+          </div>
         </header>
         <div className={styles.actionBar}>
           <div className={styles.toolbarActions}>
-            <button type="button" onClick={saveDraft}><Save size={16} />Entwurf speichern</button>
-            <button type="button" onClick={previewPdf}><Eye size={16} />PDF ansehen</button>
-            <button type="button" onClick={previewPdf}><Download size={16} />PDF herunterladen</button>
-            <button type="button" onClick={sendEmail}><Mail size={16} />Per E-Mail senden</button>
-            <button type="button" aria-label="Mehr"><MoreHorizontal size={16} /></button>
+            <button
+              type="button"
+              className={`${styles.primaryAction} ${styles.iconOnlyAction}`}
+              disabled={isWorking}
+              onClick={saveDraft}
+              title="Speichern"
+              aria-label="Speichern"
+            >
+              <Save size={16} />
+            </button>
+            <button
+              type="button"
+              className={styles.iconOnlyAction}
+              disabled={isWorking}
+              onClick={previewPdf}
+              title="Drucken"
+              aria-label="Drucken"
+            >
+              <Printer size={16} />
+            </button>
+            <button
+              type="button"
+              className={styles.iconOnlyAction}
+              disabled={isWorking}
+              onClick={downloadPdf}
+              title="PDF herunterladen"
+              aria-label="PDF herunterladen"
+            >
+              <Download size={16} />
+            </button>
+            <button
+              type="button"
+              className={styles.iconOnlyAction}
+              disabled={isWorking}
+              onClick={sendEmail}
+              title="Per E-Mail senden"
+              aria-label="Per E-Mail senden"
+            >
+              <Mail size={16} />
+            </button>
+            <button
+              type="button"
+              className={styles.iconOnlyAction}
+              aria-label="Weitere Aktionen"
+              title="Weitere Aktionen"
+              onClick={showMoreActions}
+            >
+              <MoreHorizontal size={16} />
+            </button>
           </div>
         </div>
+        {!emailTransportReady ? (
+          <p style={{ marginTop: 10, color: "#64748b", fontSize: 12, fontWeight: 600 }}>
+            E-Mail-Versand ist erst nach SMTP-Konfiguration aktiv.
+          </p>
+        ) : null}
+        {emailOpen && typeof window !== "undefined"
+          ? createPortal(
+            <div className={styles.emailOverlay} role="dialog" aria-modal="true" aria-labelledby="invoice-email-title">
+              <form
+                ref={emailPanelRef}
+                className={styles.emailPanel}
+                onSubmit={submitEmail}
+                style={emailDialogPosition ? { left: `${emailDialogPosition.left}px`, top: `${emailDialogPosition.top}px` } : undefined}
+              >
+                <div className={styles.emailHead} onPointerDown={handleEmailDragStart}>
+                  <div>
+                    <span>E-Mail Versand</span>
+                    <h2 id="invoice-email-title">Rechnung als PDF senden</h2>
+                  </div>
+                  <button type="button" disabled={isWorking} onClick={() => setEmailOpen(false)}>Schliessen</button>
+                </div>
+                <label>
+                  Empfaenger
+                  <input type="email" value={emailTo} onChange={(event) => setEmailTo(event.target.value)} placeholder="kunde@example.de" required />
+                </label>
+                <label>
+                  Betreff
+                  <input value={emailSubject} onChange={(event) => setEmailSubject(event.target.value)} required />
+                </label>
+                <label>
+                  Nachricht
+                  <textarea rows={5} value={emailMessage} onChange={(event) => setEmailMessage(event.target.value)} />
+                </label>
+                {!emailTransportReady ? (
+                  <p style={{ margin: 0, color: "#64748b", fontSize: 12, fontWeight: 600 }}>
+                    SMTP ist noch nicht konfiguriert. Die Eingabemaske bleibt verfuegbar, der Versand selbst wird erst nach Konfiguration aktiv.
+                  </p>
+                ) : null}
+                <div className={styles.emailActions}>
+                  <button type="button" disabled={isWorking} onClick={() => setEmailOpen(false)}>Abbrechen</button>
+                  <button type="submit" disabled={isWorking || !emailTransportReady} title={emailTransportReady ? "PDF senden" : "SMTP zuerst konfigurieren"}><Mail size={16} />PDF senden</button>
+                </div>
+              </form>
+            </div>,
+            document.body
+          )
+          : null}
 
         <section className={styles.editorGrid}>
           <div className={styles.formColumn}>
             <section className={styles.panel} id="kunde">
               <div className={styles.panelHead}>
                 <h2>Kunde</h2>
-                <button type="button"><Plus size={15} />Neuen Kunden anlegen</button>
+                <button type="button" onClick={openCustomerCreation}><Plus size={15} />Neuen Kunden anlegen</button>
               </div>
-              <label>Kunde<input value={invoice.customer} onChange={(event) => updateInvoice("customer", event.target.value)} /></label>
-              <div className={styles.customerGrid}>
-                <p><strong>{invoice.customer}</strong><span>{invoice.customerAddress}</span></p>
-                <p><strong>E-Mail</strong><span>{invoice.customerEmail}</span><strong>Telefon</strong><span>{invoice.customerPhone}</span></p>
+              <label>Kunde suchen oder manuell erfassen
+                <input
+                  list="invoice-customer-options"
+                  value={customerLookup}
+                  onChange={(event) => handleCustomerLookup(event.target.value)}
+                  placeholder="Kunde suchen ..."
+                  disabled={customersLoading && customers.length === 0}
+                />
+              </label>
+              <datalist id="invoice-customer-options">
+                {customers.map((customer) => <option key={customer.id} value={customerOptionLabel(customer)} />)}
+              </datalist>
+              {customersLoading ? <p>Kunden werden geladen...</p> : customersError ? <p>{customersError} Manuelle Eingabe bleibt aktiv.</p> : customers.length === 0 ? <p>Keine Kunden vorhanden. Manuelle Eingabe bleibt aktiv.</p> : null}
+              {!customersLoading && customers.length > 0 ? <p className={styles.lookupHint}>Auswahl uebernimmt Firmenname, Adresse, E-Mail und Telefon automatisch. Manuelle Eingabe bleibt jederzeit moeglich.</p> : null}
+              <div className={styles.formGridTwo}>
+                <label>Kundenname<input value={invoice.customer} onChange={(event) => updateInvoice("customer", event.target.value)} /></label>
+                <label>E-Mail<input type="email" value={invoice.customerEmail} onChange={(event) => updateInvoice("customerEmail", event.target.value)} /></label>
+              </div>
+              <div className={styles.customerContactGrid}>
+                <label>Telefon<input value={invoice.customerPhone} onChange={(event) => updateInvoice("customerPhone", event.target.value)} /></label>
+                <label>Adresse<textarea rows={3} value={invoice.customerAddress} onChange={(event) => updateInvoice("customerAddress", event.target.value)} /></label>
               </div>
             </section>
 
@@ -342,57 +1329,167 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
             <section className={styles.panel} id="positionen">
               <div className={styles.panelHead}>
                 <h2>Positionen</h2>
-                <button type="button" onClick={addItem}><Plus size={15} />Position</button>
-              </div>
-              <div className={styles.itemTable}>
-                <div className={styles.itemHeader}>
-                  <span /><span>Beschreibung</span><span>Menge</span><span>Preis (netto)</span><span>MwSt.</span><span>Gesamt (netto)</span><span />
+                <div className={styles.panelHeadActions}>
+                  <Link href="/dashboard-v2/articles"><Plus size={15} />Artikel</Link>
+                  <button type="button" onClick={addItem}><Plus size={15} />Position hinzufügen</button>
                 </div>
+              </div>
+              <div className={styles.itemCards}>
                 {items.map((item) => {
-                  const rate = taxRates.find((entry) => entry.id === item.taxRateId) ?? taxRates[0]
+                  const rate = resolveTaxRate(item)
                   const net = itemNet(item)
                   return (
-                    <div className={styles.itemRow} key={item.id} draggable onDragStart={() => setDraggedItemId(item.id)} onDragOver={(event) => event.preventDefault()} onDrop={() => moveItem(item.id)} onDragEnd={() => setDraggedItemId(null)}>
-                      <span className={styles.dragHandle} title="Position ziehen"><GripVertical size={16} /></span>
-                      <input value={item.description} onChange={(event) => updateItem(item.id, { description: event.target.value })} />
-                      <div className={styles.quantityCell}><input value={String(item.quantity)} inputMode="decimal" onChange={(event) => updateItem(item.id, { quantity: asNumber(event.target.value) })} /><span>Std.</span></div>
-                      <input value={String(item.price)} inputMode="decimal" onChange={(event) => updateItem(item.id, { price: asNumber(event.target.value) })} />
-                      <select value={item.taxRateId} onChange={(event) => updateItem(item.id, { taxRateId: event.target.value })}>
-                        {taxRates.map((taxRate) => <option key={taxRate.id} value={taxRate.id}>{taxRate.label}</option>)}
-                      </select>
-                      <strong>{euro(net)}</strong>
-                      <button type="button" aria-label="Position entfernen" onClick={() => removeItem(item.id)}><Trash2 size={15} /></button>
+                    <div className={styles.itemCard} key={item.id} draggable onDragStart={() => setDraggedItemId(item.id)} onDragOver={(event) => event.preventDefault()} onDrop={() => moveItem(item.id)} onDragEnd={() => setDraggedItemId(null)}>
+                      <div className={styles.itemCardTop}>
+                        <span className={styles.dragHandle} title="Position ziehen"><GripVertical size={16} /></span>
+                        <div className={styles.itemMainFields}>
+                          <label className={styles.itemLookupField}>
+                            <span>Artikel suchen</span>
+                            <input
+                              aria-label="Artikel suchen"
+                              list={`invoice-article-options-${item.id}`}
+                              value={articleLookup[item.id] ?? ""}
+                              onChange={(event) => handleArticleLookup(item.id, event.target.value)}
+                              placeholder="Artikel waehlen ..."
+                              disabled={articlesLoading && articles.length === 0}
+                            />
+                            <datalist id={`invoice-article-options-${item.id}`}>
+                              {articles.map((article) => <option key={article.id} value={articleOptionLabel(article)} />)}
+                            </datalist>
+                          </label>
+                          <label className={styles.itemDescriptionField}>
+                            <span>Beschreibung</span>
+                            <input
+                              aria-label="Beschreibung"
+                              value={item.description}
+                              onChange={(event) => updateItem(item.id, { description: event.target.value })}
+                            />
+                          </label>
+                        </div>
+                        <button type="button" className={`${styles.itemDeleteButton} ${styles.itemDeleteInline}`} aria-label="Position löschen" onClick={() => removeItem(item.id)}>
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                      <div className={styles.itemCompactGrid}>
+                        <label>
+                          <span>Menge</span>
+                          <input
+                            aria-label="Menge"
+                            value={item.quantity}
+                            inputMode="decimal"
+                            onChange={(event) => updateItem(item.id, { quantity: decimalInput(event.target.value) })}
+                          />
+                        </label>
+                        <label>
+                          <span>Einheit</span>
+                          <input
+                            aria-label="Einheit"
+                            value={item.unit}
+                            onChange={(event) => updateItem(item.id, { unit: unitInput(event.target.value) })}
+                          />
+                        </label>
+                        <label>
+                          <span>Preis netto</span>
+                          <input
+                            aria-label="Preis netto"
+                            value={item.price}
+                            inputMode="decimal"
+                            onChange={(event) => updateItem(item.id, { price: decimalInput(event.target.value) })}
+                          />
+                        </label>
+                        <label>
+                          <span>MwSt.</span>
+                          {item.taxRateId === customTaxRateId ? (
+                            <div className={styles.inlineTaxEditor}>
+                              <input
+                                aria-label="Benutzerdefinierte MwSt"
+                                value={item.customTaxRate || ""}
+                                inputMode="decimal"
+                                placeholder="8,1 %"
+                                onChange={(event) => updateCustomTaxRate(item.id, event.target.value)}
+                              />
+                              <button type="button" className={styles.inlineTaxReset} onClick={() => setItemTaxRate(item.id, "tax-19")}>
+                                19%
+                              </button>
+                            </div>
+                          ) : (
+                            <select aria-label="MwSt" value={item.taxRateId} onChange={(event) => setItemTaxRate(item.id, event.target.value)}>
+                              {initialTaxRates.map((taxRate) => <option key={taxRate.id} value={taxRate.id}>{taxRate.rate}%</option>)}
+                              <option value={customTaxRateId}>Benutzerdefiniert...</option>
+                            </select>
+                          )}
+                        </label>
+                        <div className={styles.itemTotalCompact}>
+                          <span>Gesamt netto</span>
+                          <strong>{euro(net)}</strong>
+                        </div>
+                      </div>
                     </div>
                   )
                 })}
               </div>
+              {articlesLoading ? <p>Artikel werden geladen...</p> : articlesError ? <p>{articlesError} Positionen bleiben manuell bearbeitbar.</p> : null}
             </section>
 
-            <section className={styles.panel} id="steuern">
-              <div className={styles.panelHead}>
-                <h2>MwSt Saetze</h2>
-                <span>19%, 7%, 0% oder eigener Satz</span>
-              </div>
-              <div className={styles.taxGrid}>
-                {taxRates.map((taxRate) => <span key={taxRate.id}>{taxRate.label}</span>)}
-              </div>
-              <div className={styles.taxCreator}>
-                <input aria-label="Name des Steuersatzes" placeholder="Name" value={newTaxLabel} onChange={(event) => setNewTaxLabel(event.target.value)} />
-                <input aria-label="Prozent" placeholder="%" inputMode="decimal" value={newTaxRate} onChange={(event) => setNewTaxRate(event.target.value)} />
-                <button type="button" onClick={addTaxRate}><Plus size={15} />MwSt anlegen</button>
-              </div>
-            </section>
             <section className={styles.panel} id="zahlung">
               <div className={styles.panelHead}>
                 <h2>Zahlungsbedingungen</h2>
-                <span>{status}</span>
+                <span aria-live="polite" data-testid="invoice-editor-status">{status}</span>
               </div>
-              <div className={styles.formGridThree}>
-                <label>Zahlungsziel (Tage)<input value="14 Tage" readOnly /></label>
+              <div className={styles.templateSwitch} aria-label="Rechnungsvorlage">
+                <button type="button" className={invoiceTemplate === "classic" ? styles.templateActive : ""} onClick={() => setInvoiceTemplate("classic")}>Klassisch</button>
+                <button type="button" className={invoiceTemplate === "modern" ? styles.templateActive : ""} onClick={() => setInvoiceTemplate("modern")}>Modern</button>
+              </div>
+              <div className={styles.paymentGrid}>
+                <label>Zahlungsziel (Tage)<input value={`${paymentTermsDays} Tage`} readOnly /></label>
                 <label>Zahlungsbedingungen<input value={invoice.paymentTerms} onChange={(event) => updateInvoice("paymentTerms", event.target.value)} /></label>
                 <label>Zahlungsart<input value={invoice.paymentMethod} onChange={(event) => updateInvoice("paymentMethod", event.target.value)} /></label>
+                <label>Rechnungsstatus<select value={invoice.status} onChange={(event) => updateInvoice("status", event.target.value)}><option value="draft">Entwurf</option><option value="open">Offen</option><option value="paid">Bezahlt</option><option value="overdue">Ueberfaellig</option></select></label>
               </div>
-              <label>Notizen / Anmerkungen<textarea rows={3} value={invoice.note} onChange={(event) => updateInvoice("note", event.target.value)} /></label>
+              <div className={styles.notePanel}>
+                <div className={styles.notePanelHeader}>
+                  <label htmlFor="invoice-note-field">Notizen / Anmerkungen</label>
+                  <div className={styles.notePanelTools}>
+                    <select
+                      aria-label="Notizvorlage auswaehlen"
+                      className={styles.noteTemplateSelect}
+                      value={selectedNoteTemplate}
+                      onChange={(event) => applyNoteTemplate(event.target.value)}
+                    >
+                      <option value="">Vorlage auswaehlen</option>
+                      {noteTemplates.map((template) => (
+                        <option key={template.id} value={template.id}>{template.label}</option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      className={styles.noteIconButton}
+                      onClick={focusNoteField}
+                      title="Notiz bearbeiten"
+                      aria-label="Notiz bearbeiten"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.noteIconButton}
+                      onClick={clearNoteField}
+                      title="Notiz loeschen"
+                      aria-label="Notiz loeschen"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                </div>
+                <textarea
+                  id="invoice-note-field"
+                  ref={noteFieldRef}
+                  className={styles.notesField}
+                  rows={3}
+                  value={invoice.note}
+                  onChange={(event) => updateInvoice("note", event.target.value)}
+                />
+              </div>
             </section>
           </div>
 
@@ -410,8 +1507,8 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
                   <p>{invoice.customerAddress}</p>
                 </div>
                 <div className={styles.companyBlock}>
-                  <strong>DreamInvoice GmbH</strong>
-                  <span>Sonnenstrasse 25<br />80331 Muenchen<br />Deutschland</span>
+                  <span>Rechnungssteller</span>
+                  <strong>{creditorName}</strong>
                 </div>
               </div>
               <div className={styles.invoiceInfoRow}>
@@ -429,12 +1526,12 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
               <div className={styles.previewItems}>
                 <div className={styles.previewItemsHead}><span>Beschreibung</span><span>Menge</span><span>Preis (netto)</span><span>MwSt.</span><span>Gesamt (netto)</span></div>
                 {items.map((item) => {
-                  const rate = taxRates.find((entry) => entry.id === item.taxRateId) ?? taxRates[0]
+                  const rate = resolveTaxRate(item)
                   return (
                     <div key={item.id}>
                       <span>{item.description}</span>
-                      <span>{item.quantity} Std.</span>
-                      <span>{euro(item.price)}</span>
+                      <span>{asNumber(item.quantity)} {item.unit.trim() || "Std."}</span>
+                      <span>{euro(asNumber(item.price))}</span>
                       <span>{rate?.rate}%</span>
                       <b>{euro(itemNet(item))}</b>
                     </div>
@@ -450,6 +1547,8 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
                 <div>
                   <h3>Zahlungsart: {invoice.paymentMethod}</h3>
                   <p>Bitte ueberweisen Sie den offenen Betrag unter Angabe des Verwendungszwecks {invoice.number} auf unser unten angegebenes Konto.</p>
+                  <p><strong>Bankverbindung:</strong><br />{creditorName}<br />IBAN: {creditorIban}<br />BIC: {creditorBic}</p>
+                  <p><strong>Zahlungshinweis:</strong><br />{companyPaymentNote}</p>
                   <p>Sie koennen auch den QR-GiroCode auf der rechten Seite nutzen, um die Zahlung einfach und unkompliziert ueber Ihre Online-Banking-App durchzufuehren.</p>
                   <p><strong>Bitte beachten:</strong><br />Die Rechnung wird nach Zahlungseingang automatisch als bezahlt markiert.</p>
                 </div>
@@ -460,7 +1559,6 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
               </section>
               <footer>
                 <div><strong>Zahlungsbedingungen</strong><span>{invoice.paymentTerms}</span></div>
-                <div><strong>Bankverbindung</strong><span>IBAN: {creditorIban}<br />BIC: {creditorBic}</span></div>
               </footer>
               <p className={styles.thanks}>{invoice.note}</p>
               <div className={styles.documentFooter}>
@@ -472,6 +1570,9 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
             </article>
           </aside>
         </section>
+        <div className={styles.stickySaveBar}>
+          <button type="button" disabled={isWorking} onClick={saveDraft}><Save size={16} />Rechnung speichern</button>
+        </div>
       </section>
     </main>
   )

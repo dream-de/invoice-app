@@ -3,322 +3,37 @@
 import Link from "next/link"
 import type { ComponentType } from "react"
 import { useEffect, useMemo, useState } from "react"
-import { Archive, BarChart3, ClipboardList, Clock3, FileDigit, FileText, LayoutTemplate, Link2, LockKeyhole, Mail, Plug, ReceiptText, Settings2, ShieldCheck, Tags, Users2, Workflow } from "lucide-react"
+import {
+  Activity,
+  Archive,
+  BarChart3,
+  Clock3,
+  FileText,
+  Filter,
+  KeyRound,
+  Link2,
+  LockKeyhole,
+  Plug,
+  Search,
+  ShieldCheck,
+  Users2,
+  Workflow
+} from "lucide-react"
 import CompanySettingsPage from "../../settings/company/page"
 import EmailSettingsPage from "../../settings/email/page"
 import FinanceSettingsPage from "../../settings/finance/page"
 import LegalSettingsPage from "../../settings/legal/page"
-import { UsersAndPermissionsClient } from "../../settings/users/UsersAndPermissionsClient"
+import NotificationSettingsPage from "../../settings/notifications/page"
+import NumberRangesSettingsPage from "../../settings/number-ranges/page"
+import PortalSettingsPage from "../../settings/portal/page"
+import RemindersSettingsPage from "../../settings/reminders/page"
 import SystemSettingsPage from "../../settings/system/page"
-import { Field, SettingCard, SoftInput } from "../../settings/_components/SettingsControls"
+import { UsersAndPermissionsClient } from "../../settings/users/UsersAndPermissionsClient"
+import { SettingCard } from "../../settings/_components/SettingsControls"
 import { SettingsLayout } from "../../settings/_components/SettingsLayout"
 import { type PremiumSettingsSection } from "./sectionMap"
 
-function SettingsLinkGrid({
-  title,
-  description,
-  items
-}: {
-  title: string
-  description: string
-  items: Array<{ href: string; title: string; body: string; icon: typeof Settings2 }>
-}) {
-  return (
-    <SettingsLayout title={title} description={description}>
-      <div className="grid gap-4 xl:grid-cols-2">
-        {items.map((item) => {
-          const Icon = item.icon
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="block rounded-[26px] border border-[var(--settings-line)] bg-[var(--settings-surface)] p-6 no-underline shadow-[var(--settings-card-shadow)] transition hover:-translate-y-0.5 hover:border-[var(--settings-accent)]"
-            >
-              <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--settings-accent-soft)] text-[var(--settings-accent)]">
-                  <Icon className="h-5 w-5" />
-                </div>
-                <div>
-                  <strong className="block text-base font-extrabold text-[var(--settings-title)]">{item.title}</strong>
-                  <p className="mt-2 text-sm font-medium leading-6 text-[var(--settings-muted)]">{item.body}</p>
-                </div>
-              </div>
-            </Link>
-          )
-        })}
-      </div>
-    </SettingsLayout>
-  )
-}
-
-type RangeType = "invoice" | "offer" | "customer"
-
-type DocumentRange = {
-  type: RangeType
-  title: string
-  prefix: string
-  nextValue: string
-  padding: number
-}
-
-const documentRangeDefaults: DocumentRange[] = [
-  { type: "invoice", title: "Rechnungen", prefix: "RE-%Y-", nextValue: "104", padding: 3 },
-  { type: "offer", title: "Angebote", prefix: "AN-%Y-", nextValue: "42", padding: 3 },
-  { type: "customer", title: "Kunden", prefix: "KD-", nextValue: "4", padding: 4 }
-]
-
-function makeDocumentRangePreview(prefix: string, next: string, padding: number) {
-  const year = "2026"
-  const cleanNext = String(Number(next) || 1).padStart(padding, "0")
-
-  return prefix.replace("%Y", year) + cleanNext
-}
-
-function DocumentsSettingsPage() {
-  const [ranges, setRanges] = useState<DocumentRange[]>(documentRangeDefaults)
-  const [status, setStatus] = useState("")
-
-  useEffect(() => {
-    async function loadRanges() {
-      const response = await fetch("/api/settings/number-ranges", { cache: "no-store" })
-      const result = await response.json()
-
-      if (!result.ok || !Array.isArray(result.ranges)) return
-
-      setRanges(
-        documentRangeDefaults.map((item) => {
-          const found = result.ranges.find((range: { type?: string }) => range.type === item.type)
-          if (!found) return item
-
-          return {
-            ...item,
-            prefix: String(found.prefix || item.prefix),
-            nextValue: String(found.nextValue || item.nextValue),
-            padding: Number(found.padding || item.padding)
-          }
-        })
-      )
-    }
-
-    loadRanges()
-  }, [])
-
-  const previews = useMemo(
-    () => ranges.map((range) => ({ ...range, preview: makeDocumentRangePreview(range.prefix, range.nextValue, range.padding) })),
-    [ranges]
-  )
-
-  function updateRange(type: RangeType, patch: Partial<DocumentRange>) {
-    setRanges((items) => items.map((item) => item.type === type ? { ...item, ...patch } : item))
-  }
-
-  async function save() {
-    setStatus("Speichere Dokumenteinstellungen ...")
-
-    const response = await fetch("/api/settings/number-ranges", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ranges: ranges.map((range) => ({
-          type: range.type,
-          prefix: range.prefix,
-          nextValue: Number(range.nextValue) || 1,
-          padding: range.padding
-        }))
-      })
-    })
-
-    const result = await response.json()
-
-    if (!response.ok || !result.ok) {
-      setStatus(result.error || "Dokumenteinstellungen konnten nicht gespeichert werden.")
-      return
-    }
-
-    setStatus("Dokumenteinstellungen gespeichert.")
-  }
-
-  return (
-    <SettingsLayout
-      title="Dokumente"
-      description="Rechnungen, Angebote, Nummernkreise, Vorlagen und gespeicherte Dokumente zentral verwalten."
-      action={save}
-      status={status}
-    >
-      <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
-        <SettingCard title="Dokumentenzentrale" description="Schneller Zugriff auf produktive Rechnungs- und Angebotsbereiche im Premium-Workspace.">
-          <div className="grid gap-3 sm:grid-cols-2">
-            {[
-              { href: "/dashboard-v2/invoices/new", title: "Neue Rechnung", body: "Rechnung im modernen Editor erstellen.", icon: ReceiptText, badge: "Editor" },
-              { href: "/dashboard-v2/invoices", title: "Rechnungen", body: "Gespeicherte Rechnungen pruefen und weiterverarbeiten.", icon: FileText, badge: "Live" },
-              { href: "/dashboard-v2/offers", title: "Angebote", body: "Angebote, Status und Umwandlung vorbereiten.", icon: Tags, badge: "Live" },
-              { href: "/dashboard-v2/settings/archive", title: "Archiv", body: "Ablage, Export und Dokumentenarchiv oeffnen.", icon: Archive, badge: "Modul" }
-            ].map((item) => {
-              const Icon = item.icon
-              return (
-                <Link key={item.href} href={item.href} className="rounded-[22px] border border-[var(--settings-line)] bg-[var(--settings-subtle)] p-4 no-underline transition hover:-translate-y-0.5 hover:bg-[var(--settings-surface)]">
-                  <div className="flex items-start justify-between gap-3">
-                    <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--settings-accent-soft)] text-[var(--settings-accent)]">
-                      <Icon className="h-5 w-5" />
-                    </span>
-                    <span className="rounded-full bg-[var(--settings-surface)] px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest text-[var(--settings-muted)]">{item.badge}</span>
-                  </div>
-                  <strong className="mt-4 block text-sm font-extrabold text-[var(--settings-title)]">{item.title}</strong>
-                  <p className="mt-1 text-xs font-medium leading-5 text-[var(--settings-muted)]">{item.body}</p>
-                </Link>
-              )
-            })}
-          </div>
-        </SettingCard>
-
-        <SettingCard title="Vorlagen & Standards" description="Dokumentvorlagen bleiben vorbereitet und klar markiert, ohne Scheinfunktionen.">
-          <div className="space-y-3">
-            {[
-              { icon: LayoutTemplate, title: "Rechnungsvorlage", detail: "Standardlayout fuer neue Rechnungen", state: "Aktiv" },
-              { icon: LayoutTemplate, title: "Angebotsvorlage", detail: "Vorlage fuer Angebote und Pipeline-Dokumente", state: "Aktiv" },
-              { icon: ClipboardList, title: "Standardtexte", detail: "Einleitung, Zahlungsbedingungen und Fusszeilen", state: "Vorbereitet" }
-            ].map((item) => {
-              const Icon = item.icon
-              return (
-                <div key={item.title} className="flex items-center justify-between gap-4 rounded-[22px] border border-[var(--settings-line)] bg-[var(--settings-subtle)] px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--settings-accent-soft)] text-[var(--settings-accent)]">
-                      <Icon className="h-4 w-4" />
-                    </span>
-                    <div>
-                      <p className="text-sm font-extrabold text-[var(--settings-title)]">{item.title}</p>
-                      <p className="text-xs font-medium text-[var(--settings-muted)]">{item.detail}</p>
-                    </div>
-                  </div>
-                  <span className="rounded-full bg-[linear-gradient(180deg,#ecfdf5_0%,#dcfce7_100%)] px-3 py-1 text-[11px] font-extrabold text-emerald-700">{item.state}</span>
-                </div>
-              )
-            })}
-          </div>
-        </SettingCard>
-      </div>
-
-      <SettingCard title="Nummernkreise" description="Rechnungs-, Angebots- und Kundennummern direkt in der Dokumente-Kategorie bearbeiten.">
-        <div className="grid gap-4 xl:grid-cols-3">
-          {previews.map((range) => (
-            <section key={range.type} className="rounded-[24px] border border-[var(--settings-line)] bg-[var(--settings-subtle)] p-4">
-              <div className="mb-4 flex items-start justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--settings-accent-soft)] text-[var(--settings-accent)]">
-                    <FileDigit className="h-4 w-4" />
-                  </span>
-                  <div>
-                    <h3 className="text-sm font-extrabold text-[var(--settings-title)]">{range.title}</h3>
-                    <p className="mt-1 text-xs font-bold text-[var(--settings-muted)]">Vorschau: {range.preview}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid gap-3">
-                <Field label="Praefix Format">
-                  <SoftInput value={range.prefix} onChange={(event) => updateRange(range.type, { prefix: event.target.value })} />
-                </Field>
-                <Field label="Naechste Nummer">
-                  <SoftInput value={range.nextValue} onChange={(event) => updateRange(range.type, { nextValue: event.target.value })} />
-                </Field>
-                <div className="rounded-[18px] border border-[var(--settings-line)] bg-[var(--settings-surface)] p-3">
-                  <div className="mb-2 flex items-center justify-between">
-                    <span className="text-xs font-extrabold uppercase tracking-widest text-[var(--settings-label)]">Stellen</span>
-                    <span className="rounded-full bg-[var(--settings-subtle)] px-3 py-1 text-xs font-extrabold text-[var(--settings-title)]">{range.padding}</span>
-                  </div>
-                  <input
-                    type="range"
-                    min={1}
-                    max={8}
-                    value={range.padding}
-                    onChange={(event) => updateRange(range.type, { padding: Number(event.target.value) })}
-                    className="w-full accent-[var(--settings-accent)]"
-                  />
-                </div>
-              </div>
-            </section>
-          ))}
-        </div>
-      </SettingCard>
-    </SettingsLayout>
-  )
-}
-
-const timePreparationFlags = [
-  { key: "TIME_TRACKING", module: "Zeiterfassung", title: "Zeiterfassung", detail: "Grundstruktur fuer spaetere Zeiteintraege; kein Timer aktiv." },
-  { key: "PROJECT_CAPACITY", module: "Zeiterfassung", title: "Projektkapazitaet", detail: "Vorbereitung fuer geplante Projektstunden und Kapazitaet." },
-  { key: "TIME_BILLING", module: "Fakturierung", title: "Zeitbasierte Fakturierung", detail: "Vorbereitung fuer die Verknuepfung von Stunden mit Rechnungen." },
-  { key: "AUTO_INVOICE_FROM_TIME", module: "Fakturierung", title: "Automatische Zeitrechnung", detail: "Deaktivierte Vorbereitung; keine automatische Fakturierung." }
-] as const
-
-function FeatureFlagPreparationList({ module }: { module: "Zeiterfassung" | "Fakturierung" }) {
-  return (
-    <div className="grid gap-3">
-      {timePreparationFlags.filter((flag) => flag.module === module).map((flag) => (
-        <div key={flag.key} className="rounded-[22px] border border-[var(--settings-line)] bg-[var(--settings-subtle)] p-4">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-sm font-extrabold text-[var(--settings-title)]">{flag.title}</p>
-              <p className="mt-1 text-xs font-mono font-bold text-[var(--settings-muted)]">{flag.key}</p>
-            </div>
-            <span className="rounded-full bg-[var(--settings-surface)] px-3 py-1 text-[11px] font-extrabold text-[var(--settings-muted)]">Deaktiviert</span>
-          </div>
-          <p className="mt-3 text-xs font-medium leading-5 text-[var(--settings-muted)]">{flag.detail}</p>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function TimeTrackingSettingsPage() {
-  return (
-    <SettingsLayout title="Zeiterfassung" description="Vorbereitung fuer spaetere Zeiterfassung mit Projektbezug. Es ist kein Timer und keine aktive Erfassung eingeschaltet.">
-      <div className="grid gap-6 xl:grid-cols-2">
-        <SettingCard title="Modulstatus" description="Das Modul bleibt vorbereitet und standardmaessig deaktiviert.">
-          <div className="flex items-start gap-4 rounded-[22px] border border-[var(--settings-line)] bg-[var(--settings-subtle)] p-4">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--settings-accent-soft)] text-[var(--settings-accent)]">
-              <Clock3 className="h-5 w-5" />
-            </span>
-            <div>
-              <strong className="block text-sm font-extrabold text-[var(--settings-title)]">Zeiterfassung vorbereitet</strong>
-              <p className="mt-2 text-sm font-medium leading-6 text-[var(--settings-muted)]">Kunde, Projekt, Artikel und Stunden koennen spaeter verbunden werden. In dieser Phase wird keine echte Zeiterfassung gestartet.</p>
-            </div>
-          </div>
-        </SettingCard>
-        <SettingCard title="Feature Flags" description="Alle Zeiterfassungsflags bleiben deaktiviert.">
-          <FeatureFlagPreparationList module="Zeiterfassung" />
-        </SettingCard>
-      </div>
-    </SettingsLayout>
-  )
-}
-
-function BillingSettingsPage() {
-  return (
-    <SettingsLayout title="Fakturierung" description="Vorbereitung fuer die spaetere direkte Rechnungsanbindung aus Zeitdaten. Es wird keine automatische Fakturierung aktiviert.">
-      <div className="grid gap-6 xl:grid-cols-2">
-        <SettingCard title="Rechnungsanbindung" description="Der Zielpfad ist vorbereitet, aber nicht automatisiert.">
-          <div className="space-y-3">
-            {["Kunde", "Projekt", "Artikel", "Stunden", "Rechnung"].map((step, index) => (
-              <div key={step} className="flex items-center gap-3 rounded-[18px] border border-[var(--settings-line)] bg-[var(--settings-subtle)] px-4 py-3">
-                <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[var(--settings-accent-soft)] text-xs font-extrabold text-[var(--settings-accent)]">{index + 1}</span>
-                <strong className="text-sm font-extrabold text-[var(--settings-title)]">{step}</strong>
-                {index < 4 ? <Link2 className="ml-auto h-4 w-4 text-[var(--settings-muted)]" /> : <span className="ml-auto rounded-full bg-[var(--settings-surface)] px-3 py-1 text-[11px] font-extrabold text-[var(--settings-muted)]">Ziel</span>}
-              </div>
-            ))}
-          </div>
-        </SettingCard>
-        <SettingCard title="Feature Flags" description="Alle Fakturierungsflags bleiben deaktiviert.">
-          <FeatureFlagPreparationList module="Fakturierung" />
-        </SettingCard>
-      </div>
-    </SettingsLayout>
-  )
-}
-
-function CommunicationSettingsPage() {
-  return <EmailSettingsPage />
-}
+type SettingsIcon = ComponentType<{ className?: string }>
 
 type UsersRolesPayload = {
   users: Array<{
@@ -344,6 +59,192 @@ type UsersRolesPayload = {
     status: string
     validUntil: string | null
   }
+}
+
+type ManagementRow = {
+  name: string
+  detail: string
+  owner: string
+  status: "Aktiv" | "Vorbereitet" | "Teilweise aktiv" | "Inaktiv"
+  activity: string
+  href: string
+  icon: SettingsIcon
+}
+
+function statusClass(status: ManagementRow["status"]) {
+  if (status === "Aktiv") return "bg-emerald-50 text-emerald-700 ring-emerald-200"
+  if (status === "Teilweise aktiv") return "bg-sky-50 text-sky-700 ring-sky-200"
+  if (status === "Vorbereitet") return "bg-slate-100 text-slate-700 ring-slate-200"
+  return "bg-zinc-100 text-zinc-600 ring-zinc-200"
+}
+
+function StatusPill({ status }: { status: ManagementRow["status"] }) {
+  return (
+    <span className={`inline-flex whitespace-nowrap rounded-md px-2 py-1 text-[11px] font-extrabold ring-1 ${statusClass(status)}`}>
+      {status}
+    </span>
+  )
+}
+
+function ManagementPage({
+  title,
+  description,
+  rows,
+  filters = ["Alle", "Aktiv", "Teilweise aktiv", "Vorbereitet", "Inaktiv"],
+  activity
+}: {
+  title: string
+  description: string
+  rows: ManagementRow[]
+  filters?: string[]
+  activity: Array<[string, string, ManagementRow["status"]]>
+}) {
+  const [query, setQuery] = useState("")
+  const [filter, setFilter] = useState(filters[0] ?? "Alle")
+  const visibleRows = useMemo(() => {
+    const needle = query.trim().toLowerCase()
+    return rows.filter((row) => {
+      const matchesFilter = filter === "Alle" || row.status === filter
+      const matchesQuery = !needle || [row.name, row.detail, row.owner, row.status, row.activity].some((value) => value.toLowerCase().includes(needle))
+      return matchesFilter && matchesQuery
+    })
+  }, [filter, query, rows])
+
+  const activeCount = rows.filter((row) => row.status === "Aktiv").length
+  const preparedCount = rows.filter((row) => row.status === "Vorbereitet").length
+
+  return (
+    <SettingsLayout title={title} description={description}>
+      <div className="grid gap-3 md:grid-cols-3">
+        {[
+          ["Module", String(rows.length), "Gesamter Verwaltungsbereich"],
+          ["Aktiv", String(activeCount), "Bereits nutzbare Funktionen"],
+          ["Vorbereitet", String(preparedCount), "Ohne entfernte Bestandslogik"]
+        ].map(([label, value, text]) => (
+          <div key={label} className="rounded-lg border border-[var(--settings-line)] bg-[var(--settings-surface)] p-4 shadow-[var(--settings-card-shadow)]">
+            <p className="text-[11px] font-extrabold uppercase text-[var(--settings-muted)]">{label}</p>
+            <strong className="mt-1 block text-2xl font-extrabold text-[var(--settings-title)]">{value}</strong>
+            <span className="mt-1 block text-xs font-medium text-[var(--settings-muted)]">{text}</span>
+          </div>
+        ))}
+      </div>
+
+      <SettingCard title="Verwaltung" description="Suchen, filtern und Status direkt in der Settings-Detailseite pruefen.">
+        <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <label className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-lg border border-[var(--settings-input-border)] bg-[var(--settings-input-bg)] px-3 text-sm font-semibold text-[var(--settings-title)]">
+            <Search className="h-4 w-4 shrink-0 text-[var(--settings-muted)]" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Suchen"
+              className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-[var(--settings-placeholder)]"
+              type="search"
+            />
+          </label>
+          <div className="flex items-center gap-2 overflow-x-auto pb-0.5 [scrollbar-width:thin]">
+            <Filter className="h-4 w-4 shrink-0 text-[var(--settings-muted)]" />
+            {filters.map((item) => (
+              <button
+                key={item}
+                type="button"
+                onClick={() => setFilter(item)}
+                className={`h-8 shrink-0 rounded-md border px-2.5 text-[11px] font-extrabold transition ${
+                  filter === item
+                    ? "border-[var(--settings-accent)] bg-[var(--settings-accent-soft)] text-[var(--settings-title)]"
+                    : "border-[var(--settings-line)] bg-[var(--settings-subtle)] text-[var(--settings-muted)] hover:text-[var(--settings-title)]"
+                }`}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="overflow-x-auto rounded-lg border border-[var(--settings-line)]">
+          <table className="min-w-[760px] w-full border-collapse text-left">
+            <thead className="bg-[var(--settings-subtle)] text-[11px] font-extrabold uppercase text-[var(--settings-muted)]">
+              <tr>
+                <th className="px-3 py-2">Bereich</th>
+                <th className="px-3 py-2">Zustaendig</th>
+                <th className="px-3 py-2">Status</th>
+                <th className="px-3 py-2">Aktivitaet</th>
+                <th className="px-3 py-2 text-right">Aktion</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--settings-line)]">
+              {visibleRows.map((row) => {
+                const Icon = row.icon
+                return (
+                  <tr key={row.name} className="bg-[var(--settings-surface)]">
+                    <td className="px-3 py-3">
+                      <div className="flex items-start gap-3">
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--settings-accent-soft)] text-[var(--settings-accent)]">
+                          <Icon className="h-4 w-4" />
+                        </span>
+                        <div>
+                          <strong className="block text-sm font-extrabold text-[var(--settings-title)]">{row.name}</strong>
+                          <span className="mt-0.5 block text-xs font-medium leading-5 text-[var(--settings-muted)]">{row.detail}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-3 py-3 text-sm font-bold text-[var(--settings-title)]">{row.owner}</td>
+                    <td className="px-3 py-3"><StatusPill status={row.status} /></td>
+                    <td className="px-3 py-3 text-xs font-medium text-[var(--settings-muted)]">{row.activity}</td>
+                    <td className="px-3 py-3 text-right">
+                      <Link href={row.href} className="inline-flex h-8 items-center rounded-md border border-[var(--settings-line)] px-2.5 text-xs font-extrabold text-[var(--settings-title)] no-underline hover:bg-[var(--settings-subtle)]">
+                        Oeffnen
+                      </Link>
+                    </td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
+      </SettingCard>
+
+      <SettingCard title="Aktivitaet" description="Ruhiger Ueberblick ueber Status, Vorbereitung und naechste Verwaltungsschritte.">
+        <div className="grid gap-2 md:grid-cols-3">
+          {activity.map(([label, text, status]) => (
+            <div key={label} className="rounded-lg border border-[var(--settings-line)] bg-[var(--settings-subtle)] p-3">
+              <div className="flex items-center justify-between gap-2">
+                <strong className="text-sm font-extrabold text-[var(--settings-title)]">{label}</strong>
+                <StatusPill status={status} />
+              </div>
+              <p className="mt-2 text-xs font-medium leading-5 text-[var(--settings-muted)]">{text}</p>
+            </div>
+          ))}
+        </div>
+      </SettingCard>
+    </SettingsLayout>
+  )
+}
+
+function DocumentsSettingsPage() {
+  return (
+    <>
+      <NumberRangesSettingsPage />
+      <LegalSettingsPage />
+    </>
+  )
+}
+
+function TimeTrackingSettingsPage() {
+  return <RemindersSettingsPage />
+}
+
+function BillingSettingsPage() {
+  return (
+    <>
+      <FinanceSettingsPage />
+      <NumberRangesSettingsPage />
+      <RemindersSettingsPage />
+    </>
+  )
+}
+
+function CommunicationSettingsPage() {
+  return <EmailSettingsPage />
 }
 
 function UsersRolesSettingsPage() {
@@ -377,15 +278,15 @@ function UsersRolesSettingsPage() {
   return (
     <SettingsLayout
       title="Benutzer & Rollen"
-      description="Team, Rechte, Rollen und Einladungen im modernen Settings-Bereich verwalten."
+      description="Team, Rechte, Rollen und Einladungen direkt im Settings-Bereich verwalten."
     >
       <SettingCard title={error ? "Zugriff nicht moeglich" : "Benutzer & Rollen werden geladen"} description={error || "Die echte Benutzer- und Lizenzstruktur wird aus der geschuetzten Settings-API geladen."}>
         <div className="grid gap-3 md:grid-cols-3">
-          {["Benutzerliste", "Rollen", "Rechte-Toggles"].map((item) => (
-            <div key={item} className="rounded-[22px] border border-[var(--settings-line)] bg-[var(--settings-subtle)] px-4 py-5">
-              <div className="h-3 w-24 rounded-full bg-[var(--settings-line)]" />
-              <div className="mt-4 h-10 rounded-2xl bg-[var(--settings-surface)]" />
-              <p className="mt-3 text-xs font-extrabold uppercase tracking-widest text-[var(--settings-muted)]">{item}</p>
+          {["Benutzerliste", "Rollen", "Rechte"].map((item) => (
+            <div key={item} className="rounded-lg border border-[var(--settings-line)] bg-[var(--settings-subtle)] px-4 py-5">
+              <div className="h-2 w-20 rounded-full bg-[var(--settings-line)]" />
+              <div className="mt-4 h-9 rounded-lg bg-[var(--settings-surface)]" />
+              <p className="mt-3 text-[11px] font-extrabold uppercase text-[var(--settings-muted)]">{item}</p>
             </div>
           ))}
         </div>
@@ -395,285 +296,166 @@ function UsersRolesSettingsPage() {
 }
 
 function SecuritySettingsPage() {
-  const securityAreas = [
-    { title: "Konto & Sicherheit", detail: "Profil, Passwort, 2FA, aktive Sitzung und Aktivitaetsprotokoll verwalten.", href: "/dashboard-v2/account/security", icon: ShieldCheck, status: "Aktiv" },
-    { title: "Audit & Zugriff", detail: "Sicherheitsereignisse, Login-Aktivitaeten und Exporte pruefen.", href: "/dashboard-v2/audit", icon: FileText, status: "Aktiv" },
-    { title: "Systemschutz & Backup", detail: "Backups, Wiederherstellung und technische Systemoptionen oeffnen.", href: "/dashboard-v2/settings/system", icon: LockKeyhole, status: "Vorbereitet" },
-    { title: "Rechte & Rollen", detail: "Benutzerrechte und Rollen im gruenen Toggle-System verwalten.", href: "/dashboard-v2/settings/users-roles", icon: Users2, status: "Aktiv" }
-  ]
-
-  const securityStatus = [
-    ["Account Security", "Passwort, 2FA und aktive Sitzung stehen bereit.", "Aktiv"],
-    ["Audit Events", "Sicherheitsereignisse und Login-Aktivitaeten sind einsehbar.", "Aktiv"],
-    ["Rollen & Rechte", "Benutzerrechte und Rollen koennen verwaltet werden.", "Aktiv"],
-    ["Backup", "Backup-Optionen sind im Systembereich erreichbar.", "Vorbereitet"]
-  ]
-
   return (
-    <SettingsLayout title="Sicherheit" description="Audit, Zugriff, Kontoschutz und Rollensteuerung in einem modernen Sicherheitsbereich.">
-      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <SettingCard title="Sicherheitszentrale" description="Alle wichtigen Schutzbereiche sind an einem Ort gebuendelt.">
-          <div className="grid gap-3 md:grid-cols-2">
-            {securityAreas.map((area) => {
-              const Icon = area.icon
-              const isActive = area.status === "Aktiv"
+    <ManagementPage
+      title="Sicherheit"
+      description="Passwort, Zwei-Faktor-Schutz, Kontoschutz, aktive Sitzungen und Login-Sicherheit."
+      rows={[
+        { name: "Passwort", detail: "Passwortwechsel und Passwortschutz fuer das eigene Konto", owner: "Security", status: "Aktiv", activity: "Account-Security aktiv", href: "/dashboard-v2/account/security?q=Passwort", icon: KeyRound },
+        { name: "2FA", detail: "Zwei-Faktor-Authentifizierung per Authenticator oder Backup-Code", owner: "Security", status: "Aktiv", activity: "2FA-API aktiv", href: "/dashboard-v2/account/security?q=2FA", icon: ShieldCheck },
+        { name: "Kontoschutz", detail: "Schutzstatus, Profilabsicherung und Sicherheitsstatus", owner: "Security", status: "Aktiv", activity: "Kontoschutz aktiv", href: "/dashboard-v2/account/security?q=Kontoschutz", icon: LockKeyhole },
+        { name: "Sitzungen", detail: "Session-Status und aktuelle Kontositzung pruefen", owner: "Security", status: "Aktiv", activity: "Session-Pruefung aktiv", href: "/dashboard-v2/account/security?q=Sitzungen", icon: Activity },
+        { name: "Login-Sicherheit", detail: "Anmeldeschutz, blockierte Login-Versuche und 2FA-Pruefung", owner: "Security", status: "Teilweise aktiv", activity: "Login-Guard aktiv", href: "/dashboard-v2/account/security?q=Login-Sicherheit", icon: LockKeyhole }
+      ]}
+      filters={["Alle", "Aktiv", "Teilweise aktiv"]}
+      activity={[
+        ["Passwort", "Passwortfunktionen bleiben im Sicherheitsbereich gebuendelt.", "Aktiv"],
+        ["2FA", "Zwei-Faktor-Funktionen sind dem Account-Schutz zugeordnet.", "Aktiv"],
+        ["Login", "Login-Sicherheit bleibt separat von Audit Logs und Benutzerrollen.", "Teilweise aktiv"]
+      ]}
+    />
+  )
+}
 
-              return (
-                <Link key={area.title} href={area.href} className="rounded-[22px] border border-[var(--settings-line)] bg-[var(--settings-subtle)] p-4 no-underline transition hover:-translate-y-0.5 hover:bg-[var(--settings-surface)]">
-                  <div className="flex items-start justify-between gap-3">
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--settings-accent-soft)] text-[var(--settings-accent)]">
-                      <Icon className="h-5 w-5" />
-                    </span>
-                    <span className={isActive ? "rounded-full bg-[linear-gradient(180deg,#ecfdf5_0%,#dcfce7_100%)] px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest text-emerald-700" : "rounded-full bg-[var(--settings-surface)] px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest text-[var(--settings-muted)]"}>
-                      {area.status}
-                    </span>
-                  </div>
-                  <strong className="mt-4 block text-sm font-extrabold text-[var(--settings-title)]">{area.title}</strong>
-                  <p className="mt-1 text-xs font-medium leading-5 text-[var(--settings-muted)]">{area.detail}</p>
-                </Link>
-              )
-            })}
-          </div>
-        </SettingCard>
+function LicenseSettingsPage() {
+  return (
+    <ManagementPage
+      title="Lizenzverwaltung"
+      description="Lizenzstatus, Aktivierung, Benutzerlimit und interne Key-Verwaltung als eigene Kategorie."
+      rows={[
+        { name: "Lizenzstatus", detail: "Aktuellen Plan, Laufzeit und Status pruefen", owner: "Billing", status: "Aktiv", activity: "Lizenzseite aktiv", href: "/dashboard-v2/license", icon: KeyRound },
+        { name: "Lizenz aktivieren", detail: "Lizenzschluessel eintragen oder Lizenzdatei laden", owner: "Billing", status: "Aktiv", activity: "Aktivierungs-API aktiv", href: "/dashboard-v2/license?q=Lizenz-Key", icon: ShieldCheck },
+        { name: "Benutzerlimit", detail: "Planlimit und verfuegbare Benutzerplaetze kontrollieren", owner: "Billing", status: "Aktiv", activity: "Limit-Pruefung aktiv", href: "/dashboard-v2/license?q=Benutzerlimit", icon: Users2 },
+        { name: "Key-Verwaltung", detail: "Interne Lizenz-Keys erzeugen, sofern der Admin-Modus aktiviert ist", owner: "Intern", status: "Vorbereitet", activity: "Admin-Route geschuetzt", href: "/dashboard-v2/license-admin", icon: LockKeyhole }
+      ]}
+      filters={["Alle", "Aktiv", "Vorbereitet"]}
+      activity={[
+        ["Aktivierung", "Lizenzaktivierung bleibt in der Lizenzverwaltung.", "Aktiv"],
+        ["Limits", "Benutzerlimits sind aus Benutzer & Rollen ausgelagert.", "Aktiv"],
+        ["Admin", "Key-Erzeugung bleibt intern geschuetzt erreichbar.", "Vorbereitet"]
+      ]}
+    />
+  )
+}
 
-        <SettingCard title="Schutzstatus" description="Schneller Ueberblick ueber verfuegbare Sicherheitsbereiche.">
-          <div className="space-y-3">
-            {securityStatus.map(([title, detail, status]) => {
-              const isActive = status === "Aktiv"
+function ApiWebhooksSettingsPage() {
+  return (
+    <ManagementPage
+      title="API & Webhooks"
+      description="API-Schluessel, Webhook-Ziele und technische Freigaben als eigene moderne Verwaltungsseite."
+      rows={[
+        { name: "REST API", detail: "Mandantenfaehige API-Endpunkte und Versionierung", owner: "Dev", status: "Vorbereitet", activity: "v1-Routen vorhanden", href: "/dashboard-v2/settings/add-ons?q=REST%20API", icon: KeyRound },
+        { name: "Webhook Ziele", detail: "Ziel-URLs, Ereignisse und Auslieferungsstatus", owner: "Dev", status: "Vorbereitet", activity: "Ereignisse vorbereitet", href: "/dashboard-v2/settings/add-ons?q=Webhooks", icon: Link2 },
+        { name: "API Sicherheit", detail: "Tokens, Scopes und Zugriffskontrolle", owner: "Security", status: "Teilweise aktiv", activity: "Rechte-Modell vorhanden", href: "/dashboard-v2/settings/users", icon: LockKeyhole },
+        { name: "Developer Status", detail: "Technische Aktivitaet und Erweiterungen", owner: "Platform", status: "Vorbereitet", activity: "Add-on-Katalog aktiv", href: "/dashboard-v2/settings/add-ons?q=Dev", icon: Activity }
+      ]}
+      activity={[
+        ["Scopes", "Rechte werden ueber vorhandene Rollen- und Permission-Strukturen angebunden.", "Teilweise aktiv"],
+        ["Webhook Queue", "Auslieferungsstatus ist als Verwaltungsbereich vorbereitet.", "Vorbereitet"],
+        ["Dokumentation", "API- und Webhook-Hinweise bleiben als Add-on-Kontext erreichbar.", "Vorbereitet"]
+      ]}
+    />
+  )
+}
 
-              return (
-                <div key={title} className="flex items-center justify-between gap-4 rounded-[22px] border border-[var(--settings-line)] bg-[var(--settings-subtle)] px-4 py-3">
-                  <div>
-                    <p className="text-sm font-extrabold text-[var(--settings-title)]">{title}</p>
-                    <p className="mt-1 text-xs font-medium text-[var(--settings-muted)]">{detail}</p>
-                  </div>
-                  <span className={isActive ? "rounded-full bg-[linear-gradient(180deg,#ecfdf5_0%,#dcfce7_100%)] px-3 py-1 text-[11px] font-extrabold text-emerald-700" : "rounded-full bg-[var(--settings-surface)] px-3 py-1 text-[11px] font-extrabold text-[var(--settings-muted)]"}>
-                    {status}
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-        </SettingCard>
-      </div>
-
-    </SettingsLayout>
+function AuditLogsSettingsPage() {
+  return (
+    <ManagementPage
+      title="Audit Logs"
+      description="Sicherheitsereignisse, Zugriff und Systemaktivitaeten durchsuchen, filtern und pruefen."
+      rows={[
+        { name: "Login Ereignisse", detail: "Erfolgreiche und blockierte Anmeldungen", owner: "Security", status: "Aktiv", activity: "IP-Metadaten vorbereitet", href: "/dashboard-v2/audit?q=Login", icon: ShieldCheck },
+        { name: "Datenzugriff", detail: "Aenderungen an Rechnungen, Kunden und Projekten", owner: "Audit", status: "Teilweise aktiv", activity: "Audit Helper vorhanden", href: "/dashboard-v2/audit?q=Datenzugriff", icon: FileText },
+        { name: "Export Verlauf", detail: "CSV, PDF und Report-Aktivitaeten", owner: "Operations", status: "Vorbereitet", activity: "Exportbereiche sichtbar", href: "/dashboard-v2/reports?q=Export", icon: Archive },
+        { name: "Sicherheitscenter", detail: "2FA, Passwort und Session-Historie", owner: "Security", status: "Aktiv", activity: "Account-Seite aktiv", href: "/dashboard-v2/account/security", icon: LockKeyhole }
+      ]}
+      filters={["Alle", "Aktiv", "Teilweise aktiv", "Vorbereitet"]}
+      activity={[
+        ["Sichtung", "Audit-Ereignisse bleiben im bestehenden Audit-Bereich erreichbar.", "Aktiv"],
+        ["Filter", "Status- und Suchfilter sind direkt in dieser Detailseite nutzbar.", "Aktiv"],
+        ["Export", "Archiv- und Report-Exports bleiben vorbereitet.", "Vorbereitet"]
+      ]}
+    />
   )
 }
 
 function IntegrationsSettingsPage() {
-  const providers = [
-    { name: "API & Webhooks", detail: "Schnittstellen und Webhooks verwalten", href: "/dashboard-v2/api", icon: Plug, status: "Vorbereitet" },
-    { name: "PayPal", detail: "PayPal als moegliche Zahlungsanbindung", href: "/dashboard-v2/integrations?q=PayPal", icon: Plug, status: "Vorbereitet" },
-    { name: "Stripe", detail: "Stripe als moegliche Zahlungsanbindung", href: "/dashboard-v2/integrations?q=Stripe", icon: Plug, status: "Vorbereitet" },
-    { name: "Open Banking", detail: "Bankanbindungen und Kontodienste vorbereiten", href: "/dashboard-v2/integrations?q=Open%20Banking", icon: Plug, status: "Optional" },
-    { name: "DATEV", detail: "Buchhaltungsexport und Uebergabe", href: "/dashboard-v2/integrations?q=DATEV", icon: Archive, status: "Vorbereitet" },
-    { name: "Automatisierung", detail: "Verknuepfungen mit externen Diensten", href: "/dashboard-v2/automation", icon: Workflow, status: "Vorbereitet" }
-  ]
-
   return (
-    <SettingsLayout title="Integrationen" description="API, Webhooks und externe Dienste zentral organisieren.">
-      <div className="grid gap-6">
-        <SettingCard title="Integrationskatalog" description="Verfuegbare und vorbereitete Anbindungen im Ueberblick.">
-          <div className="grid gap-3 md:grid-cols-2">
-            {providers.map((provider) => {
-              const Icon = provider.icon
-              const isPrepared = provider.status.includes("Vorbereitet")
-
-              return (
-                <Link key={provider.name} href={provider.href} className="rounded-[22px] border border-[var(--settings-line)] bg-[var(--settings-subtle)] p-4 no-underline transition hover:-translate-y-0.5 hover:bg-[var(--settings-surface)]">
-                  <div className="flex items-start justify-between gap-3">
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--settings-accent-soft)] text-[var(--settings-accent)]">
-                      <Icon className="h-5 w-5" />
-                    </span>
-                      <span className={isPrepared ? "rounded-full bg-[var(--settings-surface)] px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest text-[var(--settings-muted)]" : "rounded-full bg-amber-50 px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest text-amber-700"}>
-                        {provider.status}
-                      </span>
-                  </div>
-                  <strong className="mt-4 block text-sm font-extrabold text-[var(--settings-title)]">{provider.name}</strong>
-                  <p className="mt-1 text-xs font-medium leading-5 text-[var(--settings-muted)]">{provider.detail}</p>
-                </Link>
-              )
-            })}
-          </div>
-        </SettingCard>
-      </div>
-    </SettingsLayout>
+    <ManagementPage
+      title="Integrationen"
+      description="Externe Dienste, Zahlungsanbieter und Datenuebergaben zentral verwalten."
+      rows={[
+        { name: "PayPal", detail: "Online-Zahlungen und Payment Links", owner: "Finance", status: "Vorbereitet", activity: "Payment-Bibliothek vorhanden", href: "/dashboard-v2/integrations?q=PayPal", icon: Plug },
+        { name: "Stripe", detail: "Kartenzahlung und Zahlungsstatus", owner: "Finance", status: "Vorbereitet", activity: "Payment-Bereich vorbereitet", href: "/dashboard-v2/integrations?q=Stripe", icon: Plug },
+        { name: "Open Banking", detail: "Bankkonten, Abgleich und finAPI", owner: "Finance", status: "Teilweise aktiv", activity: "Open-Banking-Routen vorhanden", href: "/dashboard-v2/finance/open-banking", icon: Link2 },
+        { name: "DATEV", detail: "Buchhaltungsexport und Uebergabe", owner: "Accounting", status: "Vorbereitet", activity: "Report-Export vorbereitet", href: "/dashboard-v2/reports?q=DATEV", icon: Archive }
+      ]}
+      activity={[
+        ["Zahlungen", "Payment-Module bleiben angebunden, ohne bestehende Routen zu entfernen.", "Vorbereitet"],
+        ["Banking", "Open Banking ist als eigener Finanzbereich erreichbar.", "Teilweise aktiv"],
+        ["Exporte", "DATEV bleibt im Report- und Archivkontext vorbereitet.", "Vorbereitet"]
+      ]}
+    />
   )
 }
 
 function ReportsSettingsPage() {
-  const reportAreas = [
-    { title: "Umsatz & KPIs", detail: "Umsatz, offene Betraege, Zahlungen und Monatsvergleich", href: "/dashboard-v2/reports", icon: BarChart3, status: "Aktiv" },
-    { title: "Finanzbericht", detail: "Einnahmen, Ausgaben und Cashflow im Premium-Workspace", href: "/dashboard-v2/reports?q=Finanzbericht%20erstellt", icon: FileText, status: "Aktiv" },
-    { title: "DATEV Export", detail: "Buchhaltungsdaten als vorbereiteter Exportbereich", href: "/dashboard-v2/reports?q=DATEV%20vorbereitet", icon: Archive, status: "Vorbereitet" },
-    { title: "Vergleich", detail: "Monats- und Periodenvergleich fuer interne Auswertung", href: "/dashboard-v2/reports?q=Vergleich%20geoeffnet", icon: BarChart3, status: "Aktiv" }
-  ]
-
-  const reportSettings = [
-    ["Standardansicht", "Dashboard- und Reports-Daten bleiben im Premium-Bereich gebuendelt.", "Aktiv"],
-    ["Export", "Exportfunktionen stehen je nach Bereich bereit.", "Teilweise aktiv"],
-    ["Planung", "Berichtsplanung kann spaeter erweitert werden.", "Vorbereitet"]
-  ]
-
   return (
-    <SettingsLayout title="Berichte" description="Auswertungen, Umsatz, KPIs und Berichtseinstellungen modern strukturieren.">
-      <div className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-        <SettingCard title="Report-Zentrale" description="Schneller Einstieg in bestehende Berichte und Exporte ohne Wechsel in alte Settings-Ansichten.">
-          <div className="grid gap-3 md:grid-cols-2">
-            {reportAreas.map((area) => {
-              const Icon = area.icon
-              const isActive = area.status === "Aktiv"
-
-              return (
-                <Link key={area.title} href={area.href} className="rounded-[22px] border border-[var(--settings-line)] bg-[var(--settings-subtle)] p-4 no-underline transition hover:-translate-y-0.5 hover:bg-[var(--settings-surface)]">
-                  <div className="flex items-start justify-between gap-3">
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--settings-accent-soft)] text-[var(--settings-accent)]">
-                      <Icon className="h-5 w-5" />
-                    </span>
-                    <span className={isActive ? "rounded-full bg-[linear-gradient(180deg,#ecfdf5_0%,#dcfce7_100%)] px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest text-emerald-700" : "rounded-full bg-[var(--settings-surface)] px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest text-[var(--settings-muted)]"}>
-                      {area.status}
-                    </span>
-                  </div>
-                  <strong className="mt-4 block text-sm font-extrabold text-[var(--settings-title)]">{area.title}</strong>
-                  <p className="mt-1 text-xs font-medium leading-5 text-[var(--settings-muted)]">{area.detail}</p>
-                </Link>
-              )
-            })}
-          </div>
-        </SettingCard>
-
-        <SettingCard title="Berichtsstatus" description="Ueberblick ueber verfuegbare Berichtsbereiche und Exporte.">
-          <div className="space-y-3">
-            {reportSettings.map(([title, detail, status]) => {
-              const isActive = status === "Aktiv"
-              const isPartial = status === "Teilweise aktiv"
-
-              return (
-                <div key={title} className="flex items-center justify-between gap-4 rounded-[22px] border border-[var(--settings-line)] bg-[var(--settings-subtle)] px-4 py-3">
-                  <div>
-                    <p className="text-sm font-extrabold text-[var(--settings-title)]">{title}</p>
-                    <p className="mt-1 text-xs font-medium text-[var(--settings-muted)]">{detail}</p>
-                  </div>
-                  <span className={isActive ? "rounded-full bg-[linear-gradient(180deg,#ecfdf5_0%,#dcfce7_100%)] px-3 py-1 text-[11px] font-extrabold text-emerald-700" : isPartial ? "rounded-full bg-amber-50 px-3 py-1 text-[11px] font-extrabold text-amber-700" : "rounded-full bg-[var(--settings-surface)] px-3 py-1 text-[11px] font-extrabold text-[var(--settings-muted)]"}>
-                    {status}
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-        </SettingCard>
-      </div>
-
-    </SettingsLayout>
+    <ManagementPage
+      title="Berichte"
+      description="Auswertungen, KPIs, Exporte und Berichtseinstellungen als produktive Verwaltungsseite."
+      rows={[
+        { name: "Umsatz & KPIs", detail: "Umsatz, offene Betraege und Monatsvergleich", owner: "Management", status: "Aktiv", activity: "Dashboard-Daten aktiv", href: "/dashboard-v2/reports", icon: BarChart3 },
+        { name: "Finanzbericht", detail: "Einnahmen, Ausgaben und Cashflow", owner: "Finance", status: "Aktiv", activity: "Finanzdaten verfuegbar", href: "/dashboard-v2/reports?q=Finanzbericht", icon: FileText },
+        { name: "Export Planung", detail: "CSV, PDF und DATEV-nahe Exporte", owner: "Accounting", status: "Vorbereitet", activity: "Export-UI vorbereitet", href: "/dashboard-v2/reports?q=Export", icon: Archive },
+        { name: "Vergleich", detail: "Perioden- und Monatsvergleich", owner: "Management", status: "Teilweise aktiv", activity: "Report-Filter nutzbar", href: "/dashboard-v2/reports?q=Vergleich", icon: Activity }
+      ]}
+      activity={[
+        ["KPI Uebersicht", "Vorhandene Reports bleiben direkt erreichbar.", "Aktiv"],
+        ["Export", "Exportbereiche sind sichtbar und koennen spaeter erweitert werden.", "Vorbereitet"],
+        ["Filter", "Die Detailseite bietet Suche und Statusfilter.", "Aktiv"]
+      ]}
+    />
   )
 }
 
 function ArchiveSettingsPage() {
-  const archiveAreas = [
-    { title: "Dokumentenarchiv", detail: "Gespeicherte Rechnungen, Angebote und Dokumente strukturiert oeffnen.", href: "/dashboard-v2/settings/documents", icon: FileText, status: "Aktiv" },
-    { title: "Archiv & Ablage", detail: "Paperless, Nextcloud und Portal-Ablage als vorbereitete Konfiguration.", href: "/dashboard-v2/settings/portal", icon: Archive, status: "Vorbereitet" },
-    { title: "Export", detail: "Archiv- und Dokumentexport nur dort, wo vorhandene Exportlogik existiert.", href: "/dashboard-v2/reports?q=Archiv%20Export%20vorbereitet", icon: Archive, status: "Teilweise aktiv" },
-    { title: "Kundenportal", detail: "Angebotsportal und Archivzugriff bleiben vorbereitet, nicht produktiv verbunden.", href: "/dashboard-v2/settings/portal?focus=portal", icon: Plug, status: "Vorbereitet" }
-  ]
-
-  const archiveStatus = [
-    ["Rechnungen", "Dokumente bleiben ueber den bestehenden Rechnungsbereich erreichbar.", "Aktiv"],
-    ["Angebote", "Angebote werden ueber die Dokumente-Kategorie verknuepft.", "Aktiv"],
-    ["Externe Ablage", "Paperless/Nextcloud sind vorbereitet, aber nicht live synchronisiert.", "Vorbereitet"],
-    ["Archiv-Export", "Exportaktionen bleiben klar als vorbereitet oder vorhanden markiert.", "Teilweise aktiv"]
-  ]
-
   return (
-    <SettingsLayout title="Archiv" description="Dokumentenarchiv, Export und Ablage zentral organisieren.">
-      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <SettingCard title="Archivzentrale" description="Zugriff auf Dokumente, Ablage und vorbereitete Portalbereiche im Premium-Workspace.">
-          <div className="grid gap-3 md:grid-cols-2">
-            {archiveAreas.map((area) => {
-              const Icon = area.icon
-              const isActive = area.status === "Aktiv"
-              const isPartial = area.status === "Teilweise aktiv"
-
-              return (
-                <Link key={area.title} href={area.href} className="rounded-[22px] border border-[var(--settings-line)] bg-[var(--settings-subtle)] p-4 no-underline transition hover:-translate-y-0.5 hover:bg-[var(--settings-surface)]">
-                  <div className="flex items-start justify-between gap-3">
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--settings-accent-soft)] text-[var(--settings-accent)]">
-                      <Icon className="h-5 w-5" />
-                    </span>
-                    <span className={isActive ? "rounded-full bg-[linear-gradient(180deg,#ecfdf5_0%,#dcfce7_100%)] px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest text-emerald-700" : isPartial ? "rounded-full bg-amber-50 px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest text-amber-700" : "rounded-full bg-[var(--settings-surface)] px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest text-[var(--settings-muted)]"}>
-                      {area.status}
-                    </span>
-                  </div>
-                  <strong className="mt-4 block text-sm font-extrabold text-[var(--settings-title)]">{area.title}</strong>
-                  <p className="mt-1 text-xs font-medium leading-5 text-[var(--settings-muted)]">{area.detail}</p>
-                </Link>
-              )
-            })}
-          </div>
-        </SettingCard>
-
-        <SettingCard title="Archivstatus" description="Ueberblick ueber verfuegbare Ablage- und Exportbereiche.">
-          <div className="space-y-3">
-            {archiveStatus.map(([title, detail, status]) => {
-              const isActive = status === "Aktiv"
-              const isPartial = status === "Teilweise aktiv"
-
-              return (
-                <div key={title} className="flex items-center justify-between gap-4 rounded-[22px] border border-[var(--settings-line)] bg-[var(--settings-subtle)] px-4 py-3">
-                  <div>
-                    <p className="text-sm font-extrabold text-[var(--settings-title)]">{title}</p>
-                    <p className="mt-1 text-xs font-medium text-[var(--settings-muted)]">{detail}</p>
-                  </div>
-                  <span className={isActive ? "rounded-full bg-[linear-gradient(180deg,#ecfdf5_0%,#dcfce7_100%)] px-3 py-1 text-[11px] font-extrabold text-emerald-700" : isPartial ? "rounded-full bg-amber-50 px-3 py-1 text-[11px] font-extrabold text-amber-700" : "rounded-full bg-[var(--settings-surface)] px-3 py-1 text-[11px] font-extrabold text-[var(--settings-muted)]"}>
-                    {status}
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-        </SettingCard>
-      </div>
-
-    </SettingsLayout>
+    <ManagementPage
+      title="Archiv"
+      description="Dokumentenarchiv, Ablage, Exporte und Aufbewahrung als eigene Verwaltungsseite."
+      rows={[
+        { name: "Dokumentenablage", detail: "Rechnungen, Angebote und Uploads", owner: "Operations", status: "Teilweise aktiv", activity: "DMS-Bereich vorhanden", href: "/dashboard-v2/documents", icon: FileText },
+        { name: "Kundenportal", detail: "Externe Freigaben und Portalablage", owner: "Portal", status: "Vorbereitet", activity: "Portal-Settings vorhanden", href: "/dashboard-v2/settings/portal", icon: Archive },
+        { name: "Exportarchiv", detail: "Reports, CSV und steuernahe Ablage", owner: "Accounting", status: "Vorbereitet", activity: "Report-Export vorbereitet", href: "/dashboard-v2/reports?q=Archiv", icon: BarChart3 },
+        { name: "Aufbewahrung", detail: "Archivregeln und Statusueberblick", owner: "Compliance", status: "Inaktiv", activity: "Regelwerk noch offen", href: "/dashboard-v2/settings/archive?q=Aufbewahrung", icon: Clock3 }
+      ]}
+      activity={[
+        ["Ablage", "Vorhandene Dokumentfunktionen bleiben erreichbar.", "Teilweise aktiv"],
+        ["Portal", "Portal-nahe Archivfunktionen sind vorbereitet.", "Vorbereitet"],
+        ["Regeln", "Aufbewahrungsregeln sind als Status sichtbar.", "Inaktiv"]
+      ]}
+    />
   )
 }
 
 function AutomationSettingsPage() {
-  const automationAreas = [
-    { title: "Regeln", detail: "Regeluebersicht und vorbereitete Bedingungen im Premium-Workspace pruefen.", href: "/dashboard-v2/automation?q=Regeln", icon: Workflow, status: "Vorbereitet" },
-    { title: "Trigger", detail: "Ausloeser fuer Mahnungen, Reports und Dokumentereignisse spaeter anbinden.", href: "/dashboard-v2/automation?q=Trigger", icon: Workflow, status: "Vorbereitet" },
-    { title: "Geplante Ablaeufe", detail: "Zeitplaene und wiederkehrende Jobs nur als Konzept markieren.", href: "/dashboard-v2/automation?q=Geplant", icon: Settings2, status: "Vorbereitet" },
-    { title: "Run-Verlauf", detail: "Ausfuehrungen spaeter ueber Audit/Workflow-Logs nachvollziehen.", href: "/dashboard-v2/audit?q=Workflow", icon: FileText, status: "Vorbereitet" }
-  ]
-
   return (
-    <SettingsLayout title="Automatisierung" description="Regeln, Trigger und geplante Ablaeufe zentral organisieren.">
-      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <SettingCard title="Automatisierungszentrale" description="Ueberblick ueber Regeln, Trigger und geplante Ablaeufe.">
-          <div className="grid gap-3 md:grid-cols-2">
-            {automationAreas.map((area) => {
-              const Icon = area.icon
-
-              return (
-                <Link key={area.title} href={area.href} className="rounded-[22px] border border-[var(--settings-line)] bg-[var(--settings-subtle)] p-4 no-underline transition hover:-translate-y-0.5 hover:bg-[var(--settings-surface)]">
-                  <div className="flex items-start justify-between gap-3">
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[var(--settings-accent-soft)] text-[var(--settings-accent)]">
-                      <Icon className="h-5 w-5" />
-                    </span>
-                    <span className="rounded-full bg-[var(--settings-surface)] px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest text-[var(--settings-muted)]">
-                      {area.status}
-                    </span>
-                  </div>
-                  <strong className="mt-4 block text-sm font-extrabold text-[var(--settings-title)]">{area.title}</strong>
-                  <p className="mt-1 text-xs font-medium leading-5 text-[var(--settings-muted)]">{area.detail}</p>
-                </Link>
-              )
-            })}
-          </div>
-        </SettingCard>
-
-      </div>
-    </SettingsLayout>
+    <ManagementPage
+      title="Automatisierung"
+      description="Regeln, Trigger, Zeitplaene und Run-Verlauf zentral verwalten."
+      rows={[
+        { name: "Regeln", detail: "Wenn-Dann-Ablaeufe fuer Rechnungen und Mahnungen", owner: "Operations", status: "Vorbereitet", activity: "Automation-API vorhanden", href: "/dashboard-v2/automation?q=Regeln", icon: Workflow },
+        { name: "Trigger", detail: "Ereignisse fuer Dokumente, Zahlungen und E-Mails", owner: "Operations", status: "Vorbereitet", activity: "Trigger-Modell vorbereitet", href: "/dashboard-v2/automation?q=Trigger", icon: Activity },
+        { name: "Zeitplaene", detail: "Wiederkehrende Jobs und Erinnerungen", owner: "System", status: "Teilweise aktiv", activity: "Reminder-Settings aktiv", href: "/dashboard-v2/settings/reminders", icon: Clock3 },
+        { name: "Run-Verlauf", detail: "Ausfuehrungen und Fehler nachvollziehen", owner: "Audit", status: "Vorbereitet", activity: "Audit-Verknuepfung vorbereitet", href: "/dashboard-v2/settings/audit-logs?q=Workflow", icon: FileText }
+      ]}
+      activity={[
+        ["Regeln", "Regeluebersichten sind strukturiert angelegt.", "Vorbereitet"],
+        ["Erinnerungen", "Bestehende Reminder-Logik bleibt direkt bearbeitbar.", "Teilweise aktiv"],
+        ["Verlauf", "Run-Verlauf kann ueber Audit Logs nachvollzogen werden.", "Vorbereitet"]
+      ]}
+    />
   )
 }
 
@@ -683,9 +465,22 @@ const premiumSettingsSectionComponents: Record<PremiumSettingsSection, Component
   documents: DocumentsSettingsPage,
   "time-tracking": TimeTrackingSettingsPage,
   billing: BillingSettingsPage,
-  communication: CommunicationSettingsPage,
-  "users-roles": UsersRolesSettingsPage,
-  security: SecuritySettingsPage
+  email: CommunicationSettingsPage,
+  users: UsersRolesSettingsPage,
+  security: SecuritySettingsPage,
+  "audit-logs": AuditLogsSettingsPage,
+  license: LicenseSettingsPage,
+  integrations: IntegrationsSettingsPage,
+  reports: ReportsSettingsPage,
+  archive: ArchiveSettingsPage,
+  system: SystemSettingsPage,
+  automation: AutomationSettingsPage,
+  legal: LegalSettingsPage,
+  notifications: NotificationSettingsPage,
+  reminders: RemindersSettingsPage,
+  "number-ranges": NumberRangesSettingsPage,
+  "add-ons": ApiWebhooksSettingsPage,
+  portal: PortalSettingsPage
 }
 
 export function PremiumSettingsSectionContent({ section }: { section: PremiumSettingsSection }) {

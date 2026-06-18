@@ -17,6 +17,12 @@ type DocumentEditPageProps = {
 
 type Position = {
   id: string
+  customerId?: string | null
+  projectId?: string | null
+  articleId?: string | null
+  hours?: string
+  hourlyRate?: string
+  amount?: string
   label: string
   qty: string
   price: string
@@ -48,6 +54,12 @@ type ApiInvoicePosition = {
   netPrice: unknown
   vatRate?: unknown
   description?: string | null
+  customerId?: string | null
+  projectId?: string | null
+  articleId?: string | null
+  hours?: unknown
+  hourlyRate?: unknown
+  amount?: unknown
 }
 
 type ApiInvoice = {
@@ -271,20 +283,23 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
         const parsedVatRate = parseLocalizedDecimal(firstVatRate, 19)
         setTaxRateInput(decimalInputValue(parsedVatRate, 19))
 
-        // TEMP: Fuer den Sample-Design-Test bleiben die Startpositionen sichtbar.
-        // Wenn das Layout final passt, diesen Block wieder aktivieren, damit echte
-        // gespeicherte Rechnungspositionen aus der API geladen werden.
-        // if (Array.isArray(invoice.positions) && invoice.positions.length > 0) {
-        //   setPositions(
-        //     invoice.positions.map((item, index) => ({
-        //       id: item.id || `pos-${index + 1}`,
-        //       label: item.title || t("documents.edit.fallback.position"),
-        //       qty: decimalInputValue(item.quantity, 1),
-        //       price: decimalInputValue(item.netPrice, 0),
-        //       category: item.description || "(Keine)"
-        //     }))
-        //   )
-        // }
+        if (Array.isArray(invoice.positions) && invoice.positions.length > 0) {
+          setPositions(
+            invoice.positions.map((item, index) => ({
+              id: item.id || `pos-${index + 1}`,
+              label: item.title || t("documents.edit.fallback.position"),
+              qty: decimalInputValue(item.quantity, 1),
+              price: decimalInputValue(item.netPrice, 0),
+              category: item.description || "(Keine)",
+              customerId: item.customerId ?? null,
+              projectId: item.projectId ?? null,
+              articleId: item.articleId ?? null,
+              hours: item.hours == null ? "" : decimalInputValue(item.hours, 0),
+              hourlyRate: item.hourlyRate == null ? "" : decimalInputValue(item.hourlyRate, 0),
+              amount: item.amount == null ? "" : decimalInputValue(item.amount, 0)
+            }))
+          )
+        }
       } catch {
         // Demo-Dokumente bleiben als Fallback erhalten.
       }
@@ -512,7 +527,13 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
             name: item.label,
             quantity: parseLocalizedDecimal(item.qty),
             price: parseLocalizedDecimal(item.price),
-            category: item.category
+            category: item.category,
+            customerId: item.customerId ?? null,
+            projectId: item.projectId ?? null,
+            articleId: item.articleId ?? null,
+            hours: item.hours ? parseLocalizedDecimal(item.hours) : null,
+            hourlyRate: item.hourlyRate ? parseLocalizedDecimal(item.hourlyRate) : null,
+            amount: item.amount ? parseLocalizedDecimal(item.amount) : parseLocalizedDecimal(item.qty) * parseLocalizedDecimal(item.price)
           }))
         })
       })
@@ -629,6 +650,19 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
           </div>
 
           <div className="bm-section" id="invoice-positions">
+          <div className="bm-section bm-time-import-section" aria-disabled="true">
+            <div className="bm-section-head">
+              <h3 className="bm-section-title">Zeiten übernehmen</h3>
+              <span className="bm-disabled-badge">Deaktiviert</span>
+            </div>
+            <p className="bm-muted-copy">
+              Vorbereitung fuer spaetere Uebernahme von Zeiten aus bestehenden Kunden, Projekten und Artikeln.
+            </p>
+            <button type="button" className="bm-time-import-button" disabled>
+              Zeiten uebernehmen
+            </button>
+          </div>
+
             <div className="bm-section-head">
               <h3 className="bm-section-title">Positionen</h3>
               <div className="bm-catalog-row">
@@ -1084,6 +1118,35 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
 
         .bm-action-row {
           margin-top: 12px;
+        }
+
+        .bm-muted-copy {
+          margin: 8px 0 12px;
+          color: var(--bm-text-muted);
+          font-size: 13px;
+          line-height: 1.45;
+        }
+
+        .bm-disabled-badge {
+          border-radius: 999px;
+          background: #f3f4f6;
+          color: #6b7280;
+          padding: 4px 8px;
+          font-size: 11px;
+          font-weight: 800;
+          text-transform: uppercase;
+        }
+
+        .bm-time-import-button {
+          width: 100%;
+          min-height: 36px;
+          border: 1px solid var(--bm-border);
+          border-radius: 6px;
+          background: #f3f4f6;
+          color: #6b7280;
+          cursor: not-allowed;
+          font-size: 12px;
+          font-weight: 800;
         }
 
         .bm-icon-button,

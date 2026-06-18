@@ -13,6 +13,7 @@ import { createSepaQrPayload } from "@/lib/payment/sepa-qr"
 import { documents } from "@/data/invoice-data"
 import { AuthServiceError, mapAuthError, requireCurrentUser } from "@/lib/auth/service"
 import { hasUserPermission } from "@/lib/auth/permissions"
+import { CustomerPortalAuthError, requirePortalCustomer } from "@/lib/customer-portal/auth"
 import { isDemoMode } from "@/lib/demo-mode"
 
 const APP_ROOT = process.cwd()
@@ -39,6 +40,12 @@ type PdfInvoicePosition = {
 type PdfInvoice = {
   number: string
   issueDate: Date
+  dueDate?: Date | null
+  bankNameSnapshot?: string | null
+  accountHolderSnapshot?: string | null
+  ibanSnapshot?: string | null
+  bicSnapshot?: string | null
+  qrPaymentPayload?: string | null
   customer: {
     name?: string | null
     street?: string | null
@@ -171,20 +178,30 @@ function fallbackInvoice(id: string): PdfInvoice | null {
   }
 }
 
-async function requireInvoicePdfPermission() {
-  const user = await requireCurrentUser()
-  if (!hasUserPermission(user, "documents", "pdf")) {
-    throw new AuthServiceError("forbidden", "Keine Berechtigung fuer dieses Rechnungs-PDF.", 403)
+async function requireInvoicePdfPermission(invoiceId: string) {
+  const user = await requireCurrentUser().catch(() => null)
+  if (user) {
+    if (!hasUserPermission(user, "documents", "pdf")) {
+      throw new AuthServiceError("forbidden", "Keine Berechtigung fuer dieses Rechnungs-PDF.", 403)
+    }
+    return
   }
 
-  return user
+  const customer = await requirePortalCustomer()
+  const invoice = await prisma.invoice.findFirst({
+    where: { id: invoiceId, customerId: customer.id },
+    select: { id: true }
+  })
+  if (!invoice) {
+    throw new CustomerPortalAuthError("forbidden", "Dieses PDF gehoert nicht zu diesem Kunden.", 403)
+  }
 }
 
-async function loadPdfSource(id: string): Promise<{ invoice: PdfInvoice; company: PdfCompany } | null> {
-  if (isDemoMode() || !process.env.DATABASE_URL) {
-    const invoice = fallbackInvoice(id)
-    return invoice ? { invoice, company: fallbackCompany() } : null
-  }
+async function loadPdfSource(id: string): Promise<{ invoice: PdfInvoice; company: PdfCompany; companySettings: { defaultPaymentNote?: string | null } | null } | null> {
+    if (isDemoMode() || !process.env.DATABASE_URL) {
+      const invoice = fallbackInvoice(id)
+    return invoice ? { invoice, company: fallbackCompany(), companySettings: null } : null
+    }
 
   try {
     const invoice = await prisma.invoice.findUnique({
@@ -197,11 +214,25 @@ async function loadPdfSource(id: string): Promise<{ invoice: PdfInvoice; company
 
     if (!invoice) return null
 
-    const companySettings = await prisma.companySettings.findFirst()
+    const companySettings = await prisma.companySettings.findFirst({ orderBy: { createdAt: "desc" } })
+    const defaultBankAccount = companySettings
+      ? await prisma.bankAccount.findFirst({
+          where: { companySettingsId: companySettings.id, active: true },
+          orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }]
+        })
+      : null
+    const companyBase = companySettings ?? fallbackCompany()
+    const company = {
+      ...companyBase,
+      bankName: invoice.bankNameSnapshot ?? defaultBankAccount?.bankName ?? companyBase.bankName,
+      iban: invoice.ibanSnapshot ?? defaultBankAccount?.iban ?? companyBase.iban,
+      bic: invoice.bicSnapshot ?? defaultBankAccount?.bic ?? companyBase.bic
+    }
 
     return {
       invoice,
-      company: companySettings ?? fallbackCompany()
+      company,
+      companySettings
     }
   } catch (error) {
     console.error("PDF source loading failed.", { invoiceId: id, error: errorForLog(error) })
@@ -218,7 +249,7 @@ export async function GET(
 
   try {
     if (process.env.DATABASE_URL && !isDemoMode()) {
-      await requireInvoicePdfPermission()
+      await requireInvoicePdfPermission(id)
     }
 
     const templateId = normalizeTemplateId(searchParams.get("templateId"))
@@ -231,7 +262,7 @@ export async function GET(
       )
     }
 
-    const { invoice, company } = source
+    const { invoice, company, companySettings } = source
 
     const { subtotal, taxTotal, total, positions } = calculatePdfInvoiceTotals(invoice.positions)
 
@@ -239,28 +270,31 @@ export async function GET(
     const qrElement = template.elements.find((element) => element.type === "paymentQr")
     const paymentNote = replacePaymentPlaceholders(qrElement?.content, invoice.number)
 
+    const paymentQrPayload = invoice.qrPaymentPayload || (
+      company.iban && company.company
+        ? createSepaQrPayload({
+            beneficiaryName: invoice.accountHolderSnapshot || company.company,
+            iban: company.iban,
+            bic: company.bic,
+            amount: total,
+            remittance: paymentNote
+          })
+        : null
+    )
     const paymentQrDataUrl =
-      company.iban && company.company && qrElement
-        ? await QRCode.toDataURL(
-            createSepaQrPayload({
-              beneficiaryName: company.company,
-              iban: company.iban,
-              bic: company.bic,
-              amount: total,
-              remittance: paymentNote
-            }),
-            {
-              errorCorrectionLevel: "M",
-              margin: 1,
-              width: Math.max(96, qrElement.width * 2)
-            }
-          )
+      paymentQrPayload && qrElement
+        ? await QRCode.toDataURL(paymentQrPayload, {
+            errorCorrectionLevel: "M",
+            margin: 1,
+            width: Math.max(96, qrElement.width * 2)
+          })
         : null
 
     const html = pdfLayout({
       title: "Rechnung",
       number: invoice.number,
       date: invoice.issueDate.toLocaleDateString("de-DE"),
+      dueDate: invoice.dueDate ? invoice.dueDate.toLocaleDateString("de-DE") : null,
       customer: invoice.customer,
       company,
       positions,
@@ -269,7 +303,8 @@ export async function GET(
       total,
       template,
       paymentQrDataUrl,
-      paymentNote
+      paymentNote,
+      paymentInstructions: companySettings?.defaultPaymentNote ?? null
     })
 
     const browserUserDataDir = await fs.mkdtemp(path.join("/tmp", "dream-invoice-pdf-"))
@@ -318,6 +353,13 @@ export async function GET(
       await fs.rm(browserUserDataDir, { recursive: true, force: true }).catch(() => undefined)
     }
   } catch (err) {
+    if (err instanceof CustomerPortalAuthError) {
+      return NextResponse.json(
+        { ok: false, error: err.message, code: err.code },
+        { status: err.status }
+      )
+    }
+
     if (err instanceof AuthServiceError) {
       const mapped = mapAuthError(err)
       return NextResponse.json(

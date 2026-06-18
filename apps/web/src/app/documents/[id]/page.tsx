@@ -5,6 +5,7 @@ import { useParams } from "next/navigation"
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react"
 import {
   AlertTriangle,
+  ArrowLeft,
   CheckCircle2,
   CircleDollarSign,
   Download,
@@ -17,7 +18,7 @@ import {
   Trash2,
   X
 } from "lucide-react"
-import { ContentCard, Currency, PageShell } from "@dream-invoice/ui"
+import { ContentCard, Currency } from "@dream-invoice/ui"
 
 import { documents } from "@/data/invoice-data"
 import { translateStatus, useLanguage } from "@/lib/i18n"
@@ -51,11 +52,14 @@ type DetailDocument = {
   id: string
   number: string
   customer: string
+  customerId?: string | null
   customerEmail: string
   type: string
   status: string
   issueDate: string
+  issueDateRaw?: string | null
   dueDate: string
+  dueDateRaw?: string | null
   netTotal: number
   vatTotal: number
   grossTotal: number
@@ -66,7 +70,7 @@ type DetailDocument = {
 type EmailLogEntry = {
   id: string
   createdAt: string
-  type: "test" | "invoice"
+  type: "test" | "invoice" | "offer"
   status: "success" | "error"
   provider?: "smtp" | "resend" | "disabled" | "unknown"
   to: string
@@ -75,6 +79,13 @@ type EmailLogEntry = {
   documentNumber?: string
   messageId?: string | null
   error?: string
+}
+
+type EmailSettings = {
+  provider?: "disabled" | "smtp" | "resend" | null
+  fromEmail?: string | null
+  smtpHost?: string | null
+  resendApiKey?: string | null
 }
 
 type ApiInvoicePosition = {
@@ -105,8 +116,13 @@ type ApiInvoice = {
   grossTotal?: unknown
   notes?: string | null
   customer?: {
+    id?: string | null
     name?: string | null
     email?: string | null
+    street?: string | null
+    zip?: string | null
+    city?: string | null
+    country?: string | null
   } | null
   positions?: ApiInvoicePosition[]
   payments?: ApiPayment[]
@@ -162,6 +178,8 @@ function statusLabel(status: string) {
   if (normalized === "sent" || normalized === "gesendet") return "sent"
   if (normalized === "open" || normalized === "offen") return "open"
   if (normalized === "draft" || normalized === "entwurf") return "draft"
+  if (normalized === "accepted" || normalized === "angenommen") return "accepted"
+  if (normalized === "rejected" || normalized === "abgelehnt") return "rejected"
 
   return status
 }
@@ -174,6 +192,8 @@ function statusKey(status: string) {
   if (normalized.includes("gesendet") || normalized.includes("sent")) return "sent"
   if (normalized.includes("offen") || normalized.includes("open")) return "open"
   if (normalized.includes("entwurf") || normalized.includes("draft")) return "draft"
+  if (normalized.includes("angenommen") || normalized.includes("accepted")) return "accepted"
+  if (normalized.includes("abgelehnt") || normalized.includes("rejected")) return "rejected"
 
   return "open"
 }
@@ -181,7 +201,8 @@ function statusKey(status: string) {
 function statusBadgeClass(status: string) {
   const key = statusKey(status)
 
-  if (key === "paid") return "bg-emerald-50 text-emerald-700 ring-emerald-100"
+  if (key === "paid" || key === "accepted") return "bg-emerald-50 text-emerald-700 ring-emerald-100"
+  if (key === "rejected") return "bg-slate-100 text-slate-700 ring-slate-200"
   if (key === "overdue") return "bg-red-50 text-red-700 ring-red-100"
   if (key === "draft") return "bg-slate-100 text-slate-700 ring-slate-200"
 
@@ -217,8 +238,11 @@ function normalizeStaticDocument(item: typeof documents[number], t: ReturnType<t
     customerEmail: item.customerEmail,
     type: item.type ?? "invoice",
     status: statusLabel(item.status ?? "open"),
+    customerId: null,
     issueDate: formatDisplayDate(item.issueDate),
+    issueDateRaw: dateInputValue(item.issueDate),
     dueDate: formatDisplayDate(item.dueDate),
+    dueDateRaw: dateInputValue(item.dueDate),
     netTotal,
     vatTotal,
     grossTotal,
@@ -292,11 +316,14 @@ function normalizeApiInvoice(invoice: ApiInvoice, fallback: DetailDocument, t: R
     id: invoice.id,
     number: invoice.number || fallback.number,
     customer: invoice.customer?.name || t("documents.detail.fallback.unknownCustomer"),
+    customerId: invoice.customer?.id || null,
     customerEmail: invoice.customer?.email || "",
     type: invoice.type === "invoice" ? t("documents.detail.type.invoice") : invoice.type || fallback.type,
     status: statusLabel(invoice.status || fallback.status),
     issueDate: formatDisplayDate(invoice.issueDate, locale),
+    issueDateRaw: dateInputValue(invoice.issueDate),
     dueDate: formatDisplayDate(invoice.dueDate, locale),
+    dueDateRaw: dateInputValue(invoice.dueDate),
     netTotal,
     vatTotal,
     grossTotal,
@@ -345,11 +372,14 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
   const [sendingEmail, setSendingEmail] = useState(false)
   const [downloadNotice, setDownloadNotice] = useState<{ type: "info" | "success" | "error"; text: string } | null>(null)
   const [sendTo, setSendTo] = useState(fallbackDocument.customerEmail)
-  const [subject, setSubject] = useState(`${t("documents.detail.email.subjectPrefix")} ${fallbackDocument.number}`)
+  const fallbackSubjectPrefix = fallbackDocument.type === "offer" ? "Angebot" : "Rechnung"
+  const [subject, setSubject] = useState(`${fallbackSubjectPrefix} ${fallbackDocument.number}`)
   const [message, setMessage] = useState(
     `${t("documents.detail.email.bodyPrefix")}\n\n${t("documents.detail.email.bodyMiddle")} ${fallbackDocument.number}.\n\n${t("documents.detail.email.bodyClosing")}`
   )
   const [, setEmailLog] = useState<EmailLogEntry[]>([])
+  const [emailSettings, setEmailSettings] = useState<EmailSettings | null>(null)
+  const [emailSettingsLoaded, setEmailSettingsLoaded] = useState(false)
 
   const [payments, setPayments] = useState<PaymentEntry[]>(() => initialPaymentsForDocument(fallbackDocument))
   const [showPaymentModal, setShowPaymentModal] = useState(false)
@@ -390,7 +420,7 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
         : initialPaymentsForDocument(normalized)
       )
       setSendTo(normalized.customerEmail)
-      setSubject(`${t("documents.detail.email.subjectPrefix")} ${normalized.number}`)
+      setSubject(`${String(normalized.type).toLowerCase() === "offer" ? "Angebot" : "Rechnung"} ${normalized.number}`)
       setMessage(`${t("documents.detail.email.bodyPrefix")}\n\n${t("documents.detail.email.bodyMiddle")} ${normalized.number}.\n\n${t("documents.detail.email.bodyClosing")}`)
     } catch (error) {
       console.warn("Document detail loading failed.", error)
@@ -442,6 +472,7 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
   const amount = doc.grossTotal
   const net = doc.netTotal
   const tax = doc.vatTotal
+  const isOffer = String(doc.type).toLowerCase() === "offer"
   const currentStatusKey = statusKey(doc.status)
   const paidAmount = payments.reduce((sum, payment) => sum + payment.amount, 0)
   const openAmount = Math.max(amount - paidAmount, 0)
@@ -451,10 +482,20 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
       ? "Dokument vorbereitet"
       : currentStatusKey === "paid"
         ? `Bezahlt am ${payments[0] ? displayDate(payments[0].date, locale) : displayDate(doc.issueDate, locale)}`
-        : currentStatusKey === "overdue"
-          ? "Zahlung überfällig"
-          : "Beim Kunden angekommen"
+        : currentStatusKey === "accepted"
+          ? "Angebot angenommen"
+          : currentStatusKey === "rejected"
+            ? "Angebot abgelehnt"
+            : currentStatusKey === "overdue"
+              ? "Zahlung überfällig"
+              : "Beim Kunden angekommen"
   const paymentMethods: PaymentMethod[] = ["Banküberweisung", "PayPal", "Karte", "Bar", "Sonstiges"]
+  const emailTransportReady = emailSettingsLoaded && Boolean(
+    emailSettings && (
+      emailSettings.provider === "smtp" && emailSettings.smtpHost?.trim() && emailSettings.fromEmail?.trim()
+        || emailSettings.provider === "resend" && emailSettings.resendApiKey?.trim() && emailSettings.fromEmail?.trim()
+    )
+  )
 
   async function loadEmailLog() {
     try {
@@ -472,6 +513,35 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
   useEffect(() => {
     loadEmailLog()
   }, [documentId])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadEmailSettings() {
+      try {
+        const response = await fetch("/api/settings/email", { cache: "no-store" })
+        const result = await response.json().catch(() => null)
+
+        if (cancelled) return
+
+        if (response.ok && result?.ok && result.settings) {
+          setEmailSettings(result.settings as EmailSettings)
+        }
+      } catch {
+        // Keep transport disabled until settings are available.
+      } finally {
+        if (!cancelled) {
+          setEmailSettingsLoaded(true)
+        }
+      }
+    }
+
+    void loadEmailSettings()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   async function handleDownload() {
     if (downloadingPdf) return
@@ -551,6 +621,79 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
     }
   }
 
+  async function handleOfferStatus(nextStatus: "accepted" | "rejected") {
+    if (!isOffer) return
+
+    const response = await fetch(`/api/invoice/update/${documentId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        number: doc.number,
+        date: doc.issueDateRaw || doc.issueDate,
+        dueDate: doc.dueDateRaw || doc.dueDate,
+        customerId: doc.customerId || undefined,
+        customerName: doc.customer,
+        customerEmail: doc.customerEmail,
+        status: nextStatus,
+        note: doc.note,
+        taxRate: 0.19,
+        tip: 0,
+        items: doc.positions.map((position) => ({
+          name: position.title,
+          quantity: position.quantity,
+          price: position.netPrice,
+          category: position.description || null,
+          vatRate: 19
+        }))
+      })
+    })
+
+    const result = await response.json().catch(() => null)
+    if (!response.ok || !result?.success) {
+      throw new Error(result?.error || "Angebot konnte nicht aktualisiert werden.")
+    }
+
+    await reloadDocument({ resetFallback: false })
+    setDownloadNotice({
+      type: "success",
+      text: nextStatus === "accepted" ? "Angebot wurde angenommen." : "Angebot wurde abgelehnt."
+    })
+  }
+
+  async function handleOfferConvert() {
+    if (!isOffer) return
+
+    const response = await fetch("/api/invoice/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        customerId: doc.customerId || undefined,
+        customerName: doc.customer,
+        customerEmail: doc.customerEmail,
+        status: "draft",
+        date: doc.issueDateRaw || doc.issueDate,
+        dueDate: doc.dueDateRaw || doc.dueDate,
+        note: doc.note || DEFAULT_DOCUMENT_NOTE,
+        taxRate: 0.19,
+        tip: 0,
+        items: doc.positions.map((position) => ({
+          name: position.title,
+          quantity: position.quantity,
+          price: position.netPrice,
+          category: position.description || null,
+          vatRate: 19
+        }))
+      })
+    })
+
+    const result = await response.json().catch(() => null)
+    if (!response.ok || !result?.invoice?.id) {
+      throw new Error(result?.error || "Rechnung konnte nicht erstellt werden.")
+    }
+
+    window.location.assign(`/documents/${result.invoice.id}/edit`)
+  }
+
   async function handleShare() {
     const shareText = `${doc.number} · ${doc.customer}`
     if (navigator.share) {
@@ -562,15 +705,7 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
     alert(t("documents.detail.notice.shareCopied"))
   }
 
-  function showUnavailableReminderNotice() {
-    setDownloadNotice({
-      type: "info",
-      text: "Mahnungs-PDF ist noch nicht aktiviert."
-    })
-    window.setTimeout(() => {
-      setDownloadNotice((current) => current?.text === "Mahnungs-PDF ist noch nicht aktiviert." ? null : current)
-    }, 2600)
-  }
+  // Reminder preparation is exposed via the settings link in the overdue card.
 
   function openPaymentModal(payment?: PaymentEntry) {
     if (payment) {
@@ -733,25 +868,33 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
     "inline-flex min-h-11 items-center gap-2 rounded-full bg-[var(--brand-lime)] px-5 py-2 text-sm font-extrabold text-black shadow-[0_10px_24px_rgba(211,255,49,0.28)] transition hover:scale-[1.01]"
 
   return (
-    <PageShell title={doc.number} description={`${doc.type ?? t("documents.detail.type.invoice")} · ${doc.customer}`}>
-      <div className="space-y-6">
-        <ContentCard>
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-            <div>
+    <div className="invoice-shell-3d overflow-hidden rounded-[36px] border border-[#e3e9f1] bg-white">
+      <div className="border-b border-[#edf2f7] px-5 py-6 sm:px-7 lg:px-9">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-start gap-4">
               <Link
                 href="/documents"
-                className="text-xs font-semibold uppercase tracking-widest text-slate-400 no-underline hover:text-slate-900"
+                className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-slate-900 shadow-sm ring-1 ring-slate-200 transition hover:-translate-x-0.5 hover:bg-black hover:text-white"
+                aria-label={t("documents.detail.back")}
+                title={t("documents.detail.back")}
               >
-                {t("documents.detail.back")}
+                <ArrowLeft className="h-5 w-5" />
               </Link>
 
-              <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-slate-950">
-                {doc.number}
-              </h1>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-3">
+                  <h1 className="text-3xl font-extrabold tracking-tight text-slate-950">
+                  {doc.number}
+                </h1>
+                  <span className={`inline-flex rounded-full px-3 py-1.5 text-xs font-black ring-1 ${statusBadgeClass(doc.status)}`}>
+                    {translateStatus(doc.status ?? "draft", t)}
+                  </span>
+                </div>
 
-              <p className="mt-2 text-base font-medium text-slate-500">
-                {doc.customer}
-              </p>
+                <p className="mt-2 text-base font-medium text-slate-500">
+                  {doc.customer}
+                </p>
+              </div>
             </div>
 
             <div className="flex flex-wrap items-center justify-end gap-3">
@@ -791,124 +934,143 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
                 </button>
               </div>
 
+              {isOffer ? (
+                <>
+                  <button type="button" onClick={() => void handleOfferStatus("accepted")} className={actionPillButton}>Angebot annehmen</button>
+                  <button type="button" onClick={() => void handleOfferStatus("rejected")} className={actionPillButton}>Angebot ablehnen</button>
+                  <button type="button" onClick={() => void handleOfferConvert()} className={primaryActionButton}>In Rechnung umwandeln</button>
+                </>
+              ) : null}
               <button
                 type="button"
                 onClick={() => setShowSendModal(true)}
-                className={primaryActionButton}
+                disabled={!emailTransportReady}
+                className={`${primaryActionButton} disabled:cursor-not-allowed disabled:opacity-70`}
+                title={emailTransportReady ? "" : "SMTP zuerst in den E-Mail-Einstellungen konfigurieren."}
               >
                 <Mail className="h-4 w-4" />
-                {t("documents.detail.modal.send.submit")}
+                {isOffer ? "Angebot per E-Mail senden" : t("documents.detail.modal.send.submit")}
               </button>
             </div>
-          </div>
-        </ContentCard>
+            {!emailTransportReady ? (
+              <p className="mt-3 text-xs font-semibold text-slate-500">E-Mail-Versand ist erst nach SMTP-Konfiguration aktiv.</p>
+            ) : null}
+        </div>
+      </div>
 
-        <div className="grid gap-6 xl:grid-cols-[1.45fr_0.85fr]">
-          <div className="space-y-6">
-            <ContentCard title={t("documents.detail.cards.documentData.title")} description={t("documents.detail.cards.documentData.description")}>
-              <div className="grid gap-4 md:grid-cols-3">
-                <div className="rounded-2xl bg-[#f7f9fc] p-4">
-                  <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">{t("documents.detail.labels.recipient")}</p>
-                  <p className="mt-2 text-lg font-bold text-slate-900">{doc.customer}</p>
-                </div>
-                <div className="rounded-2xl bg-[#f7f9fc] p-4">
-                  <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">{t("documents.detail.labels.date")}</p>
-                  <p className="mt-2 text-base font-bold text-slate-900">{doc.issueDate}</p>
-                </div>
-                <div className="rounded-2xl bg-[#f7f9fc] p-4">
-                  <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">{t("documents.detail.labels.due")}</p>
-                  <p className="mt-2 text-base font-bold text-slate-900">{doc.dueDate}</p>
-                </div>
-              </div>
-            </ContentCard>
-
-            <ContentCard title={t("documents.detail.cards.positions.title")} description={t("documents.detail.cards.positions.description")}>
-              <div className="overflow-hidden rounded-2xl border border-[#e5eaf0] bg-white">
-                <table className="w-full">
-                  <thead className="bg-[#f7f9fc] text-left text-xs font-semibold uppercase tracking-widest text-slate-500">
-                    <tr>
-                      <th className="px-5 py-4">{t("documents.detail.table.description")}</th>
-                      <th className="px-5 py-4 text-right">{t("documents.detail.table.amount")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {doc.positions.map((position) => (
-                      <tr key={position.id} className="group border-t border-[#edf2f7] transition hover:bg-[#fbfcfe]">
-                        <td className="px-5 py-5">
-                          <p className="text-base font-bold text-slate-900">{position.title}</p>
-                          <p className="mt-1 text-sm text-slate-500">
-                            {position.quantity} x <Currency value={position.netPrice} />
-                            {position.description ? ` · ${position.description}` : ""}
-                          </p>
-                        </td>
-                        <td className="px-5 py-5 text-right text-base font-bold text-slate-900">
-                          <Currency value={position.total} />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div className="mt-5 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-                <div className="max-w-md">
-                  <h3 className="text-sm font-extrabold text-slate-950">Hinweis</h3>
-                  <p className="mt-2 text-sm font-semibold leading-6 text-slate-500">
-                    {doc.note || DEFAULT_DOCUMENT_NOTE}
-                  </p>
-                </div>
-                <div className="w-full max-w-sm rounded-2xl bg-[#f7f9fc] p-5">
-                  <div className="flex justify-between text-sm text-slate-500">
-                    <span>{t("documents.detail.totals.net")}</span>
-                    <span className="font-semibold text-slate-900"><Currency value={net} /></span>
-                  </div>
-                  <div className="mt-2 flex justify-between text-sm text-slate-500">
-                    <span>{t("documents.detail.totals.vat19")}</span>
-                    <span className="font-semibold text-slate-900"><Currency value={tax} /></span>
-                  </div>
-                  <div className="mt-4 flex justify-between border-t border-slate-200 pt-4 text-lg font-extrabold text-slate-950">
-                    <span>{t("documents.detail.totals.total")}</span>
-                    <Currency value={amount} />
-                  </div>
-                </div>
-              </div>
-            </ContentCard>
+      <div className="grid gap-7 bg-white px-5 py-7 sm:px-7 lg:px-9 xl:grid-cols-[1.45fr_0.85fr]">
+        <section className="rounded-[30px] border border-[#e5eaf0] bg-[#f8fafc] p-5 sm:p-7">
+          <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-start">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-400">{t("documents.detail.labels.recipient")}</p>
+              <p className="mt-3 text-xl font-extrabold text-slate-950">{doc.customer}</p>
+              <p className="mt-1 text-base font-semibold text-slate-500">{doc.customerEmail}</p>
+            </div>
+            <div className="min-w-[140px]">
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-400">{t("documents.detail.labels.date")}</p>
+              <p className="mt-3 text-lg font-extrabold text-slate-950">{doc.issueDate}</p>
+            </div>
+            <div className="min-w-[140px]">
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-400">{t("documents.detail.labels.due")}</p>
+              <p className={`mt-3 text-lg font-extrabold ${currentStatusKey === "overdue" ? "text-red-500" : "text-slate-950"}`}>{doc.dueDate}</p>
+            </div>
           </div>
 
-          <div className="space-y-6">
-            <ContentCard title={t("documents.detail.cards.status.title")} description={t("documents.detail.cards.status.description")}>
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--brand-lime)] text-black">
-                    <CheckCircle2 className="h-4 w-4" />
+          <div className="my-8 border-t border-dashed border-[#e2e8f0]" />
+
+          <div className="overflow-hidden rounded-[24px] border border-[#e5eaf0] bg-white">
+            <table className="w-full">
+              <thead className="text-left text-xs font-black uppercase tracking-[0.18em] text-slate-400">
+                <tr>
+                  <th className="px-5 py-4">{t("documents.detail.table.description")}</th>
+                  <th className="hidden px-5 py-4 text-right sm:table-cell">Menge</th>
+                  <th className="hidden px-5 py-4 text-right md:table-cell">Einzel</th>
+                  <th className="px-5 py-4 text-right">Gesamt</th>
+                </tr>
+              </thead>
+              <tbody>
+                {doc.positions.map((position) => (
+                  <tr key={position.id} className="border-t border-[#edf2f7]">
+                    <td className="px-5 py-5">
+                      <p className="text-base font-extrabold text-slate-950">{position.title}</p>
+                      {position.description ? (
+                        <p className="mt-1 text-sm font-semibold text-slate-500">{position.description}</p>
+                      ) : null}
+                      <p className="mt-2 text-xs font-bold text-slate-400 sm:hidden">
+                        {position.quantity} x <Currency value={position.netPrice} />
+                      </p>
+                    </td>
+                    <td className="hidden px-5 py-5 text-right text-base font-bold text-slate-500 sm:table-cell">{position.quantity}</td>
+                    <td className="hidden px-5 py-5 text-right text-base font-bold text-slate-500 md:table-cell"><Currency value={position.netPrice} /></td>
+                    <td className="px-5 py-5 text-right text-base font-extrabold text-slate-950"><Currency value={position.total} /></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(260px,360px)] lg:items-end">
+            <div>
+              <h3 className="text-sm font-extrabold text-slate-950">Hinweis</h3>
+              <p className="mt-2 max-w-xl text-sm font-semibold leading-6 text-slate-500">
+                {doc.note || DEFAULT_DOCUMENT_NOTE}
+              </p>
+            </div>
+            <div className="rounded-[24px] bg-white p-5 shadow-sm ring-1 ring-[#e5eaf0]">
+              <div className="flex justify-between text-sm font-semibold text-slate-500">
+                <span>{t("documents.detail.totals.net")}</span>
+                <span className="text-slate-900"><Currency value={net} /></span>
+              </div>
+              <div className="mt-3 flex justify-between text-sm font-semibold text-slate-500">
+                <span>{t("documents.detail.totals.vat19")}</span>
+                <span className="text-slate-900"><Currency value={tax} /></span>
+              </div>
+              <div className="mt-4 flex justify-between border-t border-slate-200 pt-4 text-2xl font-extrabold text-slate-950">
+                <span>{t("documents.detail.totals.total")}</span>
+                <Currency value={amount} />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <aside className="space-y-6">
+          <ContentCard title={t("documents.detail.cards.status.title")}>
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[var(--brand-lime)] text-black">
+                  <CheckCircle2 className="h-4 w-4" />
+                </span>
+                <div>
+                  <span className={`inline-flex rounded-full px-3 py-1.5 text-xs font-black ring-1 ${statusBadgeClass(doc.status)}`}>
+                    {translateStatus(doc.status ?? "draft", t)}
                   </span>
-                  <div>
-                    <span className={`inline-flex rounded-full px-3 py-1.5 text-xs font-black ring-1 ${statusBadgeClass(doc.status)}`}>
-                      {translateStatus(doc.status ?? "draft", t)}
-                    </span>
-                    <p className="mt-2 text-sm font-semibold text-slate-500">{statusDetail}</p>
-                  </div>
+                  <p className="mt-2 text-sm font-semibold text-slate-500">{statusDetail}</p>
                 </div>
+              </div>
 
-                {currentStatusKey === "overdue" ? (
-                  <div className="rounded-[26px] border border-red-200 bg-red-50 px-4 py-4 text-red-700">
-                    <div className="flex items-start gap-3">
-                      <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
-                      <div className="min-w-0">
-                        <p className="text-sm font-black">Zahlung überfällig</p>
-                        <button
-                          type="button"
-                          onClick={showUnavailableReminderNotice}
-                          className="mt-3 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-black text-red-700 transition hover:bg-red-100"
-                        >
-                          Mahnung vormerken
-                        </button>
+              {currentStatusKey === "overdue" ? (
+                <div className="rounded-[26px] border border-red-200 bg-red-50 px-4 py-4 text-red-700">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-black">Zahlung überfällig</p>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-red-700 ring-1 ring-red-200">7 Tage</span>
+                        <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-red-700 ring-1 ring-red-200">14 Tage</span>
+                        <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-red-700 ring-1 ring-red-200">30 Tage</span>
                       </div>
+                      <Link
+                        href="/settings/reminders"
+                        className="mt-3 inline-flex rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-black text-red-700 transition hover:bg-red-100"
+                      >
+                        Mahnungen vorbereiten
+                      </Link>
                     </div>
                   </div>
-                ) : null}
-              </div>
-            </ContentCard>
+                </div>
+              ) : null}
+            </div>
+          </ContentCard>
 
             <ContentCard>
               <div className="flex items-center justify-between gap-3">
@@ -1005,8 +1167,7 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
                 ) : null}
               </div>
             </ContentCard>
-          </div>
-        </div>
+        </aside>
       </div>
 
       {showSendModal && (
@@ -1024,7 +1185,7 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
             >
               <h3 className="inline-flex items-center gap-2 text-lg font-extrabold text-slate-900">
                 <Mail className="h-4 w-4" />
-                {t("documents.detail.modal.send.title")}
+                {isOffer ? "Angebot als PDF senden" : t("documents.detail.modal.send.title")}
               </h3>
               <button
                 type="button"
@@ -1183,6 +1344,6 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
           {downloadNotice.text}
         </div>
       )}
-    </PageShell>
+    </div>
   )
 }

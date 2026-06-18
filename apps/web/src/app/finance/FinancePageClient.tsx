@@ -5,7 +5,8 @@ import {
   ArrowRight,
   BarChart3,
   FileSpreadsheet,
-  Landmark
+  Landmark,
+  Plug
 } from "lucide-react"
 import { PageShell } from "@dream-invoice/ui"
 import { useLanguage } from "@/lib/i18n"
@@ -31,12 +32,18 @@ export default function FinancePage() {
       description: t("finance.overview.eur.description"),
       href: "/finance/eur",
       icon: FileSpreadsheet
+    },
+    {
+      title: "Open Banking",
+      description: "finAPI, Bankverbindungen, Konten, Zahlungsabgleich und Synchronisation vorbereitet.",
+      href: "/finance/open-banking",
+      icon: Plug
     }
   ]
 
   return (
-    <PageShell title={t("finance.overview.title")} description={t("finance.overview.description")}>
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+    <PageShell title={t("finance.overview.title")} description={t("finance.overview.description")} className="min-h-[calc(100dvh-60px)]">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
         {modules.map((item) => {
           const Icon = item.icon
 

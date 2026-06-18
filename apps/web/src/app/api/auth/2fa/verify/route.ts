@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
 import { writeAuditLog } from "@/lib/audit/log"
+import { getAuditRequestMetadata } from "@/lib/audit/request-metadata"
 import { verifyTotpCode } from "@/lib/auth/totp"
 import { SESSION_COOKIE_NAME, createSessionToken, getSessionCookieOptions, verifyTwoFactorChallengeToken } from "@/lib/auth/session"
 import { verifyPassword } from "@/lib/auth/password"
@@ -121,14 +122,15 @@ export async function POST(request: Request) {
     action: "auth.login",
     entity: "user",
     entityId: user.id,
-    data: { email: user.email, role: user.role, twoFactor: true }
+    data: { email: user.email, role: user.role, twoFactor: true },
+    requestMetadata: getAuditRequestMetadata(request)
   })
   await appendNotification({
     category: "security",
     tone: "info",
     title: "2FA-Anmeldung erkannt",
     message: user.email + " hat sich mit zweitem Faktor angemeldet.",
-    href: "/account/security",
+    href: "/dashboard-v2/account/security",
     source: "auth-login-2fa:" + user.id + ":" + Date.now()
   }).catch(() => null)
 

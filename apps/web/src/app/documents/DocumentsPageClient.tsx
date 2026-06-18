@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 import useSWR from "swr"
 import { FileText } from "lucide-react"
-import { Button, Currency, PageShell } from "@dream-invoice/ui"
+import { Button, Currency } from "@dream-invoice/ui"
 import { documents } from "@/data/invoice-data"
 import { translateStatus, useLanguage } from "@/lib/i18n"
 import { jsonFetcher, listCacheOptions } from "@/lib/swr/fetcher"
@@ -135,8 +135,7 @@ function normalizeApiDocument(item: ApiInvoiceListItem, t: (key: TranslationKey)
 export default function DocumentsPage() {
   const router = useRouter()
   const [status, setStatus] = useState<StatusFilter>("all")
-  const [documentType, setDocumentType] = useState<DocumentTypeFilter>("invoice")
-  const [typeMenuOpen, setTypeMenuOpen] = useState(false)
+  const documentType: DocumentTypeFilter = "invoice"
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [creatingInvoice, setCreatingInvoice] = useState(false)
   const [documentItems, setDocumentItems] = useState<DocumentListItem[]>(() => documents.map(normalizeStaticDocument))
@@ -148,12 +147,6 @@ export default function DocumentsPage() {
     jsonFetcher,
     listCacheOptions
   )
-
-  const documentTypeOptions: Array<{ value: DocumentTypeFilter; label: string }> = [
-    { value: "invoice", label: t("documents.list.typeFilter.invoices") },
-    { value: "offer", label: t("documents.list.typeFilter.offers") }
-  ]
-  const activeDocumentType = documentTypeOptions.find((item) => item.value === documentType) ?? documentTypeOptions[0]
 
   const filterItems: Array<{ value: StatusFilter; label: string }> = [
     { value: "all", label: t("documents.list.filters.all") },
@@ -179,14 +172,6 @@ export default function DocumentsPage() {
   const filteredDocuments = useMemo(() => {
     return documentItems.filter((doc) => doc.type === documentType && (status === "all" || doc.status === status))
   }, [documentItems, documentType, status])
-
-  const changeDocumentType = (nextType: DocumentTypeFilter) => {
-    setDocumentType(nextType)
-    setTypeMenuOpen(false)
-    setStatus("all")
-    setSelectedIds([])
-    setBulkNotice(null)
-  }
 
   const allVisibleIds = filteredDocuments.map((d) => d.id)
   const allVisibleSelected = allVisibleIds.length > 0 && allVisibleIds.every((id) => selectedIds.includes(id))
@@ -324,36 +309,13 @@ export default function DocumentsPage() {
   }
 
   return (
-    <PageShell title={t("documents.list.title")} description={activeDocumentType.label}>
+    <div className="invoice-shell-3d min-h-[calc(100dvh-60px)] rounded-[40px] border border-[#e3e9f1] bg-white p-6 shadow-[0_14px_34px_rgba(15,23,42,0.045)] sm:p-8 lg:p-10">
+      <div className="space-y-6">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex flex-col gap-3 md:flex-row md:items-center">
-          <div className="relative w-fit">
-            <button
-              type="button"
-              onClick={() => setTypeMenuOpen((open) => !open)}
-              className="inline-flex min-w-[190px] items-center justify-between gap-3 rounded-md border-2 border-transparent bg-white px-1 py-0 text-left text-[34px] font-black leading-none tracking-tight text-[#0f172a] shadow-none outline-none transition focus:border-blue-600 md:text-[36px]"
-              aria-haspopup="menu"
-              aria-expanded={typeMenuOpen}
-            >
-              <span>{activeDocumentType.label}</span>
-              <span className={`text-2xl leading-none transition ${typeMenuOpen ? "rotate-180" : ""}`}>⌃</span>
-            </button>
-            {typeMenuOpen && (
-              <div className="absolute left-0 top-[calc(100%+10px)] z-30 w-[220px] overflow-hidden rounded-[24px] border border-[#e6ebf1] bg-white p-2 shadow-[0_18px_48px_rgba(15,23,42,0.16)]" role="menu">
-                {documentTypeOptions.map((item) => (
-                  <button
-                    key={item.value}
-                    type="button"
-                    onClick={() => changeDocumentType(item.value)}
-                    className={`flex min-h-12 w-full items-center justify-between rounded-[18px] px-4 text-left text-sm font-black transition ${documentType === item.value ? "bg-black text-white" : "text-[#374151] hover:bg-[#f3f6fa]"}`}
-                    role="menuitem"
-                  >
-                    <span>{item.label}</span>
-                    {documentType === item.value && <span>✓</span>}
-                  </button>
-                ))}
-              </div>
-            )}
+          <div className="inline-flex w-fit items-center gap-3 rounded-[18px] bg-white px-1 py-0 text-[30px] font-black leading-none tracking-tight text-[#0f172a] md:text-[32px]">
+            <span>{t("documents.list.typeFilter.invoices")}</span>
+            <span className="text-xl leading-none">⌄</span>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -417,7 +379,17 @@ export default function DocumentsPage() {
           const selected = selectedIds.includes(doc.id)
           return (
             <div key={doc.id} className={`group grid grid-cols-[40px_56px_1.1fr_0.7fr_0.7fr_0.9fr_0.8fr] items-center rounded-[28px] border bg-white px-5 py-3 shadow-sm transition-all duration-200 ${selected ? "translate-y-[-1px] border-black shadow-[0_14px_34px_rgba(15,23,42,0.12)] ring-1 ring-black" : "border-[#edf1f6] hover:-translate-y-0.5 hover:border-black hover:shadow-[0_14px_34px_rgba(15,23,42,0.10)]"}`}>
-              <div><button type="button" onClick={() => toggleOne(doc.id)} className={`h-8 w-8 rounded-md border text-sm font-semibold transition ${selected ? "border-black bg-black text-[var(--brand-lime)]" : "border-slate-300 bg-white text-transparent hover:border-black"}`}>✓</button></div>
+              <div className="flex items-center justify-center">
+                <button
+                  type="button"
+                  onClick={() => toggleOne(doc.id)}
+                  className={`!h-[18px] !min-h-0 !w-[18px] shrink-0 rounded-full border p-0 text-[11px] font-black leading-none transition ${selected ? "border-black bg-black text-[var(--brand-lime)] shadow-sm" : "border-slate-300 bg-white text-transparent hover:border-black"}`}
+                  aria-label={`${doc.number} auswählen`}
+                  aria-pressed={selected}
+                >
+                  ✓
+                </button>
+              </div>
               <div className={`flex h-11 w-11 items-center justify-center rounded-full transition ${selected ? "bg-black text-[var(--brand-lime)]" : "bg-[#f3f6fa] text-[#94a3b8] group-hover:bg-black group-hover:text-[var(--brand-lime)]"}`}>
                 <FileText className="h-5 w-5 stroke-[2.3]" />
               </div>
@@ -430,6 +402,7 @@ export default function DocumentsPage() {
           )
         })}
       </div>
-    </PageShell>
+      </div>
+    </div>
   )
 }

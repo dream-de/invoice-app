@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { prisma, prismaDbNull } from "@dream-invoice/database"
 import * as QRCode from "qrcode"
+import { writeAuditLog } from "@/lib/audit/log"
+import { getAuditRequestMetadata } from "@/lib/audit/request-metadata"
 import { createOtpAuthUri, createTwoFactorSecret } from "@/lib/auth/totp"
 import { mapAuthError, requireCurrentUser } from "@/lib/auth/service"
 import { isDemoMode } from "@/lib/demo-mode"
@@ -8,7 +10,7 @@ import { isDemoMode } from "@/lib/demo-mode"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
     const current = await requireCurrentUser()
     const secret = createTwoFactorSecret()
@@ -16,6 +18,13 @@ export async function POST() {
       await prisma.user.update({
         where: { id: current.id },
         data: { twoFactorSecret: secret, twoFactorEnabledAt: null, twoFactorBackupCodes: prismaDbNull }
+      })
+      await writeAuditLog({
+        action: "account.2fa_setup",
+        entity: "user",
+        entityId: current.id,
+        data: { email: current.email },
+        requestMetadata: getAuditRequestMetadata(request)
       })
     }
     const otpAuthUri = createOtpAuthUri({ email: current.email, secret })

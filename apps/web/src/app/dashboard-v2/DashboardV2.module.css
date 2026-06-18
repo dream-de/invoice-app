@@ -132,23 +132,23 @@
 
 .workspaceButton {
   width: 100%;
-  min-height: 60px;
+  min-height: 44px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: color-mix(in srgb, var(--panel-strong) 82%, transparent);
   color: var(--text);
-  padding: 10px;
+  padding: 7px 8px;
   cursor: pointer;
   text-align: left;
   text-decoration: none;
 }
 
 .workspaceAvatar {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   display: grid;
   place-items: center;
   border-radius: 8px;
@@ -170,13 +170,13 @@
 
 .workspaceButton small {
   color: var(--faint);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 800;
 }
 
 .workspaceButton strong {
-  margin-top: 3px;
-  font-size: 13px;
+  margin-top: 1px;
+  font-size: 12px;
 }
 
 .sideSections {
@@ -2542,130 +2542,66 @@
 }
 
 .settingsDashboardHeader {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
-  gap: 20px;
-  align-items: start;
+  display: block;
+  margin-bottom: 16px;
 }
 
 .settingsDashboardTitle {
   display: grid;
-  gap: 10px;
-}
-
-.settingsDashboardTitle > span {
-  color: var(--faint);
-  font-size: 11px;
-  font-weight: 950;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  gap: 6px;
 }
 
 .settingsDashboardTitle h2 {
   margin: 0;
   color: var(--text);
-  font-size: clamp(28px, 3vw, 36px);
-  line-height: 1.08;
+  font-size: clamp(22px, 2.2vw, 30px);
+  letter-spacing: 0;
+  line-height: 1.12;
 }
 
 .settingsDashboardTitle p {
-  max-width: 720px;
+  max-width: 760px;
   margin: 0;
   color: var(--muted);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 800;
-  line-height: 1.6;
-}
-
-.settingsDashboardSearch {
-  min-height: 48px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  align-self: center;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--panel-strong) 90%, transparent);
-  box-shadow: 0 12px 24px color-mix(in srgb, var(--shadow-color) 8%, transparent);
-  color: var(--muted);
-  padding: 0 16px;
-}
-
-.settingsDashboardSearch input {
-  width: 100%;
-  border: 0;
-  outline: 0;
-  background: transparent;
-  color: var(--text);
-  font-size: 14px;
-  font-weight: 800;
-}
-
-.settingsDashboardSearch input::placeholder {
-  color: var(--faint);
-}
-
-.settingsDashboardMeta {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-}
-
-.settingsDashboardMeta > div {
-  display: grid;
-  gap: 6px;
-  border: 1px solid var(--line);
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--panel-strong) 88%, transparent);
-  box-shadow: 0 12px 28px color-mix(in srgb, var(--shadow-color) 7%, transparent);
-  padding: 18px 20px;
-}
-
-.settingsDashboardMeta strong {
-  color: var(--text);
-  font-size: 24px;
-  font-weight: 950;
-  line-height: 1;
-}
-
-.settingsDashboardMeta span {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 850;
+  line-height: 1.45;
 }
 
 .settingsModuleGrid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fit, minmax(236px, 1fr));
+  gap: 14px;
 }
 
 .settingsModuleCard {
   min-width: 0;
-  min-height: 212px;
+  min-height: 188px;
   display: grid;
   grid-template-rows: auto 1fr;
-  gap: 18px;
-  border: 1px solid var(--line);
-  border-radius: 18px;
-  background: color-mix(in srgb, var(--panel-strong) 92%, transparent);
-  box-shadow: 0 14px 32px color-mix(in srgb, var(--shadow-color) 8%, transparent);
+  gap: 16px;
+  border: 1px solid color-mix(in srgb, var(--line) 86%, var(--settings-module-accent, #64748b) 14%);
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--settings-module-accent-soft, #e2e8f0) 20%, transparent) 0%, transparent 48%),
+    color-mix(in srgb, var(--panel-strong) 94%, transparent);
+  box-shadow: 0 16px 36px color-mix(in srgb, var(--shadow-color) 9%, transparent);
   color: inherit;
-  padding: 22px;
+  padding: 18px;
   text-decoration: none;
-  transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease, background 140ms ease;
+  transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
 }
 
 .settingsModuleCard:hover {
-  transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--text) 24%, var(--line));
-  box-shadow: 0 18px 40px color-mix(in srgb, var(--shadow-color) 12%, transparent);
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--settings-module-accent, var(--text)) 34%, var(--line));
+  box-shadow: 0 22px 44px color-mix(in srgb, var(--shadow-color) 13%, transparent);
 }
 
 .settingsModuleCard:focus-visible {
   outline: none;
-  border-color: color-mix(in srgb, var(--text) 32%, var(--line));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--text) 10%, transparent);
+  border-color: color-mix(in srgb, var(--settings-module-accent, var(--text)) 45%, var(--line));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--settings-module-accent, var(--text)) 16%, transparent);
 }
 
 .settingsModuleCardTop {
@@ -2676,18 +2612,19 @@
 }
 
 .settingsModuleIcon {
-  width: 56px;
-  height: 56px;
+  width: 48px;
+  height: 48px;
   display: grid;
   place-items: center;
-  border-radius: 16px;
-  background: #0f172a;
-  color: #ffffff;
-  box-shadow: 0 12px 24px color-mix(in srgb, var(--shadow-color) 12%, transparent);
+  border-radius: 10px;
+  background: var(--settings-module-accent-soft, #e2e8f0);
+  color: var(--settings-module-accent, #334155);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--settings-module-accent, #334155) 12%, transparent);
 }
 
 .settingsModuleBody {
   display: grid;
+  align-content: end;
   gap: 8px;
 }
 
@@ -2695,6 +2632,7 @@
   color: var(--text);
   font-size: 18px;
   font-weight: 950;
+  letter-spacing: 0;
   line-height: 1.25;
 }
 
@@ -2708,14 +2646,41 @@
 
 .settingsModuleBadge {
   width: fit-content;
-  border: 1px solid color-mix(in srgb, var(--text) 16%, var(--line));
+  max-width: 150px;
+  border: 1px solid color-mix(in srgb, var(--text) 12%, var(--line));
   border-radius: 999px;
   background: color-mix(in srgb, var(--panel-strong) 94%, transparent);
   color: var(--text);
-  padding: 6px 10px;
+  padding: 7px 10px;
   font-size: 10px;
   font-weight: 950;
+  line-height: 1.1;
+  text-align: center;
   text-transform: uppercase;
+}
+
+.settingsModuleBadge[data-status="Aktiv"] {
+  border-color: #bbf7d0;
+  background: #dcfce7;
+  color: #166534;
+}
+
+.settingsModuleBadge[data-status="Teilweise aktiv"] {
+  border-color: #fde68a;
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.settingsModuleBadge[data-status="Premium vorbereitet"] {
+  border-color: #e9d5ff;
+  background: #f3e8ff;
+  color: #6b21a8;
+}
+
+.settingsModuleBadge[data-status="Nicht eingerichtet"] {
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+  color: #475569;
 }
 
 .settingsModulesEmpty {
@@ -3965,41 +3930,45 @@
 
 .searchDock {
   min-width: 0;
+  width: 42px;
   min-height: 42px;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 0;
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: color-mix(in srgb, var(--panel-strong) 84%, transparent);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-  transition: width 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+  transition: width 240ms cubic-bezier(0.2, 0.8, 0.2, 1), border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
 }
 
+.searchDockTrigger,
 .searchDockButton {
   min-height: 42px;
-  min-width: 92px;
+  min-width: 40px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
   border: 0;
   background: transparent;
   color: var(--text);
   cursor: pointer;
   font-size: 12px;
   font-weight: 900;
-  padding: 0 14px;
+  padding: 0;
 }
 
+.searchDockTrigger:hover,
 .searchDockButton:hover {
   color: var(--violet-2);
 }
 
+.searchDock[data-open="true"],
 .searchDockOpen {
-  width: 286px;
+  width: clamp(180px, 22vw, 280px);
   padding: 0 10px 0 12px;
+  gap: 8px;
   border-color: color-mix(in srgb, var(--violet-2) 60%, var(--line));
   background: color-mix(in srgb, var(--panel-strong) 92%, transparent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--violet) 12%, transparent);
@@ -4008,6 +3977,7 @@
 .searchDock input {
   min-width: 0;
   width: 100%;
+  flex: 1 1 auto;
   border: 0;
   background: transparent;
   color: var(--text);
@@ -4015,13 +3985,20 @@
   box-shadow: none;
   font-size: 13px;
   font-weight: 850;
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.searchDock[data-open="true"] input,
+.searchDockOpen input {
+  opacity: 1;
 }
 
 .searchDock input::placeholder {
   color: var(--faint);
 }
 
-.searchDock button {
+.searchDock button:not(.searchDockTrigger) {
   flex: 0 0 auto;
   width: 26px;
   height: 26px;
@@ -4034,7 +4011,7 @@
   cursor: pointer;
 }
 
-.searchDock button:hover {
+.searchDock button:not(.searchDockTrigger):hover {
   color: var(--text);
   background: color-mix(in srgb, var(--violet) 16%, var(--panel-strong));
 }
@@ -4054,8 +4031,9 @@
     padding-inline: 0;
   }
 
+  .searchDock[data-open="true"],
   .searchDockOpen {
-    width: 248px;
+    width: min(100%, 280px);
   }
 }
 
@@ -4077,8 +4055,9 @@
   min-width: 84px;
 }
 
+.searchDock[data-open="true"],
 .searchDockOpen {
-  width: 248px;
+  width: clamp(180px, 22vw, 280px);
 }
 
 .profileTrigger {
@@ -4205,7 +4184,7 @@
 }
 
 .searchDockOpen {
-  width: 248px;
+  width: clamp(180px, 22vw, 280px);
 }
 
 .profileTrigger {
@@ -4313,62 +4292,8 @@
 }
 
 @media (max-width: 1320px) {
+  .searchDock[data-open="true"],
   .searchDockOpen {
-    width: 232px;
-  }
-}
-
-
-.sideSection p {
-  font-size: 11px;
-  letter-spacing: 0.08em;
-}
-
-.sideItem,
-.activeSideItem,
-.disabledSideItem {
-  min-height: 34px;
-  padding: 0 9px;
-}
-
-.sideItem span,
-.activeSideItem span,
-.disabledSideItem span {
-  font-size: 12px;
-  font-weight: 760;
-}
-
-.activeSideItem {
-  background: color-mix(in srgb, var(--violet) 16%, var(--panel-strong));
-  color: var(--text);
-  box-shadow: none;
-}
-
-.activeSideItem svg {
-  color: var(--violet-2);
-}
-
-.desktopNav {
-  gap: 3px;
-  padding-right: 8px;
-}
-
-.desktopNav a {
-  padding: 10px 10px;
-  font-size: 12px;
-}
-
-.navActive {
-  box-shadow: inset 0 -2px 0 color-mix(in srgb, #ffffff 72%, transparent);
-}
-
-@media (max-width: 1320px) {
-  .themeToggleButton span,
-  .profileTriggerText {
-    display: none;
-  }
-
-  .profileTrigger {
-    padding-right: 8px;
+    width: min(100%, 260px);
   }
 }

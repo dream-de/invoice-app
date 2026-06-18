@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 import { PremiumWorkspacePage } from "../../PremiumWorkspace"
 import { type DashboardV2SearchPageProps, dashboardV2ParamsFromSearchParams } from "../../routeSearch"
 import { isPremiumSettingsSection, type PremiumSettingsSection } from "../sectionMap"
@@ -8,6 +8,7 @@ export default async function PremiumSettingsSectionPage({
   searchParams
 }: DashboardV2SearchPageProps & { params: Promise<{ section: string }> }) {
   const { section } = await params
+  if (section === "users-roles") redirect("/dashboard-v2/settings/users")
   if (!isPremiumSettingsSection(section)) notFound()
 
   const { query, theme } = await dashboardV2ParamsFromSearchParams(searchParams)

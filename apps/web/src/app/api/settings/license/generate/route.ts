@@ -3,6 +3,7 @@ import { prisma } from "@dream-invoice/database"
 import { writeAuditLog } from "@/lib/audit/log"
 import { mapAuthError, requireCurrentUserRole } from "@/lib/auth/service"
 import { RequestBodyError, readJsonBodyWithLimit } from "@/lib/http/request-body"
+import { assertLicenseAdminAccess } from "@/lib/license/admin"
 import { generateLicenseKey, type GenerateLicenseKeyInput } from "@/lib/license/issue"
 
 export const runtime = "nodejs"
@@ -10,7 +11,8 @@ export const dynamic = "force-dynamic"
 
 export async function GET() {
   try {
-    await requireCurrentUserRole(["admin"])
+    const actor = await requireCurrentUserRole(["admin"])
+    assertLicenseAdminAccess(actor)
   } catch (error) {
     const mapped = mapAuthError(error)
     return NextResponse.json(
@@ -45,6 +47,7 @@ export async function POST(req: Request) {
 
   try {
     actor = await requireCurrentUserRole(["admin"])
+    assertLicenseAdminAccess(actor)
   } catch (error) {
     const mapped = mapAuthError(error)
     return NextResponse.json(

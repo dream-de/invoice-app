@@ -29,7 +29,7 @@ export function maskEmailAddress(value: string) {
 export type EmailDeliveryLogEntry = {
   id: string
   createdAt: string
-  type: "test" | "invoice"
+  type: "test" | "invoice" | "offer"
   status: "success" | "error"
   provider?: "smtp" | "resend" | "disabled" | "unknown"
   to: string
@@ -73,8 +73,16 @@ export async function appendEmailDeliveryLog(entry: Omit<EmailDeliveryLogEntry, 
     category: "email",
     tone: next.status === "success" ? "success" : "warning",
     title: next.status === "success"
-      ? (next.type === "test" ? "Test-E-Mail gesendet" : "Rechnung per E-Mail gesendet")
-      : (next.type === "test" ? "Test-E-Mail fehlgeschlagen" : "E-Mail-Versand fehlgeschlagen"),
+      ? (next.type === "test"
+        ? "Test-E-Mail gesendet"
+        : next.type === "offer"
+          ? "Angebot per E-Mail gesendet"
+          : "Rechnung per E-Mail gesendet")
+      : (next.type === "test"
+        ? "Test-E-Mail fehlgeschlagen"
+        : next.type === "offer"
+          ? "Angebot per E-Mail fehlgeschlagen"
+          : "E-Mail-Versand fehlgeschlagen"),
     message: next.status === "success"
       ? [next.subject, next.to].filter(Boolean).join(" · ")
       : next.error || [next.subject, next.to].filter(Boolean).join(" · "),

@@ -6,8 +6,18 @@ import { demoSessionUser, isDemoMode } from "@/lib/demo-mode"
 import "./globals.css"
 
 export const metadata: Metadata = {
-  title: "Dream Invoice",
-  description: "Dream Invoice"
+  applicationName: "DreamInvoice",
+  title: {
+    default: "DreamInvoice",
+    template: "%s · DreamInvoice"
+  },
+  description: "SMART • SIMPLE • SECURE",
+  keywords: ["DreamInvoice", "invoicing", "premium workspace", "business management"],
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: "/brand/favicon.svg",
+    apple: "/brand/app-icon.svg"
+  }
 }
 
 export default async function RootLayout({

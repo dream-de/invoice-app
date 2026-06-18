@@ -12,8 +12,16 @@ async function syncEmailLogNotifications() {
     category: "email",
     tone: entry.status === "success" ? "success" : "warning",
     title: entry.status === "success"
-      ? (entry.type === "test" ? "Test-E-Mail gesendet" : "Rechnung per E-Mail gesendet")
-      : (entry.type === "test" ? "Test-E-Mail fehlgeschlagen" : "E-Mail-Versand fehlgeschlagen"),
+      ? (entry.type === "test"
+        ? "Test-E-Mail gesendet"
+        : entry.type === "offer"
+          ? "Angebot per E-Mail gesendet"
+          : "Rechnung per E-Mail gesendet")
+      : (entry.type === "test"
+        ? "Test-E-Mail fehlgeschlagen"
+        : entry.type === "offer"
+          ? "Angebot per E-Mail fehlgeschlagen"
+          : "E-Mail-Versand fehlgeschlagen"),
     message: entry.status === "success"
       ? [entry.subject, entry.to].filter(Boolean).join(" · ")
       : entry.error || [entry.subject, entry.to].filter(Boolean).join(" · "),

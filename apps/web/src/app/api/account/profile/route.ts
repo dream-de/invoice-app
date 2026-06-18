@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
 import { writeAuditLog } from "@/lib/audit/log"
+import { getAuditRequestMetadata } from "@/lib/audit/request-metadata"
 import { requireCurrentUser, mapAuthError } from "@/lib/auth/service"
 import { demoModeResponse, isDemoMode } from "@/lib/demo-mode"
 
@@ -104,7 +105,8 @@ export async function PATCH(request: Request) {
       action: "account.profile_update",
       entity: "user",
       entityId: user.id,
-      data: { email: user.email }
+      data: { email: user.email },
+      requestMetadata: getAuditRequestMetadata(request)
     })
 
     return NextResponse.json({ ok: true, user: serialize(user) })

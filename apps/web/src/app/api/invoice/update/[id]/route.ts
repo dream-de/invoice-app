@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { prisma, type Prisma } from "@dream-invoice/database"
 import { documents } from "@/data/invoice-data"
+import { AuthServiceError, mapAuthError, requireCurrentUser } from "@/lib/auth/service"
+import { hasUserPermission } from "@/lib/auth/permissions"
 import { demoModeResponse, isDemoMode } from "@/lib/demo-mode"
 
 type InvoiceItemPayload = {
@@ -9,10 +11,27 @@ type InvoiceItemPayload = {
   quantity?: number | string
   price?: number | string
   category?: string | null
+  vatRate?: number | string
+  customerId?: string | null
+  projectId?: string | null
+  articleId?: string | null
+  hours?: number | string | null
+  hourlyRate?: number | string | null
+  amount?: number | string | null
+}
+
+function nullableRelationId(value: string | null | undefined) {
+  const normalized = typeof value === "string" ? value.trim() : ""
+  return normalized || null
 }
 
 function toNumber(value: unknown) {
   return Number(String(value ?? 0).replace(",", ".")) || 0
+}
+
+function itemVatRate(item: InvoiceItemPayload, fallbackRate: number) {
+  const rate = toNumber(item.vatRate ?? fallbackRate * 100)
+  return Number.isFinite(rate) ? rate : fallbackRate * 100
 }
 
 function parseCustomerAddress(value: unknown) {
@@ -30,6 +49,27 @@ function parseCustomerAddress(value: unknown) {
     zip: placeMatch?.[1] || "",
     city: placeMatch?.[2] || place
   }
+}
+
+function authErrorResponse(error: unknown) {
+  if (error instanceof AuthServiceError) {
+    const mapped = mapAuthError(error)
+    return NextResponse.json(
+      { ok: false, error: mapped.error, code: mapped.code },
+      { status: mapped.status }
+    )
+  }
+
+  return null
+}
+
+async function requireInvoiceEditPermission() {
+  const user = await requireCurrentUser()
+  if (!hasUserPermission(user, "documents", "edit")) {
+    throw new AuthServiceError("forbidden", "Keine Berechtigung fuer diese Rechnungsaktion.", 403)
+  }
+
+  return user
 }
 
 export async function PUT(
@@ -50,7 +90,10 @@ export async function PUT(
         (sum, item) => sum + toNumber(item.price) * toNumber(item.quantity),
         0
       )
-      const vatTotal = netTotal * taxRate
+      const vatTotal = items.reduce(
+        (sum, item) => sum + toNumber(item.price) * toNumber(item.quantity) * (itemVatRate(item, taxRate) / 100),
+        0
+      )
       const grossTotal = netTotal + vatTotal + tip
 
       return NextResponse.json(demoModeResponse({
@@ -60,7 +103,7 @@ export async function PUT(
           number: typeof data.number === "string" && data.number.trim()
             ? data.number.trim()
             : existingDemoDocument?.number ?? "DI-DEMO-DRAFT",
-          status: "draft",
+          status: typeof data.status === "string" ? data.status : "draft",
           netTotal,
           vatTotal,
           grossTotal,
@@ -76,12 +119,14 @@ export async function PUT(
             description: item.category || null,
             quantity: toNumber(item.quantity) || 1,
             netPrice: toNumber(item.price),
-            vatRate: taxRate * 100,
+            vatRate: itemVatRate(item, taxRate),
             sortOrder: index
           }))
         }
       }))
     }
+
+    await requireInvoiceEditPermission()
 
     const existing = await prisma.invoice.findUnique({
       where: { id },
@@ -100,7 +145,10 @@ export async function PUT(
       0
     )
 
-    const vatTotal = netTotal * taxRate
+    const vatTotal = items.reduce(
+      (sum, item) => sum + toNumber(item.price) * toNumber(item.quantity) * (itemVatRate(item, taxRate) / 100),
+      0
+    )
     const grossTotal = netTotal + vatTotal + tip
 
     const updated = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
@@ -180,6 +228,10 @@ export async function PUT(
           issueDate: data.date ? new Date(data.date) : existing.issueDate,
           dueDate: data.dueDate ? new Date(data.dueDate) : null,
           notes: typeof data.note === "string" ? data.note : null,
+          status: typeof data.status === "string" ? data.status : existing.status,
+          paidAt: typeof data.status === "string"
+            ? (data.status === "paid" ? existing.paidAt ?? new Date() : null)
+            : existing.paidAt,
 
           netTotal,
           vatTotal,
@@ -188,14 +240,28 @@ export async function PUT(
           customer: customerRelation,
 
           positions: {
-            create: items.map((item, index) => ({
-              title: item.name || item.label || "Position",
-              description: item.category || null,
-              quantity: toNumber(item.quantity) || 1,
-              netPrice: toNumber(item.price),
-              vatRate: taxRate * 100,
-              sortOrder: index
-            }))
+            create: items.map((item, index) => {
+              const quantity = toNumber(item.quantity) || 1
+              const price = toNumber(item.price)
+              const hours = item.hours == null ? null : toNumber(item.hours)
+              const hourlyRate = item.hourlyRate == null ? null : toNumber(item.hourlyRate)
+
+              return {
+                customerId: nullableRelationId(item.customerId) ?? existing.customerId,
+                projectId: nullableRelationId(item.projectId) ?? existing.projectId,
+                articleId: nullableRelationId(item.articleId),
+                title: item.name || item.label || "Position",
+                description: item.category || null,
+                quantity,
+                unit: hours != null ? "Std" : "Stk",
+                hours,
+                hourlyRate,
+                amount: item.amount == null ? price * quantity : toNumber(item.amount),
+                netPrice: price,
+                vatRate: itemVatRate(item, taxRate),
+                sortOrder: index
+              }
+            })
           }
         },
         include: {
@@ -207,6 +273,9 @@ export async function PUT(
 
     return NextResponse.json({ success: true, invoice: updated })
   } catch (err) {
+    const authError = authErrorResponse(err)
+    if (authError) return authError
+
     console.error(err)
     return NextResponse.json(
       { error: "Update failed" },

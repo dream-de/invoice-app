@@ -14,11 +14,11 @@ export function SettingCard({
   children: ReactNode
 }) {
   return (
-    <section className="rounded-[26px] border border-[#e5eaf0] bg-white p-6 shadow-sm">
+    <section className="rounded-lg border border-[var(--settings-line)] bg-[var(--settings-surface)] p-4 shadow-[var(--settings-card-shadow)] sm:p-5">
       {(title || description) && (
-        <div className="mb-5">
-          {title ? <h3 className="text-lg font-extrabold text-[#1f2937]">{title}</h3> : null}
-          {description ? <p className="mt-1 text-sm font-medium text-[#64748b]">{description}</p> : null}
+        <div className="mb-4">
+          {title ? <h3 className="text-[15px] font-extrabold text-[var(--settings-title)]">{title}</h3> : null}
+          {description ? <p className="mt-1 text-[13px] font-medium leading-5 text-[var(--settings-muted)]">{description}</p> : null}
         </div>
       )}
       {children}
@@ -35,7 +35,7 @@ export function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-2 block text-xs font-extrabold uppercase tracking-widest text-[#64748b]">
+      <span className="mb-1.5 block text-[11px] font-extrabold uppercase text-[var(--settings-label)]">
         {label}
       </span>
       {children}
@@ -47,7 +47,7 @@ export function SoftInput(props: InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...props}
-      className={`h-12 w-full rounded-full border border-[#e1e7ef] bg-[#f7f9fc] px-5 text-sm font-semibold text-[#1f2937] outline-none transition placeholder:text-[#94a3b8] focus:border-black focus:bg-white focus:ring-2 focus:ring-black/10 ${props.className ?? ""}`}
+      className={`h-10 w-full rounded-lg border border-[var(--settings-input-border)] bg-[var(--settings-input-bg)] px-3 text-sm font-semibold text-[var(--settings-title)] outline-none shadow-[var(--settings-input-shadow)] transition placeholder:text-[var(--settings-placeholder)] focus:border-[var(--settings-accent)] focus:bg-[var(--settings-input-focus-bg)] focus:ring-2 focus:ring-[var(--settings-accent-soft)] ${props.className ?? ""}`}
     />
   )
 }
@@ -56,7 +56,7 @@ export function SoftTextarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>)
   return (
     <textarea
       {...props}
-      className={`w-full rounded-[22px] border border-[#e1e7ef] bg-[#f7f9fc] px-5 py-4 text-sm font-medium leading-6 text-[#1f2937] outline-none transition placeholder:text-[#94a3b8] focus:border-black focus:bg-white focus:ring-2 focus:ring-black/10 ${props.className ?? ""}`}
+      className={`w-full rounded-lg border border-[var(--settings-input-border)] bg-[var(--settings-input-bg)] px-3 py-3 text-sm font-medium leading-6 text-[var(--settings-title)] outline-none shadow-[var(--settings-input-shadow)] transition placeholder:text-[var(--settings-placeholder)] focus:border-[var(--settings-accent)] focus:bg-[var(--settings-input-focus-bg)] focus:ring-2 focus:ring-[var(--settings-accent-soft)] ${props.className ?? ""}`}
     />
   )
 }
@@ -76,15 +76,15 @@ export function ToggleRow({
     <button
       type="button"
       onClick={() => setChecked(!checked)}
-      className="flex w-full items-center justify-between gap-4 rounded-[22px] border border-[#edf2f7] bg-[#f8fafc] p-4 text-left transition hover:bg-white"
+      className="flex w-full items-center justify-between gap-4 rounded-lg border border-[var(--settings-line)] bg-[var(--settings-subtle)] p-3 text-left transition hover:bg-[var(--settings-surface)]"
     >
       <span>
-        <span className="block font-extrabold text-[#111827]">{title}</span>
-        <span className="mt-1 block text-sm font-medium text-[#64748b]">{description}</span>
+        <span className="block text-sm font-extrabold text-[var(--settings-title)]">{title}</span>
+        <span className="mt-1 block text-[13px] font-medium leading-5 text-[var(--settings-muted)]">{description}</span>
       </span>
 
-      <span className={`flex h-8 w-14 shrink-0 items-center rounded-full p-1 transition ${checked ? "bg-black" : "bg-[#dfe6ee]"}`}>
-        <span className={`h-6 w-6 rounded-full bg-white transition ${checked ? "translate-x-6" : ""}`} />
+      <span className={`flex h-7 w-12 shrink-0 items-center rounded-full p-1 transition ${checked ? "bg-emerald-500 shadow-[inset_0_1px_1px_rgba(255,255,255,0.45),0_4px_8px_rgba(16,185,129,0.16)]" : "bg-[var(--settings-toggle-off)]"}`}>
+        <span className={`h-5 w-5 rounded-full bg-white transition ${checked ? "translate-x-5" : ""}`} />
       </span>
     </button>
   )
@@ -100,14 +100,14 @@ export function ChoiceButtons({
   const [value, setValue] = useState(defaultValue)
 
   return (
-    <div className="inline-flex flex-wrap gap-2 rounded-full bg-[#eceff3] p-1">
+    <div className="inline-flex flex-wrap gap-1 rounded-lg bg-[var(--settings-subtle)] p-1">
       {options.map((option) => (
         <button
           key={option}
           type="button"
           onClick={() => setValue(option)}
-          className={`rounded-full px-5 py-2 text-sm font-extrabold transition ${
-            value === option ? "bg-white text-[#111827] shadow-sm" : "text-[#64748b] hover:text-[#111827]"
+          className={`rounded-md px-3 py-1.5 text-xs font-extrabold transition ${
+            value === option ? "bg-[var(--settings-surface)] text-[var(--settings-title)] shadow-sm" : "text-[var(--settings-muted)] hover:text-[var(--settings-title)]"
           }`}
         >
           {option}
@@ -125,13 +125,13 @@ export function IconButton({
   children: ReactNode
 }) {
   const styles = {
-    neutral: "bg-[#eef2f7] text-[#334155] hover:bg-[#e5ebf2]",
+    neutral: "bg-[var(--settings-subtle)] text-[var(--settings-title)] hover:bg-[var(--settings-surface)]",
     danger: "bg-red-50 text-red-600 hover:bg-red-100",
-    success: "bg-black text-[var(--brand-lime)]"
+    success: "bg-[var(--settings-accent-strong)] text-white hover:opacity-95"
   }
 
   return (
-    <button className={`inline-flex h-10 items-center gap-2 rounded-full px-4 text-sm font-extrabold transition ${styles[kind]}`}>
+    <button className={`inline-flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-extrabold transition ${styles[kind]}`}>
       {children}
     </button>
   )

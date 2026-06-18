@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Check, Mail, Power, Send, Server } from "lucide-react"
+import { BellRing, Check, FileText, Mail, MessageSquareText, Power, Send, Server, Signature } from "lucide-react"
 import { Field, SettingCard, SoftInput } from "../_components/SettingsControls"
 import { SettingsLayout } from "../_components/SettingsLayout"
 import { useLanguage } from "@/lib/i18n"
@@ -72,6 +72,12 @@ export default function EmailSettingsPage() {
   const [testRecipient, setTestRecipient] = useState("")
   const [testing, setTesting] = useState(false)
 
+  const canSendTestMail = form.provider === "smtp"
+    ? Boolean(form.smtpHost.trim() && form.fromEmail.trim())
+    : form.provider === "resend"
+      ? Boolean(form.resendApiKey.trim() && form.fromEmail.trim())
+      : false
+
   useEffect(() => {
     async function loadSettings() {
       try {
@@ -103,6 +109,11 @@ export default function EmailSettingsPage() {
 
   async function sendTestEmail() {
     if (testing) return
+
+    if (!canSendTestMail) {
+      setStatus("Testmail ist erst nach SMTP-Konfiguration aktiv.")
+      return
+    }
 
     setTesting(true)
     setStatus(t("settings.email.status.testSending"))
@@ -170,8 +181,8 @@ export default function EmailSettingsPage() {
 
   return (
     <SettingsLayout
-      title={t("settings.email.title")}
-      description={t("settings.email.description")}
+      title="Kommunikation"
+      description="SMTP, E-Mail-Versand, Signaturen, Standardtexte und Kommunikationshinweise zentral verwalten."
       action={save}
       status={status}
     >
@@ -188,22 +199,22 @@ export default function EmailSettingsPage() {
                 onClick={() => update("provider", option.value)}
                 className={`rounded-[24px] border p-5 text-left transition ${
                   selected
-                    ? "border-black bg-white shadow-[0_12px_28px_rgba(15,23,42,0.12)]"
-                    : "border-[#e5eaf0] bg-[#f8fafc] hover:bg-white"
+                    ? "border-[var(--settings-accent)] bg-[var(--settings-surface)] shadow-[0_12px_28px_rgba(15,23,42,0.12)]"
+                    : "border-[var(--settings-line)] bg-[var(--settings-subtle)] hover:bg-[var(--settings-surface)]"
                 }`}
               >
                 <span className="flex items-center justify-between gap-3">
                   <span className="flex items-center gap-3">
-                    <span className={`flex h-10 w-10 items-center justify-center rounded-full ${selected ? "bg-black text-[var(--brand-lime)]" : "bg-[#edf2f7] text-[#64748b]"}`}>
+                    <span className={`flex h-10 w-10 items-center justify-center rounded-full ${selected ? "bg-[linear-gradient(180deg,#7ee7ba_0%,#38c98b_54%,#22a86d_100%)] text-white" : "bg-[var(--settings-subtle)] text-[var(--settings-muted)]"}`}>
                       <Icon className="h-4 w-4" />
                     </span>
                     <span>
-                      <span className="block font-extrabold text-[#111827]">{option.title}</span>
-                      <span className="mt-1 block text-sm font-medium text-[#64748b]">{option.description}</span>
+                      <span className="block font-extrabold text-[var(--settings-title)]">{option.title}</span>
+                      <span className="mt-1 block text-sm font-medium text-[var(--settings-muted)]">{option.description}</span>
                     </span>
                   </span>
 
-                  {selected ? <Check className="h-5 w-5 text-[#111827]" /> : null}
+                  {selected ? <Check className="h-5 w-5 text-[var(--settings-title)]" /> : null}
                 </span>
               </button>
             )
@@ -222,8 +233,8 @@ export default function EmailSettingsPage() {
           <Field label={t("settings.email.fields.replyTo")}>
             <SoftInput type="email" value={form.replyTo} onChange={(event) => update("replyTo", event.target.value)} placeholder={t("settings.email.placeholders.optional")} />
           </Field>
-          <div className="rounded-[22px] bg-[#f7f9fc] px-5 py-4 text-sm font-semibold leading-6 text-[#64748b]">
-            <span className="flex items-center gap-2 font-extrabold text-[#111827]"><Mail className="h-4 w-4" /> {t("settings.email.statusLabel")}</span>
+          <div className="rounded-[22px] bg-[var(--settings-subtle)] px-5 py-4 text-sm font-semibold leading-6 text-[var(--settings-muted)]">
+            <span className="flex items-center gap-2 font-extrabold text-[var(--settings-title)]"><Mail className="h-4 w-4" /> {t("settings.email.statusLabel")}</span>
             <span className="mt-1 block">{t("settings.email.activeProvider").replace("{provider}", providerOptions.find((option) => option.value === form.provider)?.title ?? "")}</span>
           </div>
         </div>
@@ -231,20 +242,76 @@ export default function EmailSettingsPage() {
 
       <SettingCard title={t("settings.email.mailpit.title")} description={t("settings.email.mailpit.description")}>
         <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-center">
-          <div className="rounded-[22px] bg-[#f7f9fc] px-5 py-4 text-sm font-semibold leading-6 text-[#64748b]">
-            <span className="block font-extrabold text-[#111827]">{t("settings.email.mailpit.valuesTitle")}</span>
+          <div className="rounded-[22px] bg-[var(--settings-subtle)] px-5 py-4 text-sm font-semibold leading-6 text-[var(--settings-muted)]">
+            <span className="block font-extrabold text-[var(--settings-title)]">{t("settings.email.mailpit.valuesTitle")}</span>
             <span className="mt-1 block">SMTP: 127.0.0.1:1025</span>
             <span className="block">Inbox: http://localhost:8025</span>
           </div>
           <button
             type="button"
             onClick={applyMailpitPreset}
-            className="inline-flex items-center justify-center rounded-full bg-[#e8eeff] px-5 py-3 text-sm font-extrabold text-[#1e3a8a] shadow-[0_10px_22px_rgba(30,58,138,0.12)] transition hover:bg-[#dbeafe]"
+            className="inline-flex items-center justify-center rounded-full bg-[var(--settings-accent-soft)] px-5 py-3 text-sm font-extrabold text-[var(--settings-accent)] shadow-[0_10px_22px_rgba(30,58,138,0.12)] transition hover:bg-[var(--settings-surface)]"
           >
             {t("settings.email.mailpit.apply")}
           </button>
         </div>
       </SettingCard>
+
+      <div className="grid gap-6 xl:grid-cols-2">
+        <SettingCard title="Signaturen & Standardtexte" description="Texte fuer Rechnungs-E-Mails und Angebotsversand sauber vorbereiten.">
+          <div className="space-y-3">
+            {[
+              { icon: Signature, title: "E-Mail-Signatur", detail: "Absendername und Antwortadresse werden bereits gespeichert.", state: "Aktiv" },
+              { icon: MessageSquareText, title: "Standardtexte", detail: "Vorlagen fuer Rechnungs- und Angebotsversand sind vorbereitet.", state: "Vorbereitet" },
+              { icon: FileText, title: "Dokumenttexte", detail: "Zahlungshinweise und Fusszeilen bleiben im Dokumente/Rechtliches-Bereich gepflegt.", state: "Verknuepft" }
+            ].map((item) => {
+              const Icon = item.icon
+              return (
+                <div key={item.title} className="flex items-center justify-between gap-4 rounded-[22px] border border-[var(--settings-line)] bg-[var(--settings-subtle)] px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--settings-accent-soft)] text-[var(--settings-accent)]">
+                      <Icon className="h-4 w-4" />
+                    </span>
+                    <div>
+                      <p className="text-sm font-extrabold text-[var(--settings-title)]">{item.title}</p>
+                      <p className="text-xs font-medium text-[var(--settings-muted)]">{item.detail}</p>
+                    </div>
+                  </div>
+                  <span className="rounded-full bg-[linear-gradient(180deg,#ecfdf5_0%,#dcfce7_100%)] px-3 py-1 text-[11px] font-extrabold text-emerald-700">{item.state}</span>
+                </div>
+              )
+            })}
+          </div>
+        </SettingCard>
+
+        <SettingCard title="Kommunikationsstatus" description="Keine Scheinfunktionen: Versand wird nur aktiviert, wenn Provider und Absender korrekt konfiguriert sind.">
+          <div className="grid gap-3">
+            {[
+              { icon: Mail, title: "E-Mail-Versand", detail: form.provider === "disabled" ? "Deaktiviert" : "Provider: " + form.provider.toUpperCase(), active: form.provider !== "disabled" },
+              { icon: Server, title: "Serverseitiger Test", detail: canSendTestMail ? "Testmail verfuegbar" : "Konfiguration erforderlich", active: canSendTestMail },
+              { icon: BellRing, title: "Benachrichtigungen", detail: "Eigene Kategorie in Phase 6/Sicherheit/System weiter verfeinern", active: true }
+            ].map((item) => {
+              const Icon = item.icon
+              return (
+                <div key={item.title} className="flex items-center justify-between gap-4 rounded-[22px] border border-[var(--settings-line)] bg-[var(--settings-subtle)] px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--settings-accent-soft)] text-[var(--settings-accent)]">
+                      <Icon className="h-4 w-4" />
+                    </span>
+                    <div>
+                      <p className="text-sm font-extrabold text-[var(--settings-title)]">{item.title}</p>
+                      <p className="text-xs font-medium text-[var(--settings-muted)]">{item.detail}</p>
+                    </div>
+                  </div>
+                  <span className={item.active ? "rounded-full bg-[linear-gradient(180deg,#ecfdf5_0%,#dcfce7_100%)] px-3 py-1 text-[11px] font-extrabold text-emerald-700" : "rounded-full bg-[var(--settings-subtle)] px-3 py-1 text-[11px] font-extrabold text-[var(--settings-muted)]"}>
+                    {item.active ? "Aktiv" : "Nicht eingerichtet"}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </SettingCard>
+      </div>
 
       <SettingCard title={t("settings.email.smtp.title")} description={t("settings.email.smtp.description")}>
         <div className="grid gap-4 md:grid-cols-2">
@@ -271,7 +338,7 @@ export default function EmailSettingsPage() {
           type="button"
           aria-pressed={form.smtpSecure}
           onClick={() => update("smtpSecure", !form.smtpSecure)}
-          className={`mt-4 inline-flex items-center gap-3 rounded-full px-5 py-3 text-sm font-extrabold transition ${form.smtpSecure ? "bg-black text-[var(--brand-lime)]" : "bg-[#eef2f7] text-[#334155]"}`}
+          className={`mt-4 inline-flex items-center gap-3 rounded-full px-5 py-3 text-sm font-extrabold transition ${form.smtpSecure ? "bg-[linear-gradient(180deg,#7ee7ba_0%,#38c98b_54%,#22a86d_100%)] text-white shadow-[0_8px_18px_rgba(34,197,94,0.18)]" : "bg-[var(--settings-subtle)] text-[var(--settings-title)]"}`}
         >
           <span className={`h-3 w-3 rounded-full ${form.smtpSecure ? "bg-[var(--brand-lime)]" : "bg-[#94a3b8]"}`} />
           {t("settings.email.smtp.secure")}
@@ -301,12 +368,18 @@ export default function EmailSettingsPage() {
         <button
           type="button"
           onClick={sendTestEmail}
-          disabled={testing}
-          className="mt-4 inline-flex items-center gap-2 rounded-full bg-black px-5 py-3 text-sm font-extrabold text-[var(--brand-lime)] disabled:cursor-wait disabled:opacity-70"
+          disabled={testing || !canSendTestMail}
+          className="mt-4 inline-flex items-center gap-2 rounded-full bg-black px-5 py-3 text-sm font-extrabold text-[var(--brand-lime)] disabled:cursor-not-allowed disabled:opacity-70"
+          title={canSendTestMail ? "" : "SMTP erst konfigurieren, dann Testmail senden."}
         >
           <Send className="h-4 w-4" />
           {testing ? t("settings.email.test.running") : t("settings.email.test.send")}
         </button>
+        {!canSendTestMail ? (
+          <p className="mt-3 text-xs font-semibold text-[var(--settings-muted)]">
+            Testmail ist erst nach SMTP-Konfiguration aktiv.
+          </p>
+        ) : null}
       </SettingCard>
     </SettingsLayout>
   )

@@ -1,0 +1,13 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="DreamInvoice icon">
+  <defs>
+    <linearGradient id="pwa-bg" x1="80" y1="80" x2="432" y2="432" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#101827"/>
+      <stop offset="0.5" stop-color="#123f73"/>
+      <stop offset="1" stop-color="#14b8a6"/>
+    </linearGradient>
+  </defs>
+  <rect x="48" y="48" width="416" height="416" rx="106" fill="url(#pwa-bg)"/>
+  <rect x="138" y="124" width="236" height="292" rx="44" fill="white"/>
+  <path d="M282 124H374V216L282 124Z" fill="#14b8a6"/>
+  <path d="M204 262L248 306L338 216" stroke="#123f73" stroke-width="30" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

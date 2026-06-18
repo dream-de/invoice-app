@@ -3,6 +3,7 @@
 import {
   AlertCircle,
   Check,
+  Copy,
   FileUp,
   Grid2X2,
   List,
@@ -161,6 +162,10 @@ export default function ArticlesPage() {
   const [importError, setImportError] = useState("")
   const [form, setForm] = useState<ArticleForm>(emptyForm)
   const [editForm, setEditForm] = useState<ArticleForm>(emptyForm)
+  const [activeArticleId, setActiveArticleId] = useState<string | null>(null)
+  const [selectedArticleIds, setSelectedArticleIds] = useState<string[]>([])
+  const [notice, setNotice] = useState("")
+  const isEditingInline = editOpen && Boolean(editingArticle)
   const { data: articleData, mutate: refreshArticles, isLoading } = useSWR<ArticleListResponse>(
     "/api/articles/list",
     jsonFetcher,
@@ -187,6 +192,23 @@ export default function ArticlesPage() {
     return value
   }
 
+  const editableCategories = useMemo(() => {
+    const values = categories.filter((item) => item !== "Alle")
+    if (editForm.category && !values.includes(editForm.category)) {
+      values.unshift(editForm.category)
+    }
+
+    return values.length ? values : ["Dienstleistung", "Consulting", "Entwicklung", "Hosting", "Webdesign"]
+  }, [categories, editForm.category])
+
+  const unitOptions = ["Std", "Stk", "Pauschale", "Tag", "Monat", "Kilometer"]
+
+  const unitLabel = (value: string) => {
+    if (value === "Std") return "Stunde"
+    if (value === "Stk") return "Stück"
+    return value
+  }
+
   const filtered = useMemo(() => {
     const search = query.trim().toLowerCase()
 
@@ -197,6 +219,8 @@ export default function ArticlesPage() {
       return matchesQuery && matchesCategory
     })
   }, [items, query, category])
+
+  const allFilteredSelected = filtered.length > 0 && filtered.every((article) => selectedArticleIds.includes(article.id))
 
   function updateForm(field: keyof ArticleForm, value: string) {
     setForm((current) => ({ ...current, [field]: value }))
@@ -226,9 +250,81 @@ export default function ArticlesPage() {
   }
 
   function openEdit(article: ArticleItem) {
+    setActiveArticleId(article.id)
     setEditingArticle(article)
     setEditForm(articleToForm(article))
     setEditOpen(true)
+  }
+
+  function toggleArticleSelection(articleId: string) {
+    setSelectedArticleIds((current) =>
+      current.includes(articleId) ? current.filter((id) => id !== articleId) : [...current, articleId]
+    )
+  }
+
+  function toggleAllFilteredArticles() {
+    setSelectedArticleIds((current) => {
+      if (allFilteredSelected) {
+        return current.filter((id) => !filtered.some((article) => article.id === id))
+      }
+
+      return Array.from(new Set([...current, ...filtered.map((article) => article.id)]))
+    })
+  }
+
+  function uniqueCopyName(article: ArticleItem) {
+    const baseName = article.name.replace(/\s+\(Kopie(?: \d+)?\)$/i, "").trim() || article.name
+    const existingNames = new Set(items.map((item) => item.name.toLowerCase()))
+    let candidate = `${baseName} (Kopie)`
+    let index = 2
+
+    while (existingNames.has(candidate.toLowerCase())) {
+      candidate = `${baseName} (Kopie ${index})`
+      index += 1
+    }
+
+    return candidate
+  }
+
+  function uniqueCopyCode(article: ArticleItem) {
+    const baseCode = (article.code || "ART").replace(/-COPY(?:-\d+)?$/i, "")
+    const existingCodes = new Set(items.map((item) => (item.code || "").toLowerCase()).filter(Boolean))
+    let candidate = `${baseCode}-COPY`
+    let index = 2
+
+    while (existingCodes.has(candidate.toLowerCase())) {
+      candidate = `${baseCode}-COPY-${index}`
+      index += 1
+    }
+
+    return candidate
+  }
+
+  async function duplicateArticle(article: ArticleItem) {
+    setActiveArticleId(article.id)
+    const copyName = uniqueCopyName(article)
+
+    const response = await fetch("/api/articles/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...articleToForm(article),
+        name: copyName,
+        code: uniqueCopyCode(article)
+      })
+    })
+
+    const result = await response.json()
+
+    if (!response.ok || !result.ok) {
+      alert(result.error || t("articles.messages.createFailed"))
+      return
+    }
+
+    setNotice(`Artikel "${copyName}" wurde dupliziert.`)
+    setActiveArticleId(result.article?.id ?? article.id)
+    await refreshArticles()
+    window.setTimeout(() => setNotice(""), 3600)
   }
 
   async function updateArticle() {
@@ -350,19 +446,43 @@ export default function ArticlesPage() {
   }
 
   function ArticleActions({ article }: { article: ArticleItem }) {
+    const isActive = activeArticleId === article.id
+
     return (
-      <div className="flex items-center gap-2">
+      <div className={`flex items-center gap-2 transition duration-200 group-hover/article:opacity-100 group-focus-within/article:opacity-100 ${isActive ? "opacity-100" : "opacity-0"}`}>
         <button
-          onClick={() => openEdit(article)}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-[#eef2f7] text-[#475569] hover:bg-[#e3e8ef]"
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation()
+            duplicateArticle(article)
+          }}
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#64748b] shadow-sm ring-1 ring-[#dfe6ee] hover:bg-[#f7f9fc] hover:text-[#111827]"
+          aria-label="Artikel duplizieren"
+          title="Artikel duplizieren"
+        >
+          <Copy className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation()
+            openEdit(article)
+          }}
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#64748b] shadow-sm ring-1 ring-[#dfe6ee] hover:bg-[#f7f9fc] hover:text-[#111827]"
           aria-label={t("articles.actions.editArticle")}
+          title={t("articles.actions.editArticle")}
         >
           <Pencil className="h-4 w-4" />
         </button>
         <button
-          onClick={() => deleteArticle(article)}
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-red-50 text-red-600 hover:bg-red-100"
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation()
+            deleteArticle(article)
+          }}
+          className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-red-500 shadow-sm ring-1 ring-[#f1d5d5] hover:bg-red-50 hover:text-red-600"
           aria-label={t("articles.actions.deleteArticle")}
+          title={t("articles.actions.deleteArticle")}
         >
           <Trash2 className="h-4 w-4" />
         </button>
@@ -371,8 +491,8 @@ export default function ArticlesPage() {
   }
 
   return (
-    <div className="mx-auto max-w-[1480px]">
-      <section className="rounded-[34px] border border-[#e3e9f1] bg-[#f8f9fb] p-7 shadow-[0_8px_26px_rgba(15,23,42,0.05)]">
+    <div className={`mx-auto max-w-[1840px] ${isEditingInline ? "grid gap-6 xl:grid-cols-[minmax(0,1fr)_430px]" : ""}`}>
+      <section className={`rounded-[34px] border border-[#e3e9f1] bg-white p-7 shadow-[0_8px_26px_rgba(15,23,42,0.05)] ${isEditingInline ? "min-w-0" : ""}`}>
         <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
           <div>
             <h1 className="max-w-[520px] text-[32px] font-extrabold leading-[1.1] tracking-tight text-[#111827] sm:text-[34px] lg:text-[34px]">
@@ -439,15 +559,30 @@ export default function ArticlesPage() {
           </div>
         </div>
 
+        {notice ? (
+          <div className="mt-5 flex items-center gap-3 rounded-[24px] border border-emerald-200 bg-emerald-50 px-5 py-4 text-sm font-extrabold text-emerald-700 shadow-sm">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-emerald-600 shadow-sm ring-1 ring-emerald-100">
+              <Check className="h-4 w-4" />
+            </span>
+            <span>{notice}</span>
+          </div>
+        ) : null}
+
         {view === "grid" ? (
-          <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          <div className={`mt-8 grid gap-5 md:grid-cols-2 ${isEditingInline ? "xl:grid-cols-3" : "xl:grid-cols-3 2xl:grid-cols-4"}`}>
             {filtered.map((article) => {
               const price = taxMode === "gross" ? Number(article.price ?? 0) * (1 + Number(article.tax ?? 19) / 100) : Number(article.price ?? 0)
 
               return (
-                <article key={article.id} className="rounded-[30px] border border-[#e5eaf0] bg-white p-6 shadow-sm transition hover:border-[#cfd8e5] hover:shadow-md">
-                  <div className="mb-5 flex items-start justify-between gap-4">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-base font-semibold text-emerald-600 ring-1 ring-emerald-100">
+                <article
+                  key={article.id}
+                  tabIndex={0}
+                  onClick={() => setActiveArticleId(article.id)}
+                  onFocus={() => setActiveArticleId(article.id)}
+                  className={`group/article flex min-h-[286px] flex-col rounded-[30px] border bg-[#fbfcfe] p-7 shadow-sm outline-none transition hover:border-[#cfd8e5] hover:bg-white hover:shadow-md focus:border-[#cfd8e5] focus:bg-white focus:shadow-md ${activeArticleId === article.id ? "border-[#cfd8e5] bg-white shadow-md" : "border-[#e5eaf0]"}`}
+                >
+                  <div className="mb-6 flex items-start justify-between gap-4">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-emerald-50 text-base font-black text-emerald-600 shadow-sm ring-1 ring-emerald-100">
                       {(article.name || "AR").slice(0, 2).toUpperCase()}
                     </div>
                     <ArticleActions article={article} />
@@ -457,14 +592,14 @@ export default function ArticlesPage() {
                     {categoryLabel(article.category || "Sonstiges")}
                   </span>
 
-                  <h2 className="mt-3 text-lg font-semibold tracking-tight text-[#111827]">{article.name}</h2>
-                  <p className="mt-2 text-sm font-semibold text-[#94a3b8]">#{article.code || t("articles.fallback.code")}</p>
+                  <h2 className="mt-3 min-h-[58px] text-xl font-extrabold leading-tight tracking-tight text-[#111827]">{article.name}</h2>
+                  <p className="mt-2 text-sm font-extrabold text-[#a3adbb]">#{article.code || t("articles.fallback.code")}</p>
 
-                  <div className="mt-7 border-t border-[#edf2f7] pt-5">
-                    <p className="text-xs font-medium uppercase tracking-widest text-[#94a3b8]">{t("articles.price.label").replace("{mode}", taxMode === "net" ? t("articles.tax.net") : t("articles.tax.gross"))}</p>
+                  <div className="mt-auto border-t border-[#edf2f7] pt-6">
+                    <p className="text-xs font-black uppercase tracking-widest text-[#a3adbb]">{t("articles.price.label").replace("{mode}", taxMode === "net" ? t("articles.tax.net") : t("articles.tax.gross"))}</p>
                     <div className="mt-2 flex items-end justify-between gap-4">
-                      <p className="text-[30px] font-semibold leading-none tracking-tight text-[#111827]">{formatPrice(price, language)} €</p>
-                      <p className="pb-1 text-sm font-medium text-[#64748b]">/ {article.unit || t("articles.units.pieceShort")}</p>
+                      <p className="text-[32px] font-black leading-none tracking-tight text-black">{formatPrice(price, language)} €</p>
+                      <p className="pb-1 text-sm font-extrabold text-[#a3adbb]">/ {article.unit || t("articles.units.pieceShort")}</p>
                     </div>
                   </div>
                 </article>
@@ -472,36 +607,98 @@ export default function ArticlesPage() {
             })}
           </div>
         ) : (
-          <div className="mt-8 space-y-3">
-            {filtered.map((article) => {
-              const price = taxMode === "gross" ? Number(article.price ?? 0) * (1 + Number(article.tax ?? 19) / 100) : Number(article.price ?? 0)
+          <div className="mt-8">
+            <div className="hidden grid-cols-[42px_minmax(240px,1.55fr)_minmax(135px,0.7fr)_78px_minmax(150px,0.7fr)_136px] items-center px-7 pb-3 text-xs font-black uppercase tracking-[0.16em] text-[#a3adbb] lg:grid">
+              <button
+                type="button"
+                onClick={toggleAllFilteredArticles}
+                className={`flex !h-[18px] !min-h-0 !w-[18px] shrink-0 items-center justify-center rounded-full border p-0 transition ${allFilteredSelected ? "border-black bg-black text-[var(--brand-lime)] shadow-sm" : "border-[#d9e1ea] bg-white text-transparent hover:border-[#aab6c4]"}`}
+                aria-label="Alle Artikel auswählen"
+                aria-pressed={allFilteredSelected}
+              >
+                <Check className="h-3 w-3 stroke-[3]" />
+              </button>
+              <span>Artikel / Leistung</span>
+              <span>SKU / Kat</span>
+              <span>USt</span>
+              <span className="text-right">Preis ({taxMode === "net" ? t("articles.tax.net") : t("articles.tax.gross")})</span>
+              <span className="text-right">Aktionen</span>
+            </div>
 
-              return (
-                <article key={article.id} className="grid gap-4 rounded-[26px] border border-[#e5eaf0] bg-white px-5 py-4 shadow-sm md:grid-cols-[1.4fr_0.65fr_0.65fr_0.75fr_auto] md:items-center">
-                  <div>
-                    <p className="font-semibold text-[#111827]">{article.name}</p>
-                    <p className="mt-1 text-sm font-medium text-[#64748b]">#{article.code || t("articles.fallback.code")} · {categoryLabel(article.category || "Sonstiges")}</p>
-                  </div>
-                  <div className="text-sm font-semibold text-[#475569]">{article.tax ?? "19"}% {t("articles.tax.vatShort")}</div>
-                  <div className="text-sm font-semibold text-[#475569]">{article.unit || t("articles.units.pieceShort")}</div>
-                  <div className="text-right text-xl font-semibold text-[#111827]">{formatPrice(price, language)} €</div>
-                  <ArticleActions article={article} />
-                </article>
-              )
-            })}
+            <div className="space-y-3">
+              {filtered.map((article) => {
+                const price = taxMode === "gross" ? Number(article.price ?? 0) * (1 + Number(article.tax ?? 19) / 100) : Number(article.price ?? 0)
+                const active = activeArticleId === article.id
+                const selected = selectedArticleIds.includes(article.id)
+
+                return (
+                  <article
+                    key={article.id}
+                    tabIndex={0}
+                    onClick={() => setActiveArticleId(article.id)}
+                    onFocus={() => setActiveArticleId(article.id)}
+                    className={`group/article grid gap-4 rounded-[28px] border bg-[#fbfcfe] px-6 py-5 shadow-sm outline-none transition hover:border-[#cfd8e5] hover:bg-white hover:shadow-md focus:border-[#cfd8e5] focus:bg-white focus:shadow-md lg:grid-cols-[42px_minmax(240px,1.55fr)_minmax(135px,0.7fr)_78px_minmax(150px,0.7fr)_136px] lg:items-center ${selected ? "border-[#8fb4ff] bg-[#f8fbff] shadow-md" : active ? "border-[#cfd8e5] bg-white shadow-md" : "border-[#e5eaf0]"}`}
+                  >
+                    <button
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        toggleArticleSelection(article.id)
+                      }}
+                      className={`hidden !h-[18px] !min-h-0 !w-[18px] shrink-0 items-center justify-center rounded-full border p-0 transition lg:flex ${selected ? "border-black bg-black text-[var(--brand-lime)] shadow-sm" : "border-[#d9e1ea] bg-white text-transparent group-hover/article:border-[#aab6c4]"}`}
+                      aria-label={`${article.name} auswählen`}
+                      aria-pressed={selected}
+                    >
+                      <Check className="h-3 w-3 stroke-[3]" />
+                    </button>
+
+                    <div className="flex min-w-0 items-center gap-4">
+                      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-emerald-50 text-sm font-black text-emerald-600 shadow-sm ring-1 ring-emerald-100">
+                        {(article.name || "AR").slice(0, 2).toUpperCase()}
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-base font-extrabold text-[#111827]">{article.name}</p>
+                        <p className="mt-1 truncate text-sm font-semibold text-[#64748b]">
+                          {article.description || `${categoryLabel(article.category || "Sonstiges")} und Leistung`}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <span className="rounded-lg bg-white px-2.5 py-1 text-xs font-black uppercase tracking-wide text-[#8b97a8] ring-1 ring-[#e1e7ef]">
+                        #{article.code || t("articles.fallback.code")}
+                      </span>
+                      <span className="rounded-lg bg-[#e7ebf0] px-2.5 py-1 text-xs font-black uppercase tracking-wide text-[#5f6b7a]">
+                        {categoryLabel(article.category || "Sonstiges")}
+                      </span>
+                    </div>
+
+                    <span className="w-fit rounded-lg bg-[#eef2f7] px-3 py-1 text-xs font-black text-[#64748b]">
+                      {article.tax ?? "19"}%
+                    </span>
+
+                    <div className="text-left lg:text-right">
+                      <p className="text-xl font-black tracking-tight text-black">{formatPrice(price, language)} €</p>
+                      <p className="mt-1 text-xs font-extrabold text-[#a3adbb]">pro {article.unit || t("articles.units.pieceShort")}</p>
+                    </div>
+
+                    <div className="flex justify-start lg:justify-end">
+                      <ArticleActions article={article} />
+                    </div>
+                  </article>
+                )
+              })}
+            </div>
           </div>
         )}
       </section>
 
       {editOpen && editingArticle && (
-        <div className="fixed inset-0 z-[135] flex justify-end bg-black/20 px-4 py-7">
-          <div className="flex h-[calc(100vh-56px)] w-full max-w-[380px] flex-col overflow-hidden rounded-[38px] bg-white shadow-[-18px_0_45px_rgba(15,23,42,0.18)]">
-            <div className="flex items-start justify-between gap-4 border-b border-[#edf2f7] px-6 py-5">
+        <aside className="sticky top-6 flex h-[calc(100vh-48px)] min-h-[720px] flex-col overflow-hidden rounded-[34px] border border-[#e3e9f1] bg-white shadow-[0_20px_70px_rgba(15,23,42,0.12)]">
+            <div className="flex items-start justify-between gap-4 border-b border-[#edf2f7] px-7 py-6">
               <div>
-                <h2 className="text-xl font-semibold tracking-tight text-[#111827]">{t("articles.edit.title")}</h2>
-                <p className="mt-1 text-sm font-semibold text-[#94a3b8]">
-                  {editingArticle.code || editingArticle.name}
-                </p>
+                <h2 className="text-2xl font-extrabold tracking-tight text-[#111827]">{t("articles.edit.title")}</h2>
+                <p className="mt-1 text-sm font-semibold text-[#94a3b8]">ID: {editingArticle.id}</p>
               </div>
 
               <button
@@ -513,20 +710,65 @@ export default function ArticlesPage() {
               </button>
             </div>
 
-            <div className="flex-1 space-y-4 overflow-auto px-6 py-5">
-              <div className="grid grid-cols-[1fr_0.78fr] gap-3">
-                <Input placeholder={t("articles.fields.nameRequired")} value={editForm.name} onChange={(event) => updateEditForm("name", event.target.value)} />
-                <Input placeholder={t("articles.fields.code")} value={editForm.code} onChange={(event) => updateEditForm("code", event.target.value)} />
+            <div className="flex-1 space-y-6 overflow-auto px-7 py-6">
+              <div className="grid grid-cols-[1fr_0.72fr] gap-4">
+                <label className="block">
+                  <span className="mb-2 block text-xs font-black uppercase tracking-widest text-[#7b8799]">Bezeichnung *</span>
+                  <input
+                    value={editForm.name}
+                    onChange={(event) => updateEditForm("name", event.target.value)}
+                    className="h-14 w-full rounded-full border border-[#dfe6ee] bg-[#f8fafc] px-5 text-sm font-extrabold text-[#111827] outline-none transition focus:border-[var(--brand-lime)] focus:ring-2 focus:ring-[rgba(210,255,57,0.55)]"
+                  />
+                </label>
+
+                <label className="block">
+                  <span className="mb-2 block text-xs font-black uppercase tracking-widest text-[#7b8799]">Artikel-Nr.</span>
+                  <input
+                    value={editForm.code}
+                    onChange={(event) => updateEditForm("code", event.target.value)}
+                    className="h-14 w-full rounded-full border border-[#dfe6ee] bg-[#f8fafc] px-5 text-sm font-extrabold text-[#111827] outline-none transition focus:border-[var(--brand-lime)] focus:ring-2 focus:ring-[rgba(210,255,57,0.55)]"
+                  />
+                </label>
               </div>
 
-              <Input placeholder={t("articles.fields.category")} value={editForm.category} onChange={(event) => updateEditForm("category", event.target.value)} />
+              <label className="block">
+                <span className="mb-2 block text-xs font-black uppercase tracking-widest text-[#7b8799]">Kategorie</span>
+                <select
+                  value={editForm.category}
+                  onChange={(event) => updateEditForm("category", event.target.value)}
+                  className="h-14 w-full appearance-none rounded-full border border-[#dfe6ee] bg-[#f8fafc] px-5 text-sm font-extrabold text-[#111827] outline-none transition focus:border-[var(--brand-lime)] focus:ring-2 focus:ring-[rgba(210,255,57,0.55)]"
+                >
+                  {editableCategories.map((item) => (
+                    <option key={item} value={item}>{categoryLabel(item)}</option>
+                  ))}
+                </select>
+              </label>
 
               <div className="border-t border-[#edf2f7] pt-5">
-                <h3 className="mb-4 text-sm font-semibold text-[#111827]">{t("articles.edit.pricesTaxes")}</h3>
+                <h3 className="mb-4 text-lg font-extrabold text-[#111827]">€ {t("articles.edit.pricesTaxes")}</h3>
 
-                <div className="grid grid-cols-[1fr_0.78fr] gap-3">
-                  <Input placeholder={t("articles.fields.netPriceRequired")} value={editForm.price} onChange={(event) => updateEditForm("price", event.target.value)} />
-                  <Input placeholder={t("articles.fields.unit")} value={editForm.unit} onChange={(event) => updateEditForm("unit", event.target.value)} />
+                <div className="grid grid-cols-[1fr_0.9fr] gap-4">
+                  <label className="block">
+                    <span className="mb-2 block text-xs font-black uppercase tracking-widest text-[#7b8799]">{t("articles.fields.netPriceRequired")}</span>
+                    <input
+                      value={editForm.price}
+                      onChange={(event) => updateEditForm("price", event.target.value)}
+                      className="h-14 w-full rounded-full border border-[#dfe6ee] bg-[#f8fafc] px-5 text-sm font-extrabold text-[#111827] outline-none transition focus:border-[var(--brand-lime)] focus:ring-2 focus:ring-[rgba(210,255,57,0.55)]"
+                    />
+                  </label>
+
+                  <label className="block">
+                    <span className="mb-2 block text-xs font-black uppercase tracking-widest text-[#7b8799]">Einheit</span>
+                    <select
+                      value={editForm.unit}
+                      onChange={(event) => updateEditForm("unit", event.target.value)}
+                      className="h-14 w-full appearance-none rounded-full border border-[#dfe6ee] bg-[#f8fafc] px-5 text-sm font-extrabold text-[#111827] outline-none transition focus:border-[var(--brand-lime)] focus:ring-2 focus:ring-[rgba(210,255,57,0.55)]"
+                    >
+                      {unitOptions.map((item) => (
+                        <option key={item} value={item}>{unitLabel(item)}</option>
+                      ))}
+                    </select>
+                  </label>
                 </div>
 
                 <div className="mt-4">
@@ -538,7 +780,7 @@ export default function ArticlesPage() {
                 <textarea
                   value={editForm.description}
                   onChange={(event) => updateEditForm("description", event.target.value)}
-                  className="w-full rounded-[22px] border border-[#dfe6ee] bg-[#f7f9fc] px-4 py-3 text-sm font-medium text-[#334155] outline-none focus:ring-2 focus:ring-slate-900"
+                  className="w-full rounded-[22px] border border-[#dfe6ee] bg-[#f7f9fc] px-4 py-3 text-sm font-semibold text-[#334155] outline-none transition focus:border-[var(--brand-lime)] focus:ring-2 focus:ring-[rgba(210,255,57,0.55)]"
                   rows={5}
                   placeholder={t("articles.fields.description")}
                 />
@@ -548,10 +790,10 @@ export default function ArticlesPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between gap-3 border-t border-[#edf2f7] bg-white px-6 py-4">
+            <div className="flex items-center justify-between gap-4 border-t border-[#edf2f7] bg-white px-7 py-5">
               <button
                 onClick={() => deleteArticle(editingArticle)}
-                className="flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-600 hover:bg-red-100"
+                className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white text-red-600 shadow-sm ring-1 ring-[#f1d5d5] hover:bg-red-50"
                 aria-label={t("articles.actions.deleteArticle")}
               >
                 <Trash2 className="h-5 w-5" />
@@ -559,14 +801,13 @@ export default function ArticlesPage() {
 
               <button
                 onClick={updateArticle}
-                className="inline-flex h-12 items-center gap-2 rounded-full bg-black px-7 text-sm font-semibold text-[var(--brand-lime)] shadow-sm"
+                className="inline-flex h-14 flex-1 items-center justify-center gap-2 rounded-full bg-black px-7 text-base font-extrabold text-[var(--brand-lime)] shadow-sm"
               >
                 <Check className="h-4 w-4" />
                 {t("articles.actions.save")}
               </button>
             </div>
-          </div>
-        </div>
+        </aside>
       )}
 
       {importOpen && (

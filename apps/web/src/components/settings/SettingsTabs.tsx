@@ -10,16 +10,16 @@ type SettingsTabsProps = {
 
 export function SettingsTabs({ items }: SettingsTabsProps) {
   return (
-    <div className="w-full overflow-x-auto">
-      <div className="flex min-w-max items-center gap-4 rounded-[1.75rem] border border-neutral-200 bg-white/80 p-3 shadow-sm">
+    <div className="w-full overflow-x-auto overscroll-x-contain [scrollbar-width:thin]">
+      <div className="flex min-w-max items-center gap-1 rounded-lg border border-neutral-200 bg-white/80 p-1 shadow-sm">
         {items.map((item) => (
           <a
             key={item.href}
             href={item.href}
-            className={`rounded-2xl px-6 py-3 text-sm font-bold transition-all duration-200 ${
+            className={`inline-flex h-7 shrink-0 items-center whitespace-nowrap rounded-md border px-2 text-[11px] font-bold leading-none transition-colors duration-150 ${
               item.active
-                ? "bg-black text-white shadow-lg"
-                : "bg-white text-neutral-700 ring-1 ring-neutral-200 hover:bg-neutral-50 hover:shadow-sm"
+                ? "border-neutral-950 bg-neutral-950 text-white"
+                : "border-transparent text-neutral-600 hover:border-neutral-200 hover:bg-neutral-100 hover:text-neutral-950"
             }`}
           >
             {item.title}

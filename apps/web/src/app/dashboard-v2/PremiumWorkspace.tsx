@@ -1,11 +1,11 @@
 "use client"
 
-import type { ChangeEvent, ComponentType, FormEvent, RefObject } from "react"
+import type { CSSProperties, ChangeEvent, ComponentType, FormEvent, RefObject } from "react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { articles as fallbackArticlesData, customers as fallbackCustomersData, projects as fallbackProjectsData } from "@/data/invoice-data"
-import { supportedLanguages, type AppLanguage } from "@/i18n/config"
+import { type AppLanguage } from "@/i18n/config"
 import { useLanguage } from "@/lib/i18n"
 import {
   AlertCircle,
@@ -17,6 +17,7 @@ import {
   Banknote,
   Bell,
   Briefcase,
+  CalendarClock,
   CheckCircle2,
   ChevronDown,
   Clock3,
@@ -27,15 +28,13 @@ import {
   Folder,
   Grid3X3,
   Home,
+  Hash,
   Landmark,
   KeyRound,
   Mail,
   MoreVertical,
-  CalendarDays,
-  ClipboardList,
-  FileKey2,
-  Hash,
   Plug,
+  Puzzle,
   Plus,
   Receipt,
   Scale,
@@ -44,7 +43,6 @@ import {
   ShieldCheck,
   Tag,
   Upload,
-  UserMinus,
   UserPlus,
   Users,
   Wallet,
@@ -62,7 +60,6 @@ type ThemeLinks = { light: string; dark: string }
 const PREMIUM_THEME_STORAGE_KEY = "dream-invoice-premium-theme"
 type IconType = ComponentType<{ size?: number; className?: string }>
 type NavItem = { label: string; href: string; icon: IconType; badge?: string; disabled?: boolean }
-type NavGroup = NavItem & { items: NavItem[] }
 type Tone = "violet" | "green" | "rose" | "blue" | "amber"
 type PremiumView =
   | "dashboard"
@@ -308,7 +305,7 @@ type ModuleConfig = {
   timeline: Array<[title: string, text: string]>
   primaryHref: string
 }
-type SearchCategory = "all" | "navigation" | "customers" | "invoices" | "projects" | "articles" | "users" | "notifications"
+type SearchCategory = "all" | "navigation" | "customers" | "offers" | "invoices" | "projects" | "articles" | "expenses" | "settings" | "documents" | "users" | "notifications"
 type SearchResult = {
   title: string
   subtitle: string
@@ -323,17 +320,28 @@ type UpgradeSummary = {
   href: string
 }
 
-const mainNav: NavGroup[] = [
+const mainNav: NavItem[] = [
+  { label: "Dashboard", href: "/dashboard-v2", icon: Home },
+  { label: "Kunden", href: "/dashboard-v2/customers", icon: Users },
+  { label: "Angebote", href: "/dashboard-v2/offers", icon: Tag },
+  { label: "Rechnungen", href: "/dashboard-v2/invoices", icon: FileText },
+  { label: "Projekte", href: "/dashboard-v2/projects", icon: Folder },
+  { label: "Zeiterfassung", href: "/dashboard-v2/time-tracking", icon: Clock3 },
+  { label: "Artikel", href: "/dashboard-v2/articles", icon: Briefcase },
+  { label: "Ausgaben", href: "/dashboard-v2/expenses", icon: Wallet },
+  { label: "Finanzen", href: "/dashboard-v2/finance", icon: Landmark },
+  { label: "Dokumente", href: "/dashboard-v2/documents", icon: Archive },
+  { label: "KI-Assistent", href: "/dashboard-v2/ai-assistant", icon: Plug },
+  { label: "Berichte", href: "/dashboard-v2/reports", icon: BarChart3 }
+]
+
+const sideNav: Array<{ section: string; marker?: string; items: NavItem[] }> = [
   {
-    label: "Dashboard",
-    href: "/dashboard-v2",
-    icon: Home,
+    section: "Uebersicht",
     items: [{ label: "Dashboard", href: "/dashboard-v2", icon: Home }]
   },
   {
-    label: "Vertrieb",
-    href: "/dashboard-v2/customers",
-    icon: Users,
+    section: "Vertrieb",
     items: [
       { label: "Kunden", href: "/dashboard-v2/customers", icon: Users },
       { label: "Angebote", href: "/dashboard-v2/offers", icon: Tag },
@@ -341,94 +349,38 @@ const mainNav: NavGroup[] = [
     ]
   },
   {
-    label: "Finanzen",
-    href: "/dashboard-v2/finance",
-    icon: Landmark,
-    items: [
-      { label: "Banking", href: "/dashboard-v2/finance", icon: Landmark },
-      { label: "Ausgaben", href: "/dashboard-v2/expenses", icon: Wallet },
-      { label: "Buchhaltung", href: "/dashboard-v2/finance?q=Buchhaltung", icon: Scale },
-      { label: "Steuern", href: "/dashboard-v2/finance?q=Steuern", icon: Receipt }
-    ]
-  },
-  {
-    label: "Projekte",
-    href: "/dashboard-v2/projects",
-    icon: Folder,
+    section: "Projekte",
     items: [
       { label: "Projekte", href: "/dashboard-v2/projects", icon: Folder },
-      { label: "Aufgaben", href: "/dashboard-v2/projects?q=Aufgaben", icon: ClipboardList },
-      { label: "Dateien", href: "/dashboard-v2/projects?q=Dateien", icon: Archive },
-      { label: "Meilensteine", href: "/dashboard-v2/projects?q=Meilensteine", icon: CheckCircle2 }
-    ]
-  },
-  {
-    label: "Zeiterfassung",
-    href: "/dashboard-v2/time-tracking",
-    icon: Clock3,
-    items: [
-      { label: "Meine Zeiten", href: "/dashboard-v2/time-tracking", icon: Clock3 },
-      { label: "Wochenstunden", href: "/dashboard-v2/time-tracking?q=Wochenstunden", icon: BarChart3 },
-      { label: "Kalender", href: "/dashboard-v2/time-tracking?q=Kalender", icon: CalendarDays },
-      { label: "Abwesenheiten", href: "/dashboard-v2/time-tracking?q=Abwesenheiten", icon: UserMinus },
-      { label: "Export", href: "/dashboard-v2/time-tracking?q=Export", icon: Download }
-    ]
-  },
-  {
-    label: "Berichte",
-    href: "/dashboard-v2/reports",
-    icon: BarChart3,
-    items: [
-      { label: "Umsatz", href: "/dashboard-v2/reports?q=Umsatz", icon: BarChart3 },
-      { label: "Ausgaben", href: "/dashboard-v2/reports?q=Ausgaben", icon: Wallet },
-      { label: "Cashflow", href: "/dashboard-v2/reports?q=Cashflow", icon: Workflow },
-      { label: "Kundenwert", href: "/dashboard-v2/reports?q=Kundenwert", icon: Users }
-    ]
-  },
-  {
-    label: "Dokumente",
-    href: "/dashboard-v2/documents",
-    icon: Archive,
-    items: [
-      { label: "Dokumente", href: "/dashboard-v2/documents", icon: Archive },
-      { label: "Vorlagen", href: "/dashboard-v2/documents?q=Vorlagen", icon: FileText },
-      { label: "Archiv", href: "/dashboard-v2/documents?q=Archiv", icon: Folder },
-      { label: "Signaturen", href: "/dashboard-v2/documents?q=Signaturen", icon: FileKey2 }
-    ]
-  },
-  {
-    label: "Mehr",
-    href: "/dashboard-v2/articles",
-    icon: MoreVertical,
-    items: [
+      { label: "Zeiterfassung", href: "/dashboard-v2/time-tracking", icon: Clock3 },
       { label: "Artikel", href: "/dashboard-v2/articles", icon: Briefcase },
-      { label: "KI-Assistent", href: "/dashboard-v2/ai-assistant", icon: Plug },
+      { label: "Kategorien", href: "/dashboard-v2/articles?q=Kategorien", icon: Tag }
+    ]
+  },
+  {
+    section: "Finanzen",
+    items: [
+      { label: "Einnahmen & Ausgaben", href: "/dashboard-v2/finance", icon: Landmark },
+      { label: "Ausgaben", href: "/dashboard-v2/expenses", icon: Wallet }
+    ]
+  },
+  {
+    section: "System",
+    items: [
       { label: "Einstellungen", href: "/dashboard-v2/settings", icon: Settings },
-      { label: "Integrationen", href: "/dashboard-v2/integrations", icon: Zap },
-      { label: "Benutzer & Rollen", href: "/dashboard-v2/users", icon: Users },
-      { label: "Sicherheit", href: "/dashboard-v2/account/security", icon: ShieldCheck }
+      { label: "Lizenzen", href: "/dashboard-v2/license", icon: KeyRound }
+    ]
+  },
+  {
+    section: "Dev",
+    marker: "Admin",
+    items: [
+      { label: "API", href: "/dashboard-v2/settings/add-ons?q=API", icon: Grid3X3 },
+      { label: "Webhooks", href: "/dashboard-v2/settings/add-ons?q=Webhooks", icon: Workflow },
+      { label: "Dev", href: "/dashboard-v2/settings/add-ons?q=Dev", icon: Zap }
     ]
   }
 ]
-
-
-function navPath(href: string) {
-  return href.split("?")[0]
-}
-
-function isNavItemActive(pathname: string, item: NavItem) {
-  const path = navPath(item.href)
-  if (path === "/dashboard-v2") return pathname === path
-
-  return pathname === path || pathname.startsWith(path + "/")
-}
-
-function activeNavGroup(pathname: string) {
-  if (pathname === "/dashboard-v2") return mainNav[0]
-
-  const groups = mainNav.slice(1)
-  return groups.find((group) => group.items.some((item) => isNavItemActive(pathname, item))) ?? mainNav[0]
-}
 
 const premiumViewMeta: Record<Exclude<PremiumView, "account-security">, { title: string; eyebrow: string; description: string; primary: string }> = {
   dashboard: {
@@ -802,16 +754,6 @@ function initialsFromName(value: string) {
   return parts.slice(0, 2).map((part) => part.charAt(0).toUpperCase()).join("")
 }
 
-function workspaceFromData(data: PremiumData) {
-  const company = data.companySettings ?? fallbackCompanySettings
-  const name = company.company || fallbackCompanySettings.company || "DreamInvoice"
-
-  return {
-    name,
-    initial: initialsFromName(name).charAt(0)
-  }
-}
-
 function profileFromData(data: PremiumData, sessionUser: SessionUser | null) {
   if (!sessionUser && data.userCount === 0) {
     return {
@@ -992,11 +934,23 @@ function matchesSearch(values: readonly string[], query: string) {
   return values.some((value) => value.toLowerCase().includes(normalizedQuery))
 }
 
+function navSearchCategory(item: NavItem): Exclude<SearchCategory, "all"> {
+  if (item.href.includes("/customers")) return "customers"
+  if (item.href.includes("/offers")) return "offers"
+  if (item.href.includes("/invoices")) return "invoices"
+  if (item.href.includes("/projects") || item.href.includes("/time-tracking")) return "projects"
+  if (item.href.includes("/articles")) return "articles"
+  if (item.href.includes("/expenses") || item.href.includes("/finance")) return "expenses"
+  if (item.href.includes("/settings") || item.href.includes("/license")) return "settings"
+  if (item.href.includes("/documents")) return "documents"
+  return "navigation"
+}
+
 function globalSearchResults(data: PremiumData, query: string): SearchResult[] {
   const normalizedQuery = query.trim()
   if (!normalizedQuery) return []
 
-  const navItems = mainNav.flatMap((group) => [group, ...group.items])
+  const navItems = [...mainNav, ...sideNav.flatMap((group) => group.items)]
   const uniqueNavItems = Array.from(new Map(navItems.map((item) => [item.href, item])).values())
   const customersSource = data.loaded ? data.customers : fallbackApiCustomers
   const invoicesSource = invoiceDisplaySource(data)
@@ -1008,7 +962,7 @@ function globalSearchResults(data: PremiumData, query: string): SearchResult[] {
 
   for (const item of uniqueNavItems) {
     if (!matchesSearch([item.label, item.href], normalizedQuery)) continue
-    results.push({ title: item.label, subtitle: "Premium Bereich", href: item.href, icon: item.icon, category: "navigation" })
+    results.push({ title: item.label, subtitle: "Premium Bereich", href: item.href, icon: item.icon, category: navSearchCategory(item) })
   }
 
   for (const customer of customersSource) {
@@ -1018,8 +972,9 @@ function globalSearchResults(data: PremiumData, query: string): SearchResult[] {
 
   for (const invoice of invoicesSource) {
     if (!matchesSearch([invoice.number, invoice.customer, statusLabel(invoice.status), formatEuro(Number(invoice.grossTotal) || 0)], normalizedQuery)) continue
-    const view = invoiceType(invoice) === "offer" ? "offers" : "invoices"
-    results.push({ title: invoice.number, subtitle: `${invoice.customer} · ${formatEuro(Number(invoice.grossTotal) || 0)}`, href: `/dashboard-v2/${view}?q=${encodeURIComponent(invoice.number)}`, icon: FileText, category: "invoices" })
+    const isOffer = invoiceType(invoice) === "offer"
+    const view = isOffer ? "offers" : "invoices"
+    results.push({ title: invoice.number, subtitle: `${invoice.customer} · ${formatEuro(Number(invoice.grossTotal) || 0)}`, href: `/dashboard-v2/${view}?q=${encodeURIComponent(invoice.number)}`, icon: isOffer ? Tag : FileText, category: isOffer ? "offers" : "invoices" })
   }
 
   for (const project of projectsSource) {
@@ -1030,6 +985,11 @@ function globalSearchResults(data: PremiumData, query: string): SearchResult[] {
   for (const article of articlesSource) {
     if (!matchesSearch([article.name, article.category || "", article.code || "", formatEuro(Number(article.price) || 0)], normalizedQuery)) continue
     results.push({ title: article.name, subtitle: `${article.category || "Leistung"} · ${formatEuro(Number(article.price) || 0)}`, href: `/dashboard-v2/articles?q=${encodeURIComponent(article.name)}`, icon: Briefcase, category: "articles" })
+  }
+
+  for (const module of premiumSettingsModules) {
+    if (!matchesSearch([module.title, module.description, module.status ?? ""], normalizedQuery)) continue
+    results.push({ title: module.title, subtitle: `Einstellungen · ${module.status}`, href: module.href, icon: module.icon, category: "settings" })
   }
 
   for (const user of usersSource) {
@@ -1377,18 +1337,26 @@ function ThemeToggle({ links, mode, onChange }: { links: ThemeLinks; mode: Theme
   )
 }
 
-function visibleSideNav(pathname: string) {
-  return [activeNavGroup(pathname)]
+function visibleSideNav({ canSeeDevelopment, licenseAdminEnabled }: { canSeeDevelopment: boolean; licenseAdminEnabled: boolean }) {
+  return sideNav.map((group) => {
+    if (group.marker && !canSeeDevelopment) {
+      return { ...group, items: [] }
+    }
+
+    return {
+      ...group,
+      items: group.items.filter((item) => licenseAdminEnabled || item.href !== "/dashboard-v2/license-admin")
+    }
+  }).filter((group) => group.items.length)
 }
 
-function Sidebar({ mode, upgrade, workspace }: { mode: ThemeMode; upgrade: UpgradeSummary; workspace: ReturnType<typeof workspaceFromData> }) {
+function Sidebar({ mode, unreadCount, upgrade, canSeeDevelopment, licenseAdminEnabled }: { mode: ThemeMode; unreadCount: number; upgrade: UpgradeSummary; canSeeDevelopment: boolean; licenseAdminEnabled: boolean }) {
   const pathname = usePathname()
 
   return (
     <aside className={styles.sidebar}>
       <div className={styles.logoWrap}><img className={styles.brandLogo} src="/brand/logo-sidebar.svg" alt="DreamInvoice" /></div>
-      <Link className={styles.workspaceButton} href={withPremiumTheme("/dashboard-v2/settings", mode)}><span className={styles.workspaceAvatar}>{workspace.initial}</span><span><small>Workspace</small><strong>{workspace.name}</strong></span><ChevronDown size={14} /></Link>
-      <nav className={styles.sideSections}>{visibleSideNav(pathname).map((group) => <div key={group.label} className={styles.sideSection}><p>{group.label}</p>{group.items.map((item) => { const Icon = item.icon; const isActive = isNavItemActive(pathname, item); const badge = item.badge ?? ""; if (item.disabled) return <span key={item.label} className={styles.disabledSideItem} aria-disabled="true"><Icon size={16} /><span>{item.label}</span>{badge ? <em>{badge}</em> : null}</span>; return <Link key={item.label} href={withPremiumTheme(item.href, mode)} aria-current={isActive ? "page" : undefined} className={isActive ? styles.activeSideItem : styles.sideItem}><Icon size={16} /><span>{item.label}</span>{badge ? <em>{badge}</em> : null}</Link> })}</div>)}</nav>
+      <nav className={styles.sideSections}>{visibleSideNav({ canSeeDevelopment, licenseAdminEnabled }).map((group) => <div key={group.section} className={styles.sideSection} data-dev-section={group.marker ? "true" : undefined}><p>{group.section}{group.marker ? <em>{group.marker}</em> : null}</p>{group.items.map((item) => { const Icon = item.icon; const isActive = pathname === item.href; const badge = item.badge ?? ""; if (item.disabled) return <span key={item.label} className={styles.disabledSideItem} aria-disabled="true"><Icon size={16} /><span>{item.label}</span>{badge ? <em>{badge}</em> : null}</span>; return <Link key={item.label} href={withPremiumTheme(item.href, mode)} aria-current={isActive ? "page" : undefined} className={isActive ? styles.activeSideItem : styles.sideItem}><Icon size={16} /><span>{item.label}</span>{badge ? <em>{badge}</em> : null}</Link> })}</div>)}</nav>
       <div className={styles.upgradeCard}><Crown size={26} /><strong>{upgrade.title}</strong><span>{upgrade.text}</span><Link href={withPremiumTheme(upgrade.href, mode)}>{upgrade.action}</Link></div>
     </aside>
   )
@@ -1396,23 +1364,35 @@ function Sidebar({ mode, upgrade, workspace }: { mode: ThemeMode; upgrade: Upgra
 
 function Topbar({ mode, profile, searchInputRef, searchQuery, themeLinks, unreadCount, onModeChange, onSearchChange, onSearchClear, profileMenuOpen, onToggleProfileMenu, onCloseProfileMenu, onLogout }: { mode: ThemeMode; profile: ReturnType<typeof profileFromData>; searchInputRef: RefObject<HTMLInputElement | null>; searchQuery: string; themeLinks: ThemeLinks; unreadCount: number; onModeChange: (mode: ThemeMode) => void; onSearchChange: (value: string) => void; onSearchClear: () => void; profileMenuOpen: boolean; onToggleProfileMenu: () => void; onCloseProfileMenu: () => void; onLogout: () => void }) {
   const pathname = usePathname()
-  const isDashboard = pathname === "/dashboard-v2"
   const profileMenuRef = useRef<HTMLDivElement>(null)
   const searchDockRef = useRef<HTMLDivElement>(null)
-  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchOpen, setSearchOpen] = useState(Boolean(searchQuery))
+  const isSearchExpanded = searchOpen || Boolean(searchQuery)
 
-  function handleSearchClear() {
-    onSearchClear()
+  function handleSearchOpen() {
     setSearchOpen(true)
     requestAnimationFrame(() => searchInputRef.current?.focus())
   }
 
-  function handleSearchBlur(event: React.FocusEvent<HTMLDivElement>) {
-    const nextTarget = event.relatedTarget as Node | null
-    if (!nextTarget || !searchDockRef.current?.contains(nextTarget)) {
-      setSearchOpen(false)
-    }
+  function handleSearchClear() {
+    onSearchClear()
+    requestAnimationFrame(() => searchInputRef.current?.focus())
   }
+
+  function handleSearchBlur() {
+    if (!searchQuery.trim()) setSearchOpen(false)
+  }
+
+  useEffect(() => {
+    if (!isSearchExpanded || searchQuery.trim()) return
+
+    function handlePointerDown(event: PointerEvent) {
+      if (!searchDockRef.current?.contains(event.target as Node)) setSearchOpen(false)
+    }
+
+    window.addEventListener("pointerdown", handlePointerDown)
+    return () => window.removeEventListener("pointerdown", handlePointerDown)
+  }, [isSearchExpanded, searchQuery])
 
   useEffect(() => {
     if (!profileMenuOpen) return
@@ -1425,7 +1405,6 @@ function Topbar({ mode, profile, searchInputRef, searchQuery, themeLinks, unread
 
     function handleKeydown(event: KeyboardEvent) {
       if (event.key === "Escape") onCloseProfileMenu()
-      if (event.key === "Escape" && searchOpen) setSearchOpen(false)
     }
 
     window.addEventListener("pointerdown", handlePointerDown)
@@ -1435,44 +1414,32 @@ function Topbar({ mode, profile, searchInputRef, searchQuery, themeLinks, unread
       window.removeEventListener("pointerdown", handlePointerDown)
       window.removeEventListener("keydown", handleKeydown)
     }
-  }, [onCloseProfileMenu, profileMenuOpen, searchOpen])
-
-  useEffect(() => {
-    if (!searchOpen) return
-    requestAnimationFrame(() => searchInputRef.current?.focus())
-  }, [searchInputRef, searchOpen])
+  }, [onCloseProfileMenu, profileMenuOpen])
 
   return (
     <header className={styles.topbar}>
-      <nav className={styles.desktopNav}>{mainNav.map((item) => { const isActive = activeNavGroup(pathname).label === item.label; return <Link key={item.label} className={isActive ? styles.navActive : ""} aria-current={isActive ? "page" : undefined} href={withPremiumTheme(item.href, mode)}>{item.label}</Link> })}</nav>
+      <nav className={styles.desktopNav}>{mainNav.map((item) => { const isActive = pathname === item.href; return <Link key={item.label} className={isActive ? styles.navActive : ""} aria-current={isActive ? "page" : undefined} href={withPremiumTheme(item.href, mode)}>{item.label}</Link> })}</nav>
       <div className={styles.topActions}>
         <ThemeToggle links={themeLinks} mode={mode} onChange={onModeChange} />
-        {isDashboard ? (
-          <div ref={searchDockRef} className={searchOpen ? [styles.searchDock, styles.searchDockOpen].join(" ") : styles.searchDock} onBlurCapture={handleSearchBlur}>
-            {searchOpen ? (
-              <>
-                <Search size={15} aria-hidden="true" />
-                <input
-                  ref={searchInputRef}
-                  value={searchQuery}
-                  onChange={(event) => onSearchChange(event.target.value)}
-                  placeholder="Kunden, Rechnungen, Projekte suchen ..."
-                  aria-label="Premium Suche"
-                  onFocus={() => setSearchOpen(true)}
-                />
-                {searchQuery ? <button type="button" aria-label="Suche leeren" onClick={handleSearchClear}><X size={15} /></button> : null}
-              </>
-            ) : (
-              <button type="button" className={styles.searchDockButton} onClick={() => setSearchOpen(true)} aria-label="Suche öffnen">
-                <Search size={15} aria-hidden="true" />
-                <span>Suche</span>
-              </button>
-            )}
-          </div>
-        ) : null}
+        <div ref={searchDockRef} className={styles.searchDock} data-open={isSearchExpanded ? "true" : "false"}>
+          <button type="button" className={styles.searchDockTrigger} aria-label="Globale Suche öffnen" aria-expanded={isSearchExpanded} onClick={handleSearchOpen}>
+            <Search size={16} aria-hidden="true" />
+          </button>
+          <input
+            ref={searchInputRef}
+            value={searchQuery}
+            onChange={(event) => onSearchChange(event.target.value)}
+            onFocus={() => setSearchOpen(true)}
+            onBlur={handleSearchBlur}
+            placeholder="Suchen..."
+            aria-label="Globale Suche"
+            tabIndex={isSearchExpanded ? 0 : -1}
+          />
+          {searchQuery ? <button type="button" aria-label="Suche leeren" onClick={handleSearchClear}><X size={15} /></button> : null}
+        </div>
         <Link href={withPremiumTheme("/dashboard-v2/invoices?q=Rechnung%20vorbereitet", mode)} aria-label="Neu" className={styles.iconAction}><Plus size={18} /></Link>
         <Link href={withPremiumTheme("/dashboard-v2/notifications?q=Alle%20gelesen", mode)} aria-label="Benachrichtigungen" className={styles.iconAction}><Bell size={18} />{unreadCount > 0 ? <span className={styles.bellBadge}>{unreadCount}</span> : null}</Link>
-        <Link href={withPremiumTheme("/dashboard-v2/settings?q=Einstellungen%20geoeffnet", mode)} aria-label="Einstellungen" title="Einstellungen" className={styles.iconAction}><Settings size={18} /></Link>
+        <Link href={withPremiumTheme("/dashboard-v2/settings", mode)} aria-label="Einstellungen" title="Einstellungen" className={styles.iconAction}><Settings size={18} /></Link>
         <div ref={profileMenuRef} className={styles.profile}>
           <button type="button" className={styles.profileTrigger} aria-label="Profilmenü öffnen" aria-haspopup="menu" aria-expanded={profileMenuOpen} onClick={onToggleProfileMenu}>
             <span className={styles.profileAvatar}>{profile.initials}</span>
@@ -1504,13 +1471,24 @@ function Topbar({ mode, profile, searchInputRef, searchQuery, themeLinks, unread
 }
 function CompactNav({ mode, unreadCount }: { mode: ThemeMode; unreadCount: number }) {
   const pathname = usePathname()
-  const compactItems: NavItem[] = mainNav
+  const compactItems: NavItem[] = [
+    { label: "Dashboard", href: "/dashboard-v2", icon: Home },
+    { label: "Kunden", href: "/dashboard-v2/customers", icon: Users },
+    { label: "Angebote", href: "/dashboard-v2/offers", icon: Tag },
+    { label: "Rechnungen", href: "/dashboard-v2/invoices", icon: FileText },
+    { label: "Projekte", href: "/dashboard-v2/projects", icon: Folder },
+    { label: "Finanzen", href: "/dashboard-v2/finance", icon: Landmark },
+    { label: "DMS", href: "/dashboard-v2/documents", icon: Archive },
+    { label: "KI", href: "/dashboard-v2/ai-assistant", icon: Plug },
+    { label: "Settings", href: "/dashboard-v2/settings", icon: Settings },
+    { label: "Dev", href: "/dashboard-v2/settings/add-ons?q=Dev", icon: Grid3X3 }
+  ]
 
   return (
     <nav className={styles.compactNav} aria-label="Mobile Premium Navigation">
       {compactItems.map((item) => {
         const Icon = item.icon
-        const isActive = mainNav.some((group) => group.label === item.label) ? activeNavGroup(pathname).label === item.label : isNavItemActive(pathname, item)
+        const isActive = pathname === item.href
         const badge = item.label === "Benachrichtigungen" ? unreadCount : 0
 
         return <Link key={item.href} href={withPremiumTheme(item.href, mode)} aria-current={isActive ? "page" : undefined} className={isActive ? styles.compactNavActive : ""}><Icon size={16} /><span>{item.label}</span>{badge > 0 ? <em>{badge}</em> : null}</Link>
@@ -1811,9 +1789,13 @@ const searchCategoryLabels: Array<{ value: SearchCategory; label: string }> = [
   { value: "all", label: "Alle Kategorien" },
   { value: "navigation", label: "Bereiche" },
   { value: "customers", label: "Kunden" },
+  { value: "offers", label: "Angebote" },
   { value: "invoices", label: "Rechnungen" },
   { value: "projects", label: "Projekte" },
   { value: "articles", label: "Artikel" },
+  { value: "expenses", label: "Ausgaben" },
+  { value: "settings", label: "Einstellungen" },
+  { value: "documents", label: "Dokumente" },
   { value: "users", label: "Benutzer" },
   { value: "notifications", label: "Benachrichtigungen" }
 ]
@@ -2667,23 +2649,31 @@ const premiumSettingsModules: Array<{
   icon: IconType
   title: string
   description: string
-  status?: "Aktiv" | "Teilweise aktiv" | "Premium vorbereitet" | "Dev only" | "Nicht eingerichtet"
+  status: "Aktiv" | "Teilweise aktiv" | "Premium vorbereitet" | "Nicht eingerichtet"
   href: string
+  accent: string
+  accentSoft: string
 }> = [
-  { key: "company", icon: Building2, title: "Unternehmen", description: "Firmendaten, Adresse, Logo, USt-ID und Branding", status: "Aktiv", href: "/dashboard-v2/settings/company" },
-  { key: "finance", icon: Wallet, title: "Finanzen", description: "Bankdaten, Open Banking, Zahlungsziele, Mahnungen", status: "Teilweise aktiv", href: "/dashboard-v2/settings/finance" },
-  { key: "documents", icon: FileText, title: "Dokumente", description: "Rechnungen, Angebote, Nummernkreise und Vorlagen", status: "Aktiv", href: "/dashboard-v2/settings/documents" },
-  { key: "time-tracking", icon: Clock3, title: "Zeiterfassung", description: "Vorbereitung fuer Zeiten, Projektkapazitaet und spaetere Stundenuebergabe", status: "Premium vorbereitet", href: "/dashboard-v2/settings/time-tracking" },
-  { key: "billing", icon: Receipt, title: "Fakturierung", description: "Vorbereitung fuer Kunde, Projekt, Artikel, Stunden und Rechnung", status: "Premium vorbereitet", href: "/dashboard-v2/settings/billing" },
-  { key: "communication", icon: Mail, title: "Kommunikation", description: "SMTP, E-Mail, Signaturen und Standardtexte", status: "Teilweise aktiv", href: "/dashboard-v2/settings/communication" },
-  { key: "users", icon: Users, title: "Benutzer & Rollen", description: "Team, Rechte, Rollen und Einladungen", status: "Aktiv", href: "/dashboard-v2/settings/users-roles" },
-  { key: "security", icon: ShieldCheck, title: "Sicherheit", description: "Audit Logs, Zugriff, Backup und Schutz", status: "Teilweise aktiv", href: "/dashboard-v2/settings/security" },
-  { key: "integrations", icon: Plug, title: "Integrationen", description: "API, Webhooks und externe Dienste", status: "Premium vorbereitet", href: "/dashboard-v2/settings/integrations" },
-  { key: "reports", icon: BarChart3, title: "Berichte", description: "Auswertungen, Umsatz und KPIs", status: "Aktiv", href: "/dashboard-v2/settings/reports" },
-  { key: "archive", icon: Archive, title: "Archiv", description: "Dokumentenarchiv, Export und Ablage", status: "Nicht eingerichtet", href: "/dashboard-v2/settings/archive" },
-  { key: "system", icon: Settings, title: "System", description: "Sprache, Systemoptionen, Logs", status: "Teilweise aktiv", href: "/dashboard-v2/settings/system" },
-  { key: "automation", icon: Workflow, title: "Automatisierung", description: "Regeln, Trigger und geplante Ablaeufe", status: "Premium vorbereitet", href: "/dashboard-v2/settings/automation" },
-  { key: "legal", icon: Scale, title: "Rechtliches", description: "Steuern, E-Rechnung, Impressum und Pflichttexte", status: "Premium vorbereitet", href: "/dashboard-v2/settings/legal" }
+  { key: "company", icon: Building2, title: "Unternehmen", description: "Firmendaten, Adresse, Logo, USt-ID und Branding", status: "Aktiv", href: "/dashboard-v2/settings/company", accent: "#2563eb", accentSoft: "#dbeafe" },
+  { key: "finance", icon: Wallet, title: "Finanzen", description: "Bankdaten, Open Banking, Zahlungsziele und Mahnungen", status: "Teilweise aktiv", href: "/dashboard-v2/settings/finance", accent: "#0f766e", accentSoft: "#ccfbf1" },
+  { key: "documents", icon: FileText, title: "Dokumente", description: "Rechnungen, Angebote, Nummernkreise und Vorlagen", status: "Aktiv", href: "/dashboard-v2/settings/documents", accent: "#7c3aed", accentSoft: "#ede9fe" },
+  { key: "email", icon: Mail, title: "E-Mail", description: "SMTP, E-Mail-Versand, Signaturen und Standardtexte", status: "Teilweise aktiv", href: "/dashboard-v2/settings/email", accent: "#0891b2", accentSoft: "#cffafe" },
+  { key: "users", icon: Users, title: "Benutzer & Rollen", description: "Team, Rechte, Rollen und Einladungen", status: "Aktiv", href: "/dashboard-v2/settings/users", accent: "#4f46e5", accentSoft: "#e0e7ff" },
+  { key: "security", icon: ShieldCheck, title: "Sicherheit", description: "Passwort, 2FA, Kontoschutz, Sitzungen und Login-Sicherheit", status: "Teilweise aktiv", href: "/dashboard-v2/settings/security", accent: "#dc2626", accentSoft: "#fee2e2" },
+  { key: "audit-logs", icon: FileText, title: "Audit Logs", description: "Sicherheitsereignisse, Zugriff und Systemaktivitaeten", status: "Teilweise aktiv", href: "/dashboard-v2/settings/audit-logs", accent: "#0f172a", accentSoft: "#e2e8f0" },
+  { key: "license", icon: KeyRound, title: "Lizenzverwaltung", description: "Lizenzstatus, Aktivierung, Benutzerlimit und Key-Verwaltung", status: "Aktiv", href: "/dashboard-v2/settings/license", accent: "#6d28d9", accentSoft: "#ede9fe" },
+  { key: "integrations", icon: Plug, title: "Integrationen", description: "API, Webhooks und externe Dienste", status: "Premium vorbereitet", href: "/dashboard-v2/settings/integrations", accent: "#9333ea", accentSoft: "#f3e8ff" },
+  { key: "reports", icon: BarChart3, title: "Berichte", description: "Auswertungen, Umsatz, KPIs und Exporte", status: "Aktiv", href: "/dashboard-v2/settings/reports", accent: "#16a34a", accentSoft: "#dcfce7" },
+  { key: "archive", icon: Archive, title: "Archiv", description: "Dokumentenarchiv, Export und Ablage", status: "Nicht eingerichtet", href: "/dashboard-v2/settings/archive", accent: "#64748b", accentSoft: "#e2e8f0" },
+  { key: "system", icon: Settings, title: "System", description: "Sprache, Systemoptionen, Logs und Wartung", status: "Teilweise aktiv", href: "/dashboard-v2/settings/system", accent: "#475569", accentSoft: "#e2e8f0" },
+  { key: "automation", icon: Workflow, title: "Automatisierung", description: "Regeln, Trigger und geplante Ablaeufe", status: "Premium vorbereitet", href: "/dashboard-v2/settings/automation", accent: "#c2410c", accentSoft: "#ffedd5" },
+  { key: "legal", icon: Scale, title: "Rechtliches", description: "Steuern, E-Rechnung, Impressum und Pflichttexte", status: "Premium vorbereitet", href: "/dashboard-v2/settings/legal", accent: "#a16207", accentSoft: "#fef3c7" },
+  { key: "time-tracking", icon: Clock3, title: "Zeiterfassung", description: "Zeiten, Projektbezug und spaetere Stundenuebergabe", status: "Teilweise aktiv", href: "/dashboard-v2/settings/time-tracking", accent: "#0284c7", accentSoft: "#e0f2fe" },
+  { key: "billing", icon: Receipt, title: "Fakturierung", description: "Kunde, Projekt, Artikel, Stunden und Rechnung", status: "Teilweise aktiv", href: "/dashboard-v2/settings/billing", accent: "#db2777", accentSoft: "#fce7f3" },
+  { key: "number-ranges", icon: Hash, title: "Nummernkreise", description: "Rechnungs-, Angebots- und Kundennummern", status: "Teilweise aktiv", href: "/dashboard-v2/settings/number-ranges", accent: "#0d9488", accentSoft: "#ccfbf1" },
+  { key: "notifications", icon: Bell, title: "Benachrichtigungen", description: "Glocke, Ereigniskategorien und Systemhinweise", status: "Teilweise aktiv", href: "/dashboard-v2/settings/notifications", accent: "#ea580c", accentSoft: "#ffedd5" },
+  { key: "reminders", icon: CalendarClock, title: "Erinnerungen", description: "Mahnlogik, Wiedervorlagen und E-Mail-Folgen", status: "Teilweise aktiv", href: "/dashboard-v2/settings/reminders", accent: "#ca8a04", accentSoft: "#fef9c3" },
+  { key: "add-ons", icon: Puzzle, title: "Add-ons", description: "Premium-Erweiterungen und spaetere Zusatzmodule", status: "Premium vorbereitet", href: "/dashboard-v2/settings/add-ons", accent: "#7e22ce", accentSoft: "#f3e8ff" }
 ]
 
 const premiumSettingsFutureRegistry = [
@@ -3320,7 +3310,6 @@ function PremiumWorkflowPanel({
   const rangesSource = data.numberRanges.length ? data.numberRanges : fallbackNumberRanges
   const rangeByType = (type: string) => rangesSource.find((range) => range.type === type) ?? fallbackNumberRanges.find((range) => range.type === type)
   const query = searchQuery.toLowerCase()
-  const [settingsFilter, setSettingsFilter] = useState(() => (view === "settings" ? premiumSearchQuery(searchQuery) : ""))
   const [customerDraft, setCustomerDraft] = useState<CustomerDraft>({
     number: "",
     name: customersSource[0]?.name || "Neuer Premium Kunde",
@@ -4651,49 +4640,16 @@ function PremiumWorkflowPanel({
   }
 
   if (view === "settings") {
-    const activeLanguage = supportedLanguages.find((item) => item.code === language) ?? supportedLanguages[0]
-    const filteredModules = premiumSettingsModules.filter((module) => {
-      const needle = settingsFilter.trim().toLowerCase()
-      if (!needle) return true
-
-      return [module.title, module.description, module.status ?? ""].some((value) => value.toLowerCase().includes(needle))
-    })
-
     return (
       <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.length > 0} data-premium-workflow="settings">
         <section className={styles.settingsDashboardHeader}>
           <div className={styles.settingsDashboardTitle}>
-            <span>Einstellungen</span>
-            <h2>Verwalte alle Einstellungen und Module von DreamInvoice</h2>
-            <p>Alle vorhandenen Bereiche bleiben erhalten und werden ueber ihre bestehenden Premium-Unterseiten oder Premium-Bereiche geoeffnet.</p>
-          </div>
-          <label className={styles.settingsDashboardSearch}>
-            <Search size={18} />
-            <input
-              type="search"
-              value={settingsFilter}
-              onChange={(event) => setSettingsFilter(event.target.value)}
-              placeholder="Module durchsuchen"
-              aria-label="Einstellungen durchsuchen"
-            />
-          </label>
-        </section>
-        <section className={styles.settingsDashboardMeta}>
-          <div>
-            <strong>{filteredModules.length}</strong>
-            <span>Sichtbare Module</span>
-          </div>
-          <div>
-            <strong>{activeLanguage.label}</strong>
-            <span>Aktive Sprache</span>
-          </div>
-          <div>
-            <strong>{premiumSettingsFutureRegistry.length}</strong>
-            <span>Vorbereitete Registry-Eintraege</span>
+            <h2>Alle Einstellungen auf einen Blick</h2>
+            <p>Module, Status und vorbereitete Premium-Bereiche bleiben zentral erreichbar, ohne bestehende Funktionen oder Routen zu ersetzen.</p>
           </div>
         </section>
         <div className={styles.settingsModuleGrid}>
-          {filteredModules.map((module) => {
+          {premiumSettingsModules.map((module) => {
             const Icon = module.icon
 
             return (
@@ -4701,12 +4657,16 @@ function PremiumWorkflowPanel({
                 key={module.key}
                 href={withPremiumTheme(module.href, mode)}
                 className={styles.settingsModuleCard}
+                style={{
+                  "--settings-module-accent": module.accent,
+                  "--settings-module-accent-soft": module.accentSoft
+                } as CSSProperties}
               >
                 <div className={styles.settingsModuleCardTop}>
                   <div className={styles.settingsModuleIcon}>
                     <Icon size={26} />
                   </div>
-                  {module.status ? <span className={styles.settingsModuleBadge}>{module.status}</span> : null}
+                  <span className={styles.settingsModuleBadge} data-status={module.status}>{module.status}</span>
                 </div>
                 <div className={styles.settingsModuleBody}>
                   <strong>{module.title}</strong>
@@ -4716,12 +4676,6 @@ function PremiumWorkflowPanel({
             )
           })}
         </div>
-        {filteredModules.length === 0 ? (
-          <div className={styles.settingsModulesEmpty}>
-            <strong>Keine Module gefunden</strong>
-            <p>Pruefe den Suchbegriff oder nutze die Hauptnavigation fuer einen direkten Einstieg.</p>
-          </div>
-        ) : null}
         {workflowState.message ? <p data-state={workflowState.type}>{workflowState.message}</p> : null}
         {message}
       </article>
@@ -5748,40 +5702,42 @@ function PremiumModulePage({
 
   return (
     <section className={styles.modulePage} data-view={view}>
-      <article className={`${styles.panel} ${styles.moduleHero}`}>
-        <div>
-          <span>{meta.eyebrow}</span>
-          <h1>{meta.title}</h1>
-          <p>{meta.description}</p>
-        </div>
-        {view === "customers" ? (
-          <button type="button" disabled={isModuleActionSaving} onClick={() => openPremiumWorkflow("customers", "Kundenformular geoeffnet. Daten ausfuellen und mit Kunde speichern anlegen.")}><Plus size={18} />{meta.primary}</button>
-        ) : view === "projects" ? (
-          <button type="button" disabled={isModuleActionSaving} onClick={() => openPremiumWorkflow("projects", "Projektformular geoeffnet. Projektdaten ausfuellen und mit Projekt speichern anlegen.")}><Plus size={18} />{meta.primary}</button>
-        ) : view === "invoices" ? (
-          <button type="button" disabled={isModuleActionSaving} onClick={() => void openFullPremiumInvoiceEditor()}><Plus size={18} />{meta.primary}</button>
-        ) : view === "offers" ? (
-          <button type="button" disabled={isModuleActionSaving} onClick={() => void runOfferQuickAction("create")}><Plus size={18} />{meta.primary}</button>
-        ) : view === "time" ? (
-          <button type="button" disabled={isModuleActionSaving} onClick={() => void runTimeQuickAction("timer")}><Plus size={18} />{meta.primary}</button>
-        ) : view === "expenses" ? (
-          <button type="button" disabled={isModuleActionSaving} onClick={() => void runExpenseQuickAction("create")}><Plus size={18} />{meta.primary}</button>
-        ) : view === "finance" ? (
-          <button type="button" disabled={isModuleActionSaving} onClick={() => void runFinanceQuickAction("account")}><Banknote size={18} />{meta.primary}</button>
-        ) : view === "reports" ? (
-          <button type="button" disabled={isModuleActionSaving} onClick={() => void runReportQuickAction("documents")}><Plus size={18} />{meta.primary}</button>
-        ) : view === "users" ? (
-          <button type="button" disabled={isModuleActionSaving} onClick={() => void runUserQuickAction("invite")}><Plus size={18} />{meta.primary}</button>
-        ) : view === "license" ? (
-          <button type="button" disabled={isModuleActionSaving} onClick={() => void runLicenseQuickAction("activate")}><Plus size={18} />{meta.primary}</button>
-        ) : view === "integrations" ? (
-          <button type="button" disabled={isModuleActionSaving} onClick={() => void runIntegrationQuickAction("connect")}><Plus size={18} />{meta.primary}</button>
-        ) : view === "articles" ? (
-          <button type="button" disabled={isModuleActionSaving} onClick={openArticleImportDesktop}><Plus size={18} />{meta.primary}</button>
-        ) : (
-          <Link href={withPremiumTheme(content.primaryHref, mode)}><Plus size={18} />{meta.primary}</Link>
-        )}
-      </article>
+      {view !== "settings" ? (
+        <article className={`${styles.panel} ${styles.moduleHero}`}>
+          <div>
+            <span>{meta.eyebrow}</span>
+            <h1>{meta.title}</h1>
+            <p>{meta.description}</p>
+          </div>
+          {view === "customers" ? (
+            <button type="button" disabled={isModuleActionSaving} onClick={() => openPremiumWorkflow("customers", "Kundenformular geoeffnet. Daten ausfuellen und mit Kunde speichern anlegen.")}><Plus size={18} />{meta.primary}</button>
+          ) : view === "projects" ? (
+            <button type="button" disabled={isModuleActionSaving} onClick={() => openPremiumWorkflow("projects", "Projektformular geoeffnet. Projektdaten ausfuellen und mit Projekt speichern anlegen.")}><Plus size={18} />{meta.primary}</button>
+          ) : view === "invoices" ? (
+            <button type="button" disabled={isModuleActionSaving} onClick={() => void openFullPremiumInvoiceEditor()}><Plus size={18} />{meta.primary}</button>
+          ) : view === "offers" ? (
+            <button type="button" disabled={isModuleActionSaving} onClick={() => void runOfferQuickAction("create")}><Plus size={18} />{meta.primary}</button>
+          ) : view === "time" ? (
+            <button type="button" disabled={isModuleActionSaving} onClick={() => void runTimeQuickAction("timer")}><Plus size={18} />{meta.primary}</button>
+          ) : view === "expenses" ? (
+            <button type="button" disabled={isModuleActionSaving} onClick={() => void runExpenseQuickAction("create")}><Plus size={18} />{meta.primary}</button>
+          ) : view === "finance" ? (
+            <button type="button" disabled={isModuleActionSaving} onClick={() => void runFinanceQuickAction("account")}><Banknote size={18} />{meta.primary}</button>
+          ) : view === "reports" ? (
+            <button type="button" disabled={isModuleActionSaving} onClick={() => void runReportQuickAction("documents")}><Plus size={18} />{meta.primary}</button>
+          ) : view === "users" ? (
+            <button type="button" disabled={isModuleActionSaving} onClick={() => void runUserQuickAction("invite")}><Plus size={18} />{meta.primary}</button>
+          ) : view === "license" ? (
+            <button type="button" disabled={isModuleActionSaving} onClick={() => void runLicenseQuickAction("activate")}><Plus size={18} />{meta.primary}</button>
+          ) : view === "integrations" ? (
+            <button type="button" disabled={isModuleActionSaving} onClick={() => void runIntegrationQuickAction("connect")}><Plus size={18} />{meta.primary}</button>
+          ) : view === "articles" ? (
+            <button type="button" disabled={isModuleActionSaving} onClick={openArticleImportDesktop}><Plus size={18} />{meta.primary}</button>
+          ) : (
+            <Link href={withPremiumTheme(content.primaryHref, mode)}><Plus size={18} />{meta.primary}</Link>
+          )}
+        </article>
+      ) : null}
 
       <DataQualityNotice health={health} />
 
@@ -6124,7 +6080,6 @@ export function PremiumWorkspacePage({
     setProfileMenuOpen(false)
   }
 
-  const workspace = workspaceFromData(data)
   const profile = profileFromData(data, sessionUser)
   const unreadCount = data.notifications.filter((item) => !isNotificationRead(item)).length
   const upgrade = upgradeSummaryFromData(data)
@@ -6140,7 +6095,7 @@ export function PremiumWorkspacePage({
 
   return (
     <div className={styles.page} data-theme={mode} role="main">
-      <Sidebar mode={mode} upgrade={upgrade} workspace={workspace} />
+      <Sidebar mode={mode} unreadCount={unreadCount} upgrade={upgrade} canSeeDevelopment={canSeeDevelopment} licenseAdminEnabled={licenseAdminEnabled} />
       <section className={styles.contentShell}>
         <Topbar mode={mode} profile={profile} searchInputRef={searchInputRef} searchQuery={searchQuery} themeLinks={themeLinks} unreadCount={unreadCount} onModeChange={handleModeChange} onSearchChange={setSearchQuery} onSearchClear={handleSearchClear} profileMenuOpen={profileMenuOpen} onToggleProfileMenu={handleProfileMenuToggle} onCloseProfileMenu={handleProfileMenuClose} onLogout={handleLogout} />
         <CompactNav mode={mode} unreadCount={unreadCount} />
@@ -6150,7 +6105,8 @@ export function PremiumWorkspacePage({
           <PremiumAccountSecurityClient initialProfile={accountSecurityInitialProfile} />
         ) : (
           <>
-            <PremiumModulePage view={view as ModuleView} settingsSection={settingsSection} data={data} language={language} mode={mode} searchQuery="" licenseAdminEnabled={licenseAdminEnabled} onDataChange={setData} />
+            {view !== "settings" ? <SearchResultsPanel data={data} mode={mode} searchQuery={premiumSearchQuery(searchQuery)} searchCategory={searchCategory} onSearchCategoryChange={setSearchCategory} onSearchClear={handleSearchClear} /> : null}
+            <PremiumModulePage view={view as ModuleView} settingsSection={settingsSection} data={data} language={language} mode={mode} searchQuery={searchQuery} licenseAdminEnabled={licenseAdminEnabled} onDataChange={setData} />
           </>
         )}
       </section>

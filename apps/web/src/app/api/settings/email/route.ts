@@ -2,6 +2,7 @@ import { promises as fs } from "node:fs"
 import path from "node:path"
 import { NextResponse } from "next/server"
 import { appendNotification } from "@/lib/notifications/store"
+import { AuthServiceError, mapAuthError, requireCurrentUserRole } from "@/lib/auth/service"
 import { demoModeResponse, isDemoMode } from "@/lib/demo-mode"
 
 export const dynamic = "force-dynamic"
@@ -50,6 +51,18 @@ function sanitize(settings: StoredEmailSettings) {
   }
 }
 
+function authErrorResponse(error: unknown) {
+  if (error instanceof AuthServiceError) {
+    const mapped = mapAuthError(error)
+    return NextResponse.json(
+      { ok: false, error: mapped.error, code: mapped.code },
+      { status: mapped.status }
+    )
+  }
+
+  return null
+}
+
 async function readSettings(): Promise<StoredEmailSettings> {
   if (isDemoMode()) {
     return {
@@ -80,12 +93,30 @@ async function readSettings(): Promise<StoredEmailSettings> {
 }
 
 export async function GET() {
-  const settings = await readSettings()
-  return NextResponse.json({ ok: true, settings: sanitize(settings) })
+  try {
+    if (!isDemoMode()) {
+      await requireCurrentUserRole(["admin"])
+    }
+
+    const settings = await readSettings()
+    return NextResponse.json({ ok: true, settings: sanitize(settings) })
+  } catch (error) {
+    const authError = authErrorResponse(error)
+    if (authError) return authError
+
+    return NextResponse.json(
+      { ok: false, error: "E-Mail-Einstellungen konnten nicht geladen werden." },
+      { status: 500 }
+    )
+  }
 }
 
 export async function PUT(request: Request) {
   try {
+    if (!isDemoMode()) {
+      await requireCurrentUserRole(["admin"])
+    }
+
     const current = await readSettings()
     const data = await request.json().catch(() => ({}))
     const providerValue = String(data.provider ?? current.provider)
@@ -142,6 +173,9 @@ export async function PUT(request: Request) {
       ? demoModeResponse({ ok: true, settings: sanitize(next) })
       : { ok: true, settings: sanitize(next) })
   } catch (error) {
+    const authError = authErrorResponse(error)
+    if (authError) return authError
+
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : "E-Mail-Einstellungen konnten nicht gespeichert werden." },
       { status: 500 }

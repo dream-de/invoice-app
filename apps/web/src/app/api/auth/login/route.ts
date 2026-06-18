@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
 import { writeAuditLog } from "@/lib/audit/log"
+import { getAuditRequestMetadata } from "@/lib/audit/request-metadata"
 import { authenticateAppUser, mapAuthError } from "@/lib/auth/service"
 import { SESSION_COOKIE_NAME, createSessionToken, getSessionCookieOptions } from "@/lib/auth/session"
 import { RateLimitError, assertRateLimit, clearRateLimit, clientAddress } from "@/lib/auth/rate-limit"
@@ -44,9 +45,12 @@ async function parseBody(request: Request): Promise<LoginBody> {
 
 export async function POST(request: Request) {
   let rateLimitKey = ""
+  let loginEmail: string | null = null
+  const requestMetadata = getAuditRequestMetadata(request)
 
   try {
     const body = await parseBody(request)
+    loginEmail = body.email
 
     if (isDemoMode()) {
       if (!isValidDemoLogin(body.email, body.password)) {
@@ -89,20 +93,27 @@ export async function POST(request: Request) {
       action: "auth.login",
       entity: "user",
       entityId: user.id,
-      data: { email: user.email, role: user.role }
+      data: { email: user.email, role: user.role },
+      requestMetadata
     })
     await appendNotification({
       category: "security",
       tone: "info",
       title: "Anmeldung erkannt",
       message: user.email + " hat sich angemeldet.",
-      href: "/account/security",
+      href: "/dashboard-v2/account/security",
       source: "auth-login:" + user.id + ":" + Date.now()
     }).catch(() => null)
 
     return response
   } catch (error) {
     if (error instanceof RequestBodyError) {
+      await writeAuditLog({
+        action: "auth.login_failed",
+        entity: "user",
+        reason: error.code,
+        requestMetadata
+      })
       return NextResponse.json(
         { ok: false, error: error.message, code: error.code },
         { status: error.status }
@@ -110,6 +121,13 @@ export async function POST(request: Request) {
     }
 
     if (error instanceof z.ZodError) {
+      await writeAuditLog({
+        action: "auth.login_failed",
+        entity: "user",
+        reason: "invalid_credentials",
+        data: loginEmail ? { email: loginEmail } : undefined,
+        requestMetadata
+      })
       return NextResponse.json(
         { ok: false, error: "E-Mail oder Passwort ist ungueltig.", code: "invalid_credentials" },
         { status: 401 }
@@ -117,6 +135,13 @@ export async function POST(request: Request) {
     }
 
     if (error instanceof RateLimitError) {
+      await writeAuditLog({
+        action: "auth.login_failed",
+        entity: "user",
+        reason: "rate_limited",
+        data: loginEmail ? { email: loginEmail } : undefined,
+        requestMetadata
+      })
       return NextResponse.json(
         { ok: false, error: "Zu viele Login-Versuche. Bitte spaeter erneut versuchen.", code: "rate_limited" },
         { status: 429, headers: { "Retry-After": String(error.retryAfterSeconds) } }
@@ -124,6 +149,13 @@ export async function POST(request: Request) {
     }
 
     const mapped = mapAuthError(error)
+    await writeAuditLog({
+      action: "auth.login_failed",
+      entity: "user",
+      reason: mapped.code,
+      data: loginEmail ? { email: loginEmail } : undefined,
+      requestMetadata
+    })
     return NextResponse.json(
       { ok: false, error: mapped.error, code: mapped.code },
       { status: mapped.status }

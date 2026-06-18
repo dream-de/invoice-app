@@ -110,7 +110,10 @@ export function LoginClient({
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#f4f6f9] px-6 py-10 text-[#1d2433]">
       <section className="mx-auto max-w-md rounded-[32px] border border-[#e5eaf0] bg-white p-8 shadow-[0_24px_70px_rgba(15,23,42,0.12)]">
-        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#94a3b8]">Dream Invoice</p>
+        <div className="flex items-start gap-4">
+          <img src="/brand/logo-horizontal.svg" alt="DreamInvoice" className="h-16 w-auto shrink-0" />
+        </div>
+        <p className="mt-4 text-xs font-semibold uppercase tracking-[0.24em] text-[#94a3b8]">SMART • SIMPLE • SECURE</p>
         <h1 className="mt-3 text-3xl font-semibold tracking-tight text-[#111827]">
           {mode === "setup" ? t("login.title.setup") : t("login.title.login")}
         </h1>

@@ -1,9 +1,20 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
+import { AuthServiceError, mapAuthError, requireCurrentUser } from "@/lib/auth/service"
+import { hasUserPermission } from "@/lib/auth/permissions"
 import { demoModeResponse, isDemoMode } from "@/lib/demo-mode"
 
 function toNumber(value: unknown) {
   return Number(String(value ?? "").replace(",", ".")) || 0
+}
+
+async function requireArticleEditPermission() {
+  const user = await requireCurrentUser()
+  if (!hasUserPermission(user, "articles", "edit")) {
+    throw new AuthServiceError("forbidden", "Keine Berechtigung fuer diese Artikelaktion.", 403)
+  }
+
+  return user
 }
 
 export async function PUT(
@@ -43,6 +54,8 @@ export async function PUT(
       }))
     }
 
+    await requireArticleEditPermission()
+
     const article = await prisma.article.update({
       where: { id },
       data: {
@@ -58,6 +71,14 @@ export async function PUT(
 
     return NextResponse.json({ ok: true, article })
   } catch (error: unknown) {
+    if (error instanceof AuthServiceError) {
+      const mapped = mapAuthError(error)
+      return NextResponse.json(
+        { ok: false, error: mapped.error, code: mapped.code },
+        { status: mapped.status }
+      )
+    }
+
     if (typeof error === "object" && error && "code" in error && error.code === "P2002") {
       return NextResponse.json(
         { ok: false, error: "Artikelnummer existiert bereits." },

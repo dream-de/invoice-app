@@ -21,6 +21,18 @@ export async function proxy(request: NextRequest) {
     )
   }
 
+  const portalPath = request.nextUrl.pathname
+  if (
+    portalPath.startsWith("/portal") &&
+    !portalPath.startsWith("/portal/login") &&
+    !portalPath.startsWith("/portal/invite") &&
+    !request.cookies.has("dream_invoice_customer_portal")
+  ) {
+    const loginUrl = request.nextUrl.clone()
+    loginUrl.pathname = "/portal/login"
+    return NextResponse.redirect(loginUrl)
+  }
+
   const isDemoMode = process.env.DREAM_INVOICE_DEMO_MODE === "true"
   const decision = await evaluateAppRequestGuard({
     method: request.method,
@@ -32,7 +44,17 @@ export async function proxy(request: NextRequest) {
     basicAuthRequiredEnv: "DREAM_INVOICE_AUTH_REQUIRED",
     protectAppSession: !isDemoMode,
     sessionSecretEnv: "AUTH_SECRET",
-    publicPaths: ["/login", "/api/auth", "/dashboard-v2"]
+    publicPaths: [
+      "/login",
+      "/api/auth",
+      "/api/invoice/preview-pdf",
+      "/portal",
+      "/api/portal",
+      "/api/payments/webhooks",
+      "/api/v1",
+      "/api/invoice/pdf",
+      "/api/offer/pdf"
+    ]
   })
 
   if (decision.allowed) return NextResponse.next()

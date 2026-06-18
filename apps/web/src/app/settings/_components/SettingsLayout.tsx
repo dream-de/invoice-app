@@ -61,7 +61,6 @@ export function SettingsLayout({
   const isPremium = pathname?.startsWith("/dashboard-v2/settings/")
   const currentTheme = searchParams.get("theme")
   const withTheme = (href: string) => currentTheme ? `${href}?theme=${encodeURIComponent(currentTheme)}` : href
-  const activePremiumSection = premiumSettingsSections.find((section) => pathname === section.href || pathname?.startsWith(section.href + "/"))
   const rootStyle = isPremium ? ({
     ["--settings-panel" as string]: "color-mix(in srgb, var(--panel) 84%, transparent)",
     ["--settings-surface" as string]: "color-mix(in srgb, var(--panel-strong) 94%, transparent)",
@@ -102,26 +101,27 @@ export function SettingsLayout({
 
   if (isPremium) {
     return (
-      <div className="space-y-6" style={rootStyle}>
-        <div className="space-y-3">
-          <div className="flex flex-wrap items-center gap-3">
+      <div className="space-y-3" style={rootStyle}>
+        <div className="rounded-lg border border-[var(--settings-line)] bg-[var(--settings-surface)]/80 px-2 py-1.5 shadow-[0_8px_18px_color-mix(in_srgb,var(--shadow-color)_5%,transparent)]">
+          <div className="flex items-center gap-1.5 overflow-x-auto overscroll-x-contain pb-0.5 [scrollbar-width:thin]">
             <Link
               href={withTheme("/dashboard-v2/settings")}
-              className="inline-flex items-center gap-2 rounded-lg border border-[var(--settings-line)] bg-[var(--settings-surface)] px-3.5 py-1.5 text-xs font-extrabold text-[var(--settings-title)] shadow-[var(--settings-card-shadow)] transition hover:-translate-y-0.5"
+              className="inline-flex h-7 shrink-0 items-center rounded-md border border-transparent px-2 text-[11px] font-extrabold text-[var(--settings-muted)] transition hover:bg-[var(--settings-subtle)] hover:text-[var(--settings-title)]"
             >
               {t("settings.title")}
             </Link>
-            <div className="flex min-w-0 flex-1 flex-wrap gap-2 pb-1">
+            <span className="h-4 w-px shrink-0 bg-[var(--settings-line)]" />
+            <div className="flex min-w-max items-center gap-1">
               {premiumSettingsSections.map((section) => {
-                const active = pathname === section.href || pathname?.startsWith(section.href + "/")
+                const active = pathname === section.href
                 return (
                   <Link
                     key={section.key}
                     href={withTheme(section.href)}
-                    className={`whitespace-nowrap rounded-lg border px-3 py-1.5 text-xs font-bold transition ${
+                    className={`inline-flex h-7 shrink-0 items-center whitespace-nowrap rounded-md border px-2 text-[11px] font-bold leading-none transition ${
                       active
-                        ? "border-[var(--settings-accent-strong)] bg-[var(--settings-accent-strong)] text-white"
-                        : "border-[var(--settings-line)] bg-[var(--settings-surface)] text-[var(--settings-title)] hover:border-[var(--settings-accent)]"
+                        ? "border-[var(--settings-accent)] bg-[var(--settings-accent-soft)] text-[var(--settings-title)]"
+                        : "border-transparent text-[var(--settings-muted)] hover:border-[var(--settings-line)] hover:bg-[var(--settings-subtle)] hover:text-[var(--settings-title)]"
                     }`}
                   >
                     {section.title}
@@ -130,43 +130,36 @@ export function SettingsLayout({
               })}
             </div>
           </div>
-          {activePremiumSection ? (
-            <div className="flex flex-wrap gap-x-4 gap-y-2 border-t border-[var(--settings-line)] pt-3 text-[11px] font-bold text-[var(--settings-muted)]">
-              {activePremiumSection.children.map((child) => (
-                <span key={child} className="whitespace-nowrap">{child}</span>
-              ))}
-            </div>
-          ) : null}
         </div>
 
-        <div className="rounded-[30px] border border-[var(--settings-line)] bg-[var(--settings-panel)] shadow-[var(--settings-card-shadow)] backdrop-blur">
-          <div className="border-b border-[var(--settings-line)] px-8 py-7">
-            <h1 className="text-[34px] font-extrabold tracking-tight text-[var(--settings-title)]">
+        <div className="rounded-lg border border-[var(--settings-line)] bg-[var(--settings-panel)] shadow-[var(--settings-card-shadow)] backdrop-blur">
+          <div className="border-b border-[var(--settings-line)] px-4 py-4 sm:px-5">
+            <h1 className="text-[22px] font-extrabold tracking-tight text-[var(--settings-title)]">
               {title}
             </h1>
             {description ? (
-              <p className="mt-2 max-w-3xl text-sm font-medium leading-6 text-[var(--settings-muted)]">
+              <p className="mt-1.5 max-w-3xl text-[13px] font-medium leading-5 text-[var(--settings-muted)]">
                 {description}
               </p>
             ) : null}
           </div>
 
-          <div className="space-y-6 px-8 py-8">
+          <div className="space-y-4 px-4 py-4 sm:px-5">
             {children}
           </div>
 
           <div
-            className="sticky bottom-0 z-20 flex flex-wrap items-center justify-end gap-3 border-t border-[var(--settings-line)] px-8 py-5 backdrop-blur"
+            className="sticky bottom-0 z-20 flex flex-wrap items-center justify-end gap-2 border-t border-[var(--settings-line)] px-4 py-3 backdrop-blur sm:px-5"
             style={{ background: "color-mix(in srgb, var(--settings-surface) 88%, transparent)" }}
           >
             {status ? (
-              <span className="mr-auto text-sm font-bold text-[var(--settings-muted)]">{status}</span>
+              <span className="mr-auto text-xs font-bold text-[var(--settings-muted)]">{status}</span>
             ) : null}
             {action ? (
               <button
                 type="button"
                 onClick={action}
-                className="inline-flex items-center gap-2 rounded-full bg-[var(--settings-accent-strong)] px-8 py-3 font-extrabold text-white shadow-[var(--settings-card-shadow)] transition hover:-translate-y-0.5"
+                className="inline-flex items-center gap-2 rounded-lg bg-[var(--settings-accent-strong)] px-4 py-2 text-sm font-extrabold text-white shadow-[var(--settings-card-shadow)] transition hover:-translate-y-0.5"
               >
                 <Settings className="h-4 w-4" />
                 {t("settings.save")}

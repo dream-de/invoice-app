@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma, prismaDbNull } from "@dream-invoice/database"
 import { writeAuditLog } from "@/lib/audit/log"
+import { getAuditRequestMetadata } from "@/lib/audit/request-metadata"
 import { verifyPassword } from "@/lib/auth/password"
 import { mapAuthError, requireCurrentUser } from "@/lib/auth/service"
 import { appendNotification } from "@/lib/notifications/store"
@@ -37,14 +38,15 @@ export async function POST(request: Request) {
       action: "account.2fa_disable",
       entity: "user",
       entityId: current.id,
-      data: { email: current.email }
+      data: { email: current.email },
+      requestMetadata: getAuditRequestMetadata(request)
     })
     await appendNotification({
       category: "security",
       tone: "warning",
       title: "2FA deaktiviert",
       message: current.email + " hat Zwei-Faktor-Authentifizierung deaktiviert.",
-      href: "/account/security",
+      href: "/dashboard-v2/account/security",
       source: "2fa-disable:" + current.id + ":" + Date.now()
     }).catch(() => null)
 

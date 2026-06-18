@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
 import { articles as fallbackArticles } from "@/data/invoice-data"
+import { AuthServiceError, mapAuthError, requireCurrentUser } from "@/lib/auth/service"
+import { hasUserPermission } from "@/lib/auth/permissions"
 import { isDemoMode } from "@/lib/demo-mode"
 
 type FallbackArticle = (typeof fallbackArticles)[number]
@@ -40,6 +42,15 @@ type ListArticle = {
   updatedAt: Date
 }
 
+async function requireArticleViewPermission() {
+  const user = await requireCurrentUser()
+  if (!hasUserPermission(user, "articles", "view")) {
+    throw new AuthServiceError("forbidden", "Keine Berechtigung fuer diese Artikelaktion.", 403)
+  }
+
+  return user
+}
+
 export async function GET() {
   if (isDemoMode() || !process.env.DATABASE_URL) {
     return NextResponse.json({
@@ -50,6 +61,8 @@ export async function GET() {
   }
 
   try {
+    await requireArticleViewPermission()
+
     const articles = await prisma.article.findMany({
       orderBy: { createdAt: "desc" }
     })
@@ -69,6 +82,14 @@ export async function GET() {
       }))
     })
   } catch (error) {
+    if (error instanceof AuthServiceError) {
+      const mapped = mapAuthError(error)
+      return NextResponse.json(
+        { ok: false, error: mapped.error, code: mapped.code },
+        { status: mapped.status }
+      )
+    }
+
     console.error(error)
     return NextResponse.json({
       ok: true,

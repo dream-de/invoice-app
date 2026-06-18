@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
 import { writeAuditLog } from "@/lib/audit/log"
+import { getAuditRequestMetadata } from "@/lib/audit/request-metadata"
 import { mapAuthError, requireCurrentUser } from "@/lib/auth/service"
 import { assertStrongPassword, hashPassword, PasswordError, verifyPassword } from "@/lib/auth/password"
 import { appendNotification } from "@/lib/notifications/store"
@@ -49,14 +50,15 @@ export async function PATCH(request: Request) {
       action: "account.password_update",
       entity: "user",
       entityId: current.id,
-      data: { email: current.email }
+      data: { email: current.email },
+      requestMetadata: getAuditRequestMetadata(request)
     })
     await appendNotification({
       category: "security",
       tone: "warning",
       title: "Passwort geaendert",
       message: current.email + " hat das Kontopasswort geaendert.",
-      href: "/account/security",
+      href: "/dashboard-v2/account/security",
       source: "password-update:" + current.id + ":" + Date.now()
     }).catch(() => null)
 

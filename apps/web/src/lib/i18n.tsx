@@ -69,6 +69,8 @@ export function translateStatus(status: string, t: (key: TranslationKey) => stri
   if (status === "overdue" || status === "Ueberfaellig" || status === "Überfällig" || status === "Overdue") return t("status.overdue")
   if (status === "draft" || status === "Entwurf" || status === "Draft") return t("status.draft")
   if (status === "sent" || status === "Gesendet" || status === "Sent") return t("status.sent")
+  if (status === "accepted" || status === "Angenommen" || status === "Accepted") return "Angenommen"
+  if (status === "rejected" || status === "Abgelehnt" || status === "Rejected") return "Abgelehnt"
 
   return status
 }
