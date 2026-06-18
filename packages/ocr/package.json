@@ -12,6 +12,6 @@
     "test": "tsx --test src/**/*.test.ts"
   },
   "devDependencies": {
-    "tsx": "latest"
+    "tsx": "^4.22.4"
   }
 }
