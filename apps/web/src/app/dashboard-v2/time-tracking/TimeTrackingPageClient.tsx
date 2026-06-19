@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 import type { ReactNode } from "react"
 import {
@@ -390,9 +391,12 @@ export function TimeTrackingPageClient({ initialTheme }: { initialTheme: ThemeMo
   return (
     <main className={styles.page} data-theme={initialTheme}>
       <header className={styles.header}>
-        <div>
-          <h1>{activeTitle}</h1>
-          <p>Zeiterfassung im Kimai-Stil: Wochenstunden, Berichte, Export, Benutzer und Arbeitsmodell.</p>
+        <div className={styles.headerTitleGroup}>
+          <Link className={styles.backCircle} href="/dashboard-v2" aria-label="Zurueck zum Dashboard"><ChevronLeft size={20} /></Link>
+          <div>
+            <h1>{activeTitle}</h1>
+            <p>Zeiterfassung im Kimai-Stil: Wochenstunden, Berichte, Export, Benutzer und Arbeitsmodell.</p>
+          </div>
         </div>
         {activePage !== "modules" ? <button type="button" className={styles.overviewButton} onClick={() => setActivePage("modules")}><LayoutGrid size={16} />Übersicht</button> : null}
         <TopTimer running={timerRunning} seconds={timerSeconds} onToggle={() => setTimerRunning((current) => !current)} onReset={() => { setTimerRunning(false); setTimerSeconds(0) }} />
