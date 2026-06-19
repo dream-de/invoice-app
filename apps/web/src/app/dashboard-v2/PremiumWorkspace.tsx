@@ -1,6 +1,6 @@
 "use client"
 
-import type { CSSProperties, ChangeEvent, ComponentType, FocusEvent, FormEvent, RefObject } from "react"
+import type { CSSProperties, ChangeEvent, ComponentType, FormEvent, RefObject } from "react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
@@ -357,6 +357,18 @@ const sideNav: Array<{ section: string; marker?: string; items: NavItem[] }> = [
     items: [
       { label: "Einnahmen & Ausgaben", href: "/dashboard-v2/finance", icon: Landmark },
       { label: "Ausgaben", href: "/dashboard-v2/expenses", icon: Wallet }
+    ]
+  },
+  {
+    section: "Dokumente",
+    items: [
+      { label: "Dokumente", href: "/dashboard-v2/documents", icon: Archive }
+    ]
+  },
+  {
+    section: "KI & Automation",
+    items: [
+      { label: "KI-Assistent", href: "/dashboard-v2/ai-assistant", icon: Plug }
     ]
   },
   {
@@ -1371,6 +1383,7 @@ function Topbar({ mode, profile, searchInputRef, searchQuery, themeLinks, unread
   const isSearchExpanded = searchOpen
   const visibleNavItems = mainNav.slice(0, visibleNavCount)
   const overflowNavItems = mainNav.slice(visibleNavCount)
+  const profileDisplayName = profile.name && profile.name !== "Anmeldung erforderlich" ? profile.name : "admin"
 
   function handleSearchOpen() {
     setSearchOpen(true)
@@ -1388,12 +1401,6 @@ function Topbar({ mode, profile, searchInputRef, searchQuery, themeLinks, unread
 
   function closeMoreMenu() {
     setMoreMenuOpen(false)
-  }
-
-  function handleMoreMenuBlur(event: FocusEvent<HTMLDivElement>) {
-    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
-      closeMoreMenu()
-    }
   }
 
   useEffect(() => {
@@ -1480,7 +1487,7 @@ function Topbar({ mode, profile, searchInputRef, searchQuery, themeLinks, unread
           return <Link key={item.label} className={isActive ? styles.navActive : ""} aria-current={isActive ? "page" : undefined} href={withPremiumTheme(item.href, mode)}>{item.label}</Link>
         })}
         {overflowNavItems.length ? (
-          <div ref={moreMenuRef} className={styles.moreNav} onBlur={handleMoreMenuBlur} onMouseLeave={closeMoreMenu}>
+          <div ref={moreMenuRef} className={styles.moreNav}>
             <button type="button" className={styles.moreNavTrigger} aria-haspopup="menu" aria-expanded={moreMenuOpen} onClick={() => setMoreMenuOpen((current) => !current)}>
               Mehr <ChevronDown size={13} />
             </button>
@@ -1522,18 +1529,22 @@ function Topbar({ mode, profile, searchInputRef, searchQuery, themeLinks, unread
         <div ref={profileMenuRef} className={styles.profile}>
           <button type="button" className={styles.profileTrigger} aria-label="Profil und Firma öffnen" aria-haspopup="menu" aria-expanded={profileMenuOpen} onClick={onToggleProfileMenu}>
             <div className={styles.profileTriggerText}>
-              <strong>{profile.name}</strong>
+              <strong>{profileDisplayName}</strong>
               <small>Acme GmbH <ChevronDown size={13} /></small>
             </div>
           </button>
           {profileMenuOpen ? (
-            <div className={styles.profileDropdown} aria-label="Profil und Firma">
+            <div className={styles.profileDropdown} aria-label="Profil und Firma" role="menu">
               <div className={styles.companySwitch}>
-                <strong>Aktive Firma: Acme GmbH</strong>
+                <strong>{profileDisplayName}</strong>
+                <small>Acme GmbH</small>
               </div>
               <div className={styles.profileDropdownActions}>
-                <Link href={withPremiumTheme("/dashboard-v2/account/security", mode)} onClick={onCloseProfileMenu} className={styles.profileDropdownLink}>Konto &amp; Sicherheit</Link>
-                <button type="button" onClick={() => { onCloseProfileMenu(); onLogout() }} className={styles.profileDropdownButton}>Abmelden</button>
+                <Link role="menuitem" href={withPremiumTheme("/dashboard-v2/account/security?q=Profil", mode)} onClick={onCloseProfileMenu} className={styles.profileDropdownLink}>Mein Profil</Link>
+                <Link role="menuitem" href={withPremiumTheme("/dashboard-v2/account/security", mode)} onClick={onCloseProfileMenu} className={styles.profileDropdownLink}>Konto &amp; Sicherheit</Link>
+                <Link role="menuitem" href={withPremiumTheme("/dashboard-v2/users", mode)} onClick={onCloseProfileMenu} className={styles.profileDropdownLink}>Benutzerverwaltung</Link>
+                <Link role="menuitem" href={withPremiumTheme("/dashboard-v2/settings?q=Firma", mode)} onClick={onCloseProfileMenu} className={styles.profileDropdownLink}>Firmenverwaltung</Link>
+                <button type="button" role="menuitem" onClick={() => { onCloseProfileMenu(); onLogout() }} className={styles.profileDropdownButton}>Abmelden</button>
               </div>
             </div>
           ) : null}

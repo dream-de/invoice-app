@@ -10,10 +10,10 @@
   },
   "dependencies": {
     "@dream-invoice/accounting-core": "workspace:*",
+    "@dream-invoice/api": "workspace:*",
     "@dream-invoice/auth": "workspace:*",
     "@dream-invoice/database": "workspace:*",
-    "@dream-invoice/invoice-core": "workspace:*",
-    "@dream-invoice/api": "workspace:*"
+    "@dream-invoice/invoice-core": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20",
