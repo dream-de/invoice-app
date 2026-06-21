@@ -5355,6 +5355,20 @@ type InvoiceTemplateRecord = {
   description: string
   isDefault: boolean
 }
+type OfferTemplatePreviewTone = "standard" | "premium" | "modern" | "minimal" | "corporate" | "custom"
+type OfferTemplateRecord = InvoiceTemplateRecord & {
+  accent: string
+  previewTone: OfferTemplatePreviewTone
+  previewNote: string
+}
+const initialOfferTemplates: OfferTemplateRecord[] = [
+  { id: "offer-standard", name: "Standard Angebot", category: "Standard", description: "Klares A4 Layout mit Angebotskopf, Positionen und Gültigkeit", isDefault: true, accent: "#6d28d9", previewTone: "standard", previewNote: "Klassischer Aufbau fuer schnelle Angebotsprozesse" },
+  { id: "offer-premium", name: "Premium Angebot", category: "Premium", description: "Hochwertige Angebotsvorlage mit Akzentflaeche und Abschlussblock", isDefault: false, accent: "#7c3aed", previewTone: "premium", previewNote: "Premium Darstellung fuer umfangreiche Projekte" },
+  { id: "offer-modern", name: "Modern Angebot", category: "Modern", description: "Modernes Layout mit kompakten Kennzahlen und lila Akzentlinie", isDefault: false, accent: "#8b5cf6", previewTone: "modern", previewNote: "Zeitgemaesse Optik mit klarer Projektstruktur" },
+  { id: "offer-minimal", name: "Minimal Angebot", category: "Minimal", description: "Sehr reduziertes Angebotsdesign mit viel Weissraum", isDefault: false, accent: "#4f46e5", previewTone: "minimal", previewNote: "Fokus auf Inhalt ohne dekorative Elemente" },
+  { id: "offer-corporate", name: "Corporate Angebot", category: "Corporate", description: "Formelle Vorlage fuer Unternehmen, Einkauf und Rahmenangebote", isDefault: false, accent: "#334155", previewTone: "corporate", previewNote: "Serioese Struktur fuer B2B Angebote" },
+  { id: "offer-custom", name: "Eigene Angebotsvorlage", category: "Eigene Vorlagen", description: "Anpassbare Vorlage fuer eigene Angebotslayouts", isDefault: false, accent: "#9333ea", previewTone: "custom", previewNote: "Eigene Vorlage mit frei bearbeitbarer Beschreibung" }
+]
 const initialInvoiceTemplates: InvoiceTemplateRecord[] = [
   { id: "standard-classic", name: "Standard Rechnung", category: "Standard", description: "Klassisches A4 Layout mit Logo, Positionen und Zahlungsblock", isDefault: true },
   { id: "standard-compact", name: "Standard Kompakt", category: "Standard", description: "Reduzierte Variante fuer schnelle Rechnungserstellung", isDefault: false },
@@ -5637,10 +5651,6 @@ function PremiumInvoicesModulePage({ data, mode }: { data: PremiumData; mode: Th
           <div className={styles.offersHeroActions}>
             <button type="button" onClick={openInvoiceEditor}>Neue Rechnung</button>
             <button type="button" onClick={() => { selectInvoiceTemplate(appliedTemplate); setTemplateDialogOpen(true) }}><FileText size={15} />Vorlage verwenden</button>
-          </div>
-          <div className={styles.invoiceTemplateSelectedBadge}>
-            <span>Ausgewählte Vorlage</span>
-            <strong>{appliedTemplate.name}</strong>
           </div>
         </div>
         <div className={styles.offersHeroArt} aria-hidden="true">
@@ -6148,9 +6158,40 @@ function offersFromData(data: PremiumData): PremiumOfferRow[] {
 }
 
 function PremiumOffersModulePage({ data, mode }: { data: PremiumData; mode: ThemeMode }) {
+  const router = useRouter()
   const [offerSearch, setOfferSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [page, setPage] = useState(1)
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false)
+  const [activeTemplateTab, setActiveTemplateTab] = useState<InvoiceTemplateTab>("Standard")
+  const [offerTemplates, setOfferTemplates] = useState<OfferTemplateRecord[]>(initialOfferTemplates)
+  const [selectedTemplateId, setSelectedTemplateId] = useState(initialOfferTemplates[0].id)
+  const [appliedTemplateId, setAppliedTemplateId] = useState(initialOfferTemplates[0].id)
+  const [templateDraft, setTemplateDraft] = useState({
+    name: initialOfferTemplates[0].name,
+    description: initialOfferTemplates[0].description
+  })
+  const [exportDialogOpen, setExportDialogOpen] = useState(false)
+  const [exportFormat, setExportFormat] = useState<InvoiceExportFormat>("PDF")
+  const [exportStatus, setExportStatus] = useState<InvoiceExportStatus>("Bereit")
+  const [exportDownloadName, setExportDownloadName] = useState("angebot-export.pdf")
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false)
+  const [emailDraft, setEmailDraft] = useState({
+    to: "kunde@example.invalid",
+    cc: "",
+    bcc: "",
+    subject: "Angebot AN-2026-043",
+    message: "Hallo,\n\nanbei sende ich Ihnen das aktuelle Angebot als PDF.\n\nViele Grüße",
+    attachPdf: true
+  })
+  const [emailStatus, setEmailStatus] = useState<InvoiceEmailStatus>("Entwurf")
+  const [shareDialogOpen, setShareDialogOpen] = useState(false)
+  const [shareValidity, setShareValidity] = useState<InvoiceShareValidity>("7 Tage")
+  const [shareSecurity, setShareSecurity] = useState({ password: false, download: true, print: true })
+  const [shareLink, setShareLink] = useState("")
+  const [shareExpiry, setShareExpiry] = useState("")
+  const [shareStatus, setShareStatus] = useState<InvoiceShareStatus>("Nicht erstellt")
+  const [shareQrVisible, setShareQrVisible] = useState(false)
   const offerRows = useMemo(() => offersFromData(data), [data])
   const filteredOffers = useMemo(() => {
     const normalizedQuery = offerSearch.trim().toLowerCase()
@@ -6168,6 +6209,130 @@ function PremiumOffersModulePage({ data, mode }: { data: PremiumData; mode: Them
   const visibleOffers = filteredOffers.slice((currentPage - 1) * OFFERS_PAGE_SIZE, currentPage * OFFERS_PAGE_SIZE)
   const firstVisible = filteredOffers.length ? (currentPage - 1) * OFFERS_PAGE_SIZE + 1 : 0
   const lastVisible = Math.min(currentPage * OFFERS_PAGE_SIZE, filteredOffers.length)
+  const activeTemplates = offerTemplates.filter((template) => template.category === activeTemplateTab)
+  const selectedTemplate = offerTemplates.find((template) => template.id === selectedTemplateId) || offerTemplates[0]
+  const appliedTemplate = offerTemplates.find((template) => template.id === appliedTemplateId) || selectedTemplate
+
+  function selectOfferTemplate(template: OfferTemplateRecord) {
+    setSelectedTemplateId(template.id)
+    setActiveTemplateTab(template.category)
+    setTemplateDraft({ name: template.name, description: template.description })
+  }
+
+  function createOfferTemplate() {
+    const nextTemplate: OfferTemplateRecord = {
+      id: "offer-template-" + Date.now(),
+      name: activeTemplateTab === "Eigene Vorlagen" ? "Eigene Angebotsvorlage" : activeTemplateTab + " Angebot",
+      category: activeTemplateTab,
+      description: "Neue Angebotsvorlage bearbeiten und speichern.",
+      isDefault: false,
+      accent: activeTemplateTab === "Corporate" ? "#334155" : activeTemplateTab === "Minimal" ? "#4f46e5" : "#7c3aed",
+      previewTone: activeTemplateTab === "Premium" ? "premium" : activeTemplateTab === "Modern" ? "modern" : activeTemplateTab === "Minimal" ? "minimal" : activeTemplateTab === "Corporate" ? "corporate" : activeTemplateTab === "Eigene Vorlagen" ? "custom" : "standard",
+      previewNote: "Neue Angebotsvorlage mit Live Vorschau."
+    }
+    setOfferTemplates((templates) => [...templates, nextTemplate])
+    selectOfferTemplate(nextTemplate)
+  }
+
+  function saveOfferTemplate() {
+    setOfferTemplates((templates) => templates.map((template) => template.id === selectedTemplate.id
+      ? { ...template, name: templateDraft.name.trim() || template.name, description: templateDraft.description.trim() || template.description }
+      : template
+    ))
+  }
+
+  function duplicateOfferTemplate() {
+    const copy: OfferTemplateRecord = {
+      ...selectedTemplate,
+      id: "offer-template-" + Date.now(),
+      name: selectedTemplate.name + " Kopie",
+      isDefault: false
+    }
+    setOfferTemplates((templates) => [...templates, copy])
+    selectOfferTemplate(copy)
+  }
+
+  function deleteOfferTemplate() {
+    if (offerTemplates.length <= 1) return
+    const remaining = offerTemplates.filter((template) => template.id !== selectedTemplate.id)
+    const nextTemplate = remaining.find((template) => template.category === activeTemplateTab) || remaining[0]
+    setOfferTemplates(remaining)
+    if (appliedTemplateId === selectedTemplate.id) setAppliedTemplateId(nextTemplate.id)
+    selectOfferTemplate(nextTemplate)
+  }
+
+  function setDefaultOfferTemplate() {
+    setOfferTemplates((templates) => templates.map((template) => ({ ...template, isDefault: template.id === selectedTemplate.id })))
+  }
+
+  function useOfferTemplate() {
+    saveOfferTemplate()
+    setAppliedTemplateId(selectedTemplate.id)
+    setTemplateDialogOpen(false)
+  }
+
+  function selectOfferExportFormat(format: InvoiceExportFormat) {
+    setExportFormat(format)
+    setExportStatus(format === "XML" ? "Download vorbereitet" : "Bereit")
+    setExportDownloadName("angebot-export." + format.toLowerCase())
+  }
+
+  function startOfferExportDownload() {
+    setExportStatus("Export gestartet")
+    setExportDownloadName("angebot-export." + exportFormat.toLowerCase())
+  }
+
+  function updateOfferEmailDraft<Key extends keyof typeof emailDraft>(key: Key, value: typeof emailDraft[Key]) {
+    setEmailDraft((draft) => ({ ...draft, [key]: value }))
+    setEmailStatus("Bereit")
+  }
+
+  function prepareOfferEmailSend() {
+    if (!emailDraft.to.trim()) {
+      setEmailStatus("Empfänger fehlt")
+      return
+    }
+    setEmailStatus("Versand vorbereitet")
+  }
+
+  function previewOfferEmail() {
+    setEmailStatus(emailDraft.to.trim() ? "Bereit" : "Empfänger fehlt")
+  }
+
+  function expiryForOfferShare(validity: InvoiceShareValidity) {
+    if (validity === "Unbegrenzt") return "Unbegrenzt"
+    const days = Number(validity.split(" ")[0]) || 7
+    return addDays(new Date().toISOString().slice(0, 10), days)
+  }
+
+  function createOfferShareLink() {
+    const token = Math.random().toString(36).slice(2, 9).toUpperCase()
+    setShareLink("https://share.dreaminvoice.local/angebot/" + token)
+    setShareExpiry(expiryForOfferShare(shareValidity))
+    setShareStatus("Aktiv")
+    setShareQrVisible(true)
+  }
+
+  function copyOfferShareLink() {
+    if (!shareLink) createOfferShareLink()
+    const linkToCopy = shareLink || "https://share.dreaminvoice.local/angebot/demo"
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      void navigator.clipboard.writeText(linkToCopy)
+    }
+    setShareStatus("Kopiert")
+  }
+
+  function updateOfferShareValidity(option: InvoiceShareValidity) {
+    setShareValidity(option)
+    if (shareLink) {
+      setShareExpiry(expiryForOfferShare(option))
+      setShareStatus("Aktiv")
+    }
+  }
+
+  function openOfferCreate() {
+    router.push(withPremiumTheme("/dashboard-v2/offers?q=Angebot%20erstellen", mode))
+  }
 
   return (
     <section className={styles.offersPage} data-view="offers">
@@ -6177,11 +6342,11 @@ function PremiumOffersModulePage({ data, mode }: { data: PremiumData; mode: Them
           <p>Erstelle, verwalte und verfolge deine Angebote.</p>
         </div>
         <div className={styles.offersTopActions} aria-label="Angebotsaktionen">
-          <Link href={withPremiumTheme("/dashboard-v2/offers?q=Exportieren", mode)} aria-label="Export" title="Export"><Download size={20} /></Link>
-          <Link href={withPremiumTheme("/dashboard-v2/offers?q=E-Mail", mode)} aria-label="E-Mail" title="E-Mail"><Mail size={20} /></Link>
+          <button type="button" aria-label="Export" title="Export" onClick={() => setExportDialogOpen(true)}><Download size={20} /></button>
+          <button type="button" aria-label="E-Mail" title="E-Mail" onClick={() => setEmailDialogOpen(true)}><Mail size={20} /></button>
           <Link href={withPremiumTheme("/dashboard-v2/offers?q=Drucken", mode)} aria-label="Drucken" title="Drucken"><Printer size={20} /></Link>
-          <Link href={withPremiumTheme("/dashboard-v2/offers?q=Teilen", mode)} aria-label="Teilen" title="Teilen"><Share2 size={20} /></Link>
-          <Link href={withPremiumTheme("/dashboard-v2/documents/templates?type=offers", mode)} aria-label="Vorlagen" title="Vorlagen"><FileText size={20} /></Link>
+          <button type="button" aria-label="Teilen" title="Teilen" onClick={() => setShareDialogOpen(true)}><Share2 size={20} /></button>
+          <button type="button" aria-label="Vorlagen" title="Vorlagen" onClick={() => setTemplateDialogOpen(true)}><FileText size={20} /></button>
         </div>
       </div>
 
@@ -6191,8 +6356,8 @@ function PremiumOffersModulePage({ data, mode }: { data: PremiumData; mode: Them
           <h2>Angebot erstellen</h2>
           <p>Erstelle professionelle Angebote in wenigen Schritten.</p>
           <div className={styles.offersHeroActions}>
-            <Link href={withPremiumTheme("/dashboard-v2/offers?q=Angebot%20erstellen", mode)}>Angebot erstellen</Link>
-            <Link href={withPremiumTheme("/dashboard-v2/documents/templates?type=offers", mode)}><FileText size={15} />Vorlage verwenden</Link>
+            <button type="button" onClick={openOfferCreate}>Angebot erstellen</button>
+            <button type="button" onClick={() => { selectOfferTemplate(appliedTemplate); setTemplateDialogOpen(true) }}><FileText size={15} />Vorlage verwenden</button>
           </div>
         </div>
         <div className={styles.offersHeroArt} aria-hidden="true">
@@ -6255,7 +6420,7 @@ function PremiumOffersModulePage({ data, mode }: { data: PremiumData; mode: Them
                 <button type="button" aria-label={offer.number + " ansehen"}><Eye size={16} /></button>
                 <button type="button" aria-label={offer.number + " bearbeiten"}><Pencil size={16} /></button>
                 <button type="button" aria-label={offer.number + " löschen"}><Trash2 size={16} /></button>
-                <button type="button" aria-label={offer.number + " mehr"}><MoreVertical size={16} /></button>
+                <button type="button" aria-label={offer.number + " teilen"} onClick={() => setShareDialogOpen(true)}><Share2 size={16} /></button>
               </span>
             </div>
           )) : (
@@ -6270,6 +6435,428 @@ function PremiumOffersModulePage({ data, mode }: { data: PremiumData; mode: Them
             <strong>{currentPage}</strong>
             <button type="button" aria-label="Nächste Seite" disabled={currentPage >= totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))}><ChevronRight size={17} /></button>
           </div>
+        </div>
+      </article>
+
+      {exportDialogOpen ? (
+        <div className={styles.invoiceTemplateDialogBackdrop} role="presentation">
+          <section className={styles.invoiceTemplateDialog + " " + styles.invoiceExportDialog} role="dialog" aria-modal="true" aria-labelledby="offer-export-title">
+            <div className={styles.invoiceTemplateDialogHead}>
+              <div>
+                <span>Export</span>
+                <h2 id="offer-export-title">Angebote exportieren</h2>
+              </div>
+              <button type="button" aria-label="Dialog schließen" onClick={() => setExportDialogOpen(false)}><X size={18} /></button>
+            </div>
+            <div className={styles.invoiceExportDialogBody}>
+              <section className={styles.invoiceExportPanel}>
+                <h3>Format</h3>
+                <div className={styles.invoiceExportFormats}>
+                  {(["PDF", "CSV", "XML"] as const).map((format) => (
+                    <button key={format} type="button" data-active={exportFormat === format} onClick={() => selectOfferExportFormat(format)}>
+                      <FileText size={16} />{format} Export{format === "XML" ? " vorbereiten" : ""}
+                    </button>
+                  ))}
+                </div>
+              </section>
+              <section className={styles.invoiceExportPanel}>
+                <h3>Download</h3>
+                <div className={styles.invoiceExportDownloadBox}>
+                  <span>Datei</span>
+                  <strong>{exportDownloadName}</strong>
+                  <small>{exportFormat === "XML" ? "XML Export ist vorbereitet und noch ohne Schnittstellenlogik." : "Download wird im UI gestartet."}</small>
+                </div>
+              </section>
+              <div className={styles.invoiceExportStatus} data-status={exportStatus}>
+                <span>Exportstatus</span>
+                <strong>{exportStatus}</strong>
+              </div>
+              <div className={styles.invoiceExportActions}>
+                <button type="button" onClick={() => setExportStatus("Download vorbereitet")}>Export vorbereiten</button>
+                <button type="button" onClick={startOfferExportDownload}><Download size={16} />Download starten</button>
+              </div>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {emailDialogOpen ? (
+        <div className={styles.invoiceTemplateDialogBackdrop} role="presentation">
+          <section className={styles.invoiceTemplateDialog + " " + styles.invoiceEmailDialog} role="dialog" aria-modal="true" aria-labelledby="offer-email-title">
+            <div className={styles.invoiceTemplateDialogHead}>
+              <div>
+                <span>E-Mail</span>
+                <h2 id="offer-email-title">Angebot senden</h2>
+              </div>
+              <button type="button" aria-label="Dialog schließen" onClick={() => setEmailDialogOpen(false)}><X size={18} /></button>
+            </div>
+            <div className={styles.invoiceEmailDialogBody}>
+              <div className={styles.invoiceEmailGrid}>
+                <label className={styles.invoiceEmailFull}><span>Empfänger</span><input type="email" value={emailDraft.to} onChange={(event) => updateOfferEmailDraft("to", event.target.value)} /></label>
+                <label><span>CC</span><input type="email" value={emailDraft.cc} onChange={(event) => updateOfferEmailDraft("cc", event.target.value)} /></label>
+                <label><span>BCC</span><input type="email" value={emailDraft.bcc} onChange={(event) => updateOfferEmailDraft("bcc", event.target.value)} /></label>
+                <label className={styles.invoiceEmailFull}><span>Betreff</span><input value={emailDraft.subject} onChange={(event) => updateOfferEmailDraft("subject", event.target.value)} /></label>
+                <label className={styles.invoiceEmailFull}><span>Nachricht</span><textarea rows={5} value={emailDraft.message} onChange={(event) => updateOfferEmailDraft("message", event.target.value)} /></label>
+              </div>
+              <div className={styles.invoiceEmailAttachment}>
+                <div><span>PDF Anhang</span><strong>PDF automatisch anhängen.</strong></div>
+              </div>
+              <div className={styles.invoiceEmailStatus} data-status={emailStatus}>
+                <span>Versandstatus</span>
+                <strong>{emailStatus}</strong>
+                <small>PDF wird automatisch angehängt.</small>
+              </div>
+              <div className={styles.invoiceEmailActions}>
+                <button type="button" onClick={previewOfferEmail}>Vorschau</button>
+                <button type="button" onClick={prepareOfferEmailSend}>Senden</button>
+              </div>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {shareDialogOpen ? (
+        <div className={styles.invoiceTemplateDialogBackdrop} role="presentation">
+          <section className={styles.invoiceTemplateDialog + " " + styles.invoiceShareDialog} role="dialog" aria-modal="true" aria-labelledby="offer-share-title">
+            <div className={styles.invoiceTemplateDialogHead}>
+              <div>
+                <span>Angebotsfreigabe</span>
+                <h2 id="offer-share-title">Freigabe erstellen</h2>
+              </div>
+              <button type="button" aria-label="Dialog schließen" onClick={() => setShareDialogOpen(false)}><X size={18} /></button>
+            </div>
+            <div className={styles.invoiceShareDialogBody}>
+              <section className={styles.invoiceSharePanel}>
+                <div className={styles.invoiceSharePanelTitle}>
+                  <h3>Freigabe</h3>
+                  <span data-status={shareStatus === "Nicht erstellt" ? "draft" : "active"}>{shareStatus}</span>
+                </div>
+                <div className={styles.invoiceShareActions}>
+                  <button type="button" onClick={createOfferShareLink}><Share2 size={16} />Link erzeugen</button>
+                  <button type="button" onClick={copyOfferShareLink}><FileText size={16} />{shareStatus === "Kopiert" ? "Kopiert" : "Link kopieren"}</button>
+                  <button type="button" onClick={() => setShareQrVisible((visible) => !visible)} disabled={!shareLink}><Grid3X3 size={16} />QR-Code anzeigen</button>
+                </div>
+                <div className={styles.invoiceShareLinkBox} data-empty={!shareLink}>
+                  <span>Freigabelink</span>
+                  <strong>{shareLink || "Noch kein Freigabelink erzeugt"}</strong>
+                </div>
+                <div className={styles.invoiceShareMeta}>
+                  <span>Ablaufdatum</span>
+                  <strong>{shareExpiry || "Noch nicht gespeichert"}</strong>
+                </div>
+              </section>
+              <section className={styles.invoiceSharePanel}>
+                <h3>Gültigkeit</h3>
+                <div className={styles.invoiceShareValidity}>
+                  {invoiceShareValidityOptions.map((option) => (
+                    <button key={option} type="button" data-active={shareValidity === option} onClick={() => updateOfferShareValidity(option)}>{option}</button>
+                  ))}
+                </div>
+              </section>
+              <section className={styles.invoiceSharePanel}>
+                <h3>Sicherheit</h3>
+                <div className={styles.invoiceShareSecurity}>
+                  <label><input type="checkbox" checked={shareSecurity.password} onChange={(event) => setShareSecurity((current) => ({ ...current, password: event.target.checked }))} />Passwortschutz</label>
+                  <label><input type="checkbox" checked={shareSecurity.download} onChange={(event) => setShareSecurity((current) => ({ ...current, download: event.target.checked }))} />Download erlauben {shareSecurity.download ? "Ja" : "Nein"}</label>
+                  <label><input type="checkbox" checked={shareSecurity.print} onChange={(event) => setShareSecurity((current) => ({ ...current, print: event.target.checked }))} />Drucken erlauben {shareSecurity.print ? "Ja" : "Nein"}</label>
+                </div>
+              </section>
+              <div className={styles.invoiceShareQrPreview} data-visible={shareQrVisible && Boolean(shareLink)} aria-label="QR-Code Vorschau">
+                <span>QR-Code</span>
+                <div>{Array.from({ length: 25 }).map((_, index) => <i key={index} data-on={Boolean(shareLink) && (index % 2 === 0 || index % 7 === 0 || shareLink.length % (index + 2) === 0)} />)}</div>
+                <strong>{shareQrVisible && shareLink ? "QR-Code sichtbar" : "QR-Code ausgeblendet"}</strong>
+              </div>
+              <button type="button" className={styles.invoiceSharePrimary} onClick={createOfferShareLink}>Freigabe erstellen</button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {templateDialogOpen ? (
+        <div className={styles.invoiceTemplateDialogBackdrop} role="presentation">
+          <section className={styles.invoiceTemplateDialog} role="dialog" aria-modal="true" aria-labelledby="offer-template-title">
+            <div className={styles.invoiceTemplateDialogHead}>
+              <div>
+                <span>Angebotsvorlagen</span>
+                <h2 id="offer-template-title">Vorlagen verwalten</h2>
+              </div>
+              <button type="button" aria-label="Dialog schließen" onClick={() => setTemplateDialogOpen(false)}><X size={18} /></button>
+            </div>
+            <div className={styles.invoiceTemplateDialogBody}>
+              <div className={styles.invoiceTemplateLeft}>
+                <div className={styles.invoiceTemplateTabs} role="tablist" aria-label="Vorlagen Kategorien">
+                  {invoiceTemplateTabs.map((tab) => (
+                    <button key={tab} type="button" role="tab" aria-selected={activeTemplateTab === tab} data-active={activeTemplateTab === tab} onClick={() => {
+                      setActiveTemplateTab(tab)
+                      const nextTemplate = offerTemplates.find((template) => template.category === tab)
+                      if (nextTemplate) selectOfferTemplate(nextTemplate)
+                    }}>{tab}</button>
+                  ))}
+                </div>
+                <div className={styles.invoiceTemplateActions} aria-label="Vorlagen Aktionen">
+                  <button type="button" onClick={createOfferTemplate}><Plus size={15} />Neue Vorlage</button>
+                  <button type="button" onClick={saveOfferTemplate}><Pencil size={15} />Bearbeiten</button>
+                  <button type="button" onClick={duplicateOfferTemplate}><FileText size={15} />Duplizieren</button>
+                  <button type="button" onClick={deleteOfferTemplate} disabled={offerTemplates.length <= 1}><Trash2 size={15} />Löschen</button>
+                  <button type="button" onClick={setDefaultOfferTemplate}><CheckCircle2 size={15} />Als Standard setzen</button>
+                </div>
+                <div className={styles.invoiceTemplateList}>
+                  {activeTemplates.length ? activeTemplates.map((template) => (
+                    <button key={template.id} type="button" data-active={selectedTemplate.id === template.id} onClick={() => selectOfferTemplate(template)}>
+                      <strong>{template.name}{template.isDefault ? " · Standard" : ""}</strong>
+                      <span>{template.description}</span>
+                    </button>
+                  )) : <div className={styles.invoiceTemplateEmpty}>Keine Vorlage in dieser Kategorie.</div>}
+                </div>
+                <div className={styles.invoiceTemplateEditor}>
+                  <label><span>Name</span><input value={templateDraft.name} onChange={(event) => setTemplateDraft((draft) => ({ ...draft, name: event.target.value }))} /></label>
+                  <label><span>Beschreibung</span><textarea rows={3} value={templateDraft.description} onChange={(event) => setTemplateDraft((draft) => ({ ...draft, description: event.target.value }))} /></label>
+                  <div className={styles.invoiceTemplateEditorActions}>
+                    <button type="button" onClick={saveOfferTemplate}>Vorlage speichern</button>
+                    <button type="button" onClick={useOfferTemplate}>Vorlage verwenden</button>
+                  </div>
+                </div>
+              </div>
+              <aside className={styles.invoiceTemplatePreview + " " + styles.offerTemplateLivePreview} aria-label="Live Vorschau">
+                <span>Live Vorschau</span>
+                <div className={styles.offerLivePreviewMeta}>
+                  <strong>{templateDraft.name || selectedTemplate.name}</strong>
+                  <small>{selectedTemplate.category}{selectedTemplate.isDefault ? " · Standard" : ""}</small>
+                </div>
+                <div className={styles.invoiceA4Preview + " " + styles.offerA4LivePreview} data-tone={selectedTemplate.previewTone} style={{ "--offer-template-accent": selectedTemplate.accent } as CSSProperties}>
+                  <header>
+                    <strong>{templateDraft.name || selectedTemplate.name}</strong>
+                    <small>Angebot</small>
+                  </header>
+                  <section>
+                    <i />
+                    <i />
+                    <i />
+                  </section>
+                  <div>
+                    <b />
+                    <b />
+                    <b />
+                    <b />
+                  </div>
+                  <footer>
+                    <em />
+                    <strong />
+                  </footer>
+                </div>
+                <div className={styles.offerLivePreviewDetails}>
+                  <span>{templateDraft.description || selectedTemplate.description}</span>
+                  <strong>{selectedTemplate.previewNote}</strong>
+                </div>
+              </aside>
+            </div>
+          </section>
+        </div>
+      ) : null}
+    </section>
+  )
+}
+
+
+type PremiumDocumentRow = {
+  id: string
+  name: string
+  type: string
+  owner: string
+  date: string
+  version: string
+  size: string
+  status: "Aktiv" | "Archiviert" | "Scan bereit"
+}
+
+const premiumDocumentRows: PremiumDocumentRow[] = [
+  { id: "doc-1", name: "Angebot AN-2026-043.pdf", type: "Angebot", owner: "Nuovo Labs GmbH", date: "2026-06-15", version: "Version 3", size: "428 KB", status: "Aktiv" },
+  { id: "doc-2", name: "Rechnung RE-2026-118.pdf", type: "Rechnung", owner: "Aurora Labs GmbH", date: "2026-06-12", version: "Version 2", size: "392 KB", status: "Aktiv" },
+  { id: "doc-3", name: "Projektbriefing Portal.docx", type: "Projektdatei", owner: "Meridian Studio GmbH", date: "2026-06-04", version: "Version 5", size: "1,2 MB", status: "Scan bereit" },
+  { id: "doc-4", name: "Rahmenvertrag 2026.pdf", type: "Vertrag", owner: "Acme GmbH", date: "2026-05-28", version: "Version 1", size: "820 KB", status: "Archiviert" }
+]
+
+type DocumentActionStatus = "Bereit" | "Upload vorbereitet" | "OCR vorbereitet" | "Freigabe bereit" | "Export vorbereitet" | "Archiviert" | "Versionen geöffnet" | "Vorschau geöffnet"
+
+function PremiumDocumentsModulePage({ mode }: { mode: ThemeMode }) {
+  const [documentSearch, setDocumentSearch] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [selectedDocumentId, setSelectedDocumentId] = useState(premiumDocumentRows[0].id)
+  const [actionStatus, setActionStatus] = useState<DocumentActionStatus>("Bereit")
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [versionsOpen, setVersionsOpen] = useState(false)
+  const [shareLink, setShareLink] = useState("")
+
+  const filteredDocuments = useMemo(() => {
+    const query = documentSearch.trim().toLowerCase()
+    return premiumDocumentRows.filter((document) => {
+      if (statusFilter !== "all" && document.status !== statusFilter) return false
+      if (!query) return true
+      return [document.name, document.type, document.owner, document.version, document.status].join(" ").toLowerCase().includes(query)
+    })
+  }, [documentSearch, statusFilter])
+
+  const selectedDocument = premiumDocumentRows.find((document) => document.id === selectedDocumentId) || premiumDocumentRows[0]
+
+  function selectDocument(document: PremiumDocumentRow) {
+    setSelectedDocumentId(document.id)
+  }
+
+  function prepareUpload() {
+    setActionStatus("Upload vorbereitet")
+  }
+
+  function prepareOcrScan() {
+    setActionStatus("OCR vorbereitet")
+  }
+
+  function prepareShare() {
+    const token = selectedDocument.id.toUpperCase() + "-" + Math.random().toString(36).slice(2, 7).toUpperCase()
+    setShareLink("https://share.dreaminvoice.local/dokument/" + token)
+    setActionStatus("Freigabe bereit")
+  }
+
+  function prepareExport() {
+    setActionStatus("Export vorbereitet")
+  }
+
+  function archiveDocument() {
+    setActionStatus("Archiviert")
+  }
+
+  function openVersions() {
+    setVersionsOpen(true)
+    setPreviewOpen(false)
+    setActionStatus("Versionen geöffnet")
+  }
+
+  function openPreview() {
+    setPreviewOpen(true)
+    setVersionsOpen(false)
+    setActionStatus("Vorschau geöffnet")
+  }
+
+  return (
+    <section className={styles.offersPage} data-view="documents">
+      <div className={styles.offersIntroBar}>
+        <div className={styles.offersIntroCopy}>
+          <h1>Dokumente</h1>
+          <p>Dokumente hochladen, scannen, teilen und versionieren.</p>
+        </div>
+        <div className={styles.offersTopActions} aria-label="Dokumentaktionen">
+          <button type="button" aria-label="Dokument hochladen" title="Dokument hochladen" onClick={prepareUpload}><Upload size={20} /></button>
+          <button type="button" aria-label="OCR Scan" title="OCR Scan" onClick={prepareOcrScan}><Grid3X3 size={20} /></button>
+          <button type="button" aria-label="Teilen" title="Teilen" onClick={prepareShare}><Share2 size={20} /></button>
+          <button type="button" aria-label="Export" title="Export" onClick={prepareExport}><Download size={20} /></button>
+          <button type="button" aria-label="Archivieren" title="Archivieren" onClick={archiveDocument}><Archive size={20} /></button>
+          <button type="button" aria-label="Versionen" title="Versionen" onClick={openVersions}><FileText size={20} /></button>
+          <button type="button" aria-label="Vorschau" title="Vorschau" onClick={openPreview}><Eye size={20} /></button>
+        </div>
+      </div>
+
+      <article className={styles.panel + " " + styles.offersCreateHero}>
+        <div className={styles.offersCreateIcon}><Upload size={26} /></div>
+        <div className={styles.offersCreateCopy}>
+          <h2>Dokument hochladen</h2>
+          <p>Lade Dokumente hoch oder starte einen OCR Scan fuer neue Dateien.</p>
+          <div className={styles.offersHeroActions}>
+            <button type="button" onClick={prepareUpload}>Dokument hochladen</button>
+            <button type="button" onClick={prepareOcrScan}><Grid3X3 size={15} />OCR Scan</button>
+          </div>
+        </div>
+        <div className={styles.offersHeroArt} aria-hidden="true">
+          <div className={styles.offersHeroPaper}>
+            <span>PDF</span>
+            <i />
+            <i />
+            <i />
+          </div>
+          <div className={styles.offersHeroSheet} />
+          <div className={styles.offersHeroDots} />
+        </div>
+      </article>
+
+      <article className={styles.panel + " " + styles.offersTablePanel}>
+        <div className={styles.offersTableHeader}>
+          <div className={styles.offersTableTitle}>
+            <span><Archive size={19} /></span>
+            <h2>Dokumente Übersicht</h2>
+          </div>
+          <div className={styles.offersTableControls}>
+            <label className={styles.offersSearchControl}>
+              <Search size={19} />
+              <input value={documentSearch} onChange={(event) => setDocumentSearch(event.target.value)} placeholder="Dokumente suchen..." aria-label="Dokumente suchen" />
+            </label>
+            <label className={styles.offersStatusSelect}>
+              <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} aria-label="Dokumentstatus filtern">
+                <option value="all">Status</option>
+                <option value="Aktiv">Aktiv</option>
+                <option value="Scan bereit">Scan bereit</option>
+                <option value="Archiviert">Archiviert</option>
+              </select>
+              <ChevronDown size={17} />
+            </label>
+          </div>
+        </div>
+
+        <div className={styles.offersDataTable}>
+          <div className={styles.offersDataHead}>
+            <span>Dokument</span>
+            <span>Typ</span>
+            <span>Zugeordnet</span>
+            <span>Datum</span>
+            <span>Version</span>
+            <span>Größe</span>
+            <span>Status</span>
+            <span>Aktionen</span>
+          </div>
+          {filteredDocuments.length ? filteredDocuments.map((document) => (
+            <div key={document.id} className={styles.offersDataRow} data-active={selectedDocument.id === document.id}>
+              <span className={styles.offerNumberCell}><b><FileText size={18} /></b><strong>{document.name}</strong><small>{document.id.toUpperCase()}</small></span>
+              <span>{document.type}</span>
+              <span><strong>{document.owner}</strong></span>
+              <span>{formatOfferDate(document.date)}</span>
+              <span>{document.version}</span>
+              <span><strong>{document.size}</strong></span>
+              <span><em data-status={document.status === "Aktiv" ? "accepted" : document.status === "Archiviert" ? "rejected" : "draft"}>{document.status}</em></span>
+              <span className={styles.offersRowActions}>
+                <button type="button" aria-label={document.name + " Vorschau"} onClick={() => { selectDocument(document); openPreview() }}><Eye size={16} /></button>
+                <button type="button" aria-label={document.name + " teilen"} onClick={() => { selectDocument(document); prepareShare() }}><Share2 size={16} /></button>
+                <button type="button" aria-label={document.name + " Versionen"} onClick={() => { selectDocument(document); openVersions() }}><FileText size={16} /></button>
+                <button type="button" aria-label={document.name + " archivieren"} onClick={() => { selectDocument(document); archiveDocument() }}><Archive size={16} /></button>
+              </span>
+            </div>
+          )) : (
+            <div className={styles.offersTableEmpty}>Keine Dokumente gefunden.</div>
+          )}
+        </div>
+
+        <div className={styles.offersPagination}>
+          <span>{filteredDocuments.length} Dokumente · Status: {actionStatus}</span>
+          <div>
+            <button type="button" aria-label="Vorherige Seite" disabled><ChevronLeft size={17} /></button>
+            <strong>1</strong>
+            <button type="button" aria-label="Nächste Seite" disabled><ChevronRight size={17} /></button>
+          </div>
+        </div>
+      </article>
+
+      <article className={styles.panel + " " + styles.documentPremiumPanel}>
+        <div className={styles.documentPremiumStatus}>
+          <span>Status</span>
+          <strong>{actionStatus}</strong>
+          <small>{shareLink || "Keine Freigabe aktiv"}</small>
+        </div>
+        <div className={styles.documentPremiumPreview} data-active={previewOpen}>
+          <span>Vorschau</span>
+          <strong>{selectedDocument.name}</strong>
+          <p>{selectedDocument.type} · {selectedDocument.owner} · {selectedDocument.version}</p>
+          <div><i /><i /><i /></div>
+        </div>
+        <div className={styles.documentPremiumVersions} data-active={versionsOpen}>
+          <span>Versionen</span>
+          <strong>{selectedDocument.version}</strong>
+          <p>Version 1 · Version 2 · {selectedDocument.version}</p>
         </div>
       </article>
     </section>
@@ -6324,6 +6911,10 @@ function PremiumModulePage({
 
   if (view === "offers") {
     return <PremiumOffersModulePage data={data} mode={mode} />
+  }
+
+  if (view === "documents") {
+    return <PremiumDocumentsModulePage mode={mode} />
   }
 
   async function openFullPremiumInvoiceEditor() {
