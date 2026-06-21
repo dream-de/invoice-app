@@ -18,9 +18,14 @@ import {
   Briefcase,
   CheckCircle2,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   Clock3,
   Crown,
   Download,
+  Eye,
+  Mail,
+  Printer,
   Filter,
   FileText,
   Folder,
@@ -29,12 +34,15 @@ import {
   KeyRound,
   Landmark,
   MoreVertical,
+  Pencil,
   Plug,
   Plus,
   Receipt,
   Search,
   Settings,
+  Share2,
   Tag,
+  Trash2,
   Upload,
   UserPlus,
   Users,
@@ -156,6 +164,7 @@ type ApiCustomer = {
   city?: string | null
   country?: string | null
   status?: string
+  createdAt?: string | null
 }
 type ApiArticle = {
   id: string
@@ -3081,6 +3090,7 @@ function PremiumLicenseAdminPage({ mode }: { mode: ThemeMode }) {
           )) : <p className={styles.emptyTableCell}>Noch keine Keys erzeugt.</p>}
         </div>
       </article>
+
     </section>
   )
 }
@@ -5051,6 +5061,1221 @@ function PremiumFinancePanel({ mode, searchQuery }: { mode: ThemeMode; searchQue
   )
 }
 
+const CUSTOMER_PAGE_SIZE = 7
+
+function emptyCustomerDraft(): CustomerDraft {
+  return {
+    number: "",
+    name: "",
+    contact: "",
+    email: "",
+    phone: "",
+    status: "active",
+    street: "",
+    zip: "",
+    city: "",
+    country: "Deutschland"
+  }
+}
+
+function customerDraftFromCustomer(customer: ApiCustomer): CustomerDraft {
+  return {
+    number: customer.number || "",
+    name: customer.name || "",
+    contact: customer.contact || "",
+    email: customer.email || "",
+    phone: customer.phone || "",
+    status: customer.status || "active",
+    street: customer.street || "",
+    zip: customer.zip || "",
+    city: customer.city || "",
+    country: customer.country || "Deutschland"
+  }
+}
+
+function customerInitial(name: string) {
+  return name.trim().charAt(0).toUpperCase() || "K"
+}
+
+function formatCustomerDate(value?: string | null) {
+  if (!value) return "-"
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return "-"
+  return new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" }).format(date)
+}
+
+function PremiumCustomersModulePage({
+  data,
+  mode,
+  onDataChange
+}: {
+  data: PremiumData
+  mode: ThemeMode
+  onDataChange: (updater: (current: PremiumData) => PremiumData) => void
+}) {
+  const customersSource = data.customers.length ? data.customers : fallbackApiCustomers
+  const [customerSearch, setCustomerSearch] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [page, setPage] = useState(1)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [editingCustomerId, setEditingCustomerId] = useState<string | null>(null)
+  const [draft, setDraft] = useState<CustomerDraft>(emptyCustomerDraft)
+  const [state, setState] = useState<WorkflowState>({ type: "idle", message: "" })
+  const [isSaving, setIsSaving] = useState(false)
+  const [isDeletingId, setIsDeletingId] = useState<string | null>(null)
+
+  const filteredCustomers = useMemo(() => {
+    const normalizedQuery = customerSearch.trim().toLowerCase()
+    return customersSource.filter((customer) => {
+      const status = String(customer.status || "active").toLowerCase()
+      if (statusFilter !== "all" && status !== statusFilter) return false
+      if (!normalizedQuery) return true
+      return [
+        customer.name,
+        customer.number,
+        customer.contact,
+        customer.email,
+        customer.phone,
+        customer.city,
+        customerStatusLabel(customer.status)
+      ].filter(Boolean).join(" ").toLowerCase().includes(normalizedQuery)
+    })
+  }, [customersSource, customerSearch, statusFilter])
+
+  const totalPages = Math.max(1, Math.ceil(filteredCustomers.length / CUSTOMER_PAGE_SIZE))
+  const currentPage = Math.min(page, totalPages)
+  const pagedCustomers = filteredCustomers.slice((currentPage - 1) * CUSTOMER_PAGE_SIZE, currentPage * CUSTOMER_PAGE_SIZE)
+  const firstVisible = filteredCustomers.length ? (currentPage - 1) * CUSTOMER_PAGE_SIZE + 1 : 0
+  const lastVisible = Math.min(currentPage * CUSTOMER_PAGE_SIZE, filteredCustomers.length)
+
+  function updateDraft(field: keyof CustomerDraft, value: string) {
+    setDraft((current) => ({ ...current, [field]: value }))
+    setState({ type: "idle", message: "" })
+  }
+
+  function openCreateDialog() {
+    setEditingCustomerId(null)
+    setDraft(emptyCustomerDraft())
+    setState({ type: "idle", message: "" })
+    setDialogOpen(true)
+  }
+
+  function openEditDialog(customer: ApiCustomer) {
+    setEditingCustomerId(customer.id)
+    setDraft(customerDraftFromCustomer(customer))
+    setState({ type: "idle", message: "" })
+    setDialogOpen(true)
+  }
+
+  async function saveCustomer(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setIsSaving(true)
+    setState({ type: "idle", message: "" })
+
+    try {
+      const response = await fetch(editingCustomerId ? `/api/customers/update/${editingCustomerId}` : "/api/customers/create", {
+        method: editingCustomerId ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify(draft)
+      })
+      const result = await response.json().catch(() => null)
+
+      if (!response.ok || !result?.ok) {
+        throw new Error(result?.error || "Kunde konnte nicht gespeichert werden.")
+      }
+
+      const customer = result.customer as ApiCustomer
+      onDataChange((current) => ({
+        ...current,
+        customers: [customer, ...current.customers.filter((item) => item.id !== customer.id)]
+      }))
+      setDialogOpen(false)
+      setState({ type: "success", message: editingCustomerId ? "Kunde wurde aktualisiert." : "Kunde wurde angelegt." })
+    } catch (error) {
+      setState({ type: "error", message: error instanceof Error ? error.message : "Kunde konnte nicht gespeichert werden." })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  async function deleteCustomer(customer: ApiCustomer) {
+    const confirmed = window.confirm(`Kunde "${customer.name}" wirklich löschen?`)
+    if (!confirmed) return
+
+    setIsDeletingId(customer.id)
+    setState({ type: "idle", message: "" })
+
+    try {
+      const response = await fetch(`/api/customers/delete/${customer.id}?mode=delete`, {
+        method: "DELETE",
+        credentials: "same-origin"
+      })
+      const result = await response.json().catch(() => null)
+
+      if (!response.ok || !result?.ok) {
+        throw new Error(result?.error || "Kunde konnte nicht gelöscht werden.")
+      }
+
+      onDataChange((current) => ({
+        ...current,
+        customers: current.customers.filter((item) => item.id !== customer.id)
+      }))
+      setState({ type: "success", message: "Kunde wurde gelöscht." })
+    } catch (error) {
+      setState({ type: "error", message: error instanceof Error ? error.message : "Kunde konnte nicht gelöscht werden." })
+    } finally {
+      setIsDeletingId(null)
+    }
+  }
+
+  return (
+    <section className={styles.customerModulePage} data-view="customers">
+      <div className={styles.customerModuleIntro}>
+        <h1>Kunden</h1>
+        <p>Verwalte deine Kunden und Kontakte</p>
+      </div>
+
+      <article className={`${styles.panel} ${styles.customerCreateHero}`}>
+        <div className={styles.customerCreateIcon}><UserPlus size={26} /></div>
+        <div>
+          <h2>Kunde anlegen</h2>
+          <p>Lege einen neuen Kunden in deinem System an – schnell, einfach und übersichtlich.</p>
+          <button type="button" onClick={openCreateDialog}><Plus size={17} />Neuen Kunden anlegen</button>
+        </div>
+        <div className={styles.customerHeroArt} aria-hidden="true">
+          <div><Users size={58} /></div>
+          <span><Plus size={34} /></span>
+        </div>
+      </article>
+
+      <article className={`${styles.panel} ${styles.customerTablePanel}`}>
+        <div className={styles.customerTableHeader}>
+          <div>
+            <span><Users size={18} /></span>
+            <h2>Kundenübersicht</h2>
+          </div>
+          <div className={styles.customerTableControls}>
+            <label>
+              <Search size={16} />
+              <input value={customerSearch} onChange={(event) => { setCustomerSearch(event.target.value); setPage(1) }} placeholder="Kunden suchen" aria-label="Kunden suchen" />
+            </label>
+            <label>
+              <Filter size={16} />
+              <select value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setPage(1) }} aria-label="Kunden filtern">
+                <option value="all">Alle</option>
+                <option value="active">Aktiv</option>
+                <option value="open">Offen</option>
+                <option value="inactive">Inaktiv</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div className={styles.customerDataTable}>
+          <div className={styles.customerDataHead}>
+            <span>Kunde</span>
+            <span>Ansprechpartner</span>
+            <span>E-Mail</span>
+            <span>Telefon</span>
+            <span>Status</span>
+            <span>Erstellt am</span>
+            <span>Aktionen</span>
+          </div>
+          {pagedCustomers.length ? pagedCustomers.map((customer) => (
+            <div key={customer.id} className={styles.customerDataRow}>
+              <span className={styles.customerNameCell}><b>{customerInitial(customer.name)}</b><strong>{customer.name}</strong><small>{customer.number || customer.city || "Kundenprofil"}</small></span>
+              <span>{customer.contact || "-"}</span>
+              <span>{customer.email || "-"}</span>
+              <span>{customer.phone || "-"}</span>
+              <span><em data-status={String(customer.status || "active").toLowerCase()}>{customerStatusLabel(customer.status)}</em></span>
+              <span>{formatCustomerDate(customer.createdAt)}</span>
+              <span className={styles.customerRowActions}>
+                <button type="button" aria-label={`${customer.name} bearbeiten`} onClick={() => openEditDialog(customer)}><Pencil size={16} /></button>
+                <button type="button" aria-label={`${customer.name} löschen`} disabled={isDeletingId === customer.id} onClick={() => void deleteCustomer(customer)}><Trash2 size={16} /></button>
+              </span>
+            </div>
+          )) : (
+            <div className={styles.customerTableEmpty}>Keine Kunden gefunden.</div>
+          )}
+        </div>
+
+        <div className={styles.customerPagination}>
+          <span>Zeige {firstVisible} bis {lastVisible} von {filteredCustomers.length} Kunden</span>
+          <div>
+            <button type="button" disabled={currentPage <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>‹</button>
+            <strong>{currentPage}</strong>
+            <button type="button" disabled={currentPage >= totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))}>›</button>
+          </div>
+        </div>
+      </article>
+
+      {state.message ? <p className={styles.customerStateMessage} data-state={state.type}>{state.message}</p> : null}
+
+      {dialogOpen ? (
+        <div className={styles.customerDialogBackdrop} role="presentation">
+          <section className={styles.customerDialog} role="dialog" aria-modal="true" aria-labelledby="customer-dialog-title">
+            <div className={styles.customerDialogHead}>
+              <div>
+                <span>{editingCustomerId ? "Kunden bearbeiten" : "Neuer Kunde"}</span>
+                <h2 id="customer-dialog-title">Kunde anlegen</h2>
+              </div>
+              <button type="button" aria-label="Dialog schließen" onClick={() => setDialogOpen(false)}><X size={18} /></button>
+            </div>
+            <form className={styles.customerDialogForm} onSubmit={saveCustomer}>
+              <label>Firmenname<input autoFocus required value={draft.name} onChange={(event) => updateDraft("name", event.target.value)} /></label>
+              <label>Ansprechpartner<input value={draft.contact} onChange={(event) => updateDraft("contact", event.target.value)} /></label>
+              <label>E-Mail<input type="email" value={draft.email} onChange={(event) => updateDraft("email", event.target.value)} /></label>
+              <label>Telefon<input value={draft.phone} onChange={(event) => updateDraft("phone", event.target.value)} /></label>
+              <label>Kundennummer<input value={draft.number} placeholder="wird automatisch gesetzt" onChange={(event) => updateDraft("number", event.target.value)} /></label>
+              <label>Status<select value={draft.status} onChange={(event) => updateDraft("status", event.target.value)}><option value="active">Aktiv</option><option value="open">Offen</option><option value="inactive">Inaktiv</option></select></label>
+              <label>Strasse<input value={draft.street} onChange={(event) => updateDraft("street", event.target.value)} /></label>
+              <label>PLZ<input value={draft.zip} onChange={(event) => updateDraft("zip", event.target.value)} /></label>
+              <label>Ort<input value={draft.city} onChange={(event) => updateDraft("city", event.target.value)} /></label>
+              <label>Land<input value={draft.country} onChange={(event) => updateDraft("country", event.target.value)} /></label>
+              <div className={styles.customerDialogActions}>
+                <button type="button" onClick={() => setDialogOpen(false)}>Abbrechen</button>
+                <button type="submit" disabled={isSaving}>{isSaving ? "Speichert..." : editingCustomerId ? "Kunde speichern" : "Kunde anlegen"}</button>
+              </div>
+            </form>
+          </section>
+        </div>
+      ) : null}
+    </section>
+  )
+}
+
+const DOCUMENT_PAGE_SIZE = 5
+const invoiceTemplateTabs = ["Standard", "Premium", "Modern", "Minimal", "Corporate", "Eigene Vorlagen"] as const
+type InvoiceTemplateTab = typeof invoiceTemplateTabs[number]
+type InvoiceTemplateRecord = {
+  id: string
+  name: string
+  category: InvoiceTemplateTab
+  description: string
+  isDefault: boolean
+}
+const initialInvoiceTemplates: InvoiceTemplateRecord[] = [
+  { id: "standard-classic", name: "Standard Rechnung", category: "Standard", description: "Klassisches A4 Layout mit Logo, Positionen und Zahlungsblock", isDefault: true },
+  { id: "standard-compact", name: "Standard Kompakt", category: "Standard", description: "Reduzierte Variante fuer schnelle Rechnungserstellung", isDefault: false },
+  { id: "premium-clean", name: "Premium Clean", category: "Premium", description: "Premium Layout mit klarer Kopfzeile und Zahlungsblock", isDefault: false },
+  { id: "modern-gradient", name: "Modern Akzent", category: "Modern", description: "Modernes Layout mit lila Akzent und kompakten Summen", isDefault: false },
+  { id: "minimal-basic", name: "Minimal Basic", category: "Minimal", description: "Sehr reduziertes Rechnungsdesign fuer schlichte Belege", isDefault: false },
+  { id: "corporate-formal", name: "Corporate Formal", category: "Corporate", description: "Formelles Layout fuer Unternehmen und wiederkehrende Kunden", isDefault: false },
+  { id: "custom-empty", name: "Eigene Vorlage", category: "Eigene Vorlagen", description: "Anpassbare Vorlage fuer individuelle Rechnungen", isDefault: false }
+]
+const invoiceShareValidityOptions = ["1 Tag", "7 Tage", "30 Tage", "90 Tage", "Unbegrenzt"] as const
+type InvoiceShareValidity = typeof invoiceShareValidityOptions[number]
+type InvoiceShareStatus = "Nicht erstellt" | "Aktiv" | "Kopiert"
+type InvoiceEmailStatus = "Entwurf" | "Bereit" | "Versand vorbereitet" | "Empfänger fehlt"
+type InvoiceExportFormat = "PDF" | "CSV" | "XML"
+type InvoiceExportStatus = "Bereit" | "Download vorbereitet" | "Export gestartet"
+type InvoiceOcrStatus = "Bereit" | "Datei gewählt" | "Felder erkannt" | "Rechnung übernommen"
+type InvoiceOcrAiSuggestion = {
+  id: string
+  label: string
+  value: string
+  confidence: string
+}
+const invoiceOcrAiSuggestions: InvoiceOcrAiSuggestion[] = [
+  { id: "customer", label: "Kunde erkennen", value: "Aurora Labs GmbH", confidence: "96%" },
+  { id: "project", label: "Projekt erkennen", value: "Portal Relaunch", confidence: "91%" },
+  { id: "article", label: "Artikel erkennen", value: "Beratung und Implementierung", confidence: "88%" },
+  { id: "cost-center", label: "Kostenstelle erkennen", value: "FIN-2026-07", confidence: "84%" },
+  { id: "booking", label: "Buchungsvorschlag vorbereiten", value: "Fremdleistungen / 3125", confidence: "82%" }
+]
+const invoiceOcrFields = [
+  ["Lieferant", "Muster Lieferant GmbH"],
+  ["Rechnungsnummer", "RE-IMPORT-2026-001"],
+  ["Datum", "21.06.2026"],
+  ["Fälligkeit", "05.07.2026"],
+  ["Netto", "1.000,00 €"],
+  ["Steuer", "190,00 €"],
+  ["Gesamtbetrag", "1.190,00 €"],
+  ["IBAN", "DE89 3704 0044 0532 0130 00"]
+] as const
+
+
+function invoiceRowsForModule(data: PremiumData) {
+  const source = invoiceDisplaySource(data).filter((invoice) => invoiceType(invoice) === "invoice")
+  return source.length ? source : fallbackApiInvoices.filter((invoice) => invoiceType(invoice) === "invoice")
+}
+
+function PremiumInvoicesModulePage({ data, mode }: { data: PremiumData; mode: ThemeMode }) {
+  const router = useRouter()
+  const [invoiceSearch, setInvoiceSearch] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [page, setPage] = useState(1)
+  const [templateDialogOpen, setTemplateDialogOpen] = useState(false)
+  const [activeTemplateTab, setActiveTemplateTab] = useState<InvoiceTemplateTab>("Standard")
+  const [invoiceTemplates, setInvoiceTemplates] = useState<InvoiceTemplateRecord[]>(initialInvoiceTemplates)
+  const [selectedTemplateId, setSelectedTemplateId] = useState(initialInvoiceTemplates[0].id)
+  const [appliedTemplateId, setAppliedTemplateId] = useState(initialInvoiceTemplates[0].id)
+  const [templateDraft, setTemplateDraft] = useState({
+    name: initialInvoiceTemplates[0].name,
+    description: initialInvoiceTemplates[0].description
+  })
+  const [exportDialogOpen, setExportDialogOpen] = useState(false)
+  const [exportFormat, setExportFormat] = useState<InvoiceExportFormat>("PDF")
+  const [exportStatus, setExportStatus] = useState<InvoiceExportStatus>("Bereit")
+  const [exportDownloadName, setExportDownloadName] = useState("rechnung-export.pdf")
+  const [shareDialogOpen, setShareDialogOpen] = useState(false)
+  const [shareValidity, setShareValidity] = useState<InvoiceShareValidity>("7 Tage")
+  const [shareSecurity, setShareSecurity] = useState({ password: false, download: true, print: true })
+  const [shareLink, setShareLink] = useState("")
+  const [shareExpiry, setShareExpiry] = useState("")
+  const [shareStatus, setShareStatus] = useState<InvoiceShareStatus>("Nicht erstellt")
+  const [shareQrVisible, setShareQrVisible] = useState(false)
+  const [ocrDialogOpen, setOcrDialogOpen] = useState(false)
+  const [ocrUploadType, setOcrUploadType] = useState("PDF hochladen")
+  const [ocrFileName, setOcrFileName] = useState("rechnung-demo.pdf")
+  const [ocrStatus, setOcrStatus] = useState<InvoiceOcrStatus>("Bereit")
+  const [ocrAiSuggestionState, setOcrAiSuggestionState] = useState<Record<string, "offen" | "übernommen" | "abgelehnt">>({})
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false)
+  const [emailDraft, setEmailDraft] = useState({
+    to: "kunde@example.invalid",
+    cc: "",
+    bcc: "",
+    subject: "Rechnung RE-2024-1052",
+    message: "Hallo,\n\nanbei sende ich Ihnen die aktuelle Rechnung als PDF.\n\nViele Grüße",
+    attachPdf: true
+  })
+  const [emailStatus, setEmailStatus] = useState<InvoiceEmailStatus>("Entwurf")
+  const invoiceRows = useMemo(() => invoiceRowsForModule(data), [data])
+  const filteredInvoices = useMemo(() => {
+    const normalizedQuery = invoiceSearch.trim().toLowerCase()
+    return invoiceRows.filter((invoice) => {
+      const normalizedStatus = isStatus(invoice.status || "", "paid")
+        ? "paid"
+        : isStatus(invoice.status || "", "open")
+          ? "open"
+          : isStatus(invoice.status || "", "overdue")
+            ? "overdue"
+            : "draft"
+      if (statusFilter !== "all" && normalizedStatus !== statusFilter) return false
+      if (!normalizedQuery) return true
+      return [
+        invoice.number,
+        invoice.customer,
+        invoice.project,
+        statusLabel(invoice.status || ""),
+        formatEuro(Number(invoice.grossTotal) || 0)
+      ].filter(Boolean).join(" ").toLowerCase().includes(normalizedQuery)
+    })
+  }, [invoiceRows, invoiceSearch, statusFilter])
+  const totalPages = Math.max(1, Math.ceil(filteredInvoices.length / DOCUMENT_PAGE_SIZE))
+  const currentPage = Math.min(page, totalPages)
+  const visibleInvoices = filteredInvoices.slice((currentPage - 1) * DOCUMENT_PAGE_SIZE, currentPage * DOCUMENT_PAGE_SIZE)
+  const firstVisible = filteredInvoices.length ? (currentPage - 1) * DOCUMENT_PAGE_SIZE + 1 : 0
+  const lastVisible = Math.min(currentPage * DOCUMENT_PAGE_SIZE, filteredInvoices.length)
+  const activeTemplates = invoiceTemplates.filter((template) => template.category === activeTemplateTab)
+  const selectedTemplate = invoiceTemplates.find((template) => template.id === selectedTemplateId) || invoiceTemplates[0]
+  const appliedTemplate = invoiceTemplates.find((template) => template.id === appliedTemplateId) || selectedTemplate
+
+  function selectInvoiceTemplate(template: InvoiceTemplateRecord) {
+    setSelectedTemplateId(template.id)
+    setActiveTemplateTab(template.category)
+    setTemplateDraft({ name: template.name, description: template.description })
+  }
+
+  function createInvoiceTemplate() {
+    const nextTemplate: InvoiceTemplateRecord = {
+      id: "template-" + Date.now(),
+      name: activeTemplateTab + " Vorlage",
+      category: activeTemplateTab,
+      description: "Neue Rechnungsvorlage bearbeiten und speichern.",
+      isDefault: false
+    }
+    setInvoiceTemplates((templates) => [...templates, nextTemplate])
+    selectInvoiceTemplate(nextTemplate)
+  }
+
+  function saveInvoiceTemplate() {
+    setInvoiceTemplates((templates) => templates.map((template) => template.id === selectedTemplate.id
+      ? { ...template, name: templateDraft.name.trim() || template.name, description: templateDraft.description.trim() || template.description }
+      : template
+    ))
+  }
+
+  function duplicateInvoiceTemplate() {
+    const copy: InvoiceTemplateRecord = {
+      ...selectedTemplate,
+      id: "template-" + Date.now(),
+      name: selectedTemplate.name + " Kopie",
+      isDefault: false
+    }
+    setInvoiceTemplates((templates) => [...templates, copy])
+    selectInvoiceTemplate(copy)
+  }
+
+  function deleteInvoiceTemplate() {
+    if (invoiceTemplates.length <= 1) return
+    const remaining = invoiceTemplates.filter((template) => template.id !== selectedTemplate.id)
+    const nextTemplate = remaining.find((template) => template.category === activeTemplateTab) || remaining[0]
+    setInvoiceTemplates(remaining)
+    if (appliedTemplateId === selectedTemplate.id) setAppliedTemplateId(nextTemplate.id)
+    selectInvoiceTemplate(nextTemplate)
+  }
+
+  function setDefaultInvoiceTemplate() {
+    setInvoiceTemplates((templates) => templates.map((template) => ({ ...template, isDefault: template.id === selectedTemplate.id })))
+  }
+
+  function useInvoiceTemplate() {
+    saveInvoiceTemplate()
+    setAppliedTemplateId(selectedTemplate.id)
+    setTemplateDialogOpen(false)
+  }
+
+  function expiryForShare(validity: InvoiceShareValidity) {
+    if (validity === "Unbegrenzt") return "Unbegrenzt"
+    const days = Number(validity.split(" ")[0]) || 7
+    return addDays(new Date().toISOString().slice(0, 10), days)
+  }
+
+  function createInvoiceShareLink() {
+    const token = Math.random().toString(36).slice(2, 9).toUpperCase()
+    setShareLink("https://share.dreaminvoice.local/rechnung/" + token)
+    setShareExpiry(expiryForShare(shareValidity))
+    setShareStatus("Aktiv")
+    setShareQrVisible(true)
+  }
+
+  function copyInvoiceShareLink() {
+    if (!shareLink) createInvoiceShareLink()
+    const linkToCopy = shareLink || "https://share.dreaminvoice.local/rechnung/demo"
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      void navigator.clipboard.writeText(linkToCopy)
+    }
+    setShareStatus("Kopiert")
+  }
+
+  function updateShareValidity(option: InvoiceShareValidity) {
+    setShareValidity(option)
+    if (shareLink) {
+      setShareExpiry(expiryForShare(option))
+      setShareStatus("Aktiv")
+    }
+  }
+
+  function selectInvoiceOcrUpload(label: string) {
+    setOcrUploadType(label)
+    setOcrFileName(label === "PDF hochladen" ? "rechnung-demo.pdf" : label === "Bild hochladen" ? "rechnung-foto.jpg" : "rechnung-scan.png")
+    setOcrStatus("Datei gewählt")
+  }
+
+  function analyzeInvoiceOcrDocument() {
+    setOcrStatus("Felder erkannt")
+  }
+
+  function applyInvoiceOcrDocument() {
+    setOcrStatus("Rechnung übernommen")
+  }
+
+  function acceptInvoiceOcrAiSuggestion(id: string) {
+    setOcrAiSuggestionState((current) => ({ ...current, [id]: "übernommen" }))
+  }
+
+  function rejectInvoiceOcrAiSuggestion(id: string) {
+    setOcrAiSuggestionState((current) => ({ ...current, [id]: "abgelehnt" }))
+  }
+
+  function selectInvoiceExportFormat(format: InvoiceExportFormat) {
+    setExportFormat(format)
+    setExportStatus(format === "XML" ? "Download vorbereitet" : "Bereit")
+    setExportDownloadName("rechnung-export." + format.toLowerCase())
+  }
+
+  function startInvoiceExportDownload() {
+    setExportStatus("Export gestartet")
+    setExportDownloadName("rechnung-export." + exportFormat.toLowerCase())
+  }
+
+  function updateInvoiceEmailDraft<Key extends keyof typeof emailDraft>(key: Key, value: typeof emailDraft[Key]) {
+    setEmailDraft((draft) => ({ ...draft, [key]: value }))
+    setEmailStatus("Bereit")
+  }
+
+  function prepareInvoiceEmailSend() {
+    if (!emailDraft.to.trim()) {
+      setEmailStatus("Empfänger fehlt")
+      return
+    }
+    setEmailStatus("Versand vorbereitet")
+  }
+
+  function previewInvoiceEmail() {
+    setEmailStatus(emailDraft.to.trim() ? "Bereit" : "Empfänger fehlt")
+  }
+
+  function openInvoiceEditor() {
+    router.push(withPremiumTheme("/dashboard-v2/invoices/new", mode))
+  }
+
+  return (
+    <section className={styles.offersPage} data-view="invoices">
+      <div className={styles.offersIntroBar}>
+        <div className={styles.offersIntroCopy}>
+          <h1>Rechnungen</h1>
+          <p>Erstelle, verwalte und verfolge deine Rechnungen.</p>
+        </div>
+        <div className={styles.offersTopActions} aria-label="Rechnungsaktionen">
+          <button type="button" aria-label="OCR Import" title="OCR Import" onClick={() => setOcrDialogOpen(true)}><Upload size={20} /></button>
+          <button type="button" aria-label="Export" title="Export" onClick={() => setExportDialogOpen(true)}><Download size={20} /></button>
+          <button type="button" aria-label="E-Mail" title="E-Mail" onClick={() => setEmailDialogOpen(true)}><Mail size={20} /></button>
+          <Link href={withPremiumTheme("/dashboard-v2/invoices?q=Drucken", mode)} aria-label="Drucken" title="Drucken"><Printer size={20} /></Link>
+          <button type="button" aria-label="Teilen" title="Teilen" onClick={() => setShareDialogOpen(true)}><Share2 size={20} /></button>
+          <button type="button" aria-label="Vorlagen" title="Vorlagen" onClick={() => setTemplateDialogOpen(true)}><FileText size={20} /></button>
+        </div>
+      </div>
+
+      <article className={styles.panel + " " + styles.offersCreateHero}>
+        <div className={styles.offersCreateIcon}><FileText size={26} /></div>
+        <div className={styles.offersCreateCopy}>
+          <h2>Rechnung erstellen</h2>
+          <p>Erstelle professionelle Rechnungen in wenigen Schritten.</p>
+          <div className={styles.offersHeroActions}>
+            <button type="button" onClick={openInvoiceEditor}>Neue Rechnung</button>
+            <button type="button" onClick={() => { selectInvoiceTemplate(appliedTemplate); setTemplateDialogOpen(true) }}><FileText size={15} />Vorlage verwenden</button>
+          </div>
+          <div className={styles.invoiceTemplateSelectedBadge}>
+            <span>Ausgewählte Vorlage</span>
+            <strong>{appliedTemplate.name}</strong>
+          </div>
+        </div>
+        <div className={styles.offersHeroArt} aria-hidden="true">
+          <div className={styles.offersHeroPaper}>
+            <span>€</span>
+            <i />
+            <i />
+            <i />
+          </div>
+          <div className={styles.offersHeroSheet} />
+          <div className={styles.offersHeroDots} />
+        </div>
+      </article>
+
+      <article className={styles.panel + " " + styles.offersTablePanel}>
+        <div className={styles.offersTableHeader}>
+          <div className={styles.offersTableTitle}>
+            <span><FileText size={19} /></span>
+            <h2>Rechnungsübersicht</h2>
+          </div>
+          <div className={styles.offersTableControls}>
+            <label className={styles.offersSearchControl}>
+              <Search size={19} />
+              <input value={invoiceSearch} onChange={(event) => { setInvoiceSearch(event.target.value); setPage(1) }} placeholder="Rechnung suchen..." aria-label="Rechnung suchen" />
+            </label>
+            <button type="button" className={styles.offersFilterButton}><Filter size={18} />Filter</button>
+            <label className={styles.offersStatusSelect}>
+              <select value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setPage(1) }} aria-label="Status filtern">
+                <option value="all">Status</option>
+                <option value="draft">Entwurf</option>
+                <option value="open">Offen</option>
+                <option value="paid">Bezahlt</option>
+                <option value="overdue">Überfällig</option>
+              </select>
+              <ChevronDown size={17} />
+            </label>
+          </div>
+        </div>
+
+        <div className={styles.offersDataTable}>
+          <div className={styles.offersDataHead}>
+            <span>Rechnungsnummer</span>
+            <span>Kunde</span>
+            <span>Projekt</span>
+            <span>Datum</span>
+            <span>Fällig am</span>
+            <span>Gesamtwert</span>
+            <span>Status</span>
+            <span>Aktionen</span>
+          </div>
+          {visibleInvoices.length ? visibleInvoices.map((invoice) => {
+            const rawDate = String(invoice.date || invoice.createdAt || "").slice(0, 10)
+            const dueDate = String(invoice.dueDate || "").slice(0, 10) || addDays(rawDate, 14)
+            const status = isStatus(invoice.status || "", "paid") ? "accepted" : isStatus(invoice.status || "", "open") ? "open" : isStatus(invoice.status || "", "overdue") ? "rejected" : "draft"
+            return (
+              <div key={invoice.id || invoice.number} className={styles.offersDataRow}>
+                <span className={styles.offerNumberCell}><b><FileText size={18} /></b><strong>{invoice.number}</strong><small>Version 1</small></span>
+                <span><strong>{invoice.customer || "Unbekannter Kunde"}</strong></span>
+                <span>{invoice.project || "Allgemein"}</span>
+                <span>{formatOfferDate(rawDate)}</span>
+                <span>{formatOfferDate(dueDate)}</span>
+                <span><strong>{formatEuro(Number(invoice.grossTotal) || 0)}</strong></span>
+                <span><em data-status={status}>{statusLabel(invoice.status || "draft")}</em></span>
+                <span className={styles.offersRowActions}>
+                  <button type="button" aria-label={invoice.number + " anzeigen"}><Eye size={16} /></button>
+                  <button type="button" aria-label={invoice.number + " bearbeiten"}><Pencil size={16} /></button>
+                  <button type="button" aria-label={invoice.number + " löschen"}><Trash2 size={16} /></button>
+                  <button type="button" aria-label={invoice.number + " mehr"}><MoreVertical size={16} /></button>
+                </span>
+              </div>
+            )
+          }) : (
+            <div className={styles.offersTableEmpty}>Keine Rechnungen gefunden.</div>
+          )}
+        </div>
+
+        <div className={styles.offersPagination}>
+          <span>Zeige {firstVisible} bis {lastVisible} von {filteredInvoices.length} Rechnungen</span>
+          <div>
+            <button type="button" aria-label="Vorherige Seite" disabled={currentPage <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}><ChevronLeft size={17} /></button>
+            <strong>{currentPage}</strong>
+            <button type="button" aria-label="Nächste Seite" disabled={currentPage >= totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))}><ChevronRight size={17} /></button>
+          </div>
+        </div>
+      </article>
+
+      {exportDialogOpen ? (
+        <div className={styles.invoiceTemplateDialogBackdrop} role="presentation">
+          <section className={styles.invoiceTemplateDialog + " " + styles.invoiceExportDialog} role="dialog" aria-modal="true" aria-labelledby="invoice-export-title">
+            <div className={styles.invoiceTemplateDialogHead}>
+              <div>
+                <span>Export</span>
+                <h2 id="invoice-export-title">Rechnungen exportieren</h2>
+              </div>
+              <button type="button" aria-label="Dialog schließen" onClick={() => setExportDialogOpen(false)}><X size={18} /></button>
+            </div>
+
+            <div className={styles.invoiceExportDialogBody}>
+              <section className={styles.invoiceExportPanel}>
+                <h3>Format</h3>
+                <div className={styles.invoiceExportFormats}>
+                  {(["PDF", "CSV", "XML"] as const).map((format) => (
+                    <button key={format} type="button" data-active={exportFormat === format} onClick={() => selectInvoiceExportFormat(format)}>
+                      <FileText size={16} />{format} Export{format === "XML" ? " vorbereiten" : ""}
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              <section className={styles.invoiceExportPanel}>
+                <h3>Download</h3>
+                <div className={styles.invoiceExportDownloadBox}>
+                  <span>Datei</span>
+                  <strong>{exportDownloadName}</strong>
+                  <small>{exportFormat === "XML" ? "XML Export ist vorbereitet und noch ohne Schnittstellenlogik." : "Download wird im UI gestartet."}</small>
+                </div>
+              </section>
+
+              <div className={styles.invoiceExportStatus} data-status={exportStatus}>
+                <span>Exportstatus</span>
+                <strong>{exportStatus}</strong>
+              </div>
+
+              <div className={styles.invoiceExportActions}>
+                <button type="button" onClick={() => setExportStatus("Download vorbereitet")}>Export vorbereiten</button>
+                <button type="button" onClick={startInvoiceExportDownload}><Download size={16} />Download starten</button>
+              </div>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {emailDialogOpen ? (
+        <div className={styles.invoiceTemplateDialogBackdrop} role="presentation">
+          <section className={styles.invoiceTemplateDialog + " " + styles.invoiceEmailDialog} role="dialog" aria-modal="true" aria-labelledby="invoice-email-title">
+            <div className={styles.invoiceTemplateDialogHead}>
+              <div>
+                <span>E-Mail</span>
+                <h2 id="invoice-email-title">Rechnung senden</h2>
+              </div>
+              <button type="button" aria-label="Dialog schließen" onClick={() => setEmailDialogOpen(false)}><X size={18} /></button>
+            </div>
+
+            <div className={styles.invoiceEmailDialogBody}>
+              <div className={styles.invoiceEmailGrid}>
+                <label className={styles.invoiceEmailFull}>
+                  <span>Empfänger E-Mail</span>
+                  <input type="email" value={emailDraft.to} onChange={(event) => updateInvoiceEmailDraft("to", event.target.value)} />
+                </label>
+                <label>
+                  <span>CC</span>
+                  <input type="email" value={emailDraft.cc} onChange={(event) => updateInvoiceEmailDraft("cc", event.target.value)} />
+                </label>
+                <label>
+                  <span>BCC</span>
+                  <input type="email" value={emailDraft.bcc} onChange={(event) => updateInvoiceEmailDraft("bcc", event.target.value)} />
+                </label>
+                <label className={styles.invoiceEmailFull}>
+                  <span>Betreff</span>
+                  <input value={emailDraft.subject} onChange={(event) => updateInvoiceEmailDraft("subject", event.target.value)} />
+                </label>
+                <label className={styles.invoiceEmailFull}>
+                  <span>Nachricht</span>
+                  <textarea rows={5} value={emailDraft.message} onChange={(event) => updateInvoiceEmailDraft("message", event.target.value)} />
+                </label>
+              </div>
+
+              <div className={styles.invoiceEmailAttachment}>
+                <div>
+                  <span>PDF Anhang</span>
+                  <strong>Aktuelle Rechnung automatisch anhängen.</strong>
+                </div>
+                <label>
+                  <input type="checkbox" checked={emailDraft.attachPdf} onChange={(event) => updateInvoiceEmailDraft("attachPdf", event.target.checked)} />
+                  PDF mitsenden
+                </label>
+              </div>
+
+              <div className={styles.invoiceEmailStatus} data-status={emailStatus}>
+                <span>Versandstatus</span>
+                <strong>{emailStatus}</strong>
+                <small>{emailDraft.attachPdf ? "PDF wird automatisch angehängt." : "PDF wird nicht mitgesendet."}</small>
+              </div>
+
+              <div className={styles.invoiceEmailActions}>
+                <button type="button" onClick={previewInvoiceEmail}>Vorschau</button>
+                <button type="button" onClick={prepareInvoiceEmailSend}>Senden</button>
+              </div>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {ocrDialogOpen ? (
+        <div className={styles.invoiceTemplateDialogBackdrop} role="presentation">
+          <section className={styles.invoiceTemplateDialog + " " + styles.invoiceOcrDialog} role="dialog" aria-modal="true" aria-labelledby="invoice-ocr-title">
+            <div className={styles.invoiceTemplateDialogHead}>
+              <div>
+                <span>OCR Import</span>
+                <h2 id="invoice-ocr-title">Dokument importieren</h2>
+              </div>
+              <button type="button" aria-label="Dialog schließen" onClick={() => setOcrDialogOpen(false)}><X size={18} /></button>
+            </div>
+
+            <div className={styles.invoiceOcrDialogBody}>
+              <section className={styles.invoiceOcrUploadPanel}>
+                <h3>Upload</h3>
+                <div className={styles.invoiceOcrUploadActions}>
+                  {["PDF hochladen", "Bild hochladen", "Scan hochladen"].map((label) => (
+                    <button key={label} type="button" data-active={ocrUploadType === label} onClick={() => selectInvoiceOcrUpload(label)}>
+                      <Upload size={16} />{label}
+                    </button>
+                  ))}
+                </div>
+                <div className={styles.invoiceOcrDropzone}>
+                  <FileText size={32} />
+                  <strong>{ocrFileName}</strong>
+                  <span>{ocrUploadType} vorbereitet. Keine komplexe KI-Analyse verbunden.</span>
+                </div>
+                <div className={styles.invoiceOcrPreview}>
+                  <span>Datei-Vorschau</span>
+                  <div>
+                    <strong>{ocrFileName}</strong>
+                    <i />
+                    <i />
+                    <i />
+                    <b>{ocrUploadType.replace(" hochladen", "")}</b>
+                  </div>
+                </div>
+              </section>
+
+              <section className={styles.invoiceOcrRecognitionPanel}>
+                <div className={styles.invoiceOcrPanelTitle}>
+                  <h3>Erkannte Felder</h3>
+                  <span data-status={ocrStatus === "Rechnung übernommen" ? "done" : "ready"}>{ocrStatus}</span>
+                </div>
+                <div className={styles.invoiceOcrFields}>
+                  {invoiceOcrFields.map(([label, value]) => (
+                    <label key={label}>
+                      <span>{label}</span>
+                      <input readOnly value={value} />
+                    </label>
+                  ))}
+                </div>
+              </section>
+
+              <section className={styles.invoiceOcrAiPanel}>
+                <div className={styles.invoiceOcrPanelTitle}>
+                  <h3>KI-Vorschläge</h3>
+                  <span data-status="ready">Analyse vorbereitet</span>
+                </div>
+                <div className={styles.invoiceOcrAiSummary}>
+                  <span>Kunde, Projekt, Artikel, Kostenstelle und Buchungsvorschlag werden als Vorschläge vorbereitet.</span>
+                </div>
+                <div className={styles.invoiceOcrAiList}>
+                  {invoiceOcrAiSuggestions.map((suggestion) => {
+                    const state = ocrAiSuggestionState[suggestion.id] || "offen"
+                    return (
+                      <article key={suggestion.id} data-state={state}>
+                        <div>
+                          <span>{suggestion.label}</span>
+                          <strong>{suggestion.value}</strong>
+                          <small>Trefferquote {suggestion.confidence}</small>
+                        </div>
+                        <div>
+                          <button type="button" onClick={() => acceptInvoiceOcrAiSuggestion(suggestion.id)}>Übernehmen</button>
+                          <button type="button" onClick={() => rejectInvoiceOcrAiSuggestion(suggestion.id)}>Ablehnen</button>
+                        </div>
+                      </article>
+                    )
+                  })}
+                </div>
+              </section>
+
+              <div className={styles.invoiceOcrActions}>
+                <button type="button" onClick={analyzeInvoiceOcrDocument}>Dokument analysieren</button>
+                <button type="button" onClick={applyInvoiceOcrDocument}>Rechnung übernehmen</button>
+              </div>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {shareDialogOpen ? (
+        <div className={styles.invoiceTemplateDialogBackdrop} role="presentation">
+          <section className={styles.invoiceTemplateDialog + " " + styles.invoiceShareDialog} role="dialog" aria-modal="true" aria-labelledby="invoice-share-title">
+            <div className={styles.invoiceTemplateDialogHead}>
+              <div>
+                <span>Rechnungsfreigabe</span>
+                <h2 id="invoice-share-title">Freigabe erstellen</h2>
+              </div>
+              <button type="button" aria-label="Dialog schließen" onClick={() => setShareDialogOpen(false)}><X size={18} /></button>
+            </div>
+
+            <div className={styles.invoiceShareDialogBody}>
+              <section className={styles.invoiceSharePanel}>
+                <div className={styles.invoiceSharePanelTitle}>
+                  <h3>Freigabe</h3>
+                  <span data-status={shareStatus === "Nicht erstellt" ? "draft" : "active"}>{shareStatus}</span>
+                </div>
+                <div className={styles.invoiceShareActions}>
+                  <button type="button" onClick={createInvoiceShareLink}><Share2 size={16} />Link erzeugen</button>
+                  <button type="button" onClick={copyInvoiceShareLink} disabled={!shareLink}><FileText size={16} />{shareStatus === "Kopiert" ? "Kopiert" : "Link kopieren"}</button>
+                  <button type="button" onClick={() => setShareQrVisible((visible) => !visible)} disabled={!shareLink}><Grid3X3 size={16} />QR Code anzeigen</button>
+                </div>
+                <div className={styles.invoiceShareLinkBox} data-empty={!shareLink}>
+                  <span>Freigabelink</span>
+                  <strong>{shareLink || "Noch kein Freigabelink erzeugt"}</strong>
+                </div>
+                <div className={styles.invoiceShareMeta}>
+                  <span>Ablaufdatum</span>
+                  <strong>{shareExpiry || "Noch nicht gespeichert"}</strong>
+                </div>
+              </section>
+
+              <section className={styles.invoiceSharePanel}>
+                <h3>Gültigkeit</h3>
+                <div className={styles.invoiceShareValidity}>
+                  {invoiceShareValidityOptions.map((option) => (
+                    <button key={option} type="button" data-active={shareValidity === option} onClick={() => updateShareValidity(option)}>
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              <section className={styles.invoiceSharePanel}>
+                <h3>Sicherheit</h3>
+                <div className={styles.invoiceShareSecurity}>
+                  <label><input type="checkbox" checked={shareSecurity.password} onChange={(event) => setShareSecurity((current) => ({ ...current, password: event.target.checked }))} />Passwortschutz vorbereiten</label>
+                  <label><input type="checkbox" checked={shareSecurity.download} onChange={(event) => setShareSecurity((current) => ({ ...current, download: event.target.checked }))} />Download erlauben {shareSecurity.download ? "Ja" : "Nein"}</label>
+                  <label><input type="checkbox" checked={shareSecurity.print} onChange={(event) => setShareSecurity((current) => ({ ...current, print: event.target.checked }))} />Drucken erlauben {shareSecurity.print ? "Ja" : "Nein"}</label>
+                </div>
+              </section>
+
+              <div className={styles.invoiceShareQrPreview} data-visible={shareQrVisible && Boolean(shareLink)} aria-label="QR Code Vorschau">
+                <span>QR Code</span>
+                <div>
+                  {Array.from({ length: 25 }).map((_, index) => <i key={index} data-on={Boolean(shareLink) && (index % 2 === 0 || index % 7 === 0 || shareLink.length % (index + 2) === 0)} />)}
+                </div>
+                <strong>{shareQrVisible && shareLink ? "QR-Code sichtbar" : "QR-Code ausgeblendet"}</strong>
+              </div>
+
+              <button type="button" className={styles.invoiceSharePrimary} onClick={createInvoiceShareLink}>Freigabe erstellen</button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {templateDialogOpen ? (
+        <div className={styles.invoiceTemplateDialogBackdrop} role="presentation">
+          <section className={styles.invoiceTemplateDialog} role="dialog" aria-modal="true" aria-labelledby="invoice-template-title">
+            <div className={styles.invoiceTemplateDialogHead}>
+              <div>
+                <span>Rechnungsvorlagen</span>
+                <h2 id="invoice-template-title">Vorlagen verwalten</h2>
+              </div>
+              <button type="button" aria-label="Dialog schließen" onClick={() => setTemplateDialogOpen(false)}><X size={18} /></button>
+            </div>
+
+            <div className={styles.invoiceTemplateDialogBody}>
+              <div className={styles.invoiceTemplateLeft}>
+                <div className={styles.invoiceTemplateTabs} role="tablist" aria-label="Vorlagen Kategorien">
+                  {invoiceTemplateTabs.map((tab) => (
+                    <button key={tab} type="button" role="tab" aria-selected={activeTemplateTab === tab} data-active={activeTemplateTab === tab} onClick={() => {
+                      setActiveTemplateTab(tab)
+                      const nextTemplate = invoiceTemplates.find((template) => template.category === tab)
+                      if (nextTemplate) selectInvoiceTemplate(nextTemplate)
+                    }}>
+                      {tab}
+                    </button>
+                  ))}
+                </div>
+
+                <div className={styles.invoiceTemplateActions} aria-label="Vorlagen Aktionen">
+                  <button type="button" onClick={createInvoiceTemplate}><Plus size={15} />Neue Vorlage</button>
+                  <button type="button" onClick={saveInvoiceTemplate}><Pencil size={15} />Bearbeiten</button>
+                  <button type="button" onClick={duplicateInvoiceTemplate}><FileText size={15} />Duplizieren</button>
+                  <button type="button" onClick={deleteInvoiceTemplate} disabled={invoiceTemplates.length <= 1}><Trash2 size={15} />Löschen</button>
+                  <button type="button" onClick={setDefaultInvoiceTemplate}><CheckCircle2 size={15} />Als Standard setzen</button>
+                </div>
+
+                <div className={styles.invoiceTemplateList}>
+                  {activeTemplates.length ? activeTemplates.map((template) => (
+                    <button key={template.id} type="button" data-active={selectedTemplate.id === template.id} onClick={() => selectInvoiceTemplate(template)}>
+                      <strong>{template.name}{template.isDefault ? " · Standard" : ""}</strong>
+                      <span>{template.description}</span>
+                    </button>
+                  )) : (
+                    <div className={styles.invoiceTemplateEmpty}>Keine Vorlage in dieser Kategorie.</div>
+                  )}
+                </div>
+
+                <div className={styles.invoiceTemplateEditor}>
+                  <label>
+                    <span>Name</span>
+                    <input value={templateDraft.name} onChange={(event) => setTemplateDraft((draft) => ({ ...draft, name: event.target.value }))} />
+                  </label>
+                  <label>
+                    <span>Beschreibung</span>
+                    <textarea rows={3} value={templateDraft.description} onChange={(event) => setTemplateDraft((draft) => ({ ...draft, description: event.target.value }))} />
+                  </label>
+                  <div className={styles.invoiceTemplateEditorActions}>
+                    <button type="button" onClick={saveInvoiceTemplate}>Vorlage speichern</button>
+                    <button type="button" onClick={useInvoiceTemplate}>Vorlage verwenden</button>
+                  </div>
+                </div>
+              </div>
+
+              <aside className={styles.invoiceTemplatePreview} aria-label="DIN A4 Vorschau">
+                <span>DIN A4 Vorschau</span>
+                <div className={styles.invoiceA4Preview}>
+                  <header>
+                    <strong>{selectedTemplate.name}</strong>
+                    <small>{selectedTemplate.isDefault ? "Standard" : "Rechnung"}</small>
+                  </header>
+                  <section>
+                    <i />
+                    <i />
+                    <i />
+                  </section>
+                  <div>
+                    <b />
+                    <b />
+                    <b />
+                    <b />
+                  </div>
+                  <footer>
+                    <em />
+                    <strong />
+                  </footer>
+                </div>
+              </aside>
+            </div>
+          </section>
+        </div>
+      ) : null}
+    </section>
+  )
+}
+
+const OFFERS_PAGE_SIZE = 3
+
+type PremiumOfferRow = {
+  id: string
+  number: string
+  customer: string
+  project: string
+  date: string
+  validUntil: string
+  total: number
+  status: "draft" | "accepted" | "rejected"
+}
+
+const fallbackOfferRows: PremiumOfferRow[] = [
+  { id: "fallback-offer-043", number: "AN-2026-043", customer: "Aurora Labs GmbH", project: "Portal Relaunch", date: "2024-06-01", validUntil: "2024-06-15", total: 15.47, status: "draft" },
+  { id: "fallback-offer-042", number: "AN-2026-042", customer: "Nuovo Labs GmbH", project: "Portal Relaunch", date: "2024-05-28", validUntil: "2024-06-11", total: 15.47, status: "draft" },
+  { id: "fallback-offer-5001", number: "OF-2026-5001", customer: "Meridian Studio GmbH", project: "Webentwicklung", date: "2024-05-20", validUntil: "2024-06-03", total: 1320, status: "accepted" }
+]
+
+function addDays(value: string | undefined, days: number) {
+  const date = value ? new Date(value) : new Date()
+  if (Number.isNaN(date.getTime())) return ""
+  date.setDate(date.getDate() + days)
+  return date.toISOString().slice(0, 10)
+}
+
+function offerStatusFromInvoice(status: string): PremiumOfferRow["status"] {
+  const normalized = status.toLowerCase()
+  if (["accepted", "angenommen", "paid", "bezahlt"].includes(normalized)) return "accepted"
+  if (["rejected", "abgelehnt", "cancelled", "storniert"].includes(normalized)) return "rejected"
+  return "draft"
+}
+
+function offerStatusLabel(status: PremiumOfferRow["status"]) {
+  if (status === "accepted") return "Angenommen"
+  if (status === "rejected") return "Abgelehnt"
+  return "Entwurf"
+}
+
+function formatOfferDate(value: string) {
+  if (!value) return "-"
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  return new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" }).format(date)
+}
+
+function offersFromData(data: PremiumData): PremiumOfferRow[] {
+  const source = invoiceDisplaySource(data).filter((invoice) => invoiceType(invoice) === "offer")
+  if (!source.length) return fallbackOfferRows
+
+  return source.map((invoice, index) => {
+    const date = String(invoice.date || invoice.createdAt || "").slice(0, 10)
+    return {
+      id: invoice.id || invoice.number || "offer-" + index,
+      number: invoice.number || "AN-2026-" + String(index + 1).padStart(3, "0"),
+      customer: invoice.customer || "Unbekannter Kunde",
+      project: invoice.project || "Portal Relaunch",
+      date: date || fallbackOfferRows[index % fallbackOfferRows.length].date,
+      validUntil: String(invoice.dueDate || "").slice(0, 10) || addDays(date, 14) || fallbackOfferRows[index % fallbackOfferRows.length].validUntil,
+      total: Number(invoice.grossTotal) || 0,
+      status: offerStatusFromInvoice(invoice.status || "draft")
+    }
+  })
+}
+
+function PremiumOffersModulePage({ data, mode }: { data: PremiumData; mode: ThemeMode }) {
+  const [offerSearch, setOfferSearch] = useState("")
+  const [statusFilter, setStatusFilter] = useState("all")
+  const [page, setPage] = useState(1)
+  const offerRows = useMemo(() => offersFromData(data), [data])
+  const filteredOffers = useMemo(() => {
+    const normalizedQuery = offerSearch.trim().toLowerCase()
+    return offerRows.filter((offer) => {
+      if (statusFilter !== "all" && offer.status !== statusFilter) return false
+      if (!normalizedQuery) return true
+      return [offer.number, offer.customer, offer.project, formatEuro(offer.total), offerStatusLabel(offer.status)]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalizedQuery)
+    })
+  }, [offerRows, offerSearch, statusFilter])
+  const totalPages = Math.max(1, Math.ceil(filteredOffers.length / OFFERS_PAGE_SIZE))
+  const currentPage = Math.min(page, totalPages)
+  const visibleOffers = filteredOffers.slice((currentPage - 1) * OFFERS_PAGE_SIZE, currentPage * OFFERS_PAGE_SIZE)
+  const firstVisible = filteredOffers.length ? (currentPage - 1) * OFFERS_PAGE_SIZE + 1 : 0
+  const lastVisible = Math.min(currentPage * OFFERS_PAGE_SIZE, filteredOffers.length)
+
+  return (
+    <section className={styles.offersPage} data-view="offers">
+      <div className={styles.offersIntroBar}>
+        <div className={styles.offersIntroCopy}>
+          <h1>Angebote</h1>
+          <p>Erstelle, verwalte und verfolge deine Angebote.</p>
+        </div>
+        <div className={styles.offersTopActions} aria-label="Angebotsaktionen">
+          <Link href={withPremiumTheme("/dashboard-v2/offers?q=Exportieren", mode)} aria-label="Export" title="Export"><Download size={20} /></Link>
+          <Link href={withPremiumTheme("/dashboard-v2/offers?q=E-Mail", mode)} aria-label="E-Mail" title="E-Mail"><Mail size={20} /></Link>
+          <Link href={withPremiumTheme("/dashboard-v2/offers?q=Drucken", mode)} aria-label="Drucken" title="Drucken"><Printer size={20} /></Link>
+          <Link href={withPremiumTheme("/dashboard-v2/offers?q=Teilen", mode)} aria-label="Teilen" title="Teilen"><Share2 size={20} /></Link>
+          <Link href={withPremiumTheme("/dashboard-v2/documents/templates?type=offers", mode)} aria-label="Vorlagen" title="Vorlagen"><FileText size={20} /></Link>
+        </div>
+      </div>
+
+      <article className={styles.panel + " " + styles.offersCreateHero}>
+        <div className={styles.offersCreateIcon}><FileText size={26} /></div>
+        <div className={styles.offersCreateCopy}>
+          <h2>Angebot erstellen</h2>
+          <p>Erstelle professionelle Angebote in wenigen Schritten.</p>
+          <div className={styles.offersHeroActions}>
+            <Link href={withPremiumTheme("/dashboard-v2/offers?q=Angebot%20erstellen", mode)}>Angebot erstellen</Link>
+            <Link href={withPremiumTheme("/dashboard-v2/documents/templates?type=offers", mode)}><FileText size={15} />Vorlage verwenden</Link>
+          </div>
+        </div>
+        <div className={styles.offersHeroArt} aria-hidden="true">
+          <div className={styles.offersHeroPaper}>
+            <span>€</span>
+            <i />
+            <i />
+            <i />
+          </div>
+          <div className={styles.offersHeroSheet} />
+          <div className={styles.offersHeroDots} />
+        </div>
+      </article>
+
+      <article className={styles.panel + " " + styles.offersTablePanel}>
+        <div className={styles.offersTableHeader}>
+          <div className={styles.offersTableTitle}>
+            <span><FileText size={19} /></span>
+            <h2>Angebote Übersicht</h2>
+          </div>
+          <div className={styles.offersTableControls}>
+            <label className={styles.offersSearchControl}>
+              <Search size={19} />
+              <input value={offerSearch} onChange={(event) => { setOfferSearch(event.target.value); setPage(1) }} placeholder="Angebote suchen..." aria-label="Angebote suchen" />
+            </label>
+            <button type="button" className={styles.offersFilterButton}><Filter size={18} />Filter</button>
+            <label className={styles.offersStatusSelect}>
+              <select value={statusFilter} onChange={(event) => { setStatusFilter(event.target.value); setPage(1) }} aria-label="Status filtern">
+                <option value="all">Status</option>
+                <option value="draft">Entwurf</option>
+                <option value="accepted">Angenommen</option>
+                <option value="rejected">Abgelehnt</option>
+              </select>
+              <ChevronDown size={17} />
+            </label>
+          </div>
+        </div>
+
+        <div className={styles.offersDataTable}>
+          <div className={styles.offersDataHead}>
+            <span>Angebotsnummer</span>
+            <span>Kunde</span>
+            <span>Projekt</span>
+            <span>Datum</span>
+            <span>Gültig bis</span>
+            <span>Gesamtwert</span>
+            <span>Status</span>
+            <span>Aktionen</span>
+          </div>
+          {visibleOffers.length ? visibleOffers.map((offer) => (
+            <div key={offer.id} className={styles.offersDataRow}>
+              <span className={styles.offerNumberCell}><b><FileText size={18} /></b><strong>{offer.number}</strong><small>Version 1</small></span>
+              <span><strong>{offer.customer}</strong></span>
+              <span>{offer.project}</span>
+              <span>{formatOfferDate(offer.date)}</span>
+              <span>{formatOfferDate(offer.validUntil)}</span>
+              <span><strong>{formatEuro(offer.total)}</strong></span>
+              <span><em data-status={offer.status}>{offerStatusLabel(offer.status)}</em></span>
+              <span className={styles.offersRowActions}>
+                <button type="button" aria-label={offer.number + " ansehen"}><Eye size={16} /></button>
+                <button type="button" aria-label={offer.number + " bearbeiten"}><Pencil size={16} /></button>
+                <button type="button" aria-label={offer.number + " löschen"}><Trash2 size={16} /></button>
+                <button type="button" aria-label={offer.number + " mehr"}><MoreVertical size={16} /></button>
+              </span>
+            </div>
+          )) : (
+            <div className={styles.offersTableEmpty}>Keine Angebote gefunden.</div>
+          )}
+        </div>
+
+        <div className={styles.offersPagination}>
+          <span>Zeige {firstVisible} bis {lastVisible} von {filteredOffers.length} Angeboten</span>
+          <div>
+            <button type="button" aria-label="Vorherige Seite" disabled={currentPage <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))}><ChevronLeft size={17} /></button>
+            <strong>{currentPage}</strong>
+            <button type="button" aria-label="Nächste Seite" disabled={currentPage >= totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))}><ChevronRight size={17} /></button>
+          </div>
+        </div>
+      </article>
+    </section>
+  )
+}
+
 function PremiumModulePage({
   view,
   settingsSection,
@@ -5081,11 +6306,24 @@ function PremiumModulePage({
   const focus = moduleFocus(view, data)
   const timeline = moduleTimeline(view, data)
   const health = dataHealthFromData(data, view)
+  const isOffersSimpleView = view === "offers"
   const [moduleActionState, setModuleActionState] = useState<WorkflowState>({ type: "idle", message: "" })
   const [isModuleActionSaving, setIsModuleActionSaving] = useState(false)
 
   if (view === "settings" && settingsSection) {
     return <PremiumSettingsSectionContent section={settingsSection} />
+  }
+
+  if (view === "customers") {
+    return <PremiumCustomersModulePage data={data} mode={mode} onDataChange={onDataChange} />
+  }
+
+  if (view === "invoices") {
+    return <PremiumInvoicesModulePage data={data} mode={mode} />
+  }
+
+  if (view === "offers") {
+    return <PremiumOffersModulePage data={data} mode={mode} />
   }
 
   async function openFullPremiumInvoiceEditor() {
@@ -5756,21 +6994,15 @@ function PremiumModulePage({
 
   return (
     <section className={styles.modulePage} data-view={view}>
-      {view !== "settings" ? (
+      {view !== "settings" && !isOffersSimpleView ? (
         <article className={`${styles.panel} ${styles.moduleHero}`}>
           <div>
             <span>{meta.eyebrow}</span>
             <h1>{meta.title}</h1>
             <p>{meta.description}</p>
           </div>
-          {view === "customers" ? (
-            <button type="button" disabled={isModuleActionSaving} onClick={() => openPremiumWorkflow("customers", "Kundenformular geoeffnet. Daten ausfuellen und mit Kunde speichern anlegen.")}><Plus size={18} />{meta.primary}</button>
-          ) : view === "projects" ? (
+          {view === "projects" ? (
             <button type="button" disabled={isModuleActionSaving} onClick={() => openPremiumWorkflow("projects", "Projektformular geoeffnet. Projektdaten ausfuellen und mit Projekt speichern anlegen.")}><Plus size={18} />{meta.primary}</button>
-          ) : view === "invoices" ? (
-            <button type="button" disabled={isModuleActionSaving} onClick={() => void openFullPremiumInvoiceEditor()}><Plus size={18} />{meta.primary}</button>
-          ) : view === "offers" ? (
-            <button type="button" disabled={isModuleActionSaving} onClick={() => void runOfferQuickAction("create")}><Plus size={18} />{meta.primary}</button>
           ) : view === "time" ? (
             <button type="button" disabled={isModuleActionSaving} onClick={() => void runTimeQuickAction("timer")}><Plus size={18} />{meta.primary}</button>
           ) : view === "expenses" ? (
@@ -5793,9 +7025,9 @@ function PremiumModulePage({
         </article>
       ) : null}
 
-      <DataQualityNotice health={health} />
+      {!isOffersSimpleView ? <DataQualityNotice health={health} /> : null}
 
-      {view !== "settings" ? (
+      {view !== "settings" && !isOffersSimpleView ? (
         <section className={styles.moduleStatsGrid}>
           {stats.map(([value, label]) => (
             <article key={`${label}-${value}`} className={`${styles.panel} ${styles.moduleStatCard}`}>
@@ -5809,35 +7041,20 @@ function PremiumModulePage({
       {view === "license" ? <PremiumLicensePanel data={data} mode={mode} searchQuery={searchQuery} /> : null}
       {view === "finance" ? <PremiumFinancePanel mode={mode} searchQuery={searchQuery} /> : null}
       {view !== "finance" ? <PremiumWorkflowPanel view={view} data={data} language={language} mode={mode} searchQuery={searchQuery} onDataChange={onDataChange} /> : null}
-      {view !== "settings" ? <ModuleSelectionPanel view={view} data={data} mode={mode} row={selectedRow} searchQuery={searchQuery} /> : null}
+      {view !== "settings" && !isOffersSimpleView ? <ModuleSelectionPanel view={view} data={data} mode={mode} row={selectedRow} searchQuery={searchQuery} /> : null}
 
       {view !== "settings" ? (
-      <section className={`${styles.moduleGrid} ${view === "finance" ? styles.moduleGridCompact : ""}`}>
-        {view !== "finance" ? (
+      <section className={`${styles.moduleGrid} ${view === "finance" ? styles.moduleGridCompact : ""} ${isOffersSimpleView ? styles.moduleGridSingle : ""}`}>
+        {view !== "finance" && !isOffersSimpleView ? (
         <article className={`${styles.panel} ${styles.moduleCard}`}>
           <div className={styles.panelHead}><h2>Weitere Aktionen</h2><span>Sekundaer & Dev</span></div>
           <details className={styles.moreActions}>
             <summary><ChevronDown size={16} />Sekundaere Aktionen anzeigen</summary>
             <div className={styles.actionStrip}>
-            {view === "customers" ? (
-              <>
-                <button type="button" disabled={isModuleActionSaving} onClick={() => void runCustomerQuickAction("list")}><Search size={16} />Kundenliste</button>
-                <button type="button" disabled={isModuleActionSaving} onClick={() => void runCustomerQuickAction("segment")}><BarChart3 size={16} />Segment pruefen</button>
-              </>
-            ) : view === "projects" ? (
+            {view === "projects" ? (
               <>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runProjectQuickAction("list")}><Search size={16} />Projektliste</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runProjectQuickAction("budget")}><BarChart3 size={16} />Budget pruefen</button>
-              </>
-            ) : view === "invoices" ? (
-              <>
-                <button type="button" disabled={isModuleActionSaving} onClick={() => void runInvoiceQuickAction("prepare")}><Plus size={16} />Rechnung vorbereiten</button>
-                <button type="button" disabled={isModuleActionSaving} onClick={() => void runInvoiceQuickAction("payment")}><BarChart3 size={16} />Zahlung pruefen</button>
-              </>
-            ) : view === "offers" ? (
-              <>
-                <button type="button" disabled={isModuleActionSaving} onClick={() => void runOfferQuickAction("prepare")}><Plus size={16} />Angebot vorbereiten</button>
-                <button type="button" disabled={isModuleActionSaving} onClick={() => void runOfferQuickAction("pipeline")}><BarChart3 size={16} />Pipeline pruefen</button>
               </>
             ) : view === "time" ? (
               <>
@@ -5909,16 +7126,16 @@ function PremiumModulePage({
         </article>
         ) : null}
 
-        <article className={`${styles.panel} ${styles.moduleCard}`}>
+        {!isOffersSimpleView ? <article className={`${styles.panel} ${styles.moduleCard}`}>
           <div className={styles.panelHead}><h2>Fokus</h2><span>Wichtige Werte</span></div>
           <div className={styles.focusList}>
             {focus.map(([label, value]) => (
               <Link key={label} href={withPremiumTheme(moduleSignalHref(view, label, "Fokus"), mode)}><span>{label}</span><strong>{value}</strong></Link>
             ))}
           </div>
-        </article>
+        </article> : null}
 
-        <article className={`${styles.panel} ${styles.timelinePanel}`}>
+        {!isOffersSimpleView ? <article className={`${styles.panel} ${styles.timelinePanel}`}>
           <div className={styles.panelHead}><h2>Aktuell</h2><span>Letzte Ereignisse</span></div>
           <div className={styles.moduleTimeline}>
             {timeline.map(([title, text]) => (
@@ -5928,7 +7145,7 @@ function PremiumModulePage({
               </Link>
             ))}
           </div>
-        </article>
+        </article> : null}
 
         <article className={`${styles.panel} ${styles.moduleTable}`}>
           <div className={styles.panelHead}><h2>{meta.title} Uebersicht</h2><Link href={withPremiumTheme("/dashboard-v2", mode)}>Zurueck zum Dashboard</Link></div>
