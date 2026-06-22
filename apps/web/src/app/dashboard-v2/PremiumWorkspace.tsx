@@ -52,6 +52,8 @@ import {
   Zap
 } from "lucide-react"
 import { PremiumAccountSecurityClient } from "./account/security/PremiumAccountSecurityClient"
+import { DocumentManagementClient } from "./documents/DocumentManagementClient"
+import { ShareReleaseDialog } from "@/components/share/ShareReleaseDialog"
 import { PremiumSettingsSectionContent } from "./settings/PremiumSettingsSectionContent"
 import { type PremiumSettingsSection } from "./settings/sectionMap"
 import { visiblePremiumSettingsNav } from "@/lib/settings-nav"
@@ -5650,7 +5652,6 @@ function PremiumInvoicesModulePage({ data, mode }: { data: PremiumData; mode: Th
           <p>Erstelle professionelle Rechnungen in wenigen Schritten.</p>
           <div className={styles.offersHeroActions}>
             <button type="button" onClick={openInvoiceEditor}>Neue Rechnung</button>
-            <button type="button" onClick={() => { selectInvoiceTemplate(appliedTemplate); setTemplateDialogOpen(true) }}><FileText size={15} />Vorlage verwenden</button>
           </div>
         </div>
         <div className={styles.offersHeroArt} aria-hidden="true">
@@ -5935,69 +5936,7 @@ function PremiumInvoicesModulePage({ data, mode }: { data: PremiumData; mode: Th
       ) : null}
 
       {shareDialogOpen ? (
-        <div className={styles.invoiceTemplateDialogBackdrop} role="presentation">
-          <section className={styles.invoiceTemplateDialog + " " + styles.invoiceShareDialog} role="dialog" aria-modal="true" aria-labelledby="invoice-share-title">
-            <div className={styles.invoiceTemplateDialogHead}>
-              <div>
-                <span>Rechnungsfreigabe</span>
-                <h2 id="invoice-share-title">Freigabe erstellen</h2>
-              </div>
-              <button type="button" aria-label="Dialog schließen" onClick={() => setShareDialogOpen(false)}><X size={18} /></button>
-            </div>
-
-            <div className={styles.invoiceShareDialogBody}>
-              <section className={styles.invoiceSharePanel}>
-                <div className={styles.invoiceSharePanelTitle}>
-                  <h3>Freigabe</h3>
-                  <span data-status={shareStatus === "Nicht erstellt" ? "draft" : "active"}>{shareStatus}</span>
-                </div>
-                <div className={styles.invoiceShareActions}>
-                  <button type="button" onClick={createInvoiceShareLink}><Share2 size={16} />Link erzeugen</button>
-                  <button type="button" onClick={copyInvoiceShareLink} disabled={!shareLink}><FileText size={16} />{shareStatus === "Kopiert" ? "Kopiert" : "Link kopieren"}</button>
-                  <button type="button" onClick={() => setShareQrVisible((visible) => !visible)} disabled={!shareLink}><Grid3X3 size={16} />QR Code anzeigen</button>
-                </div>
-                <div className={styles.invoiceShareLinkBox} data-empty={!shareLink}>
-                  <span>Freigabelink</span>
-                  <strong>{shareLink || "Noch kein Freigabelink erzeugt"}</strong>
-                </div>
-                <div className={styles.invoiceShareMeta}>
-                  <span>Ablaufdatum</span>
-                  <strong>{shareExpiry || "Noch nicht gespeichert"}</strong>
-                </div>
-              </section>
-
-              <section className={styles.invoiceSharePanel}>
-                <h3>Gültigkeit</h3>
-                <div className={styles.invoiceShareValidity}>
-                  {invoiceShareValidityOptions.map((option) => (
-                    <button key={option} type="button" data-active={shareValidity === option} onClick={() => updateShareValidity(option)}>
-                      {option}
-                    </button>
-                  ))}
-                </div>
-              </section>
-
-              <section className={styles.invoiceSharePanel}>
-                <h3>Sicherheit</h3>
-                <div className={styles.invoiceShareSecurity}>
-                  <label><input type="checkbox" checked={shareSecurity.password} onChange={(event) => setShareSecurity((current) => ({ ...current, password: event.target.checked }))} />Passwortschutz vorbereiten</label>
-                  <label><input type="checkbox" checked={shareSecurity.download} onChange={(event) => setShareSecurity((current) => ({ ...current, download: event.target.checked }))} />Download erlauben {shareSecurity.download ? "Ja" : "Nein"}</label>
-                  <label><input type="checkbox" checked={shareSecurity.print} onChange={(event) => setShareSecurity((current) => ({ ...current, print: event.target.checked }))} />Drucken erlauben {shareSecurity.print ? "Ja" : "Nein"}</label>
-                </div>
-              </section>
-
-              <div className={styles.invoiceShareQrPreview} data-visible={shareQrVisible && Boolean(shareLink)} aria-label="QR Code Vorschau">
-                <span>QR Code</span>
-                <div>
-                  {Array.from({ length: 25 }).map((_, index) => <i key={index} data-on={Boolean(shareLink) && (index % 2 === 0 || index % 7 === 0 || shareLink.length % (index + 2) === 0)} />)}
-                </div>
-                <strong>{shareQrVisible && shareLink ? "QR-Code sichtbar" : "QR-Code ausgeblendet"}</strong>
-              </div>
-
-              <button type="button" className={styles.invoiceSharePrimary} onClick={createInvoiceShareLink}>Freigabe erstellen</button>
-            </div>
-          </section>
-        </div>
+        <ShareReleaseDialog label="Rechnungsfreigabe" itemName="Rechnung" itemUrl="/dashboard-v2/invoices" onClose={() => setShareDialogOpen(false)} />
       ) : null}
 
       {templateDialogOpen ? (
@@ -6357,7 +6296,6 @@ function PremiumOffersModulePage({ data, mode }: { data: PremiumData; mode: Them
           <p>Erstelle professionelle Angebote in wenigen Schritten.</p>
           <div className={styles.offersHeroActions}>
             <button type="button" onClick={openOfferCreate}>Angebot erstellen</button>
-            <button type="button" onClick={() => { selectOfferTemplate(appliedTemplate); setTemplateDialogOpen(true) }}><FileText size={15} />Vorlage verwenden</button>
           </div>
         </div>
         <div className={styles.offersHeroArt} aria-hidden="true">
@@ -6516,60 +6454,7 @@ function PremiumOffersModulePage({ data, mode }: { data: PremiumData; mode: Them
       ) : null}
 
       {shareDialogOpen ? (
-        <div className={styles.invoiceTemplateDialogBackdrop} role="presentation">
-          <section className={styles.invoiceTemplateDialog + " " + styles.invoiceShareDialog} role="dialog" aria-modal="true" aria-labelledby="offer-share-title">
-            <div className={styles.invoiceTemplateDialogHead}>
-              <div>
-                <span>Angebotsfreigabe</span>
-                <h2 id="offer-share-title">Freigabe erstellen</h2>
-              </div>
-              <button type="button" aria-label="Dialog schließen" onClick={() => setShareDialogOpen(false)}><X size={18} /></button>
-            </div>
-            <div className={styles.invoiceShareDialogBody}>
-              <section className={styles.invoiceSharePanel}>
-                <div className={styles.invoiceSharePanelTitle}>
-                  <h3>Freigabe</h3>
-                  <span data-status={shareStatus === "Nicht erstellt" ? "draft" : "active"}>{shareStatus}</span>
-                </div>
-                <div className={styles.invoiceShareActions}>
-                  <button type="button" onClick={createOfferShareLink}><Share2 size={16} />Link erzeugen</button>
-                  <button type="button" onClick={copyOfferShareLink}><FileText size={16} />{shareStatus === "Kopiert" ? "Kopiert" : "Link kopieren"}</button>
-                  <button type="button" onClick={() => setShareQrVisible((visible) => !visible)} disabled={!shareLink}><Grid3X3 size={16} />QR-Code anzeigen</button>
-                </div>
-                <div className={styles.invoiceShareLinkBox} data-empty={!shareLink}>
-                  <span>Freigabelink</span>
-                  <strong>{shareLink || "Noch kein Freigabelink erzeugt"}</strong>
-                </div>
-                <div className={styles.invoiceShareMeta}>
-                  <span>Ablaufdatum</span>
-                  <strong>{shareExpiry || "Noch nicht gespeichert"}</strong>
-                </div>
-              </section>
-              <section className={styles.invoiceSharePanel}>
-                <h3>Gültigkeit</h3>
-                <div className={styles.invoiceShareValidity}>
-                  {invoiceShareValidityOptions.map((option) => (
-                    <button key={option} type="button" data-active={shareValidity === option} onClick={() => updateOfferShareValidity(option)}>{option}</button>
-                  ))}
-                </div>
-              </section>
-              <section className={styles.invoiceSharePanel}>
-                <h3>Sicherheit</h3>
-                <div className={styles.invoiceShareSecurity}>
-                  <label><input type="checkbox" checked={shareSecurity.password} onChange={(event) => setShareSecurity((current) => ({ ...current, password: event.target.checked }))} />Passwortschutz</label>
-                  <label><input type="checkbox" checked={shareSecurity.download} onChange={(event) => setShareSecurity((current) => ({ ...current, download: event.target.checked }))} />Download erlauben {shareSecurity.download ? "Ja" : "Nein"}</label>
-                  <label><input type="checkbox" checked={shareSecurity.print} onChange={(event) => setShareSecurity((current) => ({ ...current, print: event.target.checked }))} />Drucken erlauben {shareSecurity.print ? "Ja" : "Nein"}</label>
-                </div>
-              </section>
-              <div className={styles.invoiceShareQrPreview} data-visible={shareQrVisible && Boolean(shareLink)} aria-label="QR-Code Vorschau">
-                <span>QR-Code</span>
-                <div>{Array.from({ length: 25 }).map((_, index) => <i key={index} data-on={Boolean(shareLink) && (index % 2 === 0 || index % 7 === 0 || shareLink.length % (index + 2) === 0)} />)}</div>
-                <strong>{shareQrVisible && shareLink ? "QR-Code sichtbar" : "QR-Code ausgeblendet"}</strong>
-              </div>
-              <button type="button" className={styles.invoiceSharePrimary} onClick={createOfferShareLink}>Freigabe erstellen</button>
-            </div>
-          </section>
-        </div>
+        <ShareReleaseDialog label="Angebotsfreigabe" itemName="Angebot" itemUrl="/dashboard-v2/offers" onClose={() => setShareDialogOpen(false)} />
       ) : null}
 
       {templateDialogOpen ? (
@@ -6914,7 +6799,7 @@ function PremiumModulePage({
   }
 
   if (view === "documents") {
-    return <PremiumDocumentsModulePage mode={mode} />
+    return <DocumentManagementClient />
   }
 
   async function openFullPremiumInvoiceEditor() {

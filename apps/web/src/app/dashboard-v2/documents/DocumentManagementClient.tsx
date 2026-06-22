@@ -1,30 +1,25 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from "react"
+import { type MouseEvent as ReactMouseEvent, useEffect, useMemo, useState } from "react"
 import {
-  Archive,
-  CheckCircle2,
-  ChevronDown,
-  Clock3,
+  ArrowLeft,
   Download,
+  Edit3,
   Eye,
   FileImage,
-  FilePlus2,
   FileText,
-  Filter,
-  FolderPlus,
-  History,
-  ImageIcon,
-  Layers3,
-  Link2,
-  MoreHorizontal,
+  Mail,
+  Maximize2,
+  Printer,
+  ScanLine,
   Search,
   Share2,
-  Sparkles,
-  Tags,
-  Upload
+  Square,
+  Trash2,
+  X
 } from "lucide-react"
+import { ShareReleaseDialog } from "../../../components/share/ShareReleaseDialog"
 import styles from "./DocumentManagement.module.css"
 
 type Option = { id: string; name?: string; number?: string }
@@ -42,9 +37,9 @@ type DmsDocument = {
   customer?: Option | null
   project?: Option | null
   invoice?: { id: string; number: string; type?: string | null } | null
+  createdBy?: string | { name?: string; email?: string } | null
   downloadUrl: string
 }
-type Options = { customers: Option[]; projects: Option[]; invoices: Option[]; offers: Option[] }
 
 const typeOptions = [
   ["invoice", "Rechnungen"],
@@ -52,18 +47,20 @@ const typeOptions = [
   ["contract", "Vertraege"],
   ["delivery_note", "Lieferscheine"],
   ["attachment", "Anhaenge"],
-  ["project_file", "Projektdateien"]
+  ["project_file", "Projektdateien"],
+  ["template", "Vorlagen"]
 ]
 
 const tabs = [
-  ["all", "Alle Dokumente"],
+  ["all", "Alle"],
   ["invoice", "Rechnungen"],
   ["offer", "Angebote"],
   ["project_file", "Projekte"],
   ["customer", "Kunden"],
   ["contract", "Vertraege"],
   ["template", "Vorlagen"],
-  ["archive", "Archiv"]
+  ["archive", "Archiv"],
+  ["new_folder", "Neu Ordner"]
 ]
 
 const statusLabels: Record<string, string> = {
@@ -71,13 +68,138 @@ const statusLabels: Record<string, string> = {
   prepared: "Vorbereitet",
   active: "Aktiv",
   processed: "Verarbeitet",
-  archived: "Archiviert"
+  archived: "Archiviert",
+  paid: "Bezahlt",
+  accepted: "Angenommen",
+  sent: "Versendet",
+  draft: "Entwurf",
+  overdue: "Ueberfaellig"
 }
 
-const ocrSteps = [
-  { label: "Vorbereitet", value: "prepared" },
-  { label: "Aktiv", value: "active" },
-  { label: "Verarbeitet", value: "processed" }
+const sampleDocuments: DmsDocument[] = [
+  {
+    id: "sample-re-2026-001",
+    name: "RE-2026-001.pdf",
+    originalName: "RE-2026-001.pdf",
+    documentType: "invoice",
+    mimeType: "application/pdf",
+    size: 256 * 1024,
+    status: "paid",
+    version: 1,
+    createdAt: "2026-05-24T10:45:00.000Z",
+    customer: { id: "sample-customer-1", name: "Muster GmbH" },
+    project: { id: "sample-project-1", name: "Website Relaunch" },
+    invoice: { id: "sample-invoice-1", number: "RE-2026-001" },
+    createdBy: "Max Mustermann",
+    downloadUrl: "#"
+  },
+  {
+    id: "sample-re-2026-002",
+    name: "RE-2026-002.xlsx",
+    originalName: "RE-2026-002.xlsx",
+    documentType: "invoice",
+    mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    size: 98 * 1024,
+    status: "open",
+    version: 1,
+    createdAt: "2026-05-23T16:32:00.000Z",
+    customer: { id: "sample-customer-2", name: "Beispiel AG" },
+    project: { id: "sample-project-2", name: "SEO Optimierung" },
+    invoice: { id: "sample-invoice-2", number: "RE-2026-002" },
+    createdBy: "Max Mustermann",
+    downloadUrl: "#"
+  },
+  {
+    id: "sample-an-2026-001",
+    name: "AN-2026-001.pdf",
+    originalName: "AN-2026-001.pdf",
+    documentType: "offer",
+    mimeType: "application/pdf",
+    size: 187 * 1024,
+    status: "accepted",
+    version: 1,
+    createdAt: "2026-05-22T14:22:00.000Z",
+    customer: { id: "sample-customer-3", name: "Kreativwerkstatt" },
+    project: { id: "sample-project-3", name: "Logo Design" },
+    createdBy: "Max Mustermann",
+    downloadUrl: "#"
+  },
+  {
+    id: "sample-contract",
+    name: "Vertrag_MusterGmbH.docx",
+    originalName: "Vertrag_MusterGmbH.docx",
+    documentType: "contract",
+    mimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    size: 120 * 1024,
+    status: "active",
+    version: 1,
+    createdAt: "2026-05-20T09:15:00.000Z",
+    customer: { id: "sample-customer-1", name: "Muster GmbH" },
+    project: { id: "sample-project-4", name: "Wartungsvertrag" },
+    createdBy: "Max Mustermann",
+    downloadUrl: "#"
+  },
+  {
+    id: "sample-delivery",
+    name: "Lieferschein_2026-001.pdf",
+    originalName: "Lieferschein_2026-001.pdf",
+    documentType: "delivery_note",
+    mimeType: "application/pdf",
+    size: 142 * 1024,
+    status: "sent",
+    version: 1,
+    createdAt: "2026-05-19T13:05:00.000Z",
+    customer: { id: "sample-customer-2", name: "Beispiel AG" },
+    project: { id: "sample-project-5", name: "Webentwicklung" },
+    createdBy: "Max Mustermann",
+    downloadUrl: "#"
+  },
+  {
+    id: "sample-presentation",
+    name: "Praesentation_Projekt.pptx",
+    originalName: "Praesentation_Projekt.pptx",
+    documentType: "attachment",
+    mimeType: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    size: 3.2 * 1024 * 1024,
+    status: "draft",
+    version: 1,
+    createdAt: "2026-05-18T11:11:00.000Z",
+    customer: { id: "sample-customer-3", name: "Kreativwerkstatt" },
+    project: { id: "sample-project-6", name: "Pitch Deck" },
+    createdBy: "Max Mustermann",
+    downloadUrl: "#"
+  },
+  {
+    id: "sample-re-2026-003",
+    name: "RE-2026-003.pdf",
+    originalName: "RE-2026-003.pdf",
+    documentType: "invoice",
+    mimeType: "application/pdf",
+    size: 221 * 1024,
+    status: "overdue",
+    version: 1,
+    createdAt: "2026-05-17T08:43:00.000Z",
+    customer: { id: "sample-customer-4", name: "Technik GmbH" },
+    project: { id: "sample-project-7", name: "Wartung & Support" },
+    invoice: { id: "sample-invoice-3", number: "RE-2026-003" },
+    createdBy: "Max Mustermann",
+    downloadUrl: "#"
+  },
+  {
+    id: "sample-costs",
+    name: "Kostenaufstellung.xlsx",
+    originalName: "Kostenaufstellung.xlsx",
+    documentType: "attachment",
+    mimeType: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    size: 75 * 1024,
+    status: "draft",
+    version: 1,
+    createdAt: "2026-05-16T15:30:00.000Z",
+    customer: { id: "sample-customer-4", name: "Technik GmbH" },
+    project: { id: "sample-project-7", name: "Wartung & Support" },
+    createdBy: "Max Mustermann",
+    downloadUrl: "#"
+  }
 ]
 
 function formatSize(bytes: number) {
@@ -94,28 +216,38 @@ function documentTypeLabel(type: string) {
   return typeOptions.find(([value]) => value === type)?.[1] || type
 }
 
-function isImage(document?: DmsDocument) {
-  return Boolean(document?.mimeType?.startsWith("image/"))
-}
-
-function isPdf(document?: DmsDocument) {
-  return document?.mimeType === "application/pdf"
+type EditDraft = {
+  id: string
+  name: string
+  customer: string
+  project: string
+  documentType: string
+  status: string
+  date: string
 }
 
 export function DocumentManagementClient() {
   const [documents, setDocuments] = useState<DmsDocument[]>([])
-  const [options, setOptions] = useState<Options>({ customers: [], projects: [], invoices: [], offers: [] })
-  const [cards, setCards] = useState({ total: 0, recentUploads: 0, open: 0 })
   const [notice, setNotice] = useState("")
-  const [busy, setBusy] = useState(false)
   const [activeTab, setActiveTab] = useState("all")
   const [selectedId, setSelectedId] = useState("")
   const [multiSelect, setMultiSelect] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [deletedIds, setDeletedIds] = useState<string[]>([])
+  const [documentEdits, setDocumentEdits] = useState<Record<string, Partial<DmsDocument>>>({})
+  const [editDraft, setEditDraft] = useState<EditDraft | null>(null)
+  const [editOffset, setEditOffset] = useState({ x: 0, y: 0 })
+  const [editDragStart, setEditDragStart] = useState<{ x: number; y: number; offsetX: number; offsetY: number } | null>(null)
+  const [folderDraft, setFolderDraft] = useState("")
+  const [folders, setFolders] = useState<string[]>([])
+  const [shareDocumentId, setShareDocumentId] = useState("")
+  const [previewZoom, setPreviewZoom] = useState(94)
+  const [previewOffset, setPreviewOffset] = useState({ x: 0, y: 0 })
+  const [dragStart, setDragStart] = useState<{ x: number; y: number; offsetX: number; offsetY: number } | null>(null)
+  const [previewStatus, setPreviewStatus] = useState("")
   const [filters, setFilters] = useState({ q: "", type: "", customer: "", project: "", date: "" })
-  const [draft, setDraft] = useState({ name: "", documentType: "attachment", status: "open", version: "1", customerId: "", projectId: "", invoiceId: "", offerInvoiceId: "" })
-  const [file, setFile] = useState<File | null>(null)
 
-  const tabType = activeTab === "all" || activeTab === "customer" || activeTab === "template" || activeTab === "archive" ? "" : activeTab
+  const tabType = activeTab === "all" || activeTab === "customer" || activeTab === "archive" || activeTab === "new_folder" ? "" : activeTab
   const effectiveFilters = useMemo(() => ({ ...filters, type: filters.type || tabType }), [filters, tabType])
   const query = useMemo(() => new URLSearchParams(Object.entries(effectiveFilters).filter(([, value]) => value)), [effectiveFilters])
 
@@ -127,251 +259,475 @@ export function DocumentManagementClient() {
       return
     }
     setDocuments(result.documents || [])
-    setCards(result.cards || { total: 0, recentUploads: 0, open: 0 })
-    setSelectedId((current) => current || result.documents?.[0]?.id || "")
   }
 
   useEffect(() => {
     void loadDocuments()
   }, [query])
 
-  useEffect(() => {
-    fetch("/api/document-management/options", { cache: "no-store" })
-      .then((response) => response.json())
-      .then((result) => {
-        if (result?.ok) setOptions({ customers: result.customers || [], projects: result.projects || [], invoices: result.invoices || [], offers: result.offers || [] })
-      })
-      .catch(() => null)
-  }, [])
+  const visibleDocuments = useMemo(() => {
+    const baseDocuments = (documents.length ? documents : sampleDocuments).map((document) => ({ ...document, ...documentEdits[document.id] }))
+    const query = filters.q.trim().toLowerCase()
+    const type = filters.type || tabType
+    return baseDocuments.filter((document) => {
+      if (deletedIds.includes(document.id)) return false
+      if (activeTab === "customer" && !document.customer?.name) return false
+      if (activeTab === "archive" && document.status !== "archived") return false
+      if (type && document.documentType !== type) return false
+      if (!query) return true
+      return [document.name, document.customer?.name, document.project?.name, documentTypeLabel(document.documentType), statusLabels[document.status] || document.status].filter(Boolean).join(" ").toLowerCase().includes(query)
+    })
+  }, [activeTab, deletedIds, documentEdits, documents, filters.q, filters.type, tabType])
 
-  const selectedDocument = documents.find((document) => document.id === selectedId) || documents[0]
-  const totalBytes = documents.reduce((sum, document) => sum + document.size, 0)
-  const storageLimit = 10 * 1024 * 1024 * 1024
-  const storagePercent = Math.min(100, Math.round((totalBytes / storageLimit) * 100))
-  const imageCount = documents.filter((document) => document.mimeType.startsWith("image/")).length
-  const pdfCount = documents.filter((document) => document.mimeType === "application/pdf").length
-  const ocrProcessed = documents.filter((document) => ["processed", "verarbeitet"].includes(document.status)).length
-  const openAssignments = documents.filter((document) => !document.customer && !document.project && !document.invoice).length
-
-  function updateDraft(key: keyof typeof draft, value: string) {
-    setDraft((current) => ({ ...current, [key]: value }))
-  }
+  const selectedDocument = visibleDocuments.find((document) => document.id === selectedId)
+  const documentForShare = visibleDocuments.find((document) => document.id === shareDocumentId)
+  const allVisibleSelected = visibleDocuments.length > 0 && visibleDocuments.every((document) => selectedIds.includes(document.id))
 
   function updateFilter(key: keyof typeof filters, value: string) {
     setFilters((current) => ({ ...current, [key]: value }))
   }
 
-  async function handleUpload(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (!file) {
-      setNotice("Bitte zuerst eine Datei auswaehlen.")
+  function selectDocument(document: DmsDocument) {
+    if (multiSelect) {
+      setSelectedIds((current) => {
+        const next = current.includes(document.id) ? current.filter((id) => id !== document.id) : [...current, document.id]
+        if (!next.length) setMultiSelect(false)
+        return next
+      })
       return
     }
+    setSelectedId(document.id)
+  }
 
-    setBusy(true)
+  function toggleAllSelection() {
+    setActiveTab("all")
+    setSelectedId("")
+    setSelectedIds((current) => {
+      const visibleIds = visibleDocuments.map((document) => document.id)
+      const allSelected = visibleIds.length > 0 && visibleIds.every((id) => current.includes(id))
+      if (allSelected) {
+        setMultiSelect(false)
+        return []
+      }
+      setMultiSelect(true)
+      return Array.from(new Set([...current, ...visibleIds]))
+    })
+  }
+
+  function closePreview() {
+    setSelectedId("")
+    setPreviewStatus("")
+    setPreviewZoom(94)
+    setPreviewOffset({ x: 0, y: 0 })
+    setDragStart(null)
+  }
+
+  function documentUrl(documentItem: DmsDocument) {
+    if (documentItem.downloadUrl === "#") return window.location.href
+    return documentItem.downloadUrl
+  }
+
+  function selectedDocumentUrl() {
+    if (!selectedDocument) return window.location.href
+    return documentUrl(selectedDocument)
+  }
+
+  function downloadDocument(documentItem: DmsDocument) {
+    const link = document.createElement("a")
+    link.href = documentItem.downloadUrl === "#" ? window.location.href : `${documentItem.downloadUrl}?download=1`
+    link.download = documentItem.name
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+  }
+
+  function downloadPreview() {
+    if (!selectedDocument) return
+    downloadDocument(selectedDocument)
+    setPreviewStatus("Download gestartet.")
+  }
+
+  function printPreview() {
+    setPreviewStatus("Druckdialog geoeffnet.")
+    window.print()
+  }
+
+  async function copyShareLink(value: string) {
+    try {
+      await navigator.clipboard?.writeText(value)
+      return "Link kopiert."
+    } catch {
+      const input = document.createElement("input")
+      input.value = value
+      input.setAttribute("readonly", "true")
+      input.style.position = "fixed"
+      input.style.opacity = "0"
+      document.body.appendChild(input)
+      input.select()
+      document.execCommand("copy")
+      input.remove()
+      return "Link kopiert."
+    }
+  }
+
+  function openShareDialog(documentItem: DmsDocument) {
+    setShareDocumentId(documentItem.id)
     setNotice("")
-    const formData = new FormData()
-    formData.set("file", file)
-    Object.entries(draft).forEach(([key, value]) => formData.set(key, value))
+  }
 
-    const response = await fetch("/api/document-management/upload", { method: "POST", body: formData })
-    const result = await response.json().catch(() => null)
-    setBusy(false)
-
-    if (!response.ok || !result?.ok) {
-      setNotice(result?.error || "Upload fehlgeschlagen.")
-      return
+  async function sharePreview() {
+    if (!selectedDocument) return
+    try {
+      setShareDocumentId(selectedDocument.id)
+      setPreviewStatus("Freigabe geoeffnet.")
+    } catch {
+      setPreviewStatus("Teilen abgebrochen.")
     }
+  }
 
-    setNotice("Dokument wurde hochgeladen und zugeordnet.")
-    setDraft({ name: "", documentType: "attachment", status: "open", version: "1", customerId: "", projectId: "", invoiceId: "", offerInvoiceId: "" })
-    setFile(null)
-    const input = document.querySelector<HTMLInputElement>("[data-dms-file]")
-    if (input) input.value = ""
-    await loadDocuments()
+  function emailPreview() {
+    if (!selectedDocument) return
+    const subject = encodeURIComponent(`Dokument ${selectedDocument.name}`)
+    const body = encodeURIComponent(`Hallo,\n\nhier ist das Dokument: ${selectedDocument.name}\n${selectedDocumentUrl()}\n`)
+    window.location.href = `mailto:?subject=${subject}&body=${body}`
+    setPreviewStatus("E-Mail vorbereitet.")
+  }
+
+  function scanPreview() {
+    setPreviewStatus("Scan/OCR vorbereitet.")
+  }
+
+  function editDocument(documentItem: DmsDocument) {
+    setEditDraft({
+      id: documentItem.id,
+      name: documentItem.name,
+      customer: documentItem.customer?.name || "",
+      project: documentItem.project?.name || "",
+      documentType: documentItem.documentType,
+      status: documentItem.status,
+      date: documentItem.createdAt.slice(0, 10)
+    })
+    setEditOffset({ x: 0, y: 0 })
+    setNotice("")
+  }
+
+  function updateEditDraft(key: keyof EditDraft, value: string) {
+    setEditDraft((current) => current ? { ...current, [key]: value } : current)
+  }
+
+  function saveEditDraft() {
+    if (!editDraft) return
+    const original = visibleDocuments.find((document) => document.id === editDraft.id)
+    if (!original) return
+    const nextCreatedAt = editDraft.date ? `${editDraft.date}T${original.createdAt.slice(11, 19) || "10:00:00"}.000Z` : original.createdAt
+    const nextDocument: Partial<DmsDocument> = {
+      name: editDraft.name.trim() || original.name,
+      originalName: editDraft.name.trim() || original.originalName,
+      documentType: editDraft.documentType,
+      status: editDraft.status,
+      createdAt: nextCreatedAt,
+      customer: { ...(original.customer || { id: `${editDraft.id}-customer` }), name: editDraft.customer.trim() || "-" },
+      project: { ...(original.project || { id: `${editDraft.id}-project` }), name: editDraft.project.trim() || "-" }
+    }
+    setDocumentEdits((current) => ({ ...current, [editDraft.id]: { ...current[editDraft.id], ...nextDocument } }))
+    setEditDraft(null)
+    setEditDragStart(null)
+    setNotice(`Dokument aktualisiert: ${nextDocument.name}`)
+  }
+
+  function deleteDocument(documentItem: DmsDocument) {
+    if (!window.confirm(`${documentItem.name} wirklich loeschen?`)) return
+    setDeletedIds((current) => [...new Set([...current, documentItem.id])])
+    setSelectedIds((current) => {
+      const next = current.filter((id) => id !== documentItem.id)
+      if (!next.length) setMultiSelect(false)
+      return next
+    })
+    if (selectedId === documentItem.id) setSelectedId("")
+    setNotice(`Dokument geloescht: ${documentItem.name}`)
+  }
+
+  function toggleFullscreen() {
+    setPreviewOffset({ x: 0, y: 0 })
+    setPreviewZoom(104)
+    setPreviewStatus("DIN-A4 Ansicht angepasst.")
+  }
+
+  function createFolder() {
+    const name = folderDraft.trim()
+    if (!name) return
+    setFolders((current) => current.includes(name) ? current : [...current, name])
+    setFolderDraft("")
+    setActiveTab("new_folder")
+    setNotice(`Ordner erstellt: ${name}`)
+  }
+
+  function startEditDrag(event: ReactMouseEvent<HTMLElement>) {
+    if (window.innerWidth < 769) return
+    setEditDragStart({ x: event.clientX, y: event.clientY, offsetX: editOffset.x, offsetY: editOffset.y })
+  }
+
+  function moveEditDialog(event: ReactMouseEvent<HTMLDivElement>) {
+    if (!editDragStart) return
+    setEditOffset({
+      x: editDragStart.offsetX + event.clientX - editDragStart.x,
+      y: editDragStart.offsetY + event.clientY - editDragStart.y
+    })
+  }
+
+  function startDrag(event: ReactMouseEvent<HTMLElement>) {
+    if (window.innerWidth < 769) return
+    setDragStart({ x: event.clientX, y: event.clientY, offsetX: previewOffset.x, offsetY: previewOffset.y })
+  }
+
+  function movePreview(event: ReactMouseEvent<HTMLDivElement>) {
+    if (!dragStart) return
+    setPreviewOffset({
+      x: dragStart.offsetX + event.clientX - dragStart.x,
+      y: dragStart.offsetY + event.clientY - dragStart.y
+    })
   }
 
   return (
     <main className={styles.page}>
       <div className={styles.shell}>
         <header className={styles.header}>
-          <div>
-            <span className={styles.eyebrow}>Premium Dokumentencenter</span>
-            <h1>Dokumentenmanagement</h1>
+          <Link className={styles.backButton} href="/dashboard-v2" aria-label="Zurueck">
+            <ArrowLeft size={18} />
+          </Link>
+          <div className={styles.titleBlock}>
+            <h1>Dokumente</h1>
             <p>Arbeitszentrale fuer Uploads, Vorschau, Zuordnung, Versionen, OCR-Vorbereitung und Archivierung.</p>
-          </div>
-          <div className={styles.headerActions}>
-            <Link className={styles.secondaryButton} href="/dashboard-v2"><Archive size={16} />Dashboard</Link>
-            <label className={styles.primaryButton}>
-              <Upload size={16} />
-              Hochladen
-              <input className={styles.hiddenInput} data-dms-file type="file" accept=".pdf,.docx,.xlsx,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" onChange={(event: ChangeEvent<HTMLInputElement>) => setFile(event.target.files?.[0] ?? null)} />
-            </label>
           </div>
         </header>
 
-        <section className={styles.kpis}>
-          <article><span>Dokumente gesamt</span><strong>{cards.total}</strong><p>Alle Dateien im DMS</p></article>
-          <article><span>Uploads heute</span><strong>{cards.recentUploads}</strong><p>Aktuelle Upload-Aktivitaet</p></article>
-          <article><span>Speicherplatz</span><strong>{formatSize(totalBytes)}</strong><p>{storagePercent}% von 10 GB genutzt</p></article>
-          <article><span>OCR-Verarbeitet</span><strong>{ocrProcessed}</strong><p>Vorbereitete Verarbeitung</p></article>
-          <article><span>Offene Zuordnungen</span><strong>{openAssignments || cards.open}</strong><p>Kunde, Projekt oder Beleg fehlt</p></article>
-        </section>
-
-        <section className={styles.tabs} aria-label="Dokumentbereiche">
-          {tabs.map(([value, label]) => (
-            <button className={activeTab === value ? styles.activeTab : ""} key={value} type="button" onClick={() => setActiveTab(value)}>
-              {label}
-            </button>
-          ))}
-        </section>
-
-        <section className={styles.toolbar}>
-          <button className={styles.primaryButton} type="button" onClick={() => document.querySelector<HTMLInputElement>("[data-dms-file]")?.click()}><Upload size={16} />Dokument hochladen</button>
-          <button className={styles.toolButton} type="button"><FolderPlus size={16} />Ordner erstellen</button>
-          <button className={multiSelect ? styles.activeToolButton : styles.toolButton} type="button" onClick={() => setMultiSelect((current) => !current)}><Layers3 size={16} />Mehrfachauswahl</button>
-          <div className={styles.searchBox}><Search size={16} /><input aria-label="Dokumente suchen" value={filters.q} onChange={(event) => updateFilter("q", event.target.value)} placeholder="Suche nach Name, Kunde, Projekt" /></div>
-          <select aria-label="Filter" value={filters.type} onChange={(event) => updateFilter("type", event.target.value)}>
-            <option value="">Filter</option>
-            {typeOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-          </select>
-          <select aria-label="Sortierung" defaultValue="date-desc">
-            <option value="date-desc">Neueste zuerst</option>
-            <option value="name-asc">Name A-Z</option>
-            <option value="size-desc">Groesste Dateien</option>
-          </select>
-          <button className={styles.iconButton} type="button" aria-label="Filter anzeigen"><Filter size={17} /></button>
+        <section className={styles.tabs} aria-label="Dokument-Kategorien">
+          <div className={styles.tabList}>
+            {tabs.map(([value, label]) => {
+              const isAll = value === "all"
+              const isActive = activeTab === value || (isAll && multiSelect)
+              return (
+                <button
+                  className={isActive ? styles.activeTab : ""}
+                  key={value}
+                  type="button"
+                  onClick={isAll ? toggleAllSelection : () => {
+                    if (value === "new_folder") setFolderDraft("Neuer Ordner")
+                    setActiveTab(value)
+                    setMultiSelect(false)
+                    setSelectedIds([])
+                  }}
+                >
+                  {isAll && multiSelect ? (
+                    <span className={allVisibleSelected ? styles.checkedBox : styles.checkBox} aria-hidden="true">
+                      {allVisibleSelected ? <Square size={18} fill="currentColor" /> : <Square size={18} />}
+                    </span>
+                  ) : null}
+                  {label}{isAll && selectedIds.length ? ` (${selectedIds.length})` : ""}
+                </button>
+              )
+            })}
+          </div>
+          <label className={styles.inlineSearch}>
+            <Search size={19} />
+            <input aria-label="Dokumente suchen" value={filters.q} onChange={(event) => updateFilter("q", event.target.value)} placeholder="Suche" autoComplete="off" spellCheck={false} />
+          </label>
         </section>
 
         {notice ? <p className={styles.notice}>{notice}</p> : null}
 
-        <section className={styles.workspace}>
-          <div className={styles.mainColumn}>
-            <form className={styles.uploadPanel} onSubmit={handleUpload}>
-              <div>
-                <h2>Dokument erfassen</h2>
-                <p>{file ? file.name : "Datei auswaehlen und direkt mit Kunden, Projekten oder Belegen verbinden."}</p>
+        <section className={styles.workspaceFull}>
+          <div className={styles.tableWrap}>
+            <div className={styles.table} role="table" aria-label="Dokumentliste">
+              <div className={styles.tableHead} role="row">
+                <span>Name</span>
+                <span>Kunde</span>
+                <span>Projekt</span>
+                <span>Typ</span>
+                <span>Datum</span>
+                <span>Status</span>
+                <span>Aktionen</span>
               </div>
-              <div className={styles.uploadGrid}>
-                <label>Name<input value={draft.name} onChange={(event) => updateDraft("name", event.target.value)} placeholder="Dokumentname" /></label>
-                <label>Typ<select value={draft.documentType} onChange={(event) => updateDraft("documentType", event.target.value)}>{typeOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-                <label>Kunde<select value={draft.customerId} onChange={(event) => updateDraft("customerId", event.target.value)}><option value="">Ohne Kunde</option>{options.customers.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-                <label>Projekt<select value={draft.projectId} onChange={(event) => updateDraft("projectId", event.target.value)}><option value="">Ohne Projekt</option>{options.projects.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select></label>
-                <label>Rechnung<select value={draft.invoiceId} onChange={(event) => updateDraft("invoiceId", event.target.value)}><option value="">Ohne Rechnung</option>{options.invoices.map((item) => <option key={item.id} value={item.id}>{item.number}</option>)}</select></label>
-                <label>Angebot<select value={draft.offerInvoiceId} onChange={(event) => updateDraft("offerInvoiceId", event.target.value)}><option value="">Ohne Angebot</option>{options.offers.map((item) => <option key={item.id} value={item.id}>{item.number}</option>)}</select></label>
-                <label>Status<select value={draft.status} onChange={(event) => updateDraft("status", event.target.value)}><option value="open">Offen</option><option value="prepared">Vorbereitet</option><option value="active">Aktiv</option><option value="processed">Verarbeitet</option></select></label>
-                <label>Version<input value={draft.version} inputMode="numeric" onChange={(event) => updateDraft("version", event.target.value)} /></label>
-              </div>
-              <button className={styles.primaryButton} type="submit" disabled={busy || !file}><FilePlus2 size={16} />{busy ? "Upload laeuft..." : "Upload speichern"}</button>
-            </form>
-
-            <div className={styles.tableWrap}>
-              <div className={styles.tableHeader}>
-                <h2>Dokumentliste</h2>
-                <span>{documents.length} Treffer</span>
-              </div>
-              <div className={styles.table} role="table">
-                <div className={styles.tableHead} role="row">
-                  <span>Name</span><span>Typ</span><span>Kunde</span><span>Projekt</span><span>Datum</span><span>Groesse</span><span>Status</span><span>Aktionen</span>
-                </div>
-                {documents.map((document) => (
-                  <button className={selectedDocument?.id === document.id ? styles.selectedRow : styles.tableRow} key={document.id} type="button" onClick={() => setSelectedId(document.id)}>
-                    <span className={styles.nameCell}>{multiSelect ? <input type="checkbox" aria-label={`${document.name} auswaehlen`} onClick={(event) => event.stopPropagation()} /> : document.mimeType.startsWith("image/") ? <FileImage size={18} /> : <FileText size={18} />}<strong>{document.name}</strong><small>{document.originalName}</small></span>
-                    <span>{documentTypeLabel(document.documentType)}</span>
-                    <span>{document.customer?.name || "-"}</span>
-                    <span>{document.project?.name || "-"}</span>
-                    <span>{formatDate(document.createdAt)}</span>
-                    <span>{formatSize(document.size)}</span>
-                    <span><em>{statusLabels[document.status] || document.status}</em></span>
-                    <span className={styles.rowActions}>
-                      <a href={document.downloadUrl} aria-label="Vorschau oeffnen" onClick={(event) => event.stopPropagation()}><Eye size={16} /></a>
-                      <a href={`${document.downloadUrl}?download=1`} aria-label="Download" onClick={(event) => event.stopPropagation()}><Download size={16} /></a>
-                      <MoreHorizontal size={16} />
+              {visibleDocuments.map((document) => (
+                <button className={selectedDocument?.id === document.id ? styles.selectedRow : styles.tableRow} key={document.id} type="button" onClick={() => selectDocument(document)}>
+                  <span className={styles.nameCell}>
+                    {multiSelect ? (
+                      <span className={selectedIds.includes(document.id) ? styles.checkedBox : styles.checkBox} aria-hidden="true">
+                        {selectedIds.includes(document.id) ? <Square size={18} fill="currentColor" /> : <Square size={18} />}
+                      </span>
+                    ) : document.mimeType.startsWith("image/") ? <FileImage size={18} /> : <FileText size={18} />}
+                    <span>
+                      <strong>{document.name}</strong>
+                      <small>{formatSize(document.size)}</small>
                     </span>
-                  </button>
-                ))}
-                {!documents.length ? <div className={styles.emptyState}><Search size={18} />Keine Dokumente gefunden.</div> : null}
+                  </span>
+                  <span>{document.customer?.name || "-"}</span>
+                  <span>{document.project?.name || "-"}</span>
+                  <span><em className={styles.typePill}>{documentTypeLabel(document.documentType)}</em></span>
+                  <span>{formatDate(document.createdAt)}</span>
+                  <span><em className={styles.statusPill}>{statusLabels[document.status] || document.status}</em></span>
+                  <span className={styles.rowActions}>
+                    <button type="button" aria-label="Anzeigen" onClick={(event) => { event.stopPropagation(); setSelectedId(document.id) }}><Eye size={16} /></button>
+                    <button type="button" aria-label="Bearbeiten" onClick={(event) => { event.stopPropagation(); editDocument(document) }}><Edit3 size={15} /></button>
+                    <button type="button" aria-label="Download" onClick={(event) => { event.stopPropagation(); downloadDocument(document) }}><Download size={16} /></button>
+                    <button type="button" aria-label="Teilen" onClick={(event) => { event.stopPropagation(); openShareDialog(document) }}><Share2 size={15} /></button>
+                    <button type="button" aria-label="Loeschen" onClick={(event) => { event.stopPropagation(); deleteDocument(document) }}><Trash2 size={16} /></button>
+                  </span>
+                </button>
+              ))}
+              {!visibleDocuments.length ? <div className={styles.emptyState}><Search size={18} />Keine Dokumente gefunden.</div> : null}
+            </div>
+          </div>
+        </section>
+      </div>
+      {documentForShare ? (
+        <ShareReleaseDialog label="Dokumentenfreigabe" itemName={documentForShare.name} itemUrl={documentUrl(documentForShare)} onClose={() => setShareDocumentId("")} />
+      ) : null}
+      {folderDraft ? (
+        <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-labelledby="new-folder-title" onMouseDown={() => setFolderDraft("")}>
+          <div className={styles.editModal} onMouseDown={(event) => event.stopPropagation()}>
+            <header className={styles.editHead}>
+              <div>
+                <h2 id="new-folder-title">Neu Ordner</h2>
+                <p>Ordner wird als Unterkategorie in dieser Ansicht vorbereitet.</p>
+              </div>
+              <button type="button" aria-label="Dialog schliessen" onClick={() => setFolderDraft("")}><X size={18} /></button>
+            </header>
+            <div className={styles.editGrid}>
+              <label>
+                <span>Ordnername</span>
+                <input value={folderDraft} onChange={(event) => setFolderDraft(event.target.value)} autoFocus />
+              </label>
+              {folders.length ? (
+                <div className={styles.folderList}>
+                  {folders.map((folder) => <span key={folder}>{folder}</span>)}
+                </div>
+              ) : null}
+            </div>
+            <footer className={styles.editActions}>
+              <button type="button" onClick={() => setFolderDraft("")}>Abbrechen</button>
+              <button type="button" onClick={createFolder}>Erstellen</button>
+            </footer>
+          </div>
+        </div>
+      ) : null}
+      {editDraft ? (
+        <div
+          className={styles.modalOverlay}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="edit-document-title"
+          onMouseDown={() => setEditDraft(null)}
+          onMouseMove={moveEditDialog}
+          onMouseUp={() => setEditDragStart(null)}
+          onMouseLeave={() => setEditDragStart(null)}
+        >
+          <div
+            className={styles.editModal}
+            style={{ transform: `translate(${editOffset.x}px, ${editOffset.y}px)` }}
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <header className={styles.editHead} onMouseDown={startEditDrag}>
+              <div>
+                <h2 id="edit-document-title">Dokument bearbeiten</h2>
+                <p>Aenderungen werden direkt in dieser Dokumentliste uebernommen.</p>
+              </div>
+              <button type="button" aria-label="Dialog schliessen" onClick={() => setEditDraft(null)}><X size={18} /></button>
+            </header>
+            <div className={styles.editGrid}>
+              <label>
+                <span>Dateiname</span>
+                <input value={editDraft.name} onChange={(event) => updateEditDraft("name", event.target.value)} />
+              </label>
+              <label>
+                <span>Kunde</span>
+                <input value={editDraft.customer} onChange={(event) => updateEditDraft("customer", event.target.value)} />
+              </label>
+              <label>
+                <span>Projekt</span>
+                <input value={editDraft.project} onChange={(event) => updateEditDraft("project", event.target.value)} />
+              </label>
+              <label>
+                <span>Typ</span>
+                <select value={editDraft.documentType} onChange={(event) => updateEditDraft("documentType", event.target.value)}>
+                  {typeOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                </select>
+              </label>
+              <label>
+                <span>Status</span>
+                <select value={editDraft.status} onChange={(event) => updateEditDraft("status", event.target.value)}>
+                  {Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                </select>
+              </label>
+              <label>
+                <span>Datum</span>
+                <input type="date" value={editDraft.date} onChange={(event) => updateEditDraft("date", event.target.value)} />
+              </label>
+            </div>
+            <footer className={styles.editActions}>
+              <button type="button" onClick={() => setEditDraft(null)}>Abbrechen</button>
+              <button type="button" onClick={saveEditDraft}>Speichern</button>
+            </footer>
+          </div>
+        </div>
+      ) : null}
+      {selectedDocument ? (
+        <div
+          className={styles.modalOverlay}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="document-preview-title"
+          onMouseDown={closePreview}
+          onMouseMove={movePreview}
+          onMouseUp={() => setDragStart(null)}
+          onMouseLeave={() => setDragStart(null)}
+        >
+          <div
+            className={styles.previewModal}
+            data-preview-modal
+            style={{ transform: `translate(${previewOffset.x}px, ${previewOffset.y}px)` }}
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <header className={styles.modalHead} onMouseDown={startDrag}>
+              <div className={styles.modalTitle}>
+                <FileText size={18} />
+                <strong id="document-preview-title">{selectedDocument.name}</strong>
+              </div>
+              <button type="button" aria-label="Vorschau schliessen" onClick={closePreview}><X size={18} /></button>
+            </header>
+            <div className={styles.modalTools} aria-label="Vorschau-Werkzeuge">
+              <span>1</span><small>/1</small>
+              <button type="button" aria-label="Verkleinern" onClick={() => setPreviewZoom((current) => Math.max(70, current - 10))}>-</button>
+              <strong>{previewZoom}%</strong>
+              <button type="button" aria-label="Vergroessern" onClick={() => setPreviewZoom((current) => Math.min(140, current + 10))}>+</button>
+              <button type="button" aria-label="Vollbild" onClick={toggleFullscreen}><Maximize2 size={15} /></button>
+              <button type="button" aria-label="Scan OCR" onClick={scanPreview}><ScanLine size={15} /></button>
+              <button type="button" aria-label="E-Mail" onClick={emailPreview}><Mail size={15} /></button>
+              <button type="button" aria-label="Download" onClick={downloadPreview}><Download size={15} /></button>
+              <button type="button" aria-label="Drucken" onClick={printPreview}><Printer size={15} /></button>
+              <button type="button" aria-label="Teilen" onClick={() => void sharePreview()}><Share2 size={15} /></button>
+            </div>
+            {previewStatus ? <p className={styles.previewStatus}>{previewStatus}</p> : null}
+            <div className={styles.a4Stage}>
+              <div className={styles.a4Paper} style={{ transform: `scale(${previewZoom / 100})` }}>
+                {selectedDocument.documentType === "invoice" ? (
+                  <div className={styles.invoiceA4}>
+                    <div className={styles.a4Top}><strong>DreamInvoice</strong></div>
+                    <div className={styles.a4Addresses}><p>DreamInvoice GmbH<br />Musterstraße 1<br />12345 Berlin<br />Deutschland</p><p>Rechnung an<br /><b>{selectedDocument.customer?.name || "-"}</b><br />Musterstraße 1<br />12345 Berlin<br />Deutschland</p></div>
+                    <div className={styles.a4Meta}><p>Rechnungsdatum:<b>{formatDate(selectedDocument.createdAt)}</b></p><p>Faelligkeitsdatum:<b>07.06.2026</b></p><p>Kundennummer:<b>10001</b></p><p>Rechnungsnummer:<b>{selectedDocument.invoice?.number || selectedDocument.name.replace(".pdf", "")}</b></p></div>
+                    <p className={styles.a4Intro}>Sehr geehrte Damen und Herren,<br />vielen Dank fuer Ihr Vertrauen in unsere Dienstleistungen. Hiermit stellen wir Ihnen folgende Leistungen in Rechnung:</p>
+                    <table><thead><tr><th>Beschreibung</th><th>Menge</th><th>Einzelpreis</th><th>Gesamtpreis</th></tr></thead><tbody><tr><td>Webdesign Paket</td><td>1</td><td>1.200,00 EUR</td><td>1.200,00 EUR</td></tr><tr><td>SEO Optimierung</td><td>1</td><td>600,00 EUR</td><td>600,00 EUR</td></tr><tr><td>Wartung (12 Monate)</td><td>1</td><td>240,00 EUR</td><td>240,00 EUR</td></tr></tbody></table>
+                    <div className={styles.a4Totals}><p><span>Zwischensumme</span><b>2.040,00 EUR</b></p><p><span>USt. (19%)</span><b>387,60 EUR</b></p><p><strong>Gesamtbetrag</strong><strong>2.427,60 EUR</strong></p></div>
+                    <p className={styles.a4Footer}>Zahlungsziel: 14 Tage ohne Abzug.<br />Wir freuen uns auf die weitere Zusammenarbeit.<br /><br />Mit freundlichen Gruessen<br />DreamInvoice GmbH</p>
+                  </div>
+                ) : (
+                  <div className={styles.previewFallback}><FileText size={44} /><strong>{documentTypeLabel(selectedDocument.documentType)}</strong><span>{selectedDocument.mimeType}</span></div>
+                )}
               </div>
             </div>
           </div>
-
-          <aside className={styles.previewPanel}>
-            <div className={styles.previewHead}>
-              <div>
-                <span>Dokumentvorschau</span>
-                <h2>{selectedDocument?.name || "Kein Dokument ausgewaehlt"}</h2>
-              </div>
-              {selectedDocument ? <a className={styles.iconButton} href={selectedDocument.downloadUrl} aria-label="Vorschau oeffnen"><Eye size={17} /></a> : null}
-            </div>
-
-            <div className={styles.previewBox}>
-              {selectedDocument && isImage(selectedDocument) ? <img src={selectedDocument.downloadUrl} alt={selectedDocument.name} /> : null}
-              {selectedDocument && isPdf(selectedDocument) ? <iframe src={selectedDocument.downloadUrl} title={selectedDocument.name} /> : null}
-              {selectedDocument && !isImage(selectedDocument) && !isPdf(selectedDocument) ? <div className={styles.previewFallback}><FileText size={34} /><strong>{documentTypeLabel(selectedDocument.documentType)}</strong><span>{selectedDocument.mimeType}</span></div> : null}
-              {!selectedDocument ? <div className={styles.previewFallback}><FileText size={34} /><strong>Keine Vorschau</strong><span>Waehle ein Dokument aus der Liste.</span></div> : null}
-            </div>
-
-            <div className={styles.quickActions}>
-              <button type="button" onClick={() => document.querySelector<HTMLInputElement>("[data-dms-file]")?.click()}><Upload size={16} />Hochladen</button>
-              <a href={selectedDocument?.downloadUrl || "#"}><Eye size={16} />Vorschau</a>
-              <a href={selectedDocument ? `${selectedDocument.downloadUrl}?download=1` : "#"}><Download size={16} />Download</a>
-              <button type="button"><Share2 size={16} />Teilen</button>
-              <button type="button"><Archive size={16} />Archivieren</button>
-            </div>
-
-            <section className={styles.metaGrid}>
-              <h3>Metadaten</h3>
-              <dl>
-                <div><dt>Typ</dt><dd>{selectedDocument ? documentTypeLabel(selectedDocument.documentType) : "-"}</dd></div>
-                <div><dt>Datum</dt><dd>{selectedDocument ? formatDate(selectedDocument.createdAt) : "-"}</dd></div>
-                <div><dt>Groesse</dt><dd>{selectedDocument ? formatSize(selectedDocument.size) : "-"}</dd></div>
-                <div><dt>Status</dt><dd>{selectedDocument ? statusLabels[selectedDocument.status] || selectedDocument.status : "-"}</dd></div>
-              </dl>
-            </section>
-
-            <section className={styles.tagPanel}>
-              <h3><Tags size={16} />Dokument-Tags</h3>
-              <div>
-                {selectedDocument?.customer ? <span>Kunde: {selectedDocument.customer.name}</span> : <span>Kunde</span>}
-                {selectedDocument?.project ? <span>Projekt: {selectedDocument.project.name}</span> : <span>Projekt</span>}
-                {selectedDocument?.invoice ? <span>Rechnung: {selectedDocument.invoice.number}</span> : <span>Rechnung</span>}
-                <span>Angebot</span><span>Vertrag</span><span>Benutzerdefiniert</span>
-              </div>
-            </section>
-
-            <section className={styles.ocrPanel}>
-              <h3><Sparkles size={16} />OCR Text</h3>
-              <p>{selectedDocument ? `OCR ist fuer ${selectedDocument.originalName} vorbereitet. Nach Aktivierung wird der erkannte Text hier angezeigt.` : "OCR-Bereich ist vorbereitet."}</p>
-              <div className={styles.ocrSteps}>
-                {ocrSteps.map((step) => <span key={step.value}><CheckCircle2 size={15} />{step.label}</span>)}
-              </div>
-            </section>
-
-            <section className={styles.versionPanel}>
-              <h3><History size={16} />Versionsverwaltung</h3>
-              <div><Clock3 size={15} /><span>Version {selectedDocument?.version || 1}</span><small>Aktuelle Datei</small></div>
-              <div><Clock3 size={15} /><span>Version {(selectedDocument?.version || 1) + 1}</span><small>Naechste Aenderung vorbereitet</small></div>
-            </section>
-
-            <section className={styles.storagePanel}>
-              <h3>Speicheruebersicht</h3>
-              <div className={styles.meter}><span style={{ width: `${Math.max(storagePercent, documents.length ? 8 : 0)}%` }} /></div>
-              <div className={styles.storageStats}>
-                <span>Benutzt: {formatSize(totalBytes)}</span>
-                <span>Frei: {formatSize(Math.max(0, storageLimit - totalBytes))}</span>
-                <span><FileText size={14} />PDF {pdfCount}</span>
-                <span><ImageIcon size={14} />Bilder {imageCount}</span>
-              </div>
-            </section>
-
-            <section className={styles.linkedPanel}>
-              <h3><Link2 size={16} />Zugeordnete Entitaeten</h3>
-              <p>{selectedDocument?.customer?.name || "Kein Kunde"} · {selectedDocument?.project?.name || "Kein Projekt"} · {selectedDocument?.invoice?.number || "Kein Beleg"}</p>
-              <button type="button"><ChevronDown size={15} />Zuordnung bearbeiten</button>
-            </section>
-          </aside>
-        </section>
-      </div>
+        </div>
+      ) : null}
     </main>
   )
 }
