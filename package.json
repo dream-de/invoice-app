@@ -59,7 +59,11 @@
       "next": "16.2.6",
       "eslint-config-next": "16.2.6",
       "postcss": "8.5.10",
-      "effect": "3.20.0"
+      "effect": "3.20.0",
+      "ws": "8.21.0",
+      "js-yaml": "4.2.0",
+      "@babel/core": "7.29.7",
+      "esbuild": "0.28.1"
     }
   }
 }
