@@ -1,22 +1,36 @@
 "use client"
 
 import Link from "next/link"
-import { type MouseEvent as ReactMouseEvent, useEffect, useMemo, useState } from "react"
+import { type ChangeEvent, type MouseEvent as ReactMouseEvent, useEffect, useMemo, useRef, useState } from "react"
 import {
+  Archive,
   ArrowLeft,
+  ArrowUpDown,
+  BriefcaseBusiness,
+  ClipboardList,
   Download,
   Edit3,
   Eye,
+  FileArchive,
   FileImage,
+  FilePlus2,
+  FileSpreadsheet,
   FileText,
+  FolderPlus,
+  Grid2X2,
+  LayoutGrid,
+  List,
   Mail,
   Maximize2,
+  Plus,
   Printer,
   ScanLine,
   Search,
   Share2,
+  SlidersHorizontal,
   Square,
   Trash2,
+  UserRound,
   X
 } from "lucide-react"
 import { ShareReleaseDialog } from "../../../components/share/ShareReleaseDialog"
@@ -51,16 +65,15 @@ const typeOptions = [
   ["template", "Vorlagen"]
 ]
 
-const tabs = [
-  ["all", "Alle"],
-  ["invoice", "Rechnungen"],
-  ["offer", "Angebote"],
-  ["project_file", "Projekte"],
-  ["customer", "Kunden"],
-  ["contract", "Vertraege"],
-  ["template", "Vorlagen"],
-  ["archive", "Archiv"],
-  ["new_folder", "Neu Ordner"]
+const categoryCards = [
+  { id: "invoice", label: "Rechnungen", icon: ClipboardList, tone: "green" },
+  { id: "offer", label: "Angebote", icon: FileText, tone: "green" },
+  { id: "project_file", label: "Projekte", icon: BriefcaseBusiness, tone: "blue" },
+  { id: "customer", label: "Kunden", icon: UserRound, tone: "violet" },
+  { id: "contract", label: "Vertraege", icon: FileArchive, tone: "violet" },
+  { id: "template", label: "Vorlagen", icon: FilePlus2, tone: "orange" },
+  { id: "archive", label: "Archiv", icon: Archive, tone: "slate" },
+  { id: "new_folder", label: "Neu Ordner", icon: FolderPlus, tone: "slate" }
 ]
 
 const statusLabels: Record<string, string> = {
@@ -246,6 +259,9 @@ export function DocumentManagementClient() {
   const [dragStart, setDragStart] = useState<{ x: number; y: number; offsetX: number; offsetY: number } | null>(null)
   const [previewStatus, setPreviewStatus] = useState("")
   const [filters, setFilters] = useState({ q: "", type: "", customer: "", project: "", date: "" })
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list")
+  const [sortMode, setSortMode] = useState("newest")
+  const uploadInputRef = useRef<HTMLInputElement | null>(null)
 
   const tabType = activeTab === "all" || activeTab === "customer" || activeTab === "archive" || activeTab === "new_folder" ? "" : activeTab
   const effectiveFilters = useMemo(() => ({ ...filters, type: filters.type || tabType }), [filters, tabType])
@@ -265,11 +281,12 @@ export function DocumentManagementClient() {
     void loadDocuments()
   }, [query])
 
+  const baseDocuments = useMemo(() => (documents.length ? documents : sampleDocuments).map((document) => ({ ...document, ...documentEdits[document.id] })), [documentEdits, documents])
+
   const visibleDocuments = useMemo(() => {
-    const baseDocuments = (documents.length ? documents : sampleDocuments).map((document) => ({ ...document, ...documentEdits[document.id] }))
     const query = filters.q.trim().toLowerCase()
     const type = filters.type || tabType
-    return baseDocuments.filter((document) => {
+    const filtered = baseDocuments.filter((document) => {
       if (deletedIds.includes(document.id)) return false
       if (activeTab === "customer" && !document.customer?.name) return false
       if (activeTab === "archive" && document.status !== "archived") return false
@@ -277,11 +294,19 @@ export function DocumentManagementClient() {
       if (!query) return true
       return [document.name, document.customer?.name, document.project?.name, documentTypeLabel(document.documentType), statusLabels[document.status] || document.status].filter(Boolean).join(" ").toLowerCase().includes(query)
     })
-  }, [activeTab, deletedIds, documentEdits, documents, filters.q, filters.type, tabType])
+    return [...filtered].sort((left, right) => {
+      if (sortMode === "oldest") return new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime()
+      if (sortMode === "name") return left.name.localeCompare(right.name, "de")
+      if (sortMode === "type") return documentTypeLabel(left.documentType).localeCompare(documentTypeLabel(right.documentType), "de")
+      return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
+    })
+  }, [activeTab, baseDocuments, deletedIds, filters.q, filters.type, sortMode, tabType])
 
   const selectedDocument = visibleDocuments.find((document) => document.id === selectedId)
   const documentForShare = visibleDocuments.find((document) => document.id === shareDocumentId)
   const allVisibleSelected = visibleDocuments.length > 0 && visibleDocuments.every((document) => selectedIds.includes(document.id))
+  const visibleCount = visibleDocuments.length
+  const totalCount = baseDocuments.filter((document) => !deletedIds.includes(document.id)).length
 
   function updateFilter(key: keyof typeof filters, value: string) {
     setFilters((current) => ({ ...current, [key]: value }))
@@ -462,6 +487,33 @@ export function DocumentManagementClient() {
     setNotice(`Ordner erstellt: ${name}`)
   }
 
+  function createLocalDocument(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    if (!file) return
+    const extension = file.name.split(".").pop()?.toLowerCase() || ""
+    const documentType = extension === "pdf" ? "attachment" : extension === "xlsx" || extension === "xls" ? "attachment" : "project_file"
+    const nextDocument: DmsDocument = {
+      id: "local-" + Date.now(),
+      name: file.name,
+      originalName: file.name,
+      documentType,
+      mimeType: file.type || "application/octet-stream",
+      size: file.size,
+      status: "draft",
+      version: 1,
+      createdAt: new Date().toISOString(),
+      customer: null,
+      project: null,
+      createdBy: "admin",
+      downloadUrl: "#"
+    }
+    setDocuments((current) => [nextDocument, ...current])
+    setActiveTab("all")
+    setNotice(`Dokument vorbereitet: ${file.name}`)
+    event.target.value = ""
+  }
+
+
   function startEditDrag(event: ReactMouseEvent<HTMLElement>) {
     if (window.innerWidth < 769) return
     setEditDragStart({ x: event.clientX, y: event.clientY, offsetX: editOffset.x, offsetY: editOffset.y })
@@ -491,93 +543,165 @@ export function DocumentManagementClient() {
   return (
     <main className={styles.page}>
       <div className={styles.shell}>
-        <header className={styles.header}>
-          <Link className={styles.backButton} href="/dashboard-v2" aria-label="Zurueck">
-            <ArrowLeft size={18} />
-          </Link>
-          <div className={styles.titleBlock}>
-            <h1>Dokumente</h1>
-            <p>Arbeitszentrale fuer Uploads, Vorschau, Zuordnung, Versionen, OCR-Vorbereitung und Archivierung.</p>
+        <section className={styles.hero}>
+          <div className={styles.heroIcon} aria-hidden="true">
+            <FileText size={42} />
           </div>
-        </header>
+          <div className={styles.heroCopy}>
+            <Link className={styles.backButton} href="/dashboard-v2" aria-label="Zurueck">
+              <ArrowLeft size={17} />
+            </Link>
+            <div>
+              <h1>Dokumente</h1>
+              <p>Arbeitszentrale fuer Uploads, Vorschau, Zuordnung, Versionen, OCR-Vorbereitung und Archivierung.</p>
+            </div>
+          </div>
+          <div className={styles.heroArt} aria-hidden="true">
+            <div className={styles.folderShape}><FileArchive size={44} /></div>
+            <span className={styles.floatDoc} data-kind="pdf">PDF</span>
+            <span className={styles.floatDoc} data-kind="xls"><FileSpreadsheet size={20} /></span>
+            <span className={styles.floatDoc} data-kind="doc"><FileText size={20} /></span>
+          </div>
+          <button className={styles.primaryAction} type="button" onClick={() => uploadInputRef.current?.click()}>
+            <Plus size={18} />
+            Neues Dokument
+          </button>
+          <input ref={uploadInputRef} className={styles.hiddenInput} type="file" onChange={createLocalDocument} />
+        </section>
 
-        <section className={styles.tabs} aria-label="Dokument-Kategorien">
-          <div className={styles.tabList}>
-            {tabs.map(([value, label]) => {
-              const isAll = value === "all"
-              const isActive = activeTab === value || (isAll && multiSelect)
-              return (
-                <button
-                  className={isActive ? styles.activeTab : ""}
-                  key={value}
-                  type="button"
-                  onClick={isAll ? toggleAllSelection : () => {
-                    if (value === "new_folder") setFolderDraft("Neuer Ordner")
-                    setActiveTab(value)
-                    setMultiSelect(false)
-                    setSelectedIds([])
-                  }}
-                >
-                  {isAll && multiSelect ? (
-                    <span className={allVisibleSelected ? styles.checkedBox : styles.checkBox} aria-hidden="true">
-                      {allVisibleSelected ? <Square size={18} fill="currentColor" /> : <Square size={18} />}
-                    </span>
-                  ) : null}
-                  {label}{isAll && selectedIds.length ? ` (${selectedIds.length})` : ""}
-                </button>
-              )
-            })}
-          </div>
-          <label className={styles.inlineSearch}>
-            <Search size={19} />
-            <input aria-label="Dokumente suchen" value={filters.q} onChange={(event) => updateFilter("q", event.target.value)} placeholder="Suche" autoComplete="off" spellCheck={false} />
-          </label>
+        <section className={styles.categoryGrid} aria-label="Dokument-Kategorien">
+          {categoryCards.map((category) => {
+            const Icon = category.icon
+            const isAll = category.id === "all"
+            const isActive = activeTab === category.id || (isAll && multiSelect)
+            return (
+              <button
+                className={isActive ? styles.activeCategory : styles.categoryCard}
+                data-tone={category.tone}
+                key={category.id}
+                type="button"
+                onClick={isAll ? toggleAllSelection : () => {
+                  if (category.id === "new_folder") setFolderDraft("Neuer Ordner")
+                  setActiveTab(category.id)
+                  setMultiSelect(false)
+                  setSelectedIds([])
+                }}
+              >
+                {isAll && multiSelect ? (
+                  <span className={allVisibleSelected ? styles.checkedBox : styles.checkBox} aria-hidden="true">
+                    {allVisibleSelected ? <Square size={18} fill="currentColor" /> : <Square size={18} />}
+                  </span>
+                ) : <Icon size={20} />}
+                <span>{category.label}{isAll ? ` (${selectedIds.length || totalCount})` : ""}</span>
+              </button>
+            )
+          })}
         </section>
 
         {notice ? <p className={styles.notice}>{notice}</p> : null}
 
-        <section className={styles.workspaceFull}>
-          <div className={styles.tableWrap}>
-            <div className={styles.table} role="table" aria-label="Dokumentliste">
-              <div className={styles.tableHead} role="row">
-                <span>Name</span>
-                <span>Kunde</span>
-                <span>Projekt</span>
-                <span>Typ</span>
-                <span>Datum</span>
-                <span>Status</span>
-                <span>Aktionen</span>
-              </div>
-              {visibleDocuments.map((document) => (
-                <button className={selectedDocument?.id === document.id ? styles.selectedRow : styles.tableRow} key={document.id} type="button" onClick={() => selectDocument(document)}>
-                  <span className={styles.nameCell}>
-                    {multiSelect ? (
-                      <span className={selectedIds.includes(document.id) ? styles.checkedBox : styles.checkBox} aria-hidden="true">
-                        {selectedIds.includes(document.id) ? <Square size={18} fill="currentColor" /> : <Square size={18} />}
-                      </span>
-                    ) : document.mimeType.startsWith("image/") ? <FileImage size={18} /> : <FileText size={18} />}
-                    <span>
-                      <strong>{document.name}</strong>
-                      <small>{formatSize(document.size)}</small>
+        <section className={styles.listPanel}>
+          <div className={styles.controls}>
+            <label className={styles.searchField}>
+              <Search size={18} />
+              <input aria-label="Dokumente suchen" value={filters.q} onChange={(event) => updateFilter("q", event.target.value)} placeholder="Suche..." autoComplete="off" spellCheck={false} />
+            </label>
+            <label className={styles.filterSelect}>
+              <SlidersHorizontal size={18} />
+              <select aria-label="Dokumenttyp filtern" value={filters.type} onChange={(event) => updateFilter("type", event.target.value)}>
+                <option value="">Filter</option>
+                {typeOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+              </select>
+            </label>
+            <label className={styles.sortSelect}>
+              <ArrowUpDown size={18} />
+              <select aria-label="Sortierung" value={sortMode} onChange={(event) => setSortMode(event.target.value)}>
+                <option value="newest">Sortierung</option>
+                <option value="newest">Neueste zuerst</option>
+                <option value="oldest">Aelteste zuerst</option>
+                <option value="name">Name A-Z</option>
+                <option value="type">Typ</option>
+              </select>
+            </label>
+            <div className={styles.viewToggle} aria-label="Ansicht wechseln">
+              <button type="button" className={viewMode === "list" ? styles.activeView : ""} aria-label="Listenansicht" onClick={() => setViewMode("list")}><List size={19} /></button>
+              <button type="button" className={viewMode === "grid" ? styles.activeView : ""} aria-label="Kachelansicht" onClick={() => setViewMode("grid")}><Grid2X2 size={18} /></button>
+            </div>
+          </div>
+
+          {viewMode === "list" ? (
+            <div className={styles.tableWrap}>
+              <div className={styles.table} role="table" aria-label="Dokumentliste">
+                <div className={styles.tableHead} role="row">
+                  <button className={styles.allHeaderButton} type="button" onClick={toggleAllSelection}>Alle <span>{allVisibleSelected ? "✓" : ""}</span></button>
+                  <span>Name</span>
+                  <span>Kunde</span>
+                  <span>Projekt</span>
+                  <span>Typ</span>
+                  <span>Datum</span>
+                  <span>Status</span>
+                  <span>Aktionen</span>
+                </div>
+                {visibleDocuments.map((document) => (
+                  <button className={selectedDocument?.id === document.id ? styles.selectedRow : styles.tableRow} key={document.id} type="button" onClick={() => selectDocument(document)}>
+                    <span className={styles.selectionCell}>
+                      {multiSelect ? (
+                        <span className={selectedIds.includes(document.id) ? styles.checkedBox : styles.checkBox} aria-hidden="true">
+                          {selectedIds.includes(document.id) ? <Square size={18} fill="currentColor" /> : <Square size={18} />}
+                        </span>
+                      ) : null}
                     </span>
-                  </span>
-                  <span>{document.customer?.name || "-"}</span>
-                  <span>{document.project?.name || "-"}</span>
-                  <span><em className={styles.typePill}>{documentTypeLabel(document.documentType)}</em></span>
-                  <span>{formatDate(document.createdAt)}</span>
-                  <span><em className={styles.statusPill}>{statusLabels[document.status] || document.status}</em></span>
-                  <span className={styles.rowActions}>
-                    <button type="button" aria-label="Anzeigen" onClick={(event) => { event.stopPropagation(); setSelectedId(document.id) }}><Eye size={16} /></button>
-                    <button type="button" aria-label="Bearbeiten" onClick={(event) => { event.stopPropagation(); editDocument(document) }}><Edit3 size={15} /></button>
-                    <button type="button" aria-label="Download" onClick={(event) => { event.stopPropagation(); downloadDocument(document) }}><Download size={16} /></button>
-                    <button type="button" aria-label="Teilen" onClick={(event) => { event.stopPropagation(); openShareDialog(document) }}><Share2 size={15} /></button>
-                    <button type="button" aria-label="Loeschen" onClick={(event) => { event.stopPropagation(); deleteDocument(document) }}><Trash2 size={16} /></button>
-                  </span>
-                </button>
+                    <span className={styles.nameCell}>
+                      {document.mimeType.includes("spreadsheet") ? <FileSpreadsheet size={22} /> : document.mimeType.startsWith("image/") ? <FileImage size={22} /> : <FileText size={22} />}
+                      <span>
+                        <strong>{document.name}</strong>
+                        <small>{formatSize(document.size)}</small>
+                      </span>
+                    </span>
+                    <span>{document.customer?.name || "-"}</span>
+                    <span>{document.project?.name || "-"}</span>
+                    <span><em className={styles.typePill} data-type={document.documentType}>{documentTypeLabel(document.documentType)}</em></span>
+                    <span>{formatDate(document.createdAt)}</span>
+                    <span><em className={styles.statusPill} data-status={document.status}>{statusLabels[document.status] || document.status}</em></span>
+                    <span className={styles.rowActions}>
+                      <button type="button" aria-label="Anzeigen" onClick={(event) => { event.stopPropagation(); setSelectedId(document.id) }}><Eye size={16} /></button>
+                      <button type="button" aria-label="Bearbeiten" onClick={(event) => { event.stopPropagation(); editDocument(document) }}><Edit3 size={15} /></button>
+                      <button type="button" aria-label="Download" onClick={(event) => { event.stopPropagation(); downloadDocument(document) }}><Download size={16} /></button>
+                      <button type="button" aria-label="Teilen" onClick={(event) => { event.stopPropagation(); openShareDialog(document) }}><Share2 size={15} /></button>
+                      <button type="button" aria-label="Loeschen" onClick={(event) => { event.stopPropagation(); deleteDocument(document) }}><Trash2 size={16} /></button>
+                    </span>
+                  </button>
+                ))}
+                {!visibleDocuments.length ? <div className={styles.emptyState}><Search size={18} />Keine Dokumente gefunden.</div> : null}
+              </div>
+            </div>
+          ) : (
+            <div className={styles.cardGrid}>
+              {visibleDocuments.map((document) => (
+                <article className={selectedDocument?.id === document.id ? styles.activeDocumentCard : styles.documentCard} key={document.id}>
+                  <button type="button" className={styles.cardOpen} onClick={() => selectDocument(document)}>
+                    {document.mimeType.includes("spreadsheet") ? <FileSpreadsheet size={26} /> : document.mimeType.startsWith("image/") ? <FileImage size={26} /> : <FileText size={26} />}
+                    <strong>{document.name}</strong>
+                    <small>{document.customer?.name || "-"} · {formatDate(document.createdAt)}</small>
+                    <em className={styles.typePill} data-type={document.documentType}>{documentTypeLabel(document.documentType)}</em>
+                  </button>
+                  <div className={styles.cardActions}>
+                    <button type="button" aria-label="Anzeigen" onClick={() => setSelectedId(document.id)}><Eye size={16} /></button>
+                    <button type="button" aria-label="Bearbeiten" onClick={() => editDocument(document)}><Edit3 size={15} /></button>
+                    <button type="button" aria-label="Download" onClick={() => downloadDocument(document)}><Download size={16} /></button>
+                    <button type="button" aria-label="Teilen" onClick={() => openShareDialog(document)}><Share2 size={15} /></button>
+                    <button type="button" aria-label="Loeschen" onClick={() => deleteDocument(document)}><Trash2 size={16} /></button>
+                  </div>
+                </article>
               ))}
               {!visibleDocuments.length ? <div className={styles.emptyState}><Search size={18} />Keine Dokumente gefunden.</div> : null}
             </div>
-          </div>
+          )}
+
+          <footer className={styles.listFooter}>
+            <span>Zeige {visibleCount ? 1 : 0} bis {visibleCount} von {visibleCount} Eintraegen</span>
+            <div><span>Zeige</span><strong>10</strong><button type="button" aria-label="Vorherige Seite">‹</button><b>1</b><button type="button" aria-label="Naechste Seite">›</button></div>
+          </footer>
         </section>
       </div>
       {documentForShare ? (

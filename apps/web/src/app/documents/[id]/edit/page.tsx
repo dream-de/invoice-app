@@ -29,6 +29,23 @@ type Position = {
   category: string
 }
 
+type CatalogArticle = {
+  value: string
+  label: string
+  price: number
+  category: string
+}
+
+type CatalogApiArticle = {
+  id?: string
+  code?: string | null
+  name?: string | null
+  category?: string | null
+  price?: number | string | null
+  netPrice?: number | string | null
+  active?: boolean | null
+}
+
 type RecipientImport = {
   company: string
   contact: string
@@ -115,7 +132,7 @@ const categoryOptions = [
   "Sonstiges"
 ]
 
-const articleCatalog = [
+const fallbackArticleCatalog: CatalogArticle[] = [
   { value: "senior-development", label: "Senior Integration", price: 95, category: "Entwicklung" },
   { value: "webdesign-s", label: "UI Paket S", price: 850, category: "Webdesign" },
   { value: "server-maintenance", label: "Cloud Wartung", price: 120, category: "Hosting" },
@@ -223,6 +240,7 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
   ])
 
   const [selectedArticle, setSelectedArticle] = useState("")
+  const [articleCatalog, setArticleCatalog] = useState<CatalogArticle[]>(fallbackArticleCatalog)
   const [recipientImportOpen, setRecipientImportOpen] = useState(false)
   const [recipientImportStep, setRecipientImportStep] = useState<"upload" | "preview">("upload")
   const [recipientFileName, setRecipientFileName] = useState("")
@@ -247,6 +265,40 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
 
   useEffect(() => {
     setIsMounted(true)
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadArticleCatalog() {
+      try {
+        const response = await fetch("/api/articles/list", { credentials: "same-origin" })
+        const result = response.ok ? await response.json() : null
+
+        if (cancelled || !Array.isArray(result?.articles)) return
+
+        const apiArticles = (result.articles as CatalogApiArticle[])
+          .filter((article) => article.active !== false)
+          .map((article) => ({
+            value: String(article.id || article.code || article.name),
+            label: [article.code, article.name].filter(Boolean).join(" - ") || "Artikel",
+            price: Number(article.price ?? article.netPrice ?? 0) || 0,
+            category: article.category || "(Keine)"
+          }))
+
+        if (apiArticles.length) {
+          setArticleCatalog(apiArticles)
+        }
+      } catch {
+        // Fallback bleibt sichtbar, wenn der Live-Katalog nicht erreichbar ist.
+      }
+    }
+
+    void loadArticleCatalog()
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   useEffect(() => {

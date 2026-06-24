@@ -3,12 +3,13 @@
 import type { CSSProperties, ChangeEvent, ComponentType, FormEvent, RefObject } from "react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { articles as fallbackArticlesData, customers as fallbackCustomersData, projects as fallbackProjectsData } from "@/data/invoice-data"
 import { type AppLanguage } from "@/i18n/config"
 import { useLanguage } from "@/lib/i18n"
 import {
   AlertCircle,
+  Activity,
   Archive,
   BarChart3,
   MoonStar,
@@ -16,6 +17,7 @@ import {
   Banknote,
   Bell,
   Briefcase,
+  CalendarDays,
   CheckCircle2,
   ChevronDown,
   ChevronLeft,
@@ -33,16 +35,24 @@ import {
   Home,
   KeyRound,
   Landmark,
+  List,
   MoreVertical,
   Pencil,
   Plug,
   Plus,
+  Play,
+  Pause,
   Receipt,
+  RefreshCcw,
+  Save,
+  ScanLine,
   Search,
   Settings,
   Share2,
+  Square,
   Tag,
   Trash2,
+  TimerReset,
   Upload,
   UserPlus,
   Users,
@@ -183,13 +193,29 @@ type ProjectData = {
   customerId?: string | null
   customer: string
   status: string
+  statusKey?: string | null
   progress: string
   budget: string
   budgetAmount?: number
+  description?: string | null
+  startDate?: string | null
+  endDate?: string | null
+  hourlyRate?: number | null
   trackedHours?: number
   invoicedHours?: number
   openHours?: number
   revenue?: number
+}
+type ProjectDrawerMode = "create" | "view" | "edit"
+type ProjectDrawerDraft = {
+  name: string
+  code: string
+  customer: string
+  customerId: string
+  budget: string
+  status: string
+  progress: string
+  description: string
 }
 type AppUser = {
   id: string
@@ -331,7 +357,7 @@ const mainNav: NavItem[] = [
   { label: "Angebote", href: "/dashboard-v2/offers", icon: Tag },
   { label: "Rechnungen", href: "/dashboard-v2/invoices", icon: FileText },
   { label: "Projekte", href: "/dashboard-v2/projects", icon: Folder },
-  { label: "Zeiterfassung", href: "/dashboard-v2/time-tracking", icon: Clock3 },
+  { label: "Zeiterfassung", href: "/dashboard-v2/time", icon: Clock3 },
   { label: "Artikel", href: "/dashboard-v2/articles", icon: Briefcase },
   { label: "Ausgaben", href: "/dashboard-v2/expenses", icon: Wallet },
   { label: "Finanzen", href: "/dashboard-v2/finance", icon: Landmark },
@@ -358,7 +384,7 @@ const sideNav: Array<{ section: string; marker?: string; items: NavItem[] }> = [
     section: "Projekte",
     items: [
       { label: "Projekte", href: "/dashboard-v2/projects", icon: Folder },
-      { label: "Zeiterfassung", href: "/dashboard-v2/time-tracking", icon: Clock3 },
+      { label: "Zeiterfassung", href: "/dashboard-v2/time", icon: Clock3 },
       { label: "Artikel", href: "/dashboard-v2/articles", icon: Briefcase },
       { label: "Kategorien", href: "/dashboard-v2/articles?q=Kategorien", icon: Tag }
     ]
@@ -1044,6 +1070,31 @@ function estimatedBillableHours(projectsSource: ProjectData[]) {
   return Math.round(projectsSource.reduce((sum, project) => sum + (parsePercent(project.progress) / 100) * 12, 0))
 }
 
+function projectStatusTone(status: string) {
+  const normalized = status.toLowerCase()
+  if (normalized.includes("abgeschlossen") || normalized.includes("completed")) return "green"
+  if (normalized.includes("planung") || normalized.includes("planning")) return "blue"
+  if (normalized.includes("pausiert") || normalized.includes("pause")) return "amber"
+  return "violet"
+}
+
+const projectStatusOptions = [
+  { value: "active", label: "Aktiv" },
+  { value: "planned", label: "Planung" },
+  { value: "paused", label: "Pausiert" },
+  { value: "completed", label: "Abgeschlossen" }
+]
+
+function projectStatusLabel(value: string) {
+  const normalized = value.toLowerCase()
+  return projectStatusOptions.find((option) => option.value === normalized || option.label.toLowerCase() === normalized)?.label || value || "Aktiv"
+}
+
+function projectStatusValue(value: string) {
+  const normalized = value.toLowerCase()
+  return projectStatusOptions.find((option) => option.value === normalized || option.label.toLowerCase() === normalized)?.value || "active"
+}
+
 function parseInvoiceDate(value?: string) {
   if (!value) return null
   const isoDate = new Date(value)
@@ -1691,10 +1742,10 @@ function TimePreparationPanel({ mode }: { mode: ThemeMode }) {
   }, [])
 
   const items = [
-    { label: "Heute", value: formatTimeHours(summary.today), href: "/dashboard-v2/time-tracking?q=Heute" },
-    { label: "Diese Woche", value: formatTimeHours(summary.week), href: "/dashboard-v2/time-tracking?q=Diese%20Woche" },
-    { label: "Dieser Monat", value: formatTimeHours(summary.month), href: "/dashboard-v2/time-tracking?q=Dieser%20Monat" },
-    { label: "Nicht abgerechnet", value: summary.unbilled + " / " + formatEuro(summary.unbilledAmount), href: "/dashboard-v2/time-tracking?q=Nicht%20abgerechnet" }
+    { label: "Heute", value: formatTimeHours(summary.today), href: "/dashboard-v2/time?timeView=arbeitstag" },
+    { label: "Diese Woche", value: formatTimeHours(summary.week), href: "/dashboard-v2/time?timeView=wochenzeiten" },
+    { label: "Dieser Monat", value: formatTimeHours(summary.month), href: "/dashboard-v2/time?timeView=monatsansicht" },
+    { label: "Nicht abgerechnet", value: summary.unbilled + " / " + formatEuro(summary.unbilledAmount), href: "/dashboard-v2/time?timeView=berichte" }
   ]
 
   return (
@@ -1745,7 +1796,7 @@ function ProjectUtilizationPanel({ mode }: { mode: ThemeMode }) {
   const items = [
     { label: "Aktive Projekte", value: `${summary.active} / ${summary.projects}`, href: "/dashboard-v2/projects?q=Aktiv" },
     { label: "Auslastung", value: `${summary.utilization}%`, href: "/dashboard-v2/projects?q=Budget" },
-    { label: "Offene Stunden", value: formatTimeHours(summary.openHours), href: "/dashboard-v2/time-tracking?q=Nicht%20abgerechnet" },
+    { label: "Offene Stunden", value: formatTimeHours(summary.openHours), href: "/dashboard-v2/time?timeView=berichte" },
     { label: "Projektumsatz", value: formatEuro(summary.revenue), href: "/dashboard-v2/projects?q=Umsatz" }
   ]
 
@@ -1776,7 +1827,7 @@ function QuickActions({ mode, profile }: { mode: ThemeMode; profile: ReturnType<
     { label: "Neuer Kunde", icon: UserPlus, tone: "blue", href: "/dashboard-v2/customers?create=true" },
     { label: "Neues Projekt", icon: Folder, tone: "green", href: "/dashboard-v2/projects?create=true" },
     { label: "Angebot erstellen", icon: Tag, tone: "amber", href: "/dashboard-v2/offers?create=true" },
-    { label: "Zeiterfassung starten", icon: Clock3, tone: "rose", href: "/dashboard-v2/time-tracking?start=true" },
+    { label: "Zeiterfassung starten", icon: Clock3, tone: "rose", href: "/dashboard-v2/time" },
     { label: "Ausgabe erfassen", icon: Wallet, tone: "green", href: "/dashboard-v2/expenses?create=true" }
   ]
 
@@ -1875,6 +1926,154 @@ function LicensePanel({ data, mode }: { data: PremiumData; mode: ThemeMode }) {
   )
 }
 
+
+function PremiumReportsPage({ data, mode, isExporting, onReportExport }: { data: PremiumData; mode: ThemeMode; isExporting: boolean; onReportExport: () => void }) {
+  const invoices = invoiceDisplaySource(data)
+  const total = invoices.reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
+  const paid = invoices.filter((invoice) => isStatus(invoice.status, "paid")).reduce((sum, invoice) => sum + Number(invoice.grossTotal || 0), 0)
+  const open = Math.max(total - paid, 0)
+  const expenses = Math.round(total * 0.44)
+  const profit = Math.max(total - expenses, 0)
+  const paidShare = Math.round((paid / Math.max(total, 1)) * 100)
+  const openShare = Math.max(0, Math.min(100, 100 - paidShare))
+  const overdueShare = Math.max(0, Math.min(100, Math.round(openShare * 0.34)))
+  const reportTabs = ["Übersicht", "Umsatz", "Ausgaben", "Kunden", "Mehr"]
+  const metricCards = [
+    { label: "Gesamtumsatz", value: formatEuro(total || 4307.96), trend: "+18.4%", tone: "violet", path: "0,30 10,21 20,25 30,18 40,24 50,14 60,22 70,19 80,9 90,23 100,13 110,26 120,15" },
+    { label: "Gesamtausgaben", value: formatEuro(expenses || 1892.5), trend: "-5.3%", tone: "rose", path: "0,24 10,15 20,22 30,18 40,8 50,18 60,10 70,20 80,25 90,18 100,25 110,13 120,26" },
+    { label: "Gewinn", value: formatEuro(profit || 2415.46), trend: "+28.7%", tone: "green", path: "0,25 10,18 20,23 30,19 40,24 50,10 60,18 70,8 80,20 90,22 100,11 110,19 120,12" },
+    { label: "Offene Beträge", value: formatEuro(open || 1245), trend: "+7.2%", tone: "amber", path: "0,24 10,16 20,24 30,18 40,25 50,10 60,18 70,8 80,18 90,25 100,12 110,20 120,26" }
+  ]
+  const customerRows: Array<[string, string, string, number]> = [
+    ["Müller GmbH", formatEuro(1245), "28.9%", 89],
+    ["Beispiel AG", formatEuro(890), "20.6%", 66],
+    ["Schmidt & Partner", formatEuro(670), "15.6%", 52],
+    ["TechSolutions GmbH", formatEuro(520), "12.1%", 36],
+    ["Industriebedarf Weber", formatEuro(480), "11.1%", 31]
+  ]
+  const projectRows: Array<[string, string, string, number]> = [
+    ["Website Relaunch", formatEuro(1850), "42.9%", 86],
+    ["CRM Integration", formatEuro(1120), "26.0%", 64],
+    ["App Entwicklung", formatEuro(870), "20.2%", 48],
+    ["IT Beratung 2024", formatEuro(380), "8.8%", 22],
+    ["Design System", formatEuro(160), "3.7%", 10]
+  ]
+  const recentReports = [
+    ["Umsatzbericht Mai 2024", "Umsatz", "01.05.2024 - 31.05.2024", "31.05.2024 09:30", "PDF"],
+    ["Kundenübersicht 2024", "Kunden", "01.01.2024 - 31.12.2024", "29.05.2024 11:05", "PDF"],
+    ["Ausgabenübersicht", "Ausgaben", "01.05.2024 - 31.05.2024", "27.05.2024 10:45", "XLSX"]
+  ]
+  const quickReports = [
+    { title: "Umsatzbericht", text: "Umsatz analysieren", icon: BarChart3, tone: "violet", href: "/dashboard-v2/reports?q=Umsatzbericht" },
+    { title: "Ausgabenbericht", text: "Ausgaben analysieren", icon: FileText, tone: "rose", href: "/dashboard-v2/reports?q=Ausgabenbericht" },
+    { title: "Kundenbericht", text: "Kunden analysieren", icon: Users, tone: "blue", href: "/dashboard-v2/reports?q=Kundenbericht" },
+    { title: "Monatsvergleich", text: "Monate vergleichen", icon: CalendarDays, tone: "green", href: "/dashboard-v2/reports?q=Monatsvergleich" }
+  ]
+
+  return (
+    <section className={`${styles.modulePage} ${styles.reportsPage}`} data-view="reports">
+      <header className={styles.reportsHeader}>
+        <span><BarChart3 size={26} /></span>
+        <div>
+          <h1>Berichte</h1>
+          <p>Umsatz, Ausgaben, Kundenwert und Monatsvergleiche auswerten.</p>
+        </div>
+      </header>
+
+      <nav className={styles.reportsTabs} aria-label="Berichtskategorien">
+        {reportTabs.map((tab, index) => (
+          <button key={tab} type="button" data-active={index === 0}>
+            {tab}{tab === "Mehr" ? <ChevronDown size={14} /> : null}
+          </button>
+        ))}
+      </nav>
+
+      <div className={styles.reportsToolbarAction}>
+        <button type="button" disabled={isExporting} onClick={onReportExport}><Plus size={18} />Report exportieren</button>
+      </div>
+
+      <section className={styles.reportsFilterBar} aria-label="Berichtsfilter">
+        <button type="button"><CalendarDays size={16} />01.05.2024 - 31.05.2024<ChevronDown size={15} /></button>
+        <button type="button">Monat<ChevronDown size={15} /></button>
+        <button type="button">Alle Kunden<ChevronDown size={15} /></button>
+        <button type="button">Alle Projekte<ChevronDown size={15} /></button>
+        <button type="button"><RefreshCcw size={15} />Filter zurücksetzen</button>
+      </section>
+
+      <section className={styles.reportMetricGrid}>
+        {metricCards.map((card) => (
+          <article key={card.label} className={`${styles.panel} ${styles.reportMetricCard}`} data-tone={card.tone}>
+            <div><span>{card.label}</span><strong>{card.value}</strong></div>
+            <p>{card.trend}<small>vs. Apr 2024</small></p>
+            <svg viewBox="0 0 120 40" preserveAspectRatio="none" aria-hidden="true"><path d={`M${card.path}`} /></svg>
+          </article>
+        ))}
+        <article className={`${styles.panel} ${styles.reportPaymentCard}`}>
+          <h2>Zahlungsstatus</h2>
+          <div>
+            <span style={{ "--paid": paidShare, "--open": openShare } as CSSProperties}><strong>{paidShare || 56}%</strong><small>bezahlt</small></span>
+            <ul>
+              <li data-tone="green"><span>Bezahlt</span><b>{paidShare || 56}%</b></li>
+              <li data-tone="amber"><span>Offen</span><b>{openShare || 29}%</b></li>
+              <li data-tone="rose"><span>Überfällig</span><b>{overdueShare || 15}%</b></li>
+            </ul>
+          </div>
+        </article>
+      </section>
+
+      <section className={styles.reportContentGrid}>
+        <article className={`${styles.panel} ${styles.reportRevenuePanel}`}>
+          <div className={styles.panelHead}><h2>Umsatzentwicklung</h2><div><button>Tage</button><button>Wochen</button><button data-active="true">Monate</button><button>Jahre</button></div></div>
+          <svg viewBox="0 0 640 240" preserveAspectRatio="none" aria-label="Umsatzentwicklung">
+            <path d="M34 166 C92 154 122 153 176 118 S255 92 310 126 S397 86 454 102 S558 132 608 106" data-line="violet" />
+            <path d="M34 196 C106 198 136 198 194 176 S280 198 330 188 S424 168 488 174 S562 176 608 174" data-line="rose" />
+            <path d="M34 176 C98 176 138 174 194 148 S274 158 326 168 S420 132 472 142 S556 154 608 132" data-line="green" />
+          </svg>
+          <div className={styles.reportChartLegend}><span data-tone="violet">Umsatz</span><span data-tone="rose">Ausgaben</span><span data-tone="green">Gewinn</span></div>
+        </article>
+
+        <ReportRankPanel title="Top Kunden nach Umsatz" rows={customerRows} mode={mode} href="/dashboard-v2/customers" />
+        <ReportRankPanel title="Top Projekte nach Umsatz" rows={projectRows} mode={mode} href="/dashboard-v2/projects" />
+      </section>
+
+      <section className={styles.reportBottomGrid}>
+        <article className={`${styles.panel} ${styles.reportRecentPanel}`}>
+          <h2>Kürzlich erstellte Berichte</h2>
+          <table>
+            <thead><tr><th>Name</th><th>Bereich</th><th>Zeitraum</th><th>Erstellt am</th><th>Format</th><th>Aktionen</th></tr></thead>
+            <tbody>{recentReports.map((row) => <tr key={row[0]}>{row.map((cell) => <td key={cell}>{cell}</td>)}<td><Download size={15} /><MoreVertical size={15} /></td></tr>)}</tbody>
+          </table>
+        </article>
+
+        <article className={`${styles.panel} ${styles.reportQuickPanel}`}>
+          <h2>Schnellzugriff</h2>
+          <div>
+            {quickReports.map((item) => {
+              const Icon = item.icon
+              return <Link key={item.title} href={withPremiumTheme(item.href, mode)} data-tone={item.tone}><span><Icon size={20} /></span><strong>{item.title}</strong><small>{item.text}</small><ChevronRight size={17} /></Link>
+            })}
+          </div>
+        </article>
+      </section>
+    </section>
+  )
+}
+
+function ReportRankPanel({ title, rows, mode, href }: { title: string; rows: Array<[string, string, string, number]>; mode: ThemeMode; href: string }) {
+  return (
+    <article className={`${styles.panel} ${styles.reportRankPanel}`}>
+      <div className={styles.panelHead}><h2>{title}</h2><Link href={withPremiumTheme(href, mode)}>Alle anzeigen</Link></div>
+      <div>
+        {rows.map(([name, amount, share, width]) => (
+          <Link key={name} href={withPremiumTheme(`${href}?q=${encodeURIComponent(name)}`, mode)}>
+            <span><strong>{name}</strong><small>{amount} <b>{share}</b></small></span>
+            <i><em style={{ width: `${width}%` }} /></i>
+          </Link>
+        ))}
+      </div>
+    </article>
+  )
+}
 
 function IntegrationsPanel({ mode }: { mode: ThemeMode }) {
   return <article className={`${styles.panel} ${styles.integrationsPanel}`}><h2>Integrationen</h2><div className={styles.integrationsGrid}>{integrations.map(([name, meta, color]) => <Link key={name} href={withPremiumTheme(`/dashboard-v2/integrations?q=${encodeURIComponent(name)}`, mode)}><span style={{ backgroundColor: color }}>{name.charAt(0)}</span><strong>{name}</strong><small>{meta}</small></Link>)}<Link href={withPremiumTheme("/dashboard-v2/integrations?q=Integration%20vorbereitet", mode)} className={styles.moreIntegrationLink}><Grid3X3 size={18} />Mehr anzeigen</Link></div></article>
@@ -6748,6 +6947,695 @@ function PremiumDocumentsModulePage({ mode }: { mode: ThemeMode }) {
   )
 }
 
+type TimeSectionKey =
+  | "overview"
+  | "arbeitstag"
+  | "wochenzeiten"
+  | "monatsansicht"
+  | "kalender"
+  | "projekte"
+  | "taetigkeiten"
+  | "benutzerzeiten"
+  | "arbeitsvertrag"
+  | "berichte"
+
+function timeSectionFromQuery(searchQuery: string): TimeSectionKey {
+  const query = searchQuery.toLowerCase()
+  if (query.includes("arbeitstag")) return "arbeitstag"
+  if (query.includes("wochenzeiten") || query.includes("woche")) return "wochenzeiten"
+  if (query.includes("monatsansicht") || query.includes("monat")) return "monatsansicht"
+  if (query.includes("kalender")) return "kalender"
+  if (query.includes("projekte") || query.includes("projekt")) return "projekte"
+  if (query.includes("taetigkeiten") || query.includes("tätigkeiten")) return "taetigkeiten"
+  if (query.includes("benutzerzeiten") || query.includes("benutzer")) return "benutzerzeiten"
+  if (query.includes("arbeitsvertrag") || query.includes("vertrag")) return "arbeitsvertrag"
+  if (query.includes("berichte") || query.includes("bericht")) return "berichte"
+  return "overview"
+}
+
+function formatPremiumTimer(totalSeconds: number) {
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+  return [hours, minutes, seconds].map((part) => String(part).padStart(2, "0")).join(":")
+}
+
+const germanMonths = ["Januar", "Februar", "Maerz", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"]
+const germanWeekdays = ["Sonntag", "Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag"]
+const shortGermanWeekdays = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"]
+
+function padDatePart(value: number) {
+  return String(value).padStart(2, "0")
+}
+
+function isoLocalDate(date: Date) {
+  return `${date.getFullYear()}-${padDatePart(date.getMonth() + 1)}-${padDatePart(date.getDate())}`
+}
+
+function parseLocalDate(value: string | null) {
+  if (!value) return null
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  if (!match) return null
+  const year = Number(match[1])
+  const month = Number(match[2]) - 1
+  const day = Number(match[3])
+  const date = new Date(year, month, day)
+  if (date.getFullYear() !== year || date.getMonth() !== month || date.getDate() !== day) return null
+  return date
+}
+
+function addLocalDays(date: Date, days: number) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + days)
+}
+
+function addLocalMonths(date: Date, months: number) {
+  const target = new Date(date.getFullYear(), date.getMonth() + months, 1)
+  const day = Math.min(date.getDate(), new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate())
+  return new Date(target.getFullYear(), target.getMonth(), day)
+}
+
+function startOfLocalWeek(date: Date) {
+  const mondayOffset = (date.getDay() + 6) % 7
+  return addLocalDays(date, -mondayOffset)
+}
+
+function formatGermanDate(date: Date) {
+  return `${germanWeekdays[date.getDay()]}, ${date.getDate()}. ${germanMonths[date.getMonth()]} ${date.getFullYear()}`
+}
+
+function formatShortDate(date: Date) {
+  return `${padDatePart(date.getDate())}.${padDatePart(date.getMonth() + 1)}.`
+}
+
+function formatMonthYear(date: Date) {
+  return `${germanMonths[date.getMonth()]} ${date.getFullYear()}`
+}
+
+function formatWeekRange(date: Date) {
+  const start = startOfLocalWeek(date)
+  const end = addLocalDays(start, 6)
+  const startText = start.getMonth() === end.getMonth()
+    ? `${start.getDate()}.`
+    : `${start.getDate()}. ${germanMonths[start.getMonth()]}`
+  return `${startText} - ${end.getDate()}. ${germanMonths[end.getMonth()]} ${end.getFullYear()}`
+}
+
+function minutesFromTime(value: string) {
+  const [hours = "0", minutes = "0"] = value.split(":")
+  const parsedHours = Number(hours)
+  const parsedMinutes = Number(minutes)
+  if (!Number.isFinite(parsedHours) || !Number.isFinite(parsedMinutes)) return 0
+  return parsedHours * 60 + parsedMinutes
+}
+
+function durationFromTimes(start: string, end: string) {
+  const diff = Math.max(0, minutesFromTime(end) - minutesFromTime(start))
+  const hours = Math.floor(diff / 60)
+  const minutes = diff % 60
+  return `${padDatePart(hours)}:${padDatePart(minutes)} h`
+}
+
+function TimeSparkline({ tone = "violet" }: { tone?: "violet" | "green" | "rose" | "blue" | "amber" }) {
+  return (
+    <span className={styles.timeSparkline} data-tone={tone} aria-hidden="true">
+      <i /><i /><i /><i /><i /><i /><i />
+    </span>
+  )
+}
+
+type TimeMonthCell =
+  | { key: string; empty: true }
+  | { key: string; empty: false; date: Date; day: number; tone: string; label: string; minutes: number }
+
+function PremiumTimeModulePage({
+  data,
+  mode,
+  searchQuery,
+  onDataChange
+}: {
+  data: PremiumData
+  mode: ThemeMode
+  searchQuery: string
+  onDataChange: (updater: (current: PremiumData) => PremiumData) => void
+}) {
+  const router = useRouter()
+  const projectsSource = data.projects.length ? data.projects : fallbackProjects
+  const usersSource = data.appUsers.length ? data.appUsers : [{ id: "admin", name: "Daniel Klozbuecher", email: "admin@dreaminvoice.local", role: "Administrator", status: "active" }]
+  const routeSearchParams = useSearchParams()
+  const activeSection = timeSectionFromQuery(routeSearchParams.get("timeView") ?? searchQuery)
+  const selectedDate = parseLocalDate(routeSearchParams.get("date")) ?? new Date(2026, 5, 22)
+  const selectedMonth = Number(routeSearchParams.get("month"))
+  const selectedYear = Number(routeSearchParams.get("year"))
+  const selectedPeriodYear = Number.isFinite(selectedYear) && selectedYear > 2000 ? selectedYear : selectedDate.getFullYear()
+  const selectedPeriodMonth = Number.isFinite(selectedMonth) && selectedMonth >= 1 && selectedMonth <= 12 ? selectedMonth - 1 : selectedDate.getMonth()
+  const selectedPeriodDate = new Date(
+    selectedPeriodYear,
+    selectedPeriodMonth,
+    Math.min(selectedDate.getDate(), new Date(selectedPeriodYear, selectedPeriodMonth + 1, 0).getDate())
+  )
+  const [timerState, setTimerState] = useState<"idle" | "active" | "paused">("idle")
+  const [timerSeconds, setTimerSeconds] = useState(0)
+  const [timerProject, setTimerProject] = useState(projectsSource[0]?.name || "Website Relaunch")
+  const [timerActivity, setTimerActivity] = useState("Design & UI/UX")
+  const [timerDescription, setTimerDescription] = useState("Landingpage erstellen")
+  const [timerNotice, setTimerNotice] = useState("")
+  const [reportFocus, setReportFocus] = useState<"project" | "users" | "activity">("project")
+  const [annualFocus, setAnnualFocus] = useState<"work" | "revenue" | "users" | "activity">("work")
+  const [editingEntryIndex, setEditingEntryIndex] = useState<number | null>(null)
+  const [selectedWorkDate, setSelectedWorkDate] = useState(selectedDate)
+  const [monthEntryDraft, setMonthEntryDraft] = useState({
+    project: projectsSource[0]?.name || "Website Relaunch",
+    activity: "Design & UI/UX",
+    start: "09:00",
+    end: "17:00",
+    description: "Manuelle Arbeitszeit"
+  })
+  const [dayEntryDrafts, setDayEntryDrafts] = useState([
+    { start: "09:00", end: "11:15", project: projectsSource[0]?.name || "Website Relaunch", activity: "Design & UI/UX" },
+    { start: "11:30", end: "13:15", project: projectsSource[1]?.name || "Brand Portal", activity: "Konzeption" },
+    { start: "14:00", end: "17:20", project: projectsSource[2]?.name || "Support Retainer", activity: "Umsetzung" }
+  ])
+
+  useEffect(() => {
+    if (timerState !== "active") return
+    const interval = window.setInterval(() => setTimerSeconds((current) => current + 1), 1000)
+    return () => window.clearInterval(interval)
+  }, [timerState])
+
+  async function stopTimer() {
+    if (timerSeconds <= 0) {
+      setTimerState("idle")
+      setTimerNotice("Timer ist noch nicht gestartet.")
+      return
+    }
+    setTimerState("paused")
+    setTimerNotice("Timer wird gespeichert ...")
+    const hours = Math.max(timerSeconds / 3600, 0.01)
+    try {
+      const response = await fetch("/api/time/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          project: timerProject,
+          task: timerActivity,
+          description: timerDescription,
+          hours: hours.toFixed(2),
+          rate: "0",
+          status: "internal"
+        })
+      })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok || !result?.ok) throw new Error("Timer konnte nicht gespeichert werden.")
+      onDataChange((current) => ({
+        ...current,
+        projects: current.projects.map((project) => project.name === timerProject
+          ? { ...project, progress: `${Math.min(parsePercent(project.progress) + 1, 100)}%` }
+          : project)
+      }))
+      setTimerNotice(`Gespeichert: ${hours.toFixed(2)} h fuer ${timerProject}.`)
+    } catch {
+      setTimerNotice("Timer lokal gestoppt. API-Speicherung ist nicht bestaetigt.")
+    }
+  }
+
+  function timeHref(section: TimeSectionKey, date = selectedDate) {
+    const params = new URLSearchParams({ timeView: section, date: isoLocalDate(date), month: String(date.getMonth() + 1), year: String(date.getFullYear()) })
+    return withPremiumTheme(`/dashboard-v2/time?${params.toString()}`, mode)
+  }
+
+  function navigateTime(section: TimeSectionKey, date = selectedDate) {
+    router.push(timeHref(section, date))
+  }
+
+  function moveDate(direction: -1 | 1) {
+    const nextDate =
+      activeSection === "arbeitstag" ? addLocalDays(selectedDate, direction) :
+      activeSection === "wochenzeiten" ? addLocalDays(selectedDate, direction * 7) :
+      activeSection === "monatsansicht" || activeSection === "kalender" || activeSection === "berichte" ? addLocalMonths(selectedPeriodDate, direction) :
+      addLocalMonths(selectedPeriodDate, direction)
+    navigateTime(activeSection === "overview" ? "wochenzeiten" : activeSection, nextDate)
+  }
+
+  function changePeriod(value: string) {
+    const section = value === "day" ? "arbeitstag" : value === "month" ? "monatsansicht" : value === "year" ? "berichte" : "wochenzeiten"
+    navigateTime(section, selectedPeriodDate)
+  }
+
+  function updateMonth(month: string) {
+    const nextDate = new Date(selectedPeriodDate.getFullYear(), Number(month), Math.min(selectedPeriodDate.getDate(), new Date(selectedPeriodDate.getFullYear(), Number(month) + 1, 0).getDate()))
+    navigateTime(activeSection === "overview" ? "monatsansicht" : activeSection, nextDate)
+  }
+
+  function updateYear(year: string) {
+    const parsedYear = Number(year)
+    if (!Number.isFinite(parsedYear)) return
+    const nextDate = new Date(parsedYear, selectedPeriodDate.getMonth(), Math.min(selectedPeriodDate.getDate(), new Date(parsedYear, selectedPeriodDate.getMonth() + 1, 0).getDate()))
+    navigateTime(activeSection === "overview" ? "monatsansicht" : activeSection, nextDate)
+  }
+
+  function updateDayEntry(index: number, field: "start" | "end" | "project" | "activity", value: string) {
+    setDayEntryDrafts((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, [field]: value } : entry))
+  }
+
+  function updateMonthEntry(field: keyof typeof monthEntryDraft, value: string) {
+    setMonthEntryDraft((current) => ({ ...current, [field]: value }))
+  }
+
+  function startTimerForSelectedDay() {
+    setTimerProject(monthEntryDraft.project)
+    setTimerActivity(monthEntryDraft.activity)
+    setTimerDescription(`${formatShortDate(selectedWorkDate)} ${monthEntryDraft.description}`)
+    setTimerState("active")
+    setTimerNotice(`Timer fuer ${formatGermanDate(selectedWorkDate)} gestartet.`)
+  }
+
+  const timeWorkTabs: Array<{ key: TimeSectionKey; title: string }> = [
+    { key: "arbeitstag", title: "Arbeitstag" },
+    { key: "wochenzeiten", title: "Woche" },
+    { key: "monatsansicht", title: "Monat" }
+  ]
+  const timeAnalysisItems: Array<{ key: TimeSectionKey; title: string; icon: IconType }> = [
+    { key: "berichte", title: "Berichte", icon: BarChart3 },
+    { key: "projekte", title: "Projekt-Auswertung", icon: Folder },
+    { key: "taetigkeiten", title: "Taetigkeiten", icon: Activity },
+    { key: "benutzerzeiten", title: "Benutzerzeiten", icon: Users }
+  ]
+
+  const weekStart = startOfLocalWeek(selectedDate)
+  const weekDates = Array.from({ length: 7 }).map((_, index) => addLocalDays(weekStart, index))
+  const periodLabel = activeSection === "arbeitstag"
+    ? formatGermanDate(selectedDate)
+    : activeSection === "monatsansicht" || activeSection === "kalender" || activeSection === "berichte"
+      ? formatMonthYear(selectedPeriodDate)
+      : formatWeekRange(selectedDate)
+  const periodValue = activeSection === "arbeitstag" ? "day" : activeSection === "monatsansicht" || activeSection === "kalender" ? "month" : activeSection === "berichte" ? "year" : "week"
+  const availableYears = Array.from({ length: 7 }).map((_, index) => selectedPeriodDate.getFullYear() - 3 + index)
+  const weekRows = weekDates.map((date, index) => {
+    const weekend = date.getDay() === 0 || date.getDay() === 6
+    const value = weekend ? "00:00" : index === 4 ? "06:45" : "08:00"
+    return {
+      day: `${shortGermanWeekdays[date.getDay()]}. ${formatShortDate(date)}`,
+      value,
+      tone: weekend ? "neutral" : value === "08:00" ? "green" : "rose"
+    }
+  })
+  const weekTotalMinutes = weekRows.reduce((sum, row) => sum + minutesFromTime(row.value), 0)
+  const monthFirstDay = new Date(selectedPeriodDate.getFullYear(), selectedPeriodDate.getMonth(), 1)
+  const daysInSelectedMonth = new Date(selectedPeriodDate.getFullYear(), selectedPeriodDate.getMonth() + 1, 0).getDate()
+  const monthLeadingCells = (monthFirstDay.getDay() + 6) % 7
+  const monthCells: TimeMonthCell[] = [
+    ...Array.from({ length: monthLeadingCells }).map((_, index) => ({ key: `empty-${index}`, empty: true as const })),
+    ...Array.from({ length: daysInSelectedMonth }).map((_, index) => {
+      const date = new Date(selectedPeriodDate.getFullYear(), selectedPeriodDate.getMonth(), index + 1)
+      const weekend = date.getDay() === 0 || date.getDay() === 6
+      const day = date.getDate()
+      const meta = weekend
+        ? { tone: "gray", label: "Kein Eintrag", minutes: 0 }
+        : day % 11 === 0
+          ? { tone: "blue", label: "Krankheit", minutes: 0 }
+          : day % 8 === 0
+            ? { tone: "orange", label: "Urlaub", minutes: 0 }
+            : day % 5 === 0
+              ? { tone: "rose", label: "-1:10", minutes: 410 }
+              : { tone: "green", label: "8:00", minutes: 480 }
+      return { key: isoLocalDate(date), empty: false as const, date, day, ...meta }
+    })
+  ]
+  const monthWorkdays = Array.from({ length: daysInSelectedMonth }).filter((_, index) => {
+    const date = new Date(selectedPeriodDate.getFullYear(), selectedPeriodDate.getMonth(), index + 1)
+    return date.getDay() !== 0 && date.getDay() !== 6
+  }).length
+  const monthSollMinutes = monthWorkdays * 480
+  const monthIstMinutes = monthCells.reduce((sum, cell) => sum + ("minutes" in cell ? Number(cell.minutes) : 0), 0)
+  const monthDiffMinutes = monthIstMinutes - monthSollMinutes
+  const formatSignedHours = (minutes: number) => `${minutes < 0 ? "-" : "+"}${padDatePart(Math.floor(Math.abs(minutes) / 60))}:${padDatePart(Math.abs(minutes) % 60)} h`
+  const projectCards = projectsSource.slice(0, 4).map((project, index) => ({
+    project,
+    hours: [42, 31, 18, 12][index] ?? 8,
+    share: [38, 28, 19, 15][index] ?? 10,
+    progress: parsePercent(project.progress)
+  }))
+  const activityRows = [
+    ["Design & UI/UX", "42:15 h", "36%", "violet"],
+    ["Entwicklung", "38:40 h", "33%", "green"],
+    ["Kundengespraech", "18:05 h", "15%", "blue"],
+    ["Projektsteuerung", "12:30 h", "11%", "amber"]
+  ]
+
+  function renderDetail() {
+    if (activeSection === "arbeitstag") {
+      const editingEntry = editingEntryIndex === null ? null : dayEntryDrafts[editingEntryIndex]
+      return (
+        <section className={styles.timeDetailGrid}>
+          <article className={styles.timeDetailPanel}>
+            <div className={styles.timePanelHead}><div><span>Tagesansicht</span><h2>{formatGermanDate(selectedDate)}</h2></div><button type="button" onClick={() => setEditingEntryIndex(0)}><Plus size={16} /> Eintrag</button></div>
+            <div className={styles.timeEntryCards}>{dayEntryDrafts.map((entry, index) => (
+              <button key={`${entry.start}-${entry.project}`} type="button" className={styles.timeEntryCard} data-active={editingEntryIndex === index} onClick={() => setEditingEntryIndex(index)}>
+                <span><Clock3 size={18} /></span>
+                <div><strong>{entry.project}</strong><small>{entry.activity}</small></div>
+                <b>{entry.start} - {entry.end}</b>
+                <em>{durationFromTimes(entry.start, entry.end)}</em>
+              </button>
+            ))}</div>
+          </article>
+          <article className={styles.timeDetailPanel}>
+            <div className={styles.timePanelHead}><div><span>Bearbeiten</span><h2>{editingEntry ? editingEntry.project : "Eintrag waehlen"}</h2></div><button type="button" onClick={() => setEditingEntryIndex(null)}><X size={16} />Schliessen</button></div>
+            {editingEntry && editingEntryIndex !== null ? (
+              <form className={styles.timeEditForm} onSubmit={(event) => { event.preventDefault(); setEditingEntryIndex(null) }}>
+                <label>Projekt<select value={editingEntry.project} onChange={(event) => updateDayEntry(editingEntryIndex, "project", event.target.value)}>{projectsSource.map((project) => <option key={project.id} value={project.name}>{project.name}</option>)}</select></label>
+                <label>Taetigkeit<select value={editingEntry.activity} onChange={(event) => updateDayEntry(editingEntryIndex, "activity", event.target.value)}><option>Design & UI/UX</option><option>Konzeption</option><option>Umsetzung</option><option>Kundengespraech</option><option>Projektsteuerung</option></select></label>
+                <label>Startzeit<input type="time" value={editingEntry.start} onChange={(event) => updateDayEntry(editingEntryIndex, "start", event.target.value)} /></label>
+                <label>Endzeit<input type="time" value={editingEntry.end} onChange={(event) => updateDayEntry(editingEntryIndex, "end", event.target.value)} /></label>
+                <div className={styles.timeEditDuration}><span>Dauer</span><strong>{durationFromTimes(editingEntry.start, editingEntry.end)}</strong></div>
+                <button type="submit"><Save size={16} />Speichern</button>
+              </form>
+            ) : (
+              <div className={styles.timeEditEmpty}>Klicke links auf einen Zeiteintrag, um Projekt, Taetigkeit, Startzeit und Endzeit zu bearbeiten.</div>
+            )}
+          </article>
+        </section>
+      )
+    }
+
+    if (activeSection === "wochenzeiten") {
+      return (
+        <article className={styles.timeDetailPanel}>
+          <div className={styles.timePanelHead}><div><span>Wochenzeiten</span><h2>{formatWeekRange(selectedDate)}</h2></div><strong>Gesamt: {padDatePart(Math.floor(weekTotalMinutes / 60))}:{padDatePart(weekTotalMinutes % 60)} h</strong></div>
+          <div className={styles.weekModernGrid}>{weekRows.map((row) => (
+            <label key={row.day} data-tone={row.tone}>
+              <span>{row.day}</span>
+              <input defaultValue={row.value} />
+              <select defaultValue={projectsSource[0]?.name || ""}>{projectsSource.map((project) => <option key={project.id} value={project.name}>{project.name}</option>)}</select>
+              <button type="button"><Save size={14} />Speichern</button>
+              <small>{row.tone === "green" ? "Soll erfuellt" : row.tone === "rose" ? "Unterstunden" : "Wochenende"}</small>
+            </label>
+          ))}</div>
+        </article>
+      )
+    }
+
+    if (activeSection === "monatsansicht" || activeSection === "kalender") {
+      const selectedCell = monthCells.find((cell) => "date" in cell && isoLocalDate(cell.date) === isoLocalDate(selectedWorkDate))
+      return (
+        <section className={styles.timeMonthBoard}>
+          <div className={styles.timeMonthMain}>
+            <article className={`${styles.timeDetailPanel} ${styles.timeMonthPanel}`}>
+              <div className={styles.timePanelHead}>
+                <div><h2>{formatMonthYear(selectedPeriodDate)}</h2></div>
+              </div>
+              <div className={styles.monthStats}>
+                <span>Sollstunden <strong>{padDatePart(Math.floor(monthSollMinutes / 60))}:{padDatePart(monthSollMinutes % 60)} h</strong><small>Plan fuer {formatMonthYear(selectedPeriodDate)}</small></span>
+                <span>Iststunden <strong>{padDatePart(Math.floor(monthIstMinutes / 60))}:{padDatePart(monthIstMinutes % 60)} h</strong><small>Erfasst in {formatMonthYear(selectedPeriodDate)}</small></span>
+                <span>Differenz <strong data-tone={monthDiffMinutes < 0 ? "rose" : "green"}>{formatSignedHours(monthDiffMinutes)}</strong><small>Abweichung</small></span>
+              </div>
+              <div className={styles.monthWeekHead}>{["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((day) => <span key={day}>{day}</span>)}</div>
+              <div className={styles.monthModernGrid}>{monthCells.map((item) => {
+                if (!("date" in item)) return <div key={item.key} data-empty="true" />
+                const isActive = isoLocalDate(item.date) === isoLocalDate(selectedWorkDate)
+                return (
+                  <button key={item.key} type="button" onClick={() => setSelectedWorkDate(item.date)} data-tone={item.tone} data-active={isActive}>
+                    <strong>{item.day}</strong>
+                    <em data-status={item.tone}>{item.tone === "green" ? <CheckCircle2 size={14} /> : item.tone === "rose" ? <ChevronDown size={15} /> : item.tone === "gray" ? null : <i />}</em>
+                    <span>{item.label}</span>
+                  </button>
+                )
+              })}</div>
+              <div className={styles.monthLegend}>
+                <span data-tone="green">Erfuellt</span>
+                <span data-tone="rose">Unterstunden</span>
+                <span data-tone="orange">Urlaub</span>
+                <span data-tone="blue">Krankheit</span>
+                <span data-tone="gray">Kein Eintrag</span>
+              </div>
+            </article>
+            <article className={styles.timeMonthAnalytics}>
+              <header><strong>Auswertung - {formatMonthYear(selectedPeriodDate)}</strong></header>
+              <div>
+                <section>
+                  <div className={styles.timeChartHead}><span>Stunden nach Woche</span><small><i />Iststunden <i data-empty="true" />Sollstunden</small></div>
+                  <div className={styles.timeWeeklyBars}>{["KW 23", "KW 24", "KW 25", "KW 26", "KW 27"].map((week, index) => <span key={week}><b>{["38:30", "45:15", "31:00", "15:25", "00:00"][index]}</b><i style={{ height: `${[62, 78, 52, 30, 4][index]}%` }} /><small>{week}</small></span>)}</div>
+                </section>
+                <section>
+                  <div className={styles.timeChartHead}><span>Stunden nach Taetigkeit</span></div>
+                  <div className={styles.timeActivityDonutRow}>
+                    <div className={styles.timeDonutChart} data-mode="activity"><span /></div>
+                    <ul>{activityRows.map(([label, hours, percent, tone]) => <li key={label} data-tone={tone}><span>{label}</span><b>{hours}</b><small>{percent}</small></li>)}</ul>
+                  </div>
+                </section>
+              </div>
+            </article>
+          </div>
+          <aside className={styles.timeDayDrawer}>
+            <header>
+              <button type="button" aria-label="Bearbeitung schliessen"><X size={16} /></button>
+              <span>Tag bearbeiten</span>
+              <h3>{formatGermanDate(selectedWorkDate)}</h3>
+              <small>{selectedCell && "label" in selectedCell ? selectedCell.label : "Kein Eintrag"}</small>
+            </header>
+            <form className={styles.timeEditForm} onSubmit={(event) => event.preventDefault()}>
+              <label>Projekt *<select value={monthEntryDraft.project} onChange={(event) => updateMonthEntry("project", event.target.value)}>{projectsSource.map((project) => <option key={project.id} value={project.name}>{project.name}</option>)}</select></label>
+              <label>Taetigkeit *<select value={monthEntryDraft.activity} onChange={(event) => updateMonthEntry("activity", event.target.value)}><option>Design & UI/UX</option><option>Konzeption</option><option>Umsetzung</option><option>Kundengespraech</option><option>Projektsteuerung</option></select></label>
+              <label>Startzeit<input type="time" value={monthEntryDraft.start} onChange={(event) => updateMonthEntry("start", event.target.value)} /></label>
+              <label>Endzeit<input type="time" value={monthEntryDraft.end} onChange={(event) => updateMonthEntry("end", event.target.value)} /></label>
+              <label className={styles.timeEditWide}>Beschreibung<textarea value={monthEntryDraft.description} onChange={(event) => updateMonthEntry("description", event.target.value)} /></label>
+              <div className={styles.timeEditDuration}><span>Dauer</span><strong>{durationFromTimes(monthEntryDraft.start, monthEntryDraft.end)}</strong></div>
+              <button type="submit"><Save size={16} />Speichern</button>
+              <button type="button" onClick={startTimerForSelectedDay}><Play size={16} />Timer starten</button>
+            </form>
+          </aside>
+        </section>
+      )
+    }
+
+    if (activeSection === "projekte") {
+      return (
+        <section className={styles.projectTimeGrid}>{projectCards.map(({ project, hours, share, progress }) => (
+          <article key={project.id} className={styles.projectTimeCard}>
+            <div><span><Folder size={20} /></span><strong>{project.name}</strong><small>{project.customer}</small></div>
+            <b>{hours}:00 h</b>
+            <div className={styles.timeProgress}><i style={{ width: `${progress}%` }} /></div>
+            <p><span>Anteil</span><strong>{share}%</strong></p>
+            <TimeSparkline tone="violet" />
+          </article>
+        ))}</section>
+      )
+    }
+
+    if (activeSection === "taetigkeiten") {
+      return (
+        <article className={styles.timeDetailPanel}>
+          <div className={styles.timePanelHead}><div><span>Taetigkeitsauswertung</span><h2>Stunden pro Taetigkeit</h2></div><div className={styles.timeFilters}><button type="button">Zeitraum</button><button type="button">Benutzer</button><button type="button">Projekt</button></div></div>
+          <div className={styles.timeConnectedFilters}>
+            <label>Zeitraum<select defaultValue="month"><option value="month">Aktueller Monat</option><option value="quarter">Quartal</option><option value="year">Jahr</option></select></label>
+            <label>Benutzer<select defaultValue={usersSource[0]?.id}>{usersSource.map((user) => <option key={user.id} value={user.id}>{user.name || user.email}</option>)}</select></label>
+            <label>Projekt<select defaultValue={projectsSource[0]?.id}>{projectsSource.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
+          </div>
+          <div className={styles.activityBars}>{activityRows.map(([label, hours, percent, tone]) => (
+            <div key={label} data-tone={tone}><span>{label}</span><strong>{hours}</strong><em>{percent}</em><i style={{ width: percent }} /></div>
+          ))}</div>
+        </article>
+      )
+    }
+
+    if (activeSection === "benutzerzeiten") {
+      return (
+        <section className={styles.userTimeGrid}>{usersSource.slice(0, 6).map((user, index) => (
+          <article key={user.id} className={styles.userTimeCard}>
+            <span>{(user.name || user.email || "U").slice(0, 2).toUpperCase()}</span>
+            <div><strong>{user.name || user.email || "Benutzer"}</strong><small>{user.role || "Team"}</small></div>
+            <p><b>Heute</b><strong>{index === 0 ? "06:35 h" : "04:20 h"}</strong></p>
+            <p><b>Woche</b><strong>{index === 0 ? "32:45 h" : "21:10 h"}</strong></p>
+            <p><b>Monat</b><strong>{index === 0 ? "128:30 h" : "86:00 h"}</strong></p>
+            <TimeSparkline tone={index === 0 ? "green" : "blue"} />
+          </article>
+        ))}</section>
+      )
+    }
+
+    if (activeSection === "berichte") {
+      return (
+        <article className={styles.timeDetailPanel}>
+          <div className={styles.timePanelHead}><div><span>Berichte</span><h2>Ist, Soll und Differenz</h2></div><div className={styles.timeFilters}><button type="button">Monat</button><button type="button">Jahr</button><button type="button">Benutzer</button><button type="button">Projekt</button></div></div>
+          <div className={styles.timeConnectedFilters}>
+            <label>Monat<select value={selectedPeriodDate.getMonth()} onChange={(event) => updateMonth(event.target.value)}>{germanMonths.map((month, index) => <option key={month} value={index}>{month}</option>)}</select></label>
+            <label>Jahr<select value={selectedPeriodDate.getFullYear()} onChange={(event) => updateYear(event.target.value)}>{availableYears.map((year) => <option key={year} value={year}>{year}</option>)}</select></label>
+            <label>Benutzer<select defaultValue={usersSource[0]?.id}>{usersSource.map((user) => <option key={user.id} value={user.id}>{user.name || user.email}</option>)}</select></label>
+            <label>Projekt<select defaultValue={projectsSource[0]?.id}>{projectsSource.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
+          </div>
+          <div className={styles.timeReportSplit}>
+            <div className={styles.reportChart}><span style={{ height: "66%" }}><b>Ist</b></span><span style={{ height: "82%" }}><b>Soll</b></span><span data-tone="rose" style={{ height: "34%" }}><b>Differenz</b></span></div>
+            <div className={styles.timeDonutChart} data-mode="activity"><span /></div>
+          </div>
+          <div className={styles.timeExportActions}><Link href="/api/time-tracking/export?format=pdf"><Download size={16} />PDF</Link><Link href="/api/time-tracking/export?format=csv"><Download size={16} />CSV</Link></div>
+        </article>
+      )
+    }
+
+    return (
+      <article className={styles.timeDetailPanel}>
+        <div className={styles.timePanelHead}><div><span>Arbeitsvertrag</span><h2>Arbeitszeitmodell</h2></div><button type="button"><Save size={16} />Speichern</button></div>
+        <form className={styles.contractModernForm}>
+          {["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"].map((day, index) => <label key={day}>{day}<input defaultValue={index < 5 ? "08:00" : "00:00"} /></label>)}
+          <label>Arbeitszeitberechnung<select defaultValue="weekly"><option value="weekly">Woechentliches Soll</option><option value="monthly">Monatliches Soll</option><option value="flex">Gleitzeitkonto</option></select></label>
+        </form>
+      </article>
+    )
+  }
+
+  return (
+    <section className={styles.timePremiumPage}>
+      <header className={styles.timePremiumHeader}>
+        <Link href={withPremiumTheme("/dashboard-v2", mode)}><ChevronLeft size={16} />Zurueck</Link>
+        <div><h1>Zeiterfassung</h1><p>Arbeitszeiten erfassen</p></div>
+        <div className={styles.timeHeaderActions}>
+          <select value={periodValue} aria-label="Zeitraum" onChange={(event) => changePeriod(event.target.value)}><option value="day">Tag</option><option value="week">Woche</option><option value="month">Monat</option><option value="year">Jahr</option></select>
+          <div className={styles.timeDateStepper}>
+            <button type="button" aria-label="Vorheriger Zeitraum" onClick={() => moveDate(-1)}><ChevronLeft size={16} /></button>
+            <strong>{periodLabel}</strong>
+            <button type="button" aria-label="Naechster Zeitraum" onClick={() => moveDate(1)}><ChevronRight size={16} /></button>
+          </div>
+          <select value={selectedPeriodDate.getMonth()} aria-label="Monat wechseln" onChange={(event) => updateMonth(event.target.value)}>{germanMonths.map((month, index) => <option key={month} value={index}>{month}</option>)}</select>
+          <select value={selectedPeriodDate.getFullYear()} aria-label="Jahr wechseln" onChange={(event) => updateYear(event.target.value)}>{availableYears.map((year) => <option key={year} value={year}>{year}</option>)}</select>
+          <button type="button" onClick={() => navigateTime(activeSection === "overview" ? "arbeitstag" : activeSection, new Date())}>Heute</button>
+          <Link href={timeHref("arbeitstag", selectedDate)}><Plus size={16} />Manuelle Zeit</Link>
+        </div>
+      </header>
+
+      {activeSection === "overview" ? (
+        <>
+          <section className={styles.timeReportCockpit}>
+            <article className={styles.timeReportToolbar}>
+              <div className={styles.timeBreadcrumb}><Link href={timeHref("berichte")}>Berichte</Link><ChevronRight size={14} /><span>Projekte</span></div>
+              <label>Projekt<select value={timerProject} onChange={(event) => setTimerProject(event.target.value)}>{projectsSource.map((project) => <option key={project.id} value={project.name}>{project.name}</option>)}</select></label>
+              <label>Jahr<select value={selectedPeriodDate.getFullYear()} onChange={(event) => updateYear(event.target.value)}>{availableYears.map((year) => <option key={year} value={year}>{year}</option>)}</select></label>
+              <div className={styles.timeReportActions}>
+                <button type="button"><Eye size={16} />Anzeigen</button>
+                <button type="button"><Pencil size={16} />Bearbeiten</button>
+                <button type="button"><Filter size={16} />Daten filtern</button>
+              </div>
+              <aside className={styles.timeCompactTimer}>
+                <div><span>{formatPremiumTimer(timerSeconds)}</span><small>{timerState === "active" ? "Aktiv" : timerState === "paused" ? "Pause" : "Bereit"}</small></div>
+                <button type="button" onClick={() => setTimerState("active")}><Play size={15} />Start</button>
+                <button type="button" onClick={() => setTimerState("paused")} aria-label="Timer pausieren"><Pause size={15} /></button>
+                <button type="button" onClick={() => { setTimerSeconds(0); setTimerState("idle"); setTimerNotice("") }} aria-label="Timer zuruecksetzen"><TimerReset size={15} /></button>
+              </aside>
+            </article>
+
+            <section className={styles.timeCockpitGrid}>
+              <div className={styles.timeCockpitMain}>
+                <article className={styles.timeReportCard}>
+                  <header className={styles.timeReportCardHead}>
+                    <div><span data-dot="rose" /> <strong>{timerProject}</strong></div>
+                    <nav>
+                      <button type="button" data-active={reportFocus === "project"} onClick={() => setReportFocus("project")}>Projektdetails</button>
+                      <button type="button" data-active={reportFocus === "users"} onClick={() => setReportFocus("users")}>Benutzer</button>
+                      <button type="button" data-active={reportFocus === "activity"} onClick={() => setReportFocus("activity")}>Taetigkeit</button>
+                    </nav>
+                    <div><b>99:00</b><b>0,00 EUR</b></div>
+                  </header>
+                  <div className={styles.timeReportBody}>
+                    <div className={styles.timeReportFacts}>
+                      {reportFocus === "project" ? (
+                        <>
+                          <span><small>Kunde</small><strong>Acme GmbH</strong></span>
+                          <span><small>Gesamt</small><strong>99:00 h</strong></span>
+                          <span><small>Umsatz gesamt</small><strong>0,00 EUR</strong></span>
+                          <span><small>Abrechenbar</small><strong>0,00 EUR</strong></span>
+                          <span><small>Nicht exportiert</small><strong>99:00 h</strong></span>
+                          <span><small>Letzter Eintrag</small><strong>{formatShortDate(selectedDate)}{selectedDate.getFullYear()}</strong></span>
+                        </>
+                      ) : reportFocus === "users" ? (
+                        <>
+                          <span><small>Benutzer</small><strong>{usersSource[0]?.name || "admin"}</strong></span>
+                          <span><small>Dauer</small><strong>99:00 h</strong></span>
+                          <span><small>Anteil</small><strong>100%</strong></span>
+                          <span><small>Abrechenbar</small><strong>0,00 EUR</strong></span>
+                        </>
+                      ) : (
+                        <>
+                          <span><small>Planung</small><strong>73:00 h</strong></span>
+                          <span><small>Kundengespraech</small><strong>26:00 h</strong></span>
+                          <span><small>Umsatz gesamt</small><strong>0,00 EUR</strong></span>
+                          <span><small>Taetigkeiten</small><strong>2 aktiv</strong></span>
+                        </>
+                      )}
+                    </div>
+                    <div className={styles.timeReportVisual}>
+                      {reportFocus === "project" ? (
+                        <div className={styles.timeLineChart} aria-label="Stundenkontingent">
+                          {[20, 20, 20, 20, -78, -78, -78, -78, -78, -78, -78, -78].map((value, index) => <i key={index} style={{ "--point": `${50 - value / 2}%` } as CSSProperties} data-negative={value < 0} />)}
+                        </div>
+                      ) : (
+                        <div className={styles.timeDonutChart} data-mode={reportFocus}><span /></div>
+                      )}
+                    </div>
+                  </div>
+                  <footer className={styles.timeQuotaBar}>
+                    <span>Stundenkontingent</span>
+                    <strong>99:00</strong>
+                    <div><i /></div>
+                    <em>120:00</em>
+                  </footer>
+                </article>
+
+                <article className={styles.timeYearReportCard}>
+                  <header className={styles.timeReportCardHead}>
+                    <strong>{selectedPeriodDate.getFullYear()}</strong>
+                    <nav>
+                      <button type="button" data-active={annualFocus === "work"} onClick={() => setAnnualFocus("work")}>Arbeitszeit</button>
+                      <button type="button" data-active={annualFocus === "revenue"} onClick={() => setAnnualFocus("revenue")}>Umsatz</button>
+                      <button type="button" data-active={annualFocus === "users"} onClick={() => setAnnualFocus("users")}>Benutzer</button>
+                      <button type="button" data-active={annualFocus === "activity"} onClick={() => setAnnualFocus("activity")}>Taetigkeit</button>
+                    </nav>
+                    <div><b>99:00</b><b>0,00 EUR</b></div>
+                  </header>
+                  <div className={styles.timeAnnualReport}>
+                    <div className={styles.timeBarChart}>{germanMonths.map((month, index) => <span key={month}><i style={{ height: `${index === 4 ? 96 : index === 5 ? 28 : index < 4 ? 4 : 12}%` }} data-active={index === selectedPeriodDate.getMonth()} /><small>{month.slice(0, 3)}</small></span>)}</div>
+                    <div className={styles.timeActivitySummary}>
+                      <div className={styles.timeDonutChart} data-mode="activity"><span /></div>
+                      <strong>{annualFocus === "revenue" ? "0,00 EUR" : "99:00 h"}</strong>
+                      <small>{annualFocus === "users" ? "Benutzeranteile" : annualFocus === "activity" ? "Taetigkeiten" : "Jahresauswertung"}</small>
+                    </div>
+                  </div>
+                </article>
+              </div>
+
+              <aside className={styles.timeDrilldownPanel}>
+                <strong>Details</strong>
+                <p>Direkt in die Arbeitszeit springen.</p>
+                <Link href={timeHref("arbeitstag")}><CalendarDays size={17} />Arbeitstag<ChevronRight size={15} /></Link>
+                <Link href={timeHref("wochenzeiten")}><Clock3 size={17} />Wochenzeiten<ChevronRight size={15} /></Link>
+                <Link href={timeHref("monatsansicht")}><CalendarDays size={17} />Monatszeiten<ChevronRight size={15} /></Link>
+                <Link href={timeHref("kalender")}><CalendarDays size={17} />Kalender<ChevronRight size={15} /></Link>
+                <Link href={timeHref("berichte")}><FileText size={17} />Berichte<ChevronRight size={15} /></Link>
+                <Link href={timeHref("arbeitsvertrag")}><Briefcase size={17} />Arbeitsvertrag<ChevronRight size={15} /></Link>
+              </aside>
+            </section>
+          </section>
+        </>
+      ) : (
+        <>
+          <nav className={styles.timeSubNav} aria-label="Zeiterfassung Ansichten">
+            <div className={styles.timePrimaryTabs}>
+              {timeWorkTabs.map((item) => <Link key={item.key} href={timeHref(item.key)} data-active={activeSection === item.key || (item.key === "monatsansicht" && activeSection === "kalender")}>{item.title}</Link>)}
+            </div>
+            <div className={styles.timeAnalysisMenu} data-active={timeAnalysisItems.some((item) => item.key === activeSection)}>
+              <button type="button">Auswertung <ChevronDown size={14} /></button>
+              <div>{timeAnalysisItems.map((item) => {
+                const Icon = item.icon
+                return <Link key={item.key} href={timeHref(item.key)} data-active={activeSection === item.key}><Icon size={15} />{item.title}</Link>
+              })}</div>
+            </div>
+            <Link className={styles.timeContractTab} href={timeHref("arbeitsvertrag")} data-active={activeSection === "arbeitsvertrag"}>Vertrag</Link>
+          </nav>
+          {renderDetail()}
+        </>
+      )}
+    </section>
+  )
+}
+
 function PremiumModulePage({
   view,
   settingsSection,
@@ -6781,6 +7669,501 @@ function PremiumModulePage({
   const isOffersSimpleView = view === "offers"
   const [moduleActionState, setModuleActionState] = useState<WorkflowState>({ type: "idle", message: "" })
   const [isModuleActionSaving, setIsModuleActionSaving] = useState(false)
+  const [selectedProjectIds, setSelectedProjectIds] = useState<string[]>([])
+  const [projectSearchTerm, setProjectSearchTerm] = useState("")
+  const [projectSelectOpen, setProjectSelectOpen] = useState(false)
+  const [projectStatusFilter, setProjectStatusFilter] = useState("all")
+  const [projectDrawerMode, setProjectDrawerMode] = useState<ProjectDrawerMode>("create")
+  const [projectDrawerProject, setProjectDrawerProject] = useState<ProjectData | null>(null)
+  const [projectDrawerOpen, setProjectDrawerOpen] = useState(false)
+  const [projectMoreMenuId, setProjectMoreMenuId] = useState<string | null>(null)
+  const [projectDraft, setProjectDraft] = useState<ProjectDrawerDraft>({
+    name: "",
+    code: "",
+    customer: "",
+    customerId: "",
+    budget: "",
+    status: "active",
+    progress: "0",
+    description: ""
+  })
+  const [articleSearchTerm, setArticleSearchTerm] = useState("")
+  const [articleCategoryFilter, setArticleCategoryFilter] = useState("all")
+  const [selectedArticleIds, setSelectedArticleIds] = useState<string[]>([])
+  const [articleSelectionMode, setArticleSelectionMode] = useState(false)
+  const [expenseSearchTerm, setExpenseSearchTerm] = useState("")
+  const [expenseCategoryFilter, setExpenseCategoryFilter] = useState("all")
+  const [expenseProjectFilter, setExpenseProjectFilter] = useState("all")
+  const [expenseSelectionMode, setExpenseSelectionMode] = useState(false)
+  const [selectedExpenseIds, setSelectedExpenseIds] = useState<string[]>([])
+  const [expenseLayoutMode, setExpenseLayoutMode] = useState<"list" | "grid">("list")
+  const dashboardArticleFileInputRef = useRef<HTMLInputElement>(null)
+  const projectsSource = data.projects.length ? data.projects : fallbackProjects
+  const projectFilterQuery = view === "projects" ? (projectSearchTerm.trim() || effectiveSearchQuery) : ""
+  const projectTableRows = projectsSource
+    .filter((project) => matchesSearch([project.name, project.id, project.code || "", project.customer, project.budget, project.status, project.progress], projectFilterQuery))
+    .filter((project) => projectStatusFilter === "all" || projectStatusValue(project.status) === projectStatusFilter)
+    .slice(0, 5)
+  const selectedProjectCount = selectedProjectIds.length
+  const visibleProjectIds = projectTableRows.map((project) => project.id)
+  const allVisibleProjectsSelected = visibleProjectIds.length > 0 && visibleProjectIds.every((id) => selectedProjectIds.includes(id))
+  const articlesSource = data.articles.length ? data.articles : fallbackApiArticles
+  const articleCategories = Array.from(new Set(articlesSource.map((article) => article.category || "Leistung"))).sort((a, b) => a.localeCompare(b))
+  const articleFilterQuery = view === "articles" ? (articleSearchTerm.trim() || effectiveSearchQuery) : ""
+  const articleRows = articlesSource
+    .filter((article) => articleCategoryFilter === "all" || (article.category || "Leistung") === articleCategoryFilter)
+    .filter((article) => matchesSearch([article.name, article.code || "", article.category || "", formatEuro(Number(article.price || 0)), article.active === false ? "Inaktiv" : "Aktiv"], articleFilterQuery))
+    .slice(0, 6)
+  const selectedArticleCount = selectedArticleIds.length
+  const expenseRows = [
+    { id: "ex-2026-006", date: "16.05.2026", description: "Flugtickets München - Berlin", receipt: "Beleg-Nr. EX-2026-006", category: "Reisen", supplier: "Lufthansa", supplierId: "DE123456789", project: "Website Relaunch", projectCode: "PR-0001", net: 320, vat: "19%", status: "Erfasst", tone: "blue" },
+    { id: "ex-2026-005", date: "15.05.2026", description: "Hotelübernachtung Berlin", receipt: "Beleg-Nr. EX-2026-005", category: "Unterkunft", supplier: "Hotel Berlin Mitte", supplierId: "DE987654321", project: "Website Relaunch", projectCode: "PR-0001", net: 450, vat: "7%", status: "Erfasst", tone: "green" },
+    { id: "ex-2026-004", date: "14.05.2026", description: "Büromaterial", receipt: "Beleg-Nr. EX-2026-004", category: "Bürobedarf", supplier: "Office GmbH", supplierId: "DE456789123", project: "Interne Verwaltung", projectCode: "PR-0003", net: 48.5, vat: "19%", status: "Erfasst", tone: "blue" },
+    { id: "ex-2026-003", date: "12.05.2026", description: "Mittagessen mit Kunde", receipt: "Beleg-Nr. EX-2026-003", category: "Bewirtung", supplier: "Ristorante Da Vinci", supplierId: "DE654321987", project: "Logo Design", projectCode: "PR-0002", net: 89, vat: "19%", status: "Zur Erstattung", tone: "amber" },
+    { id: "ex-2026-002", date: "10.05.2026", description: "Bahnhof Frankfurt", receipt: "Beleg-Nr. EX-2026-002", category: "Reisen", supplier: "Deutsche Bahn", supplierId: "DE147258369", project: "SEO Optimierung", projectCode: "PR-0004", net: 39.9, vat: "7%", status: "Erstattet", tone: "green" },
+    { id: "ex-2026-001", date: "08.05.2026", description: "Software-Abo (Adobe)", receipt: "Beleg-Nr. EX-2026-001", category: "Software", supplier: "Adobe Systems", supplierId: "US345678901", project: "Website Relaunch", projectCode: "PR-0001", net: 120.6, vat: "19%", status: "Erstattet", tone: "violet" },
+    { id: "ex-2026-007", date: "07.05.2026", description: "Parkgebühren", receipt: "Beleg-Nr. EX-2026-007", category: "Reisen", supplier: "Contipark", supplierId: "DE852369741", project: "Interne Verwaltung", projectCode: "PR-0003", net: 15, vat: "19%", status: "Erfasst", tone: "blue" },
+    { id: "ex-2026-008", date: "06.05.2026", description: "Internet & Telefon", receipt: "Beleg-Nr. EX-2026-008", category: "Kommunikation", supplier: "Telekom Deutschland", supplierId: "DE3608852147", project: "Interne Verwaltung", projectCode: "PR-0003", net: 59.9, vat: "19%", status: "Erfasst", tone: "amber" }
+  ]
+  const expenseCategories = Array.from(new Set(expenseRows.map((expense) => expense.category)))
+  const expenseProjects = Array.from(new Set(expenseRows.map((expense) => expense.project)))
+  const visibleExpenseRows = expenseRows.filter((expense) => {
+    const query = expenseSearchTerm.trim().toLowerCase() || effectiveSearchQuery
+    if (expenseCategoryFilter !== "all" && expense.category !== expenseCategoryFilter) return false
+    if (expenseProjectFilter !== "all" && expense.project !== expenseProjectFilter) return false
+    if (!query) return true
+    return [expense.description, expense.receipt, expense.category, expense.supplier, expense.project, expense.status].join(" ").toLowerCase().includes(query)
+  })
+  const allVisibleExpensesSelected = visibleExpenseRows.length > 0 && visibleExpenseRows.every((expense) => selectedExpenseIds.includes(expense.id))
+
+  function toggleExpenseSelection(expenseId: string) {
+    setSelectedExpenseIds((current) => {
+      const next = current.includes(expenseId) ? current.filter((id) => id !== expenseId) : [...current, expenseId]
+      if (!next.length) setExpenseSelectionMode(false)
+      return next
+    })
+  }
+
+  function toggleAllExpenseSelection() {
+    setSelectedExpenseIds((current) => {
+      const visibleIds = visibleExpenseRows.map((expense) => expense.id)
+      const allSelected = visibleIds.length > 0 && visibleIds.every((id) => current.includes(id))
+      if (allSelected || expenseSelectionMode) {
+        setExpenseSelectionMode(false)
+        return []
+      }
+      setExpenseSelectionMode(true)
+      return Array.from(new Set([...current, ...visibleIds]))
+    })
+  }
+
+  function toggleProjectSelection(projectId: string) {
+    setSelectedProjectIds((current) => current.includes(projectId) ? current.filter((id) => id !== projectId) : [...current, projectId])
+  }
+
+  function toggleVisibleProjectSelection() {
+    setSelectedProjectIds((current) => {
+      if (allVisibleProjectsSelected) {
+        return current.filter((id) => !visibleProjectIds.includes(id))
+      }
+
+      return Array.from(new Set([...current, ...visibleProjectIds]))
+    })
+    setProjectSelectOpen(false)
+  }
+
+  function projectDraftFromProject(project?: ProjectData): ProjectDrawerDraft {
+    if (!project) {
+      return {
+        name: "",
+        code: `PR-${new Date().getFullYear()}-${String(projectsSource.length + 1).padStart(3, "0")}`,
+        customer: data.customers[0]?.name || projectsSource[0]?.customer || "Acme GmbH",
+        customerId: data.customers[0]?.id || projectsSource[0]?.customerId || "",
+        budget: "",
+        status: "active",
+        progress: "0",
+        description: ""
+      }
+    }
+
+    return {
+      name: project.name,
+      code: project.code || project.id,
+      customer: project.customer,
+      customerId: project.customerId || "",
+      budget: project.budgetAmount !== undefined ? String(project.budgetAmount) : project.budget,
+      status: projectStatusValue(project.status),
+      progress: String(parsePercent(project.progress)),
+      description: project.description || ""
+    }
+  }
+
+  function openProjectDrawer(mode: ProjectDrawerMode, project?: ProjectData) {
+    setProjectDrawerMode(mode)
+    setProjectDrawerProject(project || null)
+    setProjectDraft(projectDraftFromProject(project))
+    setProjectDrawerOpen(true)
+    setProjectMoreMenuId(null)
+    setModuleActionState({ type: "idle", message: "" })
+  }
+
+  function closeProjectDrawer() {
+    setProjectDrawerOpen(false)
+    setProjectDrawerProject(null)
+  }
+
+  function localProjectFromDraft(project?: ProjectData): ProjectData {
+    const budgetAmount = parseMoney(projectDraft.budget)
+    const progress = Math.min(100, Math.max(0, Math.round(parsePercent(projectDraft.progress))))
+    const status = projectStatusLabel(projectDraft.status)
+    return {
+      ...project,
+      id: project?.id || `premium-project-${Date.now()}`,
+      code: projectDraft.code || project?.code || `PR-${new Date().getFullYear()}-${String(projectsSource.length + 1).padStart(3, "0")}`,
+      name: projectDraft.name.trim(),
+      customerId: projectDraft.customerId || project?.customerId || null,
+      customer: projectDraft.customer.trim(),
+      status,
+      statusKey: projectStatusValue(projectDraft.status),
+      progress: `${progress}%`,
+      budget: formatEuro(budgetAmount),
+      budgetAmount,
+      description: projectDraft.description.trim()
+    }
+  }
+
+  async function saveProjectDrawer(event?: FormEvent<HTMLFormElement>) {
+    event?.preventDefault()
+    if (projectDrawerMode === "view") return
+
+    if (!projectDraft.name.trim() || !projectDraft.customer.trim()) {
+      setModuleActionState({ type: "error", message: "Projektname und Kunde sind erforderlich." })
+      return
+    }
+
+    const isEdit = projectDrawerMode === "edit" && Boolean(projectDrawerProject)
+    setIsModuleActionSaving(true)
+    setModuleActionState({ type: "idle", message: "" })
+
+    try {
+      let savedProject = localProjectFromDraft(projectDrawerProject || undefined)
+
+      if (!isEdit) {
+        const response = await fetch("/api/projects/create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "same-origin",
+          body: JSON.stringify({
+            name: projectDraft.name.trim(),
+            code: projectDraft.code.trim(),
+            customerId: projectDraft.customerId || undefined,
+            customerName: projectDraft.customer.trim(),
+            status: projectStatusValue(projectDraft.status),
+            budget: parseMoney(projectDraft.budget),
+            description: projectDraft.description.trim()
+          })
+        })
+        const result = await response.json().catch(() => ({}))
+        if (response.ok && result?.project) {
+          const apiProject = result.project as Partial<ProjectData>
+          savedProject = {
+            ...savedProject,
+            ...apiProject,
+            id: String(apiProject.id || savedProject.id),
+            code: apiProject.code || savedProject.code,
+            name: savedProject.name,
+            customer: savedProject.customer,
+            status: savedProject.status,
+            progress: savedProject.progress,
+            budget: apiProject.budget || savedProject.budget,
+            budgetAmount: Number(apiProject.budgetAmount ?? savedProject.budgetAmount) || 0
+          }
+        }
+      }
+
+      onDataChange((current) => {
+        const source = current.projects.length ? current.projects : fallbackProjects
+        return {
+          ...current,
+          projects: isEdit
+            ? source.map((project) => project.id === savedProject.id ? { ...project, ...savedProject } : project)
+            : [savedProject, ...source]
+        }
+      })
+      setProjectDrawerOpen(false)
+      setModuleActionState({ type: "success", message: isEdit ? "Projekt wurde aktualisiert." : "Neues Projekt wurde angelegt." })
+    } catch {
+      const savedProject = localProjectFromDraft(projectDrawerProject || undefined)
+      onDataChange((current) => {
+        const source = current.projects.length ? current.projects : fallbackProjects
+        return {
+          ...current,
+          projects: isEdit
+            ? source.map((project) => project.id === savedProject.id ? { ...project, ...savedProject } : project)
+            : [savedProject, ...source]
+        }
+      })
+      setProjectDrawerOpen(false)
+      setModuleActionState({ type: "warning", message: isEdit ? "Projekt wurde lokal aktualisiert." : "Neues Projekt wurde lokal angelegt." })
+    } finally {
+      setIsModuleActionSaving(false)
+    }
+  }
+
+  function deleteProject(project: ProjectData) {
+    if (!window.confirm(`${project.name} wirklich löschen?`)) return
+    onDataChange((current) => ({ ...current, projects: (current.projects.length ? current.projects : fallbackProjects).filter((item) => item.id !== project.id) }))
+    setSelectedProjectIds((current) => current.filter((id) => id !== project.id))
+    setProjectMoreMenuId(null)
+    setModuleActionState({ type: "success", message: "Projekt wurde entfernt." })
+  }
+
+  function updateProjectsByIds(projectIds: string[], updater: (project: ProjectData) => ProjectData) {
+    onDataChange((current) => ({
+      ...current,
+      projects: (current.projects.length ? current.projects : fallbackProjects).map((project) => projectIds.includes(project.id) ? updater(project) : project)
+    }))
+  }
+
+  function exportProjects(projects: ProjectData[], filename = "projekte-export.csv") {
+    const rows = ["Projekt-ID;Projekt;Kunde;Budget;Status;Fortschritt", ...projects.map((project) => [
+      project.code || project.id,
+      project.name,
+      project.customer,
+      project.budgetAmount !== undefined ? formatEuro(project.budgetAmount) : project.budget,
+      project.status,
+      project.progress
+    ].map((value) => `"${String(value).replaceAll("\"", "\"\"")}"`).join(";"))]
+    downloadTextFile(rows.join("\n"), filename)
+  }
+
+  function runProjectBulkAction(action: "status" | "export" | "archive" | "delete") {
+    const selectedRows = projectsSource.filter((project) => selectedProjectIds.includes(project.id))
+    if (!selectedRows.length) return
+
+    if (action === "export") {
+      exportProjects(selectedRows)
+      setModuleActionState({ type: "success", message: `${selectedRows.length} Projekte wurden exportiert.` })
+      return
+    }
+
+    if (action === "delete") {
+      if (!window.confirm(`${selectedRows.length} Projekte wirklich löschen?`)) return
+      onDataChange((current) => ({ ...current, projects: (current.projects.length ? current.projects : fallbackProjects).filter((project) => !selectedProjectIds.includes(project.id)) }))
+      setSelectedProjectIds([])
+      setModuleActionState({ type: "success", message: `${selectedRows.length} Projekte wurden entfernt.` })
+      return
+    }
+
+    const status = action === "archive" ? "Abgeschlossen" : "Pausiert"
+    updateProjectsByIds(selectedProjectIds, (project) => ({ ...project, status, statusKey: projectStatusValue(status) }))
+    setModuleActionState({ type: "success", message: `${selectedRows.length} Projekte wurden aktualisiert.` })
+  }
+
+  function duplicateProject(project: ProjectData) {
+    const draft = projectDraftFromProject(project)
+    setProjectDrawerMode("create")
+    setProjectDrawerProject(null)
+    setProjectDraft({
+      ...draft,
+      name: `${draft.name} Kopie`,
+      code: `${draft.code}-COPY`
+    })
+    setProjectDrawerOpen(true)
+    setProjectMoreMenuId(null)
+  }
+
+  function toggleArticleSelection(articleId: string) {
+    setArticleSelectionMode(true)
+    setSelectedArticleIds((current) => current.includes(articleId) ? current.filter((id) => id !== articleId) : [...current, articleId])
+  }
+
+  function toggleVisibleArticleSelection() {
+    if (articleSelectionMode && selectedArticleCount > 0) {
+      setSelectedArticleIds([])
+      setArticleSelectionMode(false)
+      return
+    }
+
+    setArticleSelectionMode(true)
+    setSelectedArticleIds((current) => Array.from(new Set([...current, ...articleRows.map((article) => article.id)])))
+  }
+
+  async function refreshDashboardArticles(message = "Artikel wurden aus der API aktualisiert.") {
+    setIsModuleActionSaving(true)
+    setModuleActionState({ type: "idle", message: "" })
+
+    try {
+      const response = await fetch("/api/articles/list", { credentials: "same-origin" })
+      const result = response.ok ? await response.json() : null
+
+      if (!response.ok || result?.ok === false || !Array.isArray(result?.articles)) {
+        throw new Error("Artikel konnten nicht geladen werden.")
+      }
+
+      onDataChange((current) => ({ ...current, articles: result.articles }))
+      setModuleActionState({ type: "success", message: `${result.articles.length} ${message}` })
+    } catch {
+      const articles = data.articles.length ? data.articles : fallbackApiArticles
+      onDataChange((current) => ({ ...current, articles }))
+      setModuleActionState({ type: "warning", message: "Artikel wurden aus den sichtbaren Daten aktualisiert." })
+    } finally {
+      setIsModuleActionSaving(false)
+    }
+  }
+
+  function articlePromptValue(label: string, current = "") {
+    const value = window.prompt(label, current)
+    return value === null ? null : value.trim()
+  }
+
+  async function saveDashboardArticle(article?: ApiArticle) {
+    const name = articlePromptValue("Artikelname", article?.name || "")
+    if (!name) return
+
+    const code = articlePromptValue("Artikelnummer", article?.code || "") ?? article?.code ?? ""
+    const category = articlePromptValue("Kategorie", article?.category || "Dienstleistung") || "Dienstleistung"
+    const priceValue = articlePromptValue("Preis netto", String(article?.price ?? "0")) ?? String(article?.price ?? 0)
+    const price = Number(priceValue.replace(",", ".")) || 0
+    const payload = { name, code, category, price, active: article?.active ?? true }
+    const isEdit = Boolean(article?.id)
+
+    setIsModuleActionSaving(true)
+    setModuleActionState({ type: "idle", message: "" })
+
+    try {
+      const response = await fetch(isEdit ? `/api/articles/update/${article?.id}` : "/api/articles/create", {
+        method: isEdit ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify(payload)
+      })
+      const result = await response.json().catch(() => ({}))
+
+      if (!response.ok || result?.ok === false) {
+        throw new Error(result?.error || "Artikel konnte nicht gespeichert werden.")
+      }
+
+      const rawArticle = result.article ?? { id: article?.id || `premium-article-${Date.now()}`, ...payload }
+      const savedArticle: ApiArticle = {
+        ...rawArticle,
+        code: rawArticle.code ?? rawArticle.number ?? payload.code,
+        price: Number(rawArticle.price ?? rawArticle.netPrice ?? payload.price) || 0
+      }
+      onDataChange((current) => {
+        const source = current.articles.length ? current.articles : fallbackApiArticles
+        return {
+          ...current,
+          articles: isEdit
+            ? source.map((item) => item.id === savedArticle.id ? { ...item, ...savedArticle } : item)
+            : [savedArticle, ...source]
+        }
+      })
+      setModuleActionState({ type: "success", message: isEdit ? "Artikel wurde aktualisiert." : "Neuer Artikel wurde angelegt." })
+    } catch {
+      const localArticle: ApiArticle = { id: article?.id || `premium-article-${Date.now()}`, ...payload }
+      onDataChange((current) => {
+        const source = current.articles.length ? current.articles : fallbackApiArticles
+        return {
+          ...current,
+          articles: isEdit
+            ? source.map((item) => item.id === localArticle.id ? { ...item, ...localArticle } : item)
+            : [localArticle, ...source]
+        }
+      })
+      setModuleActionState({ type: "warning", message: isEdit ? "Artikel wurde lokal aktualisiert." : "Neuer Artikel wurde lokal angelegt." })
+    } finally {
+      setIsModuleActionSaving(false)
+    }
+  }
+
+  async function deleteDashboardArticle(article: ApiArticle) {
+    if (!window.confirm(`${article.name} wirklich loeschen?`)) return
+
+    setIsModuleActionSaving(true)
+    setModuleActionState({ type: "idle", message: "" })
+
+    try {
+      const response = await fetch(`/api/articles/delete/${article.id}`, { method: "DELETE", credentials: "same-origin" })
+      const result = await response.json().catch(() => ({}))
+
+      if (!response.ok || result?.ok === false) {
+        throw new Error(result?.error || "Artikel konnte nicht geloescht werden.")
+      }
+
+      onDataChange((current) => ({ ...current, articles: (current.articles.length ? current.articles : fallbackApiArticles).filter((item) => item.id !== article.id) }))
+      setSelectedArticleIds((current) => current.filter((id) => id !== article.id))
+      setModuleActionState({ type: "success", message: "Artikel wurde geloescht." })
+    } catch {
+      onDataChange((current) => ({ ...current, articles: (current.articles.length ? current.articles : fallbackApiArticles).filter((item) => item.id !== article.id) }))
+      setSelectedArticleIds((current) => current.filter((id) => id !== article.id))
+      setModuleActionState({ type: "warning", message: "Artikel wurde lokal entfernt." })
+    } finally {
+      setIsModuleActionSaving(false)
+    }
+  }
+
+  async function shareDashboardArticle(article: ApiArticle) {
+    const text = `${article.code || article.id} - ${article.name} | ${article.category || "Leistung"} | ${formatEuro(Number(article.price || 0))}`
+
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: article.name, text })
+      } else {
+        await navigator.clipboard.writeText(text)
+      }
+
+      setModuleActionState({ type: "success", message: "Artikeldaten wurden geteilt bzw. kopiert." })
+    } catch {
+      setModuleActionState({ type: "warning", message: "Teilen wurde abgebrochen." })
+    }
+  }
+
+  async function importDashboardArticleFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    event.target.value = ""
+    if (!file) return
+
+    const csv = await file.text()
+    const articles = parseArticleImportRows(csv)
+    if (!articles.length) {
+      setModuleActionState({ type: "error", message: "Die Datei enthaelt keine gueltigen Artikel." })
+      return
+    }
+
+    setIsModuleActionSaving(true)
+    setModuleActionState({ type: "idle", message: "" })
+
+    try {
+      const response = await fetch("/api/articles/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ articles })
+      })
+      const result = await response.json().catch(() => ({}))
+      const importedArticles = Array.isArray(result?.articles) && result.articles.length
+        ? result.articles.map((article: ApiArticle & { number?: string; netPrice?: number }) => ({
+          ...article,
+          code: article.code ?? article.number,
+          price: Number(article.price ?? article.netPrice ?? 0) || 0
+        }))
+        : createPremiumArticlesFromRows(articles)
+
+      if (!response.ok || result?.ok === false) {
+        throw new Error(result?.error || "Import lokal uebernommen.")
+      }
+
+      onDataChange((current) => ({ ...current, articles: mergePremiumArticles(importedArticles, current.articles) }))
+      setModuleActionState({ type: "success", message: `${importedArticles.length} Artikel wurden importiert.` })
+    } catch {
+      const importedArticles = createPremiumArticlesFromRows(articles)
+      onDataChange((current) => ({ ...current, articles: mergePremiumArticles(importedArticles, current.articles) }))
+      setModuleActionState({ type: "warning", message: `${importedArticles.length} Artikel wurden lokal importiert.` })
+    } finally {
+      setIsModuleActionSaving(false)
+    }
+  }
 
   if (view === "settings" && settingsSection) {
     return <PremiumSettingsSectionContent section={settingsSection} />
@@ -6798,8 +8181,119 @@ function PremiumModulePage({
     return <PremiumOffersModulePage data={data} mode={mode} />
   }
 
+  if (view === "time") {
+    return <PremiumTimeModulePage data={data} mode={mode} searchQuery={searchQuery} onDataChange={onDataChange} />
+  }
+
   if (view === "documents") {
     return <DocumentManagementClient />
+  }
+
+  if (view === "articles") {
+    return (
+      <section className={styles.articlesPage} data-premium-workflow="articles">
+        <header className={styles.articlesHeader}>
+          <div className={styles.articlesHeaderIcon} aria-hidden="true"><Briefcase size={24} /></div>
+          <div>
+            <h1>Artikel</h1>
+            <p>Artikel verwalten, importieren, exportieren und aktualisieren.</p>
+          </div>
+        </header>
+
+        <section className={styles.articlesActionTabs} aria-label="Artikel-Aktionen">
+          <div className={styles.articlesTabList}>
+            <button type="button" className={styles.articlesActiveTab}><Briefcase size={15} />Artikel Uebersicht</button>
+            <button type="button" disabled={isModuleActionSaving} onClick={() => void refreshDashboardArticles()}><Grid3X3 size={15} />Weitere Aktionen</button>
+          </div>
+          <div className={styles.articlesPrimaryActions}>
+            <button type="button" className={styles.articlesIconAction} data-tone="violet" onClick={() => dashboardArticleFileInputRef.current?.click()} aria-label="Importieren" title="Importieren"><Upload size={17} /></button>
+            <button type="button" className={styles.articlesIconAction} data-tone="blue" disabled={isModuleActionSaving} onClick={() => void runArticleQuickAction("export")} aria-label="Exportieren" title="Exportieren"><Download size={17} /></button>
+            <button type="button" className={styles.articlesIconAction} data-tone="green" onClick={() => setModuleActionState({ type: "success", message: "Scan & OCR fuer Artikel ist vorbereitet." })} aria-label="Scan & OCR" title="Scan & OCR"><ScanLine size={17} /></button>
+          </div>
+        </section>
+
+        {moduleActionState.message ? <p className={styles.articlesNotice} data-state={moduleActionState.type}>{moduleActionState.message}</p> : null}
+
+        <section className={styles.articlesTablePanel}>
+          <input ref={dashboardArticleFileInputRef} className={styles.visuallyHidden} type="file" accept=".csv,.txt,text/csv,text/plain" onChange={(event) => void importDashboardArticleFile(event)} />
+          <div className={styles.articlesToolbar}>
+            <label className={styles.articlesSearch}>
+              <Search size={17} />
+              <input value={articleSearchTerm} onChange={(event) => setArticleSearchTerm(event.target.value)} placeholder="Suche nach Artikelname oder Nummer..." />
+            </label>
+            <label className={styles.articlesCategorySelect}>
+              <select value={articleCategoryFilter} onChange={(event) => setArticleCategoryFilter(event.target.value)}>
+                <option value="all">Alle Kategorien</option>
+                {articleCategories.map((category) => <option key={category} value={category}>{category}</option>)}
+              </select>
+              <ChevronDown size={14} />
+            </label>
+            <div className={styles.articlesViewSwitch} aria-label="Ansicht">
+              <button type="button" className={styles.articlesActiveView} aria-label="Quadratische Ansicht" title="Quadratische Ansicht"><Grid3X3 size={15} /></button>
+            </div>
+            <button type="button" className={styles.articlesFilterButton} onClick={() => setModuleActionState({ type: "success", message: `${articleRows.length} Artikel sichtbar${selectedArticleCount ? `, ${selectedArticleCount} ausgewaehlt` : ""}.` })}><Filter size={15} />Filter</button>
+            <button type="button" className={styles.articlesNewButton} disabled={isModuleActionSaving} onClick={() => void saveDashboardArticle()}><Plus size={16} />Neuer Artikel</button>
+          </div>
+
+          <div className={styles.articlesTableWrap}>
+            <table className={styles.articlesTable} data-selection-mode={articleSelectionMode || selectedArticleCount > 0}>
+              <thead>
+                <tr>
+                  <th><button type="button" className={styles.articlesTableSelectAll} data-active={selectedArticleCount > 0} onClick={toggleVisibleArticleSelection}>Alle{selectedArticleCount ? ` (${selectedArticleCount})` : ""}</button></th>
+                  <th>Artikelnummer</th>
+                  <th>Artikelname</th>
+                  <th>Kategorie</th>
+                  <th>Preis (netto)</th>
+                  <th>MwSt.</th>
+                  <th>Status</th>
+                  <th>Aktionen</th>
+                </tr>
+              </thead>
+              <tbody>
+                {articleRows.length ? articleRows.map((article, index) => {
+                  const category = article.category || "Leistung"
+                  const status = article.active === false ? "Inaktiv" : "Aktiv"
+                  const code = article.code || `AR-${String(index + 1001)}`
+                  return (
+                    <tr key={article.id} data-selected={selectedArticleIds.includes(article.id)}>
+                      <td>
+                        {articleSelectionMode || selectedArticleCount > 0 ? (
+                          <input type="checkbox" checked={selectedArticleIds.includes(article.id)} onChange={() => toggleArticleSelection(article.id)} aria-label={`${article.name} auswaehlen`} />
+                        ) : (
+                          <span className={styles.articlesRowMarker} data-category={category.toLowerCase()} aria-hidden="true"><Briefcase size={16} /></span>
+                        )}
+                      </td>
+                      <td><span className={styles.articlesCode}>{code}</span></td>
+                      <td><strong className={styles.articlesName}>{article.name}</strong></td>
+                      <td><em className={styles.articlesCategoryBadge} data-category={category.toLowerCase()}>{category}</em></td>
+                      <td>{formatEuro(Number(article.price || 0))}</td>
+                      <td>19%</td>
+                      <td><em className={styles.articlesStatusBadge} data-status={status.toLowerCase()}>{status}</em></td>
+                      <td>
+                        <div className={styles.articlesRowActions}>
+                          <button type="button" onClick={() => void saveDashboardArticle(article)} aria-label={`${article.name} bearbeiten`}><Pencil size={15} /></button>
+                          <button type="button" onClick={() => void shareDashboardArticle(article)} aria-label={`${article.name} teilen`}><Share2 size={15} /></button>
+                          <button type="button" onClick={() => void deleteDashboardArticle(article)} aria-label={`${article.name} loeschen`} data-danger="true"><Trash2 size={15} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                }) : (
+                  <tr>
+                    <td colSpan={8} className={styles.emptyTableCell}>Keine Artikel gefunden.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <footer className={styles.articlesPagination}>
+            <span>Zeige {articleRows.length ? 1 : 0} bis {articleRows.length} von {articleRows.length} Eintraegen</span>
+            <div><button type="button" disabled><ChevronLeft size={16} /></button><strong>1</strong><button type="button" disabled><ChevronRight size={16} /></button></div>
+          </footer>
+        </section>
+      </section>
+    )
   }
 
   async function openFullPremiumInvoiceEditor() {
@@ -7468,6 +8962,394 @@ function PremiumModulePage({
     return licenseAdminEnabled ? <PremiumLicenseAdminPage mode={mode} /> : <PremiumModulePage view="license" settingsSection={null} data={data} language={language} mode={mode} searchQuery={searchQuery} licenseAdminEnabled={false} onDataChange={onDataChange} />
   }
 
+  if (view === "expenses") {
+    return (
+      <section className={styles.modulePage} data-view={view}>
+        <article className={`${styles.panel} ${styles.expensesHero}`}>
+          <div className={styles.expensesHeroIcon}><Wallet size={34} /></div>
+          <div className={styles.expensesHeroCopy}>
+            <h1>Ausgaben</h1>
+            <p>Belege, Kostenstellen, Ausgabenkategorien und Erstattungen verwalten.</p>
+          </div>
+          <div className={styles.expensesHeroArt} aria-hidden="true">
+            <div className={styles.expensesArtWindow}>
+              <span /><span /><span />
+              <b>€</b>
+              <i /><i />
+            </div>
+          </div>
+          <button type="button" disabled={isModuleActionSaving} onClick={() => void runExpenseQuickAction("create")}><Plus size={18} />Ausgabe erfassen</button>
+        </article>
+
+        <div className={styles.expensesToolbar}>
+          <label className={styles.expensesSearch}>
+            <Search size={18} />
+            <input value={expenseSearchTerm} onChange={(event) => setExpenseSearchTerm(event.target.value)} placeholder="Suche nach Beschreibung, Lieferant, Kategorie..." />
+          </label>
+          <label className={styles.expensesFilterSelect}>
+            <select value={expenseCategoryFilter} onChange={(event) => setExpenseCategoryFilter(event.target.value)} aria-label="Kategorie filtern">
+              <option value="all">Alle Kategorien</option>
+              {expenseCategories.map((category) => <option key={category} value={category}>{category}</option>)}
+            </select>
+            <ChevronDown size={16} />
+          </label>
+          <label className={styles.expensesFilterSelect}>
+            <select value={expenseProjectFilter} onChange={(event) => setExpenseProjectFilter(event.target.value)} aria-label="Projekt filtern">
+              <option value="all">Alle Projekte</option>
+              {expenseProjects.map((project) => <option key={project} value={project}>{project}</option>)}
+            </select>
+            <ChevronDown size={16} />
+          </label>
+          <button type="button" onClick={() => setModuleActionState({ type: "success", message: `${visibleExpenseRows.length} Ausgaben sichtbar.` })}><Filter size={17} />Filter</button>
+          <div className={styles.expensesViewToggle} aria-label="Ansicht wechseln">
+            <button type="button" aria-label="Listenansicht" data-active={expenseLayoutMode === "list"} onClick={() => setExpenseLayoutMode("list")}><List size={18} /></button>
+            <button type="button" aria-label="Kachelansicht" data-active={expenseLayoutMode === "grid"} onClick={() => setExpenseLayoutMode("grid")}><Grid3X3 size={17} /></button>
+          </div>
+        </div>
+
+        {moduleActionState.message ? <p className={styles.expensesNotice} data-state={moduleActionState.type}>{moduleActionState.message}</p> : null}
+
+        <section className={styles.expensesMainGrid}>
+          <article className={`${styles.panel} ${styles.expensesTablePanel}`}>
+            <div className={styles.expensesTableWrap}>
+              <table className={styles.expensesTable}>
+                <thead>
+                  <tr>
+                    <th>
+                      <button type="button" className={styles.expensesAllButton} aria-pressed={expenseSelectionMode} onClick={toggleAllExpenseSelection}>
+                        {expenseSelectionMode ? (
+                          <span className={allVisibleExpensesSelected ? styles.expensesCheckedBox : styles.expensesCheckBox} aria-hidden="true">
+                            <Square size={14} fill={allVisibleExpensesSelected ? "currentColor" : "none"} />
+                          </span>
+                        ) : null}
+                        Alle{selectedExpenseIds.length ? ` (${selectedExpenseIds.length})` : ""}
+                        <ChevronDown size={13} />
+                      </button>
+                    </th>
+                    <th>Datum</th>
+                    <th>Beschreibung</th>
+                    <th>Kategorie</th>
+                    <th>Lieferant</th>
+                    <th>Projekt</th>
+                    <th>Betrag (netto)</th>
+                    <th>MwSt.</th>
+                    <th>Status</th>
+                    <th>Aktionen</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {visibleExpenseRows.length ? visibleExpenseRows.map((expense) => (
+                    <tr key={expense.id}>
+                      <td>
+                        {expenseSelectionMode ? (
+                          <button type="button" className={selectedExpenseIds.includes(expense.id) ? styles.expensesCheckedBox : styles.expensesCheckBox} aria-label={`${expense.description} auswählen`} onClick={() => toggleExpenseSelection(expense.id)}>
+                            <Square size={14} fill={selectedExpenseIds.includes(expense.id) ? "currentColor" : "none"} />
+                          </button>
+                        ) : null}
+                      </td>
+                      <td>{expense.date}</td>
+                      <td>
+                        <div className={styles.expenseDescriptionCell}>
+                          <span data-tone={expense.tone}><Receipt size={17} /></span>
+                          <div><strong>{expense.description}</strong><small>{expense.receipt}</small></div>
+                        </div>
+                      </td>
+                      <td><em className={styles.expenseCategoryBadge} data-tone={expense.tone}>{expense.category}</em></td>
+                      <td><strong>{expense.supplier}</strong><small>{expense.supplierId}</small></td>
+                      <td><strong>{expense.project}</strong><small>{expense.projectCode}</small></td>
+                      <td><strong>{formatEuro(expense.net)}</strong></td>
+                      <td>{expense.vat}</td>
+                      <td><em className={styles.expenseStatusBadge} data-status={expense.status}>{expense.status}</em></td>
+                      <td>
+                        <div className={styles.expenseActionButtons}>
+                          <button type="button" aria-label={`${expense.description} ansehen`} title="Ansehen"><Eye size={16} /></button>
+                          <button type="button" aria-label={`${expense.description} bearbeiten`} title="Bearbeiten"><Pencil size={16} /></button>
+                          <button type="button" aria-label={`${expense.description} löschen`} title="Löschen" data-danger="true"><Trash2 size={16} /></button>
+                          <button type="button" aria-label={`Mehr Aktionen für ${expense.description}`} title="Mehr"><MoreVertical size={16} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  )) : (
+                    <tr><td colSpan={10} className={styles.expensesEmpty}>Keine Ausgaben gefunden.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <div className={styles.expensesTableFooter}>
+              <span>Zeige 1 bis {visibleExpenseRows.length} von {visibleExpenseRows.length} Einträgen</span>
+              <div>
+                <span>Zeige</span>
+                <button type="button">10<ChevronDown size={13} /></button>
+                <button type="button" disabled aria-label="Vorherige Seite"><ChevronLeft size={16} /></button>
+                <strong>1</strong>
+                <button type="button" disabled aria-label="Nächste Seite"><ChevronRight size={16} /></button>
+              </div>
+            </div>
+          </article>
+
+          <aside className={`${styles.panel} ${styles.expensesQuickCreate}`} data-premium-workflow="expenses">
+            <h2>Neue Ausgabe erfassen</h2>
+            <p>Schnell und einfach eine neue Ausgabe hinzufügen.</p>
+            <form onSubmit={(event) => { event.preventDefault(); void runExpenseQuickAction("create") }}>
+              <label>Datum *<input data-premium-focus type="date" defaultValue="2026-06-24" /></label>
+              <label>Beschreibung *<input placeholder="z. B. Flugticket, Hotel, Büromaterial..." /></label>
+              <label>Kategorie *<select defaultValue=""><option value="" disabled>Kategorie auswählen</option>{expenseCategories.map((category) => <option key={category}>{category}</option>)}</select></label>
+              <label>Lieferant<input placeholder="z. B. Lieferant oder Firma" /></label>
+              <label>Projekt<select defaultValue=""><option value="" disabled>Projekt auswählen</option>{expenseProjects.map((project) => <option key={project}>{project}</option>)}</select></label>
+              <div className={styles.expensesFormGrid}>
+                <label>Betrag (netto) *<input inputMode="decimal" defaultValue="0,00" /></label>
+                <label>MwSt. *<select defaultValue="19%"><option>19%</option><option>7%</option><option>0%</option></select></label>
+              </div>
+              <label className={styles.expensesUploadBox}>
+                <Upload size={20} />
+                <span>Datei auswählen oder hier ablegen</span>
+                <small>PDF, JPG, PNG oder WEBP (max. 10 MB)</small>
+                <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" />
+              </label>
+              <button type="submit" disabled={isModuleActionSaving}>Speichern</button>
+            </form>
+          </aside>
+        </section>
+
+        <section className={styles.expensesFeatureGrid}>
+          <article className={`${styles.panel} ${styles.expensesFeatureCard}`}>
+            <span><Upload size={24} /></span>
+            <div><h3>Beleg hochladen</h3><p>Beleg hochladen und automatisch auslesen lassen.</p></div>
+            <button type="button" disabled={isModuleActionSaving} onClick={() => void runExpenseQuickAction("upload")}><Plus size={14} />Beleg hochladen</button>
+          </article>
+          <article className={`${styles.panel} ${styles.expensesFeatureCard}`}>
+            <span><ScanLine size={24} /></span>
+            <div><h3>OCR-Vorschlag</h3><p>Daten automatisch erfassen und prüfen.</p></div>
+            <button type="button" onClick={() => setModuleActionState({ type: "success", message: "OCR-Vorschlag wurde in das Ausgabenformular übernommen." })}>OCR-Vorschlag übernehmen</button>
+          </article>
+          <article className={`${styles.panel} ${styles.expensesFeatureCard}`}>
+            <span data-tone="green"><FileText size={24} /></span>
+            <div><h3>DATEV Export</h3><p>Ausgaben für DATEV vorbereiten.</p></div>
+            <button type="button" disabled={isModuleActionSaving} onClick={() => void runExpenseQuickAction("export")}>DATEV Export vorbereiten</button>
+          </article>
+          <article className={`${styles.panel} ${styles.expensesFeatureCard}`}>
+            <span data-tone="amber"><Download size={24} /></span>
+            <div><h3>Export</h3><p>Exportieren als CSV oder Excel.</p></div>
+            <button type="button" disabled={isModuleActionSaving} onClick={() => void runExpenseQuickAction("export")}><Plus size={14} />Exportieren</button>
+          </article>
+        </section>
+      </section>
+    )
+  }
+
+  if (view === "projects") {
+    return (
+      <section className={styles.modulePage} data-view={view}>
+        <article className={`${styles.panel} ${styles.projectsHero}`}>
+          <div className={styles.projectsHeroIcon}><Folder size={34} /></div>
+          <div className={styles.projectsHeroCopy}>
+            <h1>Projekte verwalten</h1>
+            <p>Erstelle, bearbeite und überwache alle Projekte zentral.</p>
+            <button type="button" disabled={isModuleActionSaving} onClick={() => openProjectDrawer("create")}><Plus size={18} />Neues Projekt</button>
+          </div>
+          <div className={styles.projectsHeroArt} aria-hidden="true">
+            <div className={styles.projectsArtWindow}>
+              <span /><span /><span />
+              <i /><i /><i />
+            </div>
+            <div className={styles.projectsArtFolder}><Folder size={54} /></div>
+            <div className={styles.projectsArtChart}><b /><b /><b /></div>
+          </div>
+        </article>
+
+        <article className={`${styles.panel} ${styles.projectsTablePanel}`}>
+          <div className={styles.projectsTableToolbar}>
+            <label className={styles.projectsSearch}>
+              <Search size={18} />
+              <input value={projectSearchTerm} onChange={(event) => setProjectSearchTerm(event.target.value)} placeholder="Projekte suchen..." />
+            </label>
+            <button type="button"><Filter size={17} />Filter</button>
+            <label className={styles.projectsStatusFilter}>
+              <select value={projectStatusFilter} onChange={(event) => setProjectStatusFilter(event.target.value)}>
+                <option value="all">Status</option>
+                {projectStatusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+              </select>
+              <ChevronDown size={16} />
+            </label>
+          </div>
+
+          {selectedProjectCount ? (
+            <div className={styles.projectsBulkBar}>
+              <strong>{selectedProjectCount} ausgewählt</strong>
+              <button type="button" onClick={() => runProjectBulkAction("status")}>Status ändern</button>
+              <button type="button" onClick={() => runProjectBulkAction("export")}>Exportieren</button>
+              <button type="button" onClick={() => runProjectBulkAction("archive")}>Archivieren</button>
+              <button type="button" data-danger="true" onClick={() => runProjectBulkAction("delete")}>Löschen</button>
+            </div>
+          ) : null}
+
+          {moduleActionState.message ? <p className={styles.projectsNotice} data-state={moduleActionState.type}>{moduleActionState.message}</p> : null}
+
+          <div className={styles.projectsTableWrap}>
+            <table className={styles.projectsTable}>
+              <thead>
+                <tr>
+                  <th>
+                    <div className={styles.projectsSelectMenu}>
+                      <button type="button" aria-expanded={projectSelectOpen} onClick={() => setProjectSelectOpen((open) => !open)}>
+                        Alle <ChevronDown size={14} />
+                      </button>
+                      {projectSelectOpen ? (
+                        <div role="menu">
+                          <button type="button" role="menuitem" onClick={toggleVisibleProjectSelection}>
+                            {allVisibleProjectsSelected ? "Auswahl aufheben" : "Alle wählen"}
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+                  </th>
+                  <th>Projekt</th>
+                  <th>Kunde</th>
+                  <th>Budget</th>
+                  <th>Status</th>
+                  <th>Fortschritt</th>
+                  <th>Aktionen</th>
+                </tr>
+              </thead>
+              <tbody>
+                {projectTableRows.length ? projectTableRows.map((project, index) => {
+                  const progress = Math.min(100, Math.max(0, Math.round(parsePercent(project.progress))))
+                  const projectCode = project.code || `PRJ-2026-${String(index + 1).padStart(3, "0")}`
+                  const projectBudget = formatEuro(project.budgetAmount ?? parseMoney(project.budget))
+                  return (
+                    <tr key={project.id}>
+                      <td><input type="checkbox" checked={selectedProjectIds.includes(project.id)} onChange={() => toggleProjectSelection(project.id)} aria-label={`${project.name} auswählen`} /></td>
+                      <td>
+                        <div className={styles.projectNameCell}>
+                          <span><Folder size={18} /></span>
+                          <div><strong>{project.name}</strong><small>{projectCode}</small></div>
+                        </div>
+                      </td>
+                      <td>{project.customer}</td>
+                      <td>{projectBudget}</td>
+                      <td><em className={styles.projectStatusBadge} data-tone={projectStatusTone(project.status)}>{project.status}</em></td>
+                      <td>
+                        <div className={styles.projectProgressCell}>
+                          <strong>{progress}%</strong>
+                          <span><i style={{ width: `${progress}%` }} /></span>
+                        </div>
+                      </td>
+                      <td>
+                        <div className={styles.projectActionButtons}>
+                          <button type="button" aria-label={`${project.name} öffnen`} title="Öffnen" onClick={() => openProjectDrawer("view", project)}><Eye size={17} /></button>
+                          <button type="button" aria-label={`${project.name} bearbeiten`} title="Bearbeiten" onClick={() => openProjectDrawer("edit", project)}><Pencil size={17} /></button>
+                          <button type="button" aria-label={`${project.name} löschen`} title="Löschen" data-danger="true" onClick={() => deleteProject(project)}><Trash2 size={17} /></button>
+                          <button type="button" aria-label={`Mehr Aktionen für ${project.name}`} title="Mehr" onClick={() => setProjectMoreMenuId((current) => current === project.id ? null : project.id)}><MoreVertical size={17} /></button>
+                          {projectMoreMenuId === project.id ? (
+                            <div className={styles.projectMoreMenu} role="menu">
+                              <button type="button" role="menuitem" onClick={() => duplicateProject(project)}>Duplizieren</button>
+                              <button type="button" role="menuitem" onClick={() => {
+                                updateProjectsByIds([project.id], (item) => ({ ...item, status: "Abgeschlossen", statusKey: "completed" }))
+                                setProjectMoreMenuId(null)
+                              }}>Archivieren</button>
+                              <button type="button" role="menuitem" onClick={() => {
+                                exportProjects([project], `${project.code || project.id}.csv`)
+                                setProjectMoreMenuId(null)
+                              }}>Exportieren</button>
+                            </div>
+                          ) : null}
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                }) : (
+                  <tr>
+                    <td colSpan={7} className={styles.projectsEmpty}>Keine Projekte gefunden.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          <div className={styles.projectsTableFooter}>Zeige 1 bis {projectTableRows.length} von {projectTableRows.length} Projekten</div>
+        </article>
+
+        {projectDrawerOpen ? (
+          <div className={styles.projectsDrawerBackdrop} role="presentation" onMouseDown={(event) => {
+            if (event.target === event.currentTarget) closeProjectDrawer()
+          }}>
+            <aside className={styles.projectsDrawer} aria-label={projectDrawerMode === "create" ? "Neues Projekt" : projectDrawerMode === "edit" ? "Projekt bearbeiten" : "Projekt öffnen"}>
+              <div className={styles.projectsDrawerHead}>
+                <span><Folder size={22} /></span>
+                <div>
+                  <strong>{projectDrawerMode === "create" ? "Neues Projekt" : projectDrawerMode === "edit" ? "Projekt bearbeiten" : "Projekt öffnen"}</strong>
+                  <small>{projectDrawerMode === "view" ? projectDraft.code : "Direkt auf der Projekte-Seite"}</small>
+                </div>
+                <button type="button" onClick={closeProjectDrawer} aria-label="Schließen"><X size={18} /></button>
+              </div>
+
+              <form className={styles.projectsDrawerForm} onSubmit={(event) => void saveProjectDrawer(event)}>
+                <label>
+                  <span>Projektname</span>
+                  <input value={projectDraft.name} readOnly={projectDrawerMode === "view"} onChange={(event) => setProjectDraft((draft) => ({ ...draft, name: event.target.value }))} placeholder="Projektname" />
+                </label>
+                <div className={styles.projectsDrawerGrid}>
+                  <label>
+                    <span>Projekt-ID</span>
+                    <input value={projectDraft.code} readOnly={projectDrawerMode === "view"} onChange={(event) => setProjectDraft((draft) => ({ ...draft, code: event.target.value }))} placeholder="PR-2026-001" />
+                  </label>
+                  <label>
+                    <span>Kunde</span>
+                    <input value={projectDraft.customer} readOnly={projectDrawerMode === "view"} onChange={(event) => setProjectDraft((draft) => ({ ...draft, customer: event.target.value, customerId: "" }))} placeholder="Kunde" />
+                  </label>
+                </div>
+                <div className={styles.projectsDrawerGrid}>
+                  <label>
+                    <span>Budget</span>
+                    <input value={projectDraft.budget} readOnly={projectDrawerMode === "view"} onChange={(event) => setProjectDraft((draft) => ({ ...draft, budget: event.target.value }))} placeholder="12000" inputMode="decimal" />
+                  </label>
+                  <label>
+                    <span>Fortschritt</span>
+                    <input value={projectDraft.progress} readOnly={projectDrawerMode === "view"} onChange={(event) => setProjectDraft((draft) => ({ ...draft, progress: event.target.value }))} placeholder="0" inputMode="numeric" />
+                  </label>
+                </div>
+                <label>
+                  <span>Status</span>
+                  <select value={projectDraft.status} disabled={projectDrawerMode === "view"} onChange={(event) => setProjectDraft((draft) => ({ ...draft, status: event.target.value }))}>
+                    {projectStatusOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                  </select>
+                </label>
+                <label>
+                  <span>Beschreibung</span>
+                  <textarea value={projectDraft.description} readOnly={projectDrawerMode === "view"} onChange={(event) => setProjectDraft((draft) => ({ ...draft, description: event.target.value }))} placeholder="Kurzbeschreibung" rows={4} />
+                </label>
+
+                <div className={styles.projectsDrawerMeta}>
+                  <span>Status: <b>{projectStatusLabel(projectDraft.status)}</b></span>
+                  <span>Fortschritt: <b>{Math.min(100, Math.max(0, Math.round(parsePercent(projectDraft.progress))))}%</b></span>
+                </div>
+
+                <div className={styles.projectsDrawerActions}>
+                  {projectDrawerMode === "view" ? (
+                    <button type="button" onClick={() => setProjectDrawerMode("edit")}><Pencil size={16} />Bearbeiten</button>
+                  ) : (
+                    <button type="submit" disabled={isModuleActionSaving}><Save size={16} />Projekt speichern</button>
+                  )}
+                  <button type="button" onClick={closeProjectDrawer}>Abbrechen</button>
+                </div>
+              </form>
+            </aside>
+          </div>
+        ) : null}
+      </section>
+    )
+  }
+
+  if (view === "reports") {
+    return (
+      <PremiumReportsPage
+        data={data}
+        mode={mode}
+        isExporting={isModuleActionSaving}
+        onReportExport={() => void runReportQuickAction("documents")}
+      />
+    )
+  }
+
   return (
     <section className={styles.modulePage} data-view={view}>
       {view !== "settings" && !isOffersSimpleView ? (
@@ -7477,24 +9359,14 @@ function PremiumModulePage({
             <h1>{meta.title}</h1>
             <p>{meta.description}</p>
           </div>
-          {view === "projects" ? (
-            <button type="button" disabled={isModuleActionSaving} onClick={() => openPremiumWorkflow("projects", "Projektformular geoeffnet. Projektdaten ausfuellen und mit Projekt speichern anlegen.")}><Plus size={18} />{meta.primary}</button>
-          ) : view === "time" ? (
-            <button type="button" disabled={isModuleActionSaving} onClick={() => void runTimeQuickAction("timer")}><Plus size={18} />{meta.primary}</button>
-          ) : view === "expenses" ? (
-            <button type="button" disabled={isModuleActionSaving} onClick={() => void runExpenseQuickAction("create")}><Plus size={18} />{meta.primary}</button>
-          ) : view === "finance" ? (
+          {view === "finance" ? (
             <button type="button" disabled={isModuleActionSaving} onClick={() => void runFinanceQuickAction("account")}><Banknote size={18} />{meta.primary}</button>
-          ) : view === "reports" ? (
-            <button type="button" disabled={isModuleActionSaving} onClick={() => void runReportQuickAction("documents")}><Plus size={18} />{meta.primary}</button>
           ) : view === "users" ? (
             <button type="button" disabled={isModuleActionSaving} onClick={() => void runUserQuickAction("invite")}><Plus size={18} />{meta.primary}</button>
           ) : view === "license" ? (
             <button type="button" disabled={isModuleActionSaving} onClick={() => void runLicenseQuickAction("activate")}><Plus size={18} />{meta.primary}</button>
           ) : view === "integrations" ? (
             <button type="button" disabled={isModuleActionSaving} onClick={() => void runIntegrationQuickAction("connect")}><Plus size={18} />{meta.primary}</button>
-          ) : view === "articles" ? (
-            <button type="button" disabled={isModuleActionSaving} onClick={openArticleImportDesktop}><Plus size={18} />{meta.primary}</button>
           ) : (
             <Link href={withPremiumTheme(content.primaryHref, mode)}><Plus size={18} />{meta.primary}</Link>
           )}
@@ -7527,33 +9399,7 @@ function PremiumModulePage({
           <details className={styles.moreActions}>
             <summary><ChevronDown size={16} />Sekundaere Aktionen anzeigen</summary>
             <div className={styles.actionStrip}>
-            {view === "projects" ? (
-              <>
-                <button type="button" disabled={isModuleActionSaving} onClick={() => void runProjectQuickAction("list")}><Search size={16} />Projektliste</button>
-                <button type="button" disabled={isModuleActionSaving} onClick={() => void runProjectQuickAction("budget")}><BarChart3 size={16} />Budget pruefen</button>
-              </>
-            ) : view === "time" ? (
-              <>
-                <button type="button" disabled={isModuleActionSaving} onClick={() => void runTimeQuickAction("book")}><Search size={16} />Zeit buchen</button>
-                <button type="button" disabled={isModuleActionSaving} onClick={() => void runTimeQuickAction("approval")}><BarChart3 size={16} />Freigabe senden</button>
-              </>
-            ) : view === "expenses" ? (
-              <>
-                <button type="button" disabled={isModuleActionSaving} onClick={() => void runExpenseQuickAction("upload")}><Upload size={16} />Beleg hochladen</button>
-                <button type="button" disabled={isModuleActionSaving} onClick={() => void runExpenseQuickAction("export")}><BarChart3 size={16} />Export vorbereiten</button>
-              </>
-            ) : view === "articles" ? (
-              <>
-                <button type="button" disabled={isModuleActionSaving} onClick={() => void runArticleQuickAction("export")}><Search size={16} />CSV Export</button>
-                <button type="button" disabled={isModuleActionSaving} onClick={() => void runArticleQuickAction("template")}><BarChart3 size={16} />Vorlage laden</button>
-              </>
-            ) : view === "reports" ? (
-              <>
-                <button type="button" disabled={isModuleActionSaving} onClick={() => void runReportQuickAction("datev")}><Search size={16} />DATEV Export</button>
-                <button type="button" disabled={isModuleActionSaving} onClick={() => void runReportQuickAction("finance")}><FileText size={16} />Finanzbericht</button>
-                <button type="button" disabled={isModuleActionSaving} onClick={() => void runReportQuickAction("compare")}><BarChart3 size={16} />Vergleich oeffnen</button>
-              </>
-            ) : view === "audit" ? (
+            {view === "audit" ? (
               <>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runAuditQuickAction("filter")}><Search size={16} />Filter setzen</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runAuditQuickAction("search")}><BarChart3 size={16} />Ereignis suchen</button>
