@@ -26,6 +26,12 @@
       ],
       "@dream-invoice/auth": [
         "../../packages/auth/src"
+      ],
+      "@dream-invoice/premium": [
+        "../../packages/premium/src/index.ts"
+      ],
+      "@dream-invoice/premium/*": [
+        "../../packages/premium/src/*"
       ]
     }
   },

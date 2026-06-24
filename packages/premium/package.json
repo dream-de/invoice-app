@@ -1,0 +1,24 @@
+{
+  "name": "@dream-invoice/premium",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "pnpm typecheck"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./feature-flags": "./src/feature-flags.ts",
+    "./license-billing": "./src/license-billing.ts",
+    "./marketplace": "./src/marketplace.ts",
+    "./migration": "./src/migration.ts",
+    "./premium-navigation": "./src/premium-navigation.ts",
+    "./premium-settings": "./src/premium-settings.ts",
+    "./premium-ui": "./src/premium-ui.ts"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "latest"
+  }
+}

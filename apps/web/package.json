@@ -17,6 +17,7 @@
     "@dream-invoice/licensing": "workspace:*",
     "@dream-invoice/ocr": "workspace:*",
     "@dream-invoice/pdf": "workspace:*",
+    "@dream-invoice/premium": "workspace:*",
     "@dream-invoice/ui": "workspace:*",
     "@prisma/client": "^6.19.0",
     "lucide-react": "^1.14.0",

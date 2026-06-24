@@ -64,6 +64,12 @@
       ],
       "@dream-invoice/utils": [
         "packages/utils/src/index.ts"
+      ],
+      "@dream-invoice/premium": [
+        "packages/premium/src/index.ts"
+      ],
+      "@dream-invoice/premium/*": [
+        "packages/premium/src/*"
       ]
     }
   }

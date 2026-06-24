@@ -1,0 +1,46 @@
+# Inactive Web-Pro compose preview.
+# This file is intentionally not referenced by docker-compose.yml.
+# apps/web remains active on its existing host port, for example 3012.
+#
+# Preview start:
+#   docker compose -f docker-compose.yml -f docker-compose.web-pro.example.yml --profile web-pro-preview up --build web-pro-app
+#
+# Preview healthcheck:
+#   curl http://127.0.0.1:${WEB_PRO_PORT:-3020}/api/health
+#
+# Stop preview:
+#   docker compose -f docker-compose.yml -f docker-compose.web-pro.example.yml --profile web-pro-preview stop web-pro-app
+
+services:
+  web-pro-app:
+    profiles:
+      - web-pro-preview
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.web-pro
+    image: ${DREAM_INVOICE_WEB_PRO_IMAGE:-ghcr.io/dream-de/invoice-app-web-pro:preview}
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3020
+      WEB_PRO_PORT: 3020
+      NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_WEB_PRO_APP_NAME:-Dream Invoice Pro}
+      AUTH_SECRET: ${AUTH_SECRET:-}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
+      LICENSE_PUBLIC_KEY: ${LICENSE_PUBLIC_KEY:-}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-dream_invoice}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-dream_invoice}
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
+    volumes:
+      - ./data:/app/data
+    expose:
+      - "3020"
+    ports:
+      - "${WEB_PRO_PORT:-3020}:3020"
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3020/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6

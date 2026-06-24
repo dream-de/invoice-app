@@ -281,6 +281,9 @@ importers:
       '@dream-invoice/pdf':
         specifier: workspace:*
         version: link:../../packages/pdf
+      '@dream-invoice/premium':
+        specifier: workspace:*
+        version: link:../../packages/premium
       '@dream-invoice/ui':
         specifier: workspace:*
         version: link:../../packages/ui
@@ -360,7 +363,34 @@ importers:
       '@dream-invoice/licensing':
         specifier: workspace:*
         version: link:../../packages/licensing
+      '@dream-invoice/premium':
+        specifier: workspace:*
+        version: link:../../packages/premium
+      next:
+        specifier: 16.2.6
+        version: 16.2.6(@babel/core@7.29.7)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
+      react:
+        specifier: 19.2.4
+        version: 19.2.4
+      react-dom:
+        specifier: 19.2.4
+        version: 19.2.4(react@19.2.4)
     devDependencies:
+      '@types/node':
+        specifier: ^20
+        version: 20.19.40
+      '@types/react':
+        specifier: ^19
+        version: 19.2.14
+      '@types/react-dom':
+        specifier: ^19
+        version: 19.2.3(@types/react@19.2.14)
+      eslint:
+        specifier: ^9
+        version: 9.39.4(jiti@2.7.0)
+      eslint-config-next:
+        specifier: 16.2.6
+        version: 16.2.6(@typescript-eslint/parser@8.59.2(eslint@9.39.4(jiti@2.7.0))(typescript@6.0.3))(eslint@9.39.4(jiti@2.7.0))(typescript@6.0.3)
       typescript:
         specifier: latest
         version: 6.0.3
@@ -482,6 +512,12 @@ importers:
       tsx:
         specifier: ^4.22.4
         version: 4.22.4
+      typescript:
+        specifier: latest
+        version: 6.0.3
+
+  packages/premium:
+    devDependencies:
       typescript:
         specifier: latest
         version: 6.0.3
