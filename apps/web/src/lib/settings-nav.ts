@@ -9,6 +9,7 @@ import {
   FileText,
   Hash,
   KeyRound,
+  Landmark,
   Mail,
   MapPin,
   Palette,
@@ -75,7 +76,8 @@ export const settingsNav = [
   { key: "reports", title: "Berichte", description: "Auswertungen, Umsatz, KPIs und Exporte", href: "/dashboard-v2/settings/reports", icon: BarChart3, category: "compliance", order: 420, status: "Aktiv", accent: "#16a34a", accentSoft: "#dcfce7" },
   { key: "archive", title: "Archiv", description: "Dokumentenarchiv, Export und Ablage", href: "/dashboard-v2/settings/archive", icon: Archive, category: "compliance", order: 430, status: "Nicht eingerichtet", accent: "#64748b", accentSoft: "#e2e8f0" },
   { key: "legal", title: "Rechtliches", description: "Steuern, E-Rechnung, Impressum und Pflichttexte", href: "/dashboard-v2/settings/legal", legacyHref: "/settings/legal", icon: Scale, category: "compliance", order: 440, status: "Premium vorbereitet", accent: "#a16207", accentSoft: "#fef3c7" },
-  { key: "license", title: "Lizenzverwaltung", description: "Lizenzstatus, Aktivierung, Benutzerlimit und Keys", href: "/dashboard-v2/settings/license", icon: KeyRound, category: "compliance", order: 450, status: "Aktiv", accent: "#6d28d9", accentSoft: "#ede9fe" },
+  { key: "license-billing", title: "Lizenz & Abrechnung", description: "Plan, Marketplace, Seats, Limits, Rechnungen und Aktivierung", href: "/dashboard-v2/settings/license-billing", icon: Landmark, category: "compliance", order: 450, status: "Premium vorbereitet", accent: "#6d28d9", accentSoft: "#ede9fe" },
+  { key: "license", title: "Lizenzverwaltung", description: "Bestehende Aktivierung, Benutzerlimit und interne Keys", href: "/dashboard-v2/settings/license", icon: KeyRound, category: "compliance", order: 455, status: "Aktiv", accent: "#6d28d9", accentSoft: "#ede9fe" },
   { key: "email", title: "E-Mail", description: "SMTP, Resend, Versand und Absender", href: "/dashboard-v2/settings/email", legacyHref: "/settings/email", icon: Mail, category: "communication", order: 510, status: "Teilweise aktiv", accent: "#0891b2", accentSoft: "#cffafe" },
   { key: "notifications", title: "Benachrichtigungen", description: "Ereigniskategorien und Systemhinweise", href: "/dashboard-v2/settings/notifications", legacyHref: "/settings/notifications", icon: Bell, category: "communication", order: 520, status: "Teilweise aktiv", accent: "#ea580c", accentSoft: "#ffedd5" },
   { key: "templates", title: "Vorlagen", description: "Dokument- und Kommunikationsvorlagen", href: "/dashboard-v2/settings/templates", icon: FileText, category: "communication", order: 530, status: "Aktiv", accent: "#2563eb", accentSoft: "#dbeafe" },
@@ -94,7 +96,7 @@ export const premiumSettingsGroups = [
   { key: "finance", title: "Finanzen & Dokumente", href: "/dashboard-v2/settings/finance", itemKeys: ["finance", "documents", "number-ranges", "reminders", "payment-terms"] },
   { key: "security", title: "Benutzer & Sicherheit", href: "/dashboard-v2/settings/users", itemKeys: ["users", "security", "sessions", "permissions"] },
   { key: "platform", title: "Technik & Plattform", href: "/dashboard-v2/settings/api", itemKeys: ["api", "webhooks", "integrations", "automation", "system", "dev", "logs-monitoring"] },
-  { key: "compliance", title: "Compliance & Analyse", href: "/dashboard-v2/settings/reports", itemKeys: ["reports", "archive", "legal", "license"] },
+  { key: "compliance", title: "Compliance & Analyse", href: "/dashboard-v2/settings/reports", itemKeys: ["reports", "archive", "legal", "license-billing"] },
   { key: "communication", title: "Kommunikation", href: "/dashboard-v2/settings/email", itemKeys: ["email", "notifications", "templates", "portal"] }
 ] as const satisfies readonly SettingsNavGroup[]
 

@@ -1,29 +1,35 @@
 "use client"
 
 import Link from "next/link"
-import { useSearchParams } from "next/navigation"
-import type { ComponentType } from "react"
+import { usePathname, useSearchParams } from "next/navigation"
+import type { ComponentType, ReactNode } from "react"
 import { useEffect, useMemo, useState } from "react"
 import {
   Activity,
   AlertTriangle,
   Archive,
   BarChart3,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Clock3,
+  CreditCard,
   Download,
   Eye,
   FileText,
+  Gauge,
   Filter,
   KeyRound,
+  Landmark,
   Link2,
   LockKeyhole,
+  PackageCheck,
   Plug,
   Search,
   ShieldCheck,
   SlidersHorizontal,
   SortAsc,
+  Store,
   Users2,
   Workflow
 } from "lucide-react"
@@ -41,6 +47,8 @@ import { SettingCard } from "../../settings/_components/SettingsControls"
 import { SettingsLayout } from "../../settings/_components/SettingsLayout"
 import { type PremiumSettingsSection } from "./sectionMap"
 import { settingsItemByKey } from "@/lib/settings-nav"
+import { featureFlags, installedExtensions, marketplaceCategories, rolePermissionActions, saasPlans, usageLimits } from "@/lib/saas-license-architecture"
+import { createFeatureChecker, resolveSaasCompatibility } from "@/lib/feature-flags/compatibility"
 
 type SettingsIcon = ComponentType<{ className?: string }>
 
@@ -83,8 +91,17 @@ const moduleSubpoints: Record<string, ModuleSubpoint[]> = {
   users: [
     { key: "benutzer", title: "Benutzer" },
     { key: "rollen", title: "Rollen" },
-    { key: "rechte", title: "Rechte" },
-    { key: "lizenz", title: "Lizenz" }
+    { key: "rechte", title: "Rechte" }
+  ],
+  "license-billing": [
+    { key: "overview", title: "Uebersicht" },
+    { key: "plans", title: "Plan & Tarife" },
+    { key: "seats", title: "Benutzerplaetze" },
+    { key: "extensions", title: "Installierte Erweiterungen" },
+    { key: "marketplace", title: "Marketplace" },
+    { key: "usage-limits", title: "Nutzung & Limits" },
+    { key: "billing-invoices", title: "Abrechnung & Rechnungen" },
+    { key: "advanced-activation", title: "Erweiterte Aktivierung" }
   ],
   permissions: [
     { key: "matrix", title: "Rechtematrix" },
@@ -142,7 +159,10 @@ const moduleSubpoints: Record<string, ModuleSubpoint[]> = {
 
 function SettingsSectionNavigation({ activeKey }: { activeKey: string }) {
   const searchParams = useSearchParams()
-  const activeTab = searchParams.get("tab") ?? (moduleSubpoints[activeKey] ?? defaultModuleSubpoints)[0]?.key
+  const pathname = usePathname()
+  const activeTab = activeKey === "license-billing"
+    ? (moduleSubpoints[activeKey] ?? defaultModuleSubpoints).find((item) => pathname.endsWith("/" + item.key))?.key ?? "overview"
+    : searchParams.get("tab") ?? (moduleSubpoints[activeKey] ?? defaultModuleSubpoints)[0]?.key
   const activeModule = settingsItemByKey(activeKey)
   const subpoints = moduleSubpoints[activeKey] ?? defaultModuleSubpoints
   const theme = searchParams.get("theme")
@@ -150,6 +170,10 @@ function SettingsSectionNavigation({ activeKey }: { activeKey: string }) {
   function hrefFor(tab: string) {
     const params = new URLSearchParams()
     if (theme) params.set("theme", theme)
+    if (activeKey === "license-billing") {
+      const suffix = params.toString()
+      return `/dashboard-v2/settings/license-billing/${tab}${suffix ? "?" + suffix : ""}`
+    }
     params.set("tab", tab)
     return `${activeModule?.href ?? "/dashboard-v2/settings/" + activeKey}?${params.toString()}`
   }
@@ -460,6 +484,247 @@ function SecuritySettingsPage() {
         ["Login", "Login-Sicherheit bleibt separat von Audit Logs und Benutzerrollen.", "Teilweise aktiv"]
       ]}
     />
+  )
+}
+
+const licenseBillingPages = [
+  { key: "overview", title: "Uebersicht", href: "/dashboard-v2/settings/license-billing/overview", icon: Landmark },
+  { key: "plans", title: "Plan & Tarife", href: "/dashboard-v2/settings/license-billing/plans", icon: CreditCard },
+  { key: "seats", title: "Benutzerplaetze", href: "/dashboard-v2/settings/license-billing/seats", icon: Users2 },
+  { key: "extensions", title: "Installierte Erweiterungen", href: "/dashboard-v2/settings/license-billing/extensions", icon: PackageCheck },
+  { key: "marketplace", title: "Marketplace", href: "/dashboard-v2/settings/license-billing/marketplace", icon: Store },
+  { key: "usage-limits", title: "Nutzung & Limits", href: "/dashboard-v2/settings/license-billing/usage-limits", icon: Gauge },
+  { key: "billing-invoices", title: "Abrechnung & Rechnungen", href: "/dashboard-v2/settings/license-billing/billing-invoices", icon: FileText },
+  { key: "advanced-activation", title: "Erweiterte Aktivierung", href: "/dashboard-v2/settings/license-billing/advanced-activation", icon: KeyRound }
+] as const
+
+type LicenseBillingPageKey = (typeof licenseBillingPages)[number]["key"]
+
+function usagePercent(used: number, limit: number) {
+  return Math.min(100, Math.round((used / limit) * 100))
+}
+
+function LicenseBillingSettingsPage() {
+  const pathname = usePathname()
+  const currentPage = licenseBillingPages.find((page) => pathname.endsWith("/" + page.key))?.key ?? "overview"
+  const activePlan = saasPlans[2]
+  const compatibility = resolveSaasCompatibility({
+    newArchitecture: {
+      plan: activePlan.key,
+      featureFlags: installedExtensions.map((extension) => extension.flag),
+      marketplaceExtensionKeys: installedExtensions.map((extension) => extension.marketplaceKey)
+    },
+    legacy: {
+      premiumLicense: true
+    }
+  })
+  const hasPreparedFeature = createFeatureChecker({
+    newArchitecture: {
+      plan: activePlan.key,
+      featureFlags: installedExtensions.map((extension) => extension.flag),
+      marketplaceExtensionKeys: installedExtensions.map((extension) => extension.marketplaceKey)
+    },
+    legacy: {
+      premiumLicense: true
+    }
+  })
+  const usedSeats = 3
+  const availableSeats = typeof activePlan.seats === "number" ? Math.max(activePlan.seats - usedSeats, 0) : "Individuell"
+  const seatLimit = typeof activePlan.seats === "number" ? activePlan.seats : 100
+  const seatPercent = usagePercent(usedSeats, seatLimit)
+
+  function renderOverview() {
+    const cards = [
+      ["Aktueller Plan", activePlan.name, "SaaS-Plan vorbereitet"],
+      ["Status", "Vorbereitet", "Noch keine Migration aktiv"],
+      ["Benutzerplaetze", usedSeats + " / " + activePlan.seats, "Auslastung " + seatPercent + "%"],
+      ["Installierte Erweiterungen", String(installedExtensions.length), "Alle als Feature Flags vorbereitet"],
+      ["Naechste Abrechnung", "Noch offen", "Billing-Anbindung folgt spaeter"],
+      ["Monatliche Kosten", activePlan.monthlyPrice, "Preislogik noch nicht produktiv"]
+    ]
+
+    return (
+      <div className="grid gap-3 md:grid-cols-3">
+        {cards.map(([label, value, detail]) => (
+          <div key={label} className="rounded-lg border border-[var(--settings-line)] bg-[var(--settings-surface)] p-4 shadow-[var(--settings-card-shadow)]">
+            <p className="text-[11px] font-extrabold uppercase text-[var(--settings-muted)]">{label}</p>
+            <strong className="mt-1 block text-2xl font-extrabold text-[var(--settings-title)]">{value}</strong>
+            <span className="mt-2 block text-xs font-bold text-[var(--settings-muted)]">{detail}</span>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  function renderPlans() {
+    return (
+      <div className="grid gap-3 md:grid-cols-2">
+        {saasPlans.map((plan) => (
+          <div key={plan.key} className="rounded-lg border border-[var(--settings-line)] bg-[var(--settings-surface)] p-5 shadow-[var(--settings-card-shadow)]">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-extrabold uppercase text-[var(--settings-muted)]">Plan</p>
+                <h3 className="text-xl font-black text-[var(--settings-title)]">{plan.name}</h3>
+              </div>
+              <StatusPill status={plan.status} />
+            </div>
+            <dl className="mt-4 grid gap-2 text-sm font-bold text-[var(--settings-muted)]">
+              <div className="flex justify-between gap-3"><dt>Benutzer</dt><dd className="text-[var(--settings-title)]">{plan.seats}</dd></div>
+              <div className="flex justify-between gap-3"><dt>Monatlich</dt><dd className="text-[var(--settings-title)]">{plan.monthlyPrice}</dd></div>
+              <div><dt>Zielgruppe</dt><dd className="mt-1 text-[var(--settings-title)]">{plan.target}</dd></div>
+            </dl>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  function renderSeats() {
+    return (
+      <div className="rounded-lg border border-[var(--settings-line)] bg-[var(--settings-surface)] p-5 shadow-[var(--settings-card-shadow)]">
+        <div className="grid gap-3 md:grid-cols-3">
+          <div><p className="text-[11px] font-extrabold uppercase text-[var(--settings-muted)]">Verwendete Benutzer</p><strong className="text-2xl font-black text-[var(--settings-title)]">{usedSeats}</strong></div>
+          <div><p className="text-[11px] font-extrabold uppercase text-[var(--settings-muted)]">Verfuegbare Benutzer</p><strong className="text-2xl font-black text-[var(--settings-title)]">{availableSeats}</strong></div>
+          <div><p className="text-[11px] font-extrabold uppercase text-[var(--settings-muted)]">Auslastung</p><strong className="text-2xl font-black text-[var(--settings-title)]">{seatPercent}%</strong></div>
+        </div>
+        <div className="mt-5 h-3 overflow-hidden rounded-md bg-[var(--settings-subtle)]">
+          <div className="h-full rounded-md bg-[var(--settings-accent-strong)]" style={{ width: seatPercent + "%" }} />
+        </div>
+      </div>
+    )
+  }
+
+  function renderExtensions() {
+    return (
+      <div className="grid gap-3 md:grid-cols-2">
+        {installedExtensions.map((extension) => (
+          <div key={extension.key} className="rounded-lg border border-[var(--settings-line)] bg-[var(--settings-surface)] p-4 shadow-[var(--settings-card-shadow)]">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-black text-[var(--settings-title)]">{extension.name}</h3>
+                <p className="mt-1 text-xs font-bold text-[var(--settings-muted)]">{extension.flag}</p>
+              </div>
+              <StatusPill status={hasPreparedFeature(extension.flag) ? "Aktiv" : extension.status} />
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  function renderMarketplace() {
+    return (
+      <div className="grid gap-3 md:grid-cols-2">
+        {marketplaceCategories.map((group) => (
+          <div key={group.category} className="rounded-lg border border-[var(--settings-line)] bg-[var(--settings-surface)] p-5 shadow-[var(--settings-card-shadow)]">
+            <p className="text-[11px] font-extrabold uppercase text-[var(--settings-muted)]">Kategorie</p>
+            <h3 className="text-lg font-black text-[var(--settings-title)]">{group.category}</h3>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {group.items.map((item) => <span key={item} className="rounded-md bg-[var(--settings-subtle)] px-2.5 py-1 text-xs font-extrabold text-[var(--settings-muted)]">{item}</span>)}
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  function renderUsageLimits() {
+    return (
+      <div className="grid gap-3">
+        {usageLimits.map((limit) => {
+          const percent = usagePercent(limit.used, limit.limit)
+          return (
+            <div key={limit.key} className="rounded-lg border border-[var(--settings-line)] bg-[var(--settings-surface)] p-4 shadow-[var(--settings-card-shadow)]">
+              <div className="flex items-center justify-between gap-3">
+                <div><h3 className="font-black text-[var(--settings-title)]">{limit.label}</h3><p className="text-xs font-bold text-[var(--settings-muted)]">{limit.used} / {limit.limit} {limit.unit}</p></div>
+                <strong className="text-sm font-black text-[var(--settings-title)]">{percent}%</strong>
+              </div>
+              <div className="mt-3 h-2 overflow-hidden rounded-md bg-[var(--settings-subtle)]"><div className="h-full rounded-md bg-[var(--settings-accent-strong)]" style={{ width: percent + "%" }} /></div>
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+
+  function renderBillingInvoices() {
+    const rows = [
+      ["Rechnungsverlauf", "Vorbereitet", "SaaS-Rechnungen und Belege"],
+      ["Zahlungsstatus", "Vorbereitet", "Offen, bezahlt, fehlgeschlagen"],
+      ["Abonnements", "Vorbereitet", "Planwechsel und Laufzeiten"]
+    ] as const
+
+    return (
+      <div className="grid gap-3">
+        {rows.map(([name, status, detail]) => (
+          <div key={name} className="flex items-center justify-between gap-3 rounded-lg border border-[var(--settings-line)] bg-[var(--settings-surface)] p-4 shadow-[var(--settings-card-shadow)]">
+            <div><h3 className="font-black text-[var(--settings-title)]">{name}</h3><p className="text-xs font-bold text-[var(--settings-muted)]">{detail}</p></div>
+            <StatusPill status={status} />
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  function renderAdvancedActivation() {
+    const rows = [
+      { name: "Lizenz synchronisieren", detail: "Spaetere SaaS-Synchronisierung vorbereiten", href: "/dashboard-v2/license?q=Lizenz%20synchronisieren", icon: CheckCircle2 },
+      { name: "Lizenzdatei importieren", detail: "Bestehenden Dateiimport weiterverwenden", href: "/dashboard-v2/license?q=Lizenzdatei", icon: Download },
+      { name: "Lizenzschluessel", detail: "Bestehende Key-Aktivierung weiterverwenden", href: "/dashboard-v2/license?q=Lizenz-Key", icon: KeyRound }
+    ]
+
+    return (
+      <div className="grid gap-3">
+        {rows.map((row) => {
+          const Icon = row.icon
+          return (
+            <Link key={row.name} href={row.href} className="flex items-center gap-3 rounded-lg border border-[var(--settings-line)] bg-[var(--settings-surface)] p-4 text-[var(--settings-title)] no-underline shadow-[var(--settings-card-shadow)] hover:bg-[var(--settings-subtle)]">
+              <span className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-[var(--settings-accent-soft)] text-[var(--settings-title)]"><Icon className="h-5 w-5" /></span>
+              <span><strong className="block font-black">{row.name}</strong><small className="font-bold text-[var(--settings-muted)]">{row.detail}</small></span>
+            </Link>
+          )
+        })}
+      </div>
+    )
+  }
+
+  const renderers: Record<LicenseBillingPageKey, () => ReactNode> = {
+    overview: renderOverview,
+    plans: renderPlans,
+    seats: renderSeats,
+    extensions: renderExtensions,
+    marketplace: renderMarketplace,
+    "usage-limits": renderUsageLimits,
+    "billing-invoices": renderBillingInvoices,
+    "advanced-activation": renderAdvancedActivation
+  }
+
+  return (
+    <SettingsLayout
+      title="Lizenz & Abrechnung"
+      description="Neue SaaS-Struktur fuer Plan, Marketplace, Feature Flags, Benutzerplaetze und Abrechnung. Bestehende Lizenzlogik bleibt unveraendert."
+    >
+      <div className="mb-5 grid gap-2 md:grid-cols-4">
+        {licenseBillingPages.map((page) => {
+          const Icon = page.icon
+          return (
+            <Link key={page.key} href={page.href} className={`flex min-h-16 items-center gap-2 rounded-lg border px-3 py-2 text-sm font-black no-underline transition ${currentPage === page.key ? "border-[var(--settings-accent)] bg-[var(--settings-accent-soft)] text-[var(--settings-title)]" : "border-[var(--settings-line)] bg-[var(--settings-surface)] text-[var(--settings-muted)] hover:text-[var(--settings-title)]"}`}>
+              <Icon className="h-4 w-4 shrink-0" />
+              <span>{page.title}</span>
+            </Link>
+          )
+        })}
+      </div>
+      <SettingCard title="Architekturstatus" description="Plan, Marketplace, Feature Flags und Rollenrechte sind strukturell vorbereitet. Premium-Funktionen werden ueber die zentrale hasFeature-Kompatibilitaetsschicht geprueft, Rollen bleiben fuer Berechtigungen reserviert.">
+        <div className="grid gap-3 md:grid-cols-4">
+          <div className="rounded-lg border border-[var(--settings-line)] bg-[var(--settings-subtle)] p-4"><p className="text-[11px] font-extrabold uppercase text-[var(--settings-muted)]">Feature Flags</p><strong className="text-2xl font-black text-[var(--settings-title)]">{featureFlags.length}</strong></div>
+          <div className="rounded-lg border border-[var(--settings-line)] bg-[var(--settings-subtle)] p-4"><p className="text-[11px] font-extrabold uppercase text-[var(--settings-muted)]">Marketplace Kategorien</p><strong className="text-2xl font-black text-[var(--settings-title)]">{marketplaceCategories.length}</strong></div>
+          <div className="rounded-lg border border-[var(--settings-line)] bg-[var(--settings-subtle)] p-4"><p className="text-[11px] font-extrabold uppercase text-[var(--settings-muted)]">Kompatibilitaet</p><strong className="text-2xl font-black text-[var(--settings-title)]">{compatibility.source}</strong></div>
+          <div className="rounded-lg border border-[var(--settings-line)] bg-[var(--settings-subtle)] p-4"><p className="text-[11px] font-extrabold uppercase text-[var(--settings-muted)]">Rollenrechte</p><strong className="text-2xl font-black text-[var(--settings-title)]">{rolePermissionActions.length}</strong></div>
+        </div>
+      </SettingCard>
+      {renderers[currentPage]()}
+    </SettingsLayout>
   )
 }
 
@@ -868,6 +1133,7 @@ const premiumSettingsSectionComponents: Record<PremiumSettingsSection, Component
   email: EmailSettingsPage,
   users: UsersRolesSettingsPage,
   security: SecuritySettingsPage,
+  "license-billing": LicenseBillingSettingsPage,
   license: LicenseSettingsPage,
   integrations: IntegrationsSettingsPage,
   reports: ReportsSettingsPage,

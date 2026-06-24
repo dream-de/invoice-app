@@ -412,7 +412,7 @@ const sideNav: Array<{ section: string; marker?: string; items: NavItem[] }> = [
     section: "System",
     items: [
       { label: "Einstellungen", href: "/dashboard-v2/settings", icon: Settings },
-      { label: "Lizenzen", href: "/dashboard-v2/license", icon: KeyRound }
+      { label: "Lizenz & Abrechnung", href: "/dashboard-v2/settings/license-billing", icon: KeyRound }
     ]
   },
   {
@@ -502,7 +502,7 @@ const premiumViewMeta: Record<Exclude<PremiumView, "account-security">, { title:
   settings: {
     title: "Einstellungen",
     eyebrow: "Settings",
-    description: "Zentrale Settings-Struktur mit eindeutigen Modulen und stabilen Routen.",
+    description: "Zentrale Settings-Struktur mit eindeutigen Modulen, SaaS-Lizenzarchitektur und stabilen Routen.",
     primary: "Einstellungen"
   },
   users: {
