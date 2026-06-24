@@ -1,36 +1,28 @@
 export type NewSaasPlan = "free" | "starter" | "business" | "enterprise"
 
 export type NewFeatureFlag =
-  | "feature.ocr"
-  | "feature.datev"
   | "feature.banking"
-  | "feature.api_premium"
-  | "feature.multitenant"
-  | "feature.portal_pro"
+  | "feature.datev"
+  | "feature.ocr"
+  | "feature.ai_assistant"
+  | "feature.inventory"
   | "feature.shopify"
   | "feature.woocommerce"
-  | "feature.ai_assistant"
-  | "feature.document_ai"
-  | "feature.warehouse"
-  | "feature.inventory"
-  | "feature.time_pro"
-  | "feature.resource_planning"
+  | "feature.api"
+  | "feature.time_tracking_pro"
+  | "feature.archive_pro"
 
 export const newFeatureFlags: readonly NewFeatureFlag[] = [
-  "feature.ocr",
-  "feature.datev",
   "feature.banking",
-  "feature.api_premium",
-  "feature.multitenant",
-  "feature.portal_pro",
+  "feature.datev",
+  "feature.ocr",
+  "feature.ai_assistant",
+  "feature.inventory",
   "feature.shopify",
   "feature.woocommerce",
-  "feature.ai_assistant",
-  "feature.document_ai",
-  "feature.warehouse",
-  "feature.inventory",
-  "feature.time_pro",
-  "feature.resource_planning"
+  "feature.api",
+  "feature.time_tracking_pro",
+  "feature.archive_pro"
 ]
 
 export type MarketplaceCategory = "Finanzen" | "KI" | "E-Commerce" | "Projektmanagement" | "Produktion" | "Business"
@@ -43,22 +35,16 @@ export type MarketplaceExtension = {
 }
 
 export const newMarketplaceExtensions: readonly MarketplaceExtension[] = [
-  { key: "datev", name: "DATEV", category: "Finanzen", featureFlag: "feature.datev" },
   { key: "banking", name: "Banking", category: "Finanzen", featureFlag: "feature.banking" },
-  { key: "paypal", name: "PayPal", category: "Finanzen", featureFlag: "feature.banking" },
-  { key: "stripe", name: "Stripe", category: "Finanzen", featureFlag: "feature.banking" },
+  { key: "datev", name: "DATEV", category: "Finanzen", featureFlag: "feature.datev" },
+  { key: "ocr", name: "OCR", category: "KI", featureFlag: "feature.ocr" },
   { key: "ai-assistant", name: "KI Assistent", category: "KI", featureFlag: "feature.ai_assistant" },
-  { key: "ocr-ai", name: "OCR KI", category: "KI", featureFlag: "feature.ocr" },
-  { key: "document-analysis", name: "Dokumentanalyse", category: "KI", featureFlag: "feature.document_ai" },
+  { key: "inventory", name: "Lager", category: "Produktion", featureFlag: "feature.inventory" },
   { key: "shopify", name: "Shopify", category: "E-Commerce", featureFlag: "feature.shopify" },
   { key: "woocommerce", name: "WooCommerce", category: "E-Commerce", featureFlag: "feature.woocommerce" },
-  { key: "time-pro", name: "Zeiterfassung Pro", category: "Projektmanagement", featureFlag: "feature.time_pro" },
-  { key: "resource-planning", name: "Ressourcenplanung", category: "Projektmanagement", featureFlag: "feature.resource_planning" },
-  { key: "warehouse", name: "Lagerverwaltung", category: "Produktion", featureFlag: "feature.warehouse" },
-  { key: "inventory", name: "Inventur", category: "Produktion", featureFlag: "feature.inventory" },
-  { key: "multitenant", name: "Multi-Mandanten", category: "Business", featureFlag: "feature.multitenant" },
-  { key: "api-premium", name: "API Premium", category: "Business", featureFlag: "feature.api_premium" },
-  { key: "portal-pro", name: "Kundenportal Pro", category: "Business", featureFlag: "feature.portal_pro" }
+  { key: "api-extension", name: "API Erweiterung", category: "Business", featureFlag: "feature.api" },
+  { key: "time-tracking-pro", name: "Zeiterfassung Pro", category: "Projektmanagement", featureFlag: "feature.time_tracking_pro" },
+  { key: "archive-pro", name: "Dokumentenarchiv Pro", category: "Business", featureFlag: "feature.archive_pro" }
 ]
 
 export type LegacyPremiumSource =
@@ -98,8 +84,8 @@ export const legacyPremiumFunctionMappings: readonly LegacyPremiumFunctionMappin
     dependentDatabaseFields: ["License.keyHash", "License.plan", "License.maxUsers", "License.features", "License.status", "License.validUntil"],
     dependentUiComponents: ["PremiumLicensePanel", "LicenseActivationForm", "PremiumSettingsSectionContent"],
     targetPlan: "business",
-    targetFeatureFlags: ["feature.ocr", "feature.datev", "feature.api_premium"],
-    marketplaceExtensionKeys: ["ocr-ai", "datev", "api-premium"],
+    targetFeatureFlags: ["feature.ocr", "feature.datev", "feature.api"],
+    marketplaceExtensionKeys: ["ocr", "datev", "api-extension"],
     requiresMigration: true,
     compatibilityBehavior: "Aktive Alt-Premium-Lizenz wird als Business-Plan mit OCR, DATEV und API Premium behandelt.",
     criticality: "high"
@@ -114,8 +100,8 @@ export const legacyPremiumFunctionMappings: readonly LegacyPremiumFunctionMappin
     dependentDatabaseFields: ["LicenseIssue.keyHash", "LicenseIssue.keyPreview", "LicenseIssue.plan", "LicenseIssue.maxUsers", "LicenseIssue.features", "License.activatedAt"],
     dependentUiComponents: ["PremiumLicensePanel", "PremiumLicenseAdminPage", "LicenseActivationForm"],
     targetPlan: "business",
-    targetFeatureFlags: ["feature.api_premium"],
-    marketplaceExtensionKeys: ["api-premium"],
+    targetFeatureFlags: ["feature.api"],
+    marketplaceExtensionKeys: ["api-extension"],
     requiresMigration: true,
     compatibilityBehavior: "Gueltiger Alt-Key bleibt akzeptiert; Shadow-Mapping erzeugt Plan und Feature Flags.",
     criticality: "high"
@@ -194,8 +180,8 @@ export const legacyPremiumFunctionMappings: readonly LegacyPremiumFunctionMappin
     dependentDatabaseFields: ["ApiKey.keyHash", "ApiKey.scopes", "License.features"],
     dependentUiComponents: ["ApiWebhooksSettingsPage", "PremiumWorkspace API view"],
     targetPlan: "business",
-    targetFeatureFlags: ["feature.api_premium"],
-    marketplaceExtensionKeys: ["api-premium"],
+    targetFeatureFlags: ["feature.api"],
+    marketplaceExtensionKeys: ["api-extension"],
     requiresMigration: true,
     compatibilityBehavior: "Alt-Feature apiAccess aktiviert API Premium.",
     criticality: "high"
@@ -210,8 +196,8 @@ export const legacyPremiumFunctionMappings: readonly LegacyPremiumFunctionMappin
     dependentDatabaseFields: ["Tenant", "Company", "CompanyLocation", "UserCompanyMembership", "License.features"],
     dependentUiComponents: ["Tenants settings", "Companies dashboard-v2 routes", "Locations dashboard-v2 routes"],
     targetPlan: "enterprise",
-    targetFeatureFlags: ["feature.multitenant"],
-    marketplaceExtensionKeys: ["multitenant"],
+    targetFeatureFlags: ["feature.api"],
+    marketplaceExtensionKeys: ["api-extension"],
     requiresMigration: true,
     compatibilityBehavior: "Alt-Feature multiCompany aktiviert Enterprise-Ziel und Multi-Mandanten-Erweiterung.",
     criticality: "high"
@@ -243,7 +229,7 @@ export const legacyPremiumFunctionMappings: readonly LegacyPremiumFunctionMappin
     dependentUiComponents: ["PremiumWorkspace expense OCR", "DocumentManagementClient", "PremiumInvoiceEditor OCR dialog"],
     targetPlan: "business",
     targetFeatureFlags: ["feature.ocr"],
-    marketplaceExtensionKeys: ["ocr-ai"],
+    marketplaceExtensionKeys: ["ocr"],
     requiresMigration: true,
     compatibilityBehavior: "Alt-Premium-Lizenz aktiviert OCR-KI fuer bestehende Kunden.",
     criticality: "medium"
@@ -274,8 +260,8 @@ export const legacyPremiumFunctionMappings: readonly LegacyPremiumFunctionMappin
     dependentDatabaseFields: ["DocumentAsset", "License.features"],
     dependentUiComponents: ["DocumentManagementClient", "PremiumDocumentManagementPage"],
     targetPlan: "business",
-    targetFeatureFlags: ["feature.document_ai"],
-    marketplaceExtensionKeys: ["document-analysis"],
+    targetFeatureFlags: ["feature.archive_pro"],
+    marketplaceExtensionKeys: ["archive-pro"],
     requiresMigration: true,
     compatibilityBehavior: "Premium-DMS-Funktionen werden als Dokumentanalyse-Feature markiert.",
     criticality: "medium"
@@ -290,8 +276,8 @@ export const legacyPremiumFunctionMappings: readonly LegacyPremiumFunctionMappin
     dependentDatabaseFields: ["PortalSession", "PortalToken", "Customer", "Invoice", "License.features"],
     dependentUiComponents: ["PortalSettingsPage", "ShareReleaseDialog", "portal app routes"],
     targetPlan: "business",
-    targetFeatureFlags: ["feature.portal_pro"],
-    marketplaceExtensionKeys: ["portal-pro"],
+    targetFeatureFlags: ["feature.archive_pro"],
+    marketplaceExtensionKeys: ["archive-pro"],
     requiresMigration: true,
     compatibilityBehavior: "Bestehende Portal-Konfigurationen bleiben aktiv und erhalten portal_pro.",
     criticality: "medium"
@@ -306,8 +292,8 @@ export const legacyPremiumFunctionMappings: readonly LegacyPremiumFunctionMappin
     dependentDatabaseFields: ["TimeEntry", "Project", "Invoice", "License.features"],
     dependentUiComponents: ["PremiumTimePage", "TimeTracking settings", "PremiumWorkspace"],
     targetPlan: "starter",
-    targetFeatureFlags: ["feature.time_pro"],
-    marketplaceExtensionKeys: ["time-pro"],
+    targetFeatureFlags: ["feature.time_tracking_pro"],
+    marketplaceExtensionKeys: ["time-tracking-pro"],
     requiresMigration: true,
     compatibilityBehavior: "Bestehende Premium-/Pro-Kunden behalten Zeiterfassung ueber time_pro.",
     criticality: "medium"
@@ -322,8 +308,8 @@ export const legacyPremiumFunctionMappings: readonly LegacyPremiumFunctionMappin
     dependentDatabaseFields: ["Project", "User", "UserPermission"],
     dependentUiComponents: ["ProjectsPageClient", "PremiumProjectsPage"],
     targetPlan: "business",
-    targetFeatureFlags: ["feature.resource_planning"],
-    marketplaceExtensionKeys: ["resource-planning"],
+    targetFeatureFlags: ["feature.time_tracking_pro"],
+    marketplaceExtensionKeys: ["time-tracking-pro"],
     requiresMigration: false,
     compatibilityBehavior: "Keine Altfreischaltung vorhanden; nur neues Marketplace-Entitlement vorbereiten.",
     criticality: "low"
@@ -354,8 +340,8 @@ export const legacyPremiumFunctionMappings: readonly LegacyPremiumFunctionMappin
     dependentDatabaseFields: ["Article", "Category"],
     dependentUiComponents: ["Articles page", "Settings categories"],
     targetPlan: "business",
-    targetFeatureFlags: ["feature.warehouse", "feature.inventory"],
-    marketplaceExtensionKeys: ["warehouse", "inventory"],
+    targetFeatureFlags: ["feature.inventory"],
+    marketplaceExtensionKeys: ["inventory"],
     requiresMigration: false,
     compatibilityBehavior: "Keine Altfreischaltung vorhanden; neue Erweiterungen koennen spaeter additiv aktiviert werden.",
     criticality: "low"

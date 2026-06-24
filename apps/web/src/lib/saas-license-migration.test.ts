@@ -2,22 +2,18 @@ import assert from "node:assert/strict"
 import test from "node:test"
 import { mapLegacyLicenseToSaasEntitlements, newFeatureFlags, newMarketplaceExtensions } from "./saas-license-migration"
 
-test("defines the requested Phase 3 feature flags", () => {
+test("defines the requested Phase 5 and 6 feature flags", () => {
   assert.deepEqual(newFeatureFlags, [
-    "feature.ocr",
-    "feature.datev",
     "feature.banking",
-    "feature.api_premium",
-    "feature.multitenant",
-    "feature.portal_pro",
+    "feature.datev",
+    "feature.ocr",
+    "feature.ai_assistant",
+    "feature.inventory",
     "feature.shopify",
     "feature.woocommerce",
-    "feature.ai_assistant",
-    "feature.document_ai",
-    "feature.warehouse",
-    "feature.inventory",
-    "feature.time_pro",
-    "feature.resource_planning"
+    "feature.api",
+    "feature.time_tracking_pro",
+    "feature.archive_pro"
   ])
 })
 
@@ -29,8 +25,8 @@ test("maps premium_license compatibility to business plus core feature flags", (
 
   assert.equal(result.plan, "business")
   assert.equal(result.seats, 25)
-  assert.deepEqual(result.featureFlags, ["feature.api_premium", "feature.datev", "feature.ocr"])
-  assert.deepEqual(result.marketplaceExtensionKeys, ["api-premium", "datev", "ocr-ai"])
+  assert.deepEqual(result.featureFlags, ["feature.api", "feature.datev", "feature.ocr"])
+  assert.deepEqual(result.marketplaceExtensionKeys, ["api-extension", "datev", "ocr"])
 })
 
 test("maps old license package features to marketplace extensions", () => {
@@ -46,15 +42,16 @@ test("maps old license package features to marketplace extensions", () => {
 
   assert.equal(result.plan, "enterprise")
   assert.deepEqual(result.featureFlags, [
-    "feature.api_premium",
+    "feature.api",
     "feature.banking",
-    "feature.datev",
-    "feature.multitenant"
+    "feature.datev"
   ])
-  assert.deepEqual(result.marketplaceExtensionKeys, ["api-premium", "banking", "datev", "multitenant"])
+  assert.deepEqual(result.marketplaceExtensionKeys, ["api-extension", "banking", "datev"])
 })
 
-test("keeps marketplace catalog aligned with requested categories", () => {
-  assert.equal(newMarketplaceExtensions.length, 16)
-  assert.equal(newMarketplaceExtensions.some((item) => item.name === "Kundenportal Pro" && item.featureFlag === "feature.portal_pro"), true)
+test("keeps marketplace catalog aligned with requested Phase 5 and 6 modules", () => {
+  assert.equal(newMarketplaceExtensions.length, 10)
+  assert.equal(newMarketplaceExtensions.some((item) => item.name === "Banking" && item.featureFlag === "feature.banking"), true)
+  assert.equal(newMarketplaceExtensions.some((item) => item.name === "API Erweiterung" && item.featureFlag === "feature.api"), true)
+  assert.equal(newMarketplaceExtensions.some((item) => item.name === "Dokumentenarchiv Pro" && item.featureFlag === "feature.archive_pro"), true)
 })

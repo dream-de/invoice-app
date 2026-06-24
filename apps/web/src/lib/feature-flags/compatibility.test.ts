@@ -2,11 +2,22 @@ import assert from "node:assert/strict"
 import test from "node:test"
 import { getInstalledMarketplaceExtensions, hasFeature, normalizeFeatureKey, resolveSaasCompatibility } from "./compatibility"
 
-test("normalizes feature aliases for central hasFeature checks", () => {
+test("normalizes canonical feature aliases for central hasFeature checks", () => {
   assert.equal(normalizeFeatureKey("ocr"), "feature.ocr")
-  assert.equal(normalizeFeatureKey("api_premium"), "feature.api_premium")
+  assert.equal(normalizeFeatureKey("api"), "feature.api")
   assert.equal(normalizeFeatureKey("feature.datev"), "feature.datev")
+  assert.equal(normalizeFeatureKey("time_tracking_pro"), "feature.time_tracking_pro")
+  assert.equal(normalizeFeatureKey("archive_pro"), "feature.archive_pro")
   assert.equal(normalizeFeatureKey("unknown"), null)
+})
+
+test("keeps old premium flag names as compatibility aliases", () => {
+  assert.equal(normalizeFeatureKey("api_premium"), "feature.api")
+  assert.equal(normalizeFeatureKey("feature.api_premium"), "feature.api")
+  assert.equal(normalizeFeatureKey("time_pro"), "feature.time_tracking_pro")
+  assert.equal(normalizeFeatureKey("feature.time_pro"), "feature.time_tracking_pro")
+  assert.equal(normalizeFeatureKey("document_ai"), "feature.archive_pro")
+  assert.equal(normalizeFeatureKey("portal_pro"), "feature.archive_pro")
 })
 
 test("keeps legacy premium customers on business features through fallback", () => {
@@ -21,6 +32,7 @@ test("keeps legacy premium customers on business features through fallback", () 
   assert.equal(snapshot.source, "legacy")
   assert.equal(hasFeature("ocr", { legacy: { premiumLicense: true } }), true)
   assert.equal(hasFeature("datev", { legacy: { premiumLicense: true } }), true)
+  assert.equal(hasFeature("api", { legacy: { premiumLicense: true } }), true)
   assert.equal(hasFeature("api_premium", { legacy: { premiumLicense: true } }), true)
 })
 
@@ -29,7 +41,7 @@ test("lets new architecture take priority while retaining old fallback features"
     newArchitecture: {
       plan: "starter",
       featureFlags: ["feature.banking"],
-      marketplaceExtensionKeys: ["stripe"]
+      marketplaceExtensionKeys: ["banking"]
     },
     legacy: {
       premiumLicense: true
@@ -38,7 +50,7 @@ test("lets new architecture take priority while retaining old fallback features"
 
   assert.equal(snapshot.plan, "business")
   assert.equal(snapshot.source, "mixed")
-  assert.deepEqual(snapshot.featureFlags, ["feature.api_premium", "feature.banking", "feature.datev", "feature.ocr"])
+  assert.deepEqual(snapshot.featureFlags, ["feature.api", "feature.banking", "feature.datev", "feature.ocr"])
   assert.equal(hasFeature("banking", { newArchitecture: { featureFlags: ["feature.banking"] } }), true)
 })
 
@@ -58,9 +70,9 @@ test("translates legacy premium roles into new permission actions without granti
 test("resolves marketplace-compatible installed extensions from feature flags", () => {
   const extensions = getInstalledMarketplaceExtensions({
     newArchitecture: {
-      featureFlags: ["feature.ocr", "feature.datev", "feature.api_premium"]
+      featureFlags: ["feature.ocr", "feature.datev", "feature.api"]
     }
   }).map((extension) => extension.name)
 
-  assert.deepEqual(extensions, ["DATEV", "OCR KI", "API Premium"])
+  assert.deepEqual(extensions, ["DATEV", "OCR", "API Erweiterung"])
 })
