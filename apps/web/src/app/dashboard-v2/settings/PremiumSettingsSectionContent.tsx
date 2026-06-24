@@ -6,16 +6,24 @@ import type { ComponentType } from "react"
 import { useEffect, useMemo, useState } from "react"
 import {
   Activity,
+  AlertTriangle,
   Archive,
   BarChart3,
+  ChevronLeft,
+  ChevronRight,
   Clock3,
+  Download,
+  Eye,
   FileText,
   Filter,
   KeyRound,
   Link2,
   LockKeyhole,
   Plug,
+  Search,
   ShieldCheck,
+  SlidersHorizontal,
+  SortAsc,
   Users2,
   Workflow
 } from "lucide-react"
@@ -71,6 +79,64 @@ const moduleSubpoints: Record<string, ModuleSubpoint[]> = {
     { key: "farben", title: "Farben" },
     { key: "dokumentkopf", title: "Dokumentkopf" },
     { key: "layout", title: "Layout" }
+  ],
+  users: [
+    { key: "benutzer", title: "Benutzer" },
+    { key: "rollen", title: "Rollen" },
+    { key: "rechte", title: "Rechte" },
+    { key: "lizenz", title: "Lizenz" }
+  ],
+  permissions: [
+    { key: "matrix", title: "Rechtematrix" },
+    { key: "rollen", title: "Rollen" },
+    { key: "scopes", title: "Scopes" }
+  ],
+  security: [
+    { key: "profil", title: "Profil" },
+    { key: "passwort", title: "Passwort" },
+    { key: "2fa", title: "2FA" },
+    { key: "sitzungen", title: "Sitzungen" },
+    { key: "geraete", title: "Geraete" },
+    { key: "konto", title: "Konto" }
+  ],
+  sessions: [
+    { key: "aktive-sitzungen", title: "Aktive Sitzungen" },
+    { key: "geraete", title: "Geraete" },
+    { key: "status", title: "Status" }
+  ],
+  api: [
+    { key: "keys", title: "Keys" },
+    { key: "scopes", title: "Scopes" },
+    { key: "versionen", title: "Versionen" }
+  ],
+  webhooks: [
+    { key: "endpunkte", title: "Endpunkte" },
+    { key: "events", title: "Events" },
+    { key: "zustellung", title: "Zustellung" }
+  ],
+  integrations: [
+    { key: "anbieter", title: "Anbieter" },
+    { key: "payments", title: "Payments" },
+    { key: "exporte", title: "Exporte" }
+  ],
+  dev: [
+    { key: "diagnose", title: "Diagnose" },
+    { key: "flags", title: "Feature Flags" },
+    { key: "jobs", title: "Jobs" }
+  ],
+  system: [
+    { key: "sprache", title: "Sprache" },
+    { key: "optionen", title: "Optionen" },
+    { key: "wartung", title: "Wartung" }
+  ],
+  "logs-monitoring": [
+    { key: "aktivitaet", title: "Aktivitaet" },
+    { key: "login", title: "Login" },
+    { key: "audit", title: "Audit" },
+    { key: "api", title: "API" },
+    { key: "webhooks", title: "Webhooks" },
+    { key: "fehler", title: "Fehler" },
+    { key: "system", title: "System" }
   ]
 }
 
@@ -89,20 +155,20 @@ function SettingsSectionNavigation({ activeKey }: { activeKey: string }) {
   }
 
   return (
-    <div className="mb-6 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+    <div className="mb-6 rounded-lg border border-[var(--settings-line)] bg-[var(--settings-surface)] p-3 shadow-[var(--settings-card-shadow)]">
       <div className="mb-2 flex items-center justify-between gap-3">
         <div>
-          <p className="text-[10px] font-black uppercase text-slate-400">Modul</p>
-          <h2 className="text-lg font-black text-slate-950">{activeModule?.title ?? activeKey}</h2>
+          <p className="text-[10px] font-black uppercase text-[var(--settings-muted)]">Modul</p>
+          <h2 className="text-lg font-black text-[var(--settings-title)]">{activeModule?.title ?? activeKey}</h2>
         </div>
-        <Link href="/dashboard-v2/settings" className="inline-flex h-8 items-center rounded-md border border-slate-200 px-2.5 text-[11px] font-black text-slate-600 no-underline hover:bg-slate-50">Alle Module</Link>
+        <Link href="/dashboard-v2/settings" className="inline-flex h-8 items-center rounded-md border border-[var(--settings-line)] px-2.5 text-[11px] font-black text-[var(--settings-muted)] no-underline hover:bg-[var(--settings-subtle)]">Alle Module</Link>
       </div>
       <nav className="flex flex-wrap gap-1.5" aria-label={`Unterpunkte im Modul ${activeModule?.title ?? activeKey}`}>
         {subpoints.map((item) => (
           <Link
             key={item.key}
             href={hrefFor(item.key)}
-            className={`inline-flex min-h-8 items-center rounded-md border px-2 text-[11px] font-black no-underline transition ${item.key === activeTab ? "border-violet-300 bg-violet-50 text-violet-800 shadow-sm" : "border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-300"}`}
+            className={`inline-flex min-h-8 items-center rounded-md border px-2 text-[11px] font-black no-underline transition ${item.key === activeTab ? "border-[var(--settings-accent)] bg-[var(--settings-accent-soft)] text-[var(--settings-title)] shadow-sm" : "border-[var(--settings-line)] bg-[var(--settings-subtle)] text-[var(--settings-muted)] hover:text-[var(--settings-title)]"}`}
           >
             {item.title}
           </Link>
@@ -424,38 +490,292 @@ function ApiWebhooksSettingsPage() {
       title="API & Webhooks"
       description="API-Schluessel, Webhook-Ziele und technische Freigaben als eigene moderne Verwaltungsseite."
       rows={[
-        { name: "REST API", detail: "Mandantenfaehige API-Endpunkte und Versionierung", owner: "Dev", status: "Vorbereitet", activity: "v1-Routen vorhanden", href: "/dashboard-v2/settings/add-ons?q=REST%20API", icon: KeyRound },
-        { name: "Webhook Ziele", detail: "Ziel-URLs, Ereignisse und Auslieferungsstatus", owner: "Dev", status: "Vorbereitet", activity: "Ereignisse vorbereitet", href: "/dashboard-v2/settings/add-ons?q=Webhooks", icon: Link2 },
+        { name: "REST API", detail: "Mandantenfaehige API-Endpunkte und Versionierung", owner: "Dev", status: "Vorbereitet", activity: "v1-Routen vorhanden", href: "/dashboard-v2/settings/api?tab=keys", icon: KeyRound },
+        { name: "Webhook Ziele", detail: "Ziel-URLs, Ereignisse und Auslieferungsstatus", owner: "Dev", status: "Vorbereitet", activity: "Ereignisse vorbereitet", href: "/dashboard-v2/settings/webhooks?tab=endpunkte", icon: Link2 },
         { name: "API Sicherheit", detail: "Tokens, Scopes und Zugriffskontrolle", owner: "Security", status: "Teilweise aktiv", activity: "Rechte-Modell vorhanden", href: "/dashboard-v2/settings/users", icon: LockKeyhole },
-        { name: "Developer Status", detail: "Technische Aktivitaet und Erweiterungen", owner: "Platform", status: "Vorbereitet", activity: "Add-on-Katalog aktiv", href: "/dashboard-v2/settings/add-ons?q=Dev", icon: Activity }
+        { name: "Developer Status", detail: "Technische Aktivitaet und Erweiterungen", owner: "Platform", status: "Vorbereitet", activity: "Diagnose vorbereitet", href: "/dashboard-v2/settings/dev?tab=diagnose", icon: Activity }
       ]}
       activity={[
         ["Scopes", "Rechte werden ueber vorhandene Rollen- und Permission-Strukturen angebunden.", "Teilweise aktiv"],
         ["Webhook Queue", "Auslieferungsstatus ist als Verwaltungsbereich vorbereitet.", "Vorbereitet"],
-        ["Dokumentation", "API- und Webhook-Hinweise bleiben als Add-on-Kontext erreichbar.", "Vorbereitet"]
+        ["Dokumentation", "API- und Webhook-Hinweise bleiben in eindeutigen Technik-Bereichen erreichbar.", "Vorbereitet"]
       ]}
     />
   )
 }
 
-function AuditLogsSettingsPage() {
+function DevSettingsPage() {
   return (
     <ManagementPage
-      title="Audit Logs"
-      description="Sicherheitsereignisse, Zugriff und Systemaktivitaeten durchsuchen, filtern und pruefen."
+      title="Dev"
+      description="Entwickleroptionen, technische Diagnose, Feature Flags und Jobs ohne doppelte Add-on-Seite verwalten."
       rows={[
-        { name: "Login Ereignisse", detail: "Erfolgreiche und blockierte Anmeldungen", owner: "Security", status: "Aktiv", activity: "IP-Metadaten vorbereitet", href: "/dashboard-v2/audit?q=Login", icon: ShieldCheck },
-        { name: "Datenzugriff", detail: "Aenderungen an Rechnungen, Kunden und Projekten", owner: "Audit", status: "Teilweise aktiv", activity: "Audit Helper vorhanden", href: "/dashboard-v2/audit?q=Datenzugriff", icon: FileText },
-        { name: "Export Verlauf", detail: "CSV, PDF und Report-Aktivitaeten", owner: "Operations", status: "Vorbereitet", activity: "Exportbereiche sichtbar", href: "/dashboard-v2/reports?q=Export", icon: Archive },
-        { name: "Audit Trail", detail: "Nachvollziehbare Ereignisse und Systemaktivitaeten", owner: "Audit", status: "Teilweise aktiv", activity: "Audit-Ansicht aktiv", href: "/dashboard-v2/audit?q=Audit%20Trail", icon: Activity }
+        { name: "Diagnose", detail: "Runtime, Healthchecks und technische Statuswerte", owner: "Platform", status: "Teilweise aktiv", activity: "Healthcheck aktiv", href: "/dashboard-v2/settings/logs-monitoring?tab=system", icon: Activity },
+        { name: "Feature Flags", detail: "Vorbereitete technische Freigaben und Rollouts", owner: "Dev", status: "Vorbereitet", activity: "Settings-Modell vorbereitet", href: "/dashboard-v2/settings/dev?tab=flags", icon: Workflow },
+        { name: "API Scopes", detail: "Technische Berechtigungen fuer API und Webhooks", owner: "Security", status: "Aktiv", activity: "Rechtemodell erweitert", href: "/dashboard-v2/settings/permissions?tab=scopes", icon: KeyRound },
+        { name: "Jobs", detail: "Automationen, Queues und spaetere Worker-Ueberwachung", owner: "System", status: "Vorbereitet", activity: "Automation verknuepft", href: "/dashboard-v2/settings/automation?tab=zeitplaene", icon: Clock3 }
       ]}
       filters={["Alle", "Aktiv", "Teilweise aktiv", "Vorbereitet"]}
       activity={[
-        ["Sichtung", "Audit-Ereignisse bleiben im bestehenden Audit-Bereich erreichbar.", "Aktiv"],
-        ["Filter", "Status- und Suchfilter sind direkt in dieser Detailseite nutzbar.", "Aktiv"],
-        ["Export", "Archiv- und Report-Exports bleiben vorbereitet.", "Vorbereitet"]
+        ["Dubletten entfernt", "Der alte Add-ons-Ersatzbereich ist nicht mehr als eigenes Settings-Modul sichtbar.", "Aktiv"],
+        ["Scopes", "API, Webhooks, Logs und Sicherheit sind als Admin-Rechte vorhanden.", "Aktiv"],
+        ["Monitoring", "Technische Ereignisse laufen in Logs & Ueberwachung zusammen.", "Teilweise aktiv"]
       ]}
     />
+  )
+}
+
+type LogCategory = "Aktivitaet" | "Login" | "Audit" | "API" | "Webhook" | "Fehler" | "Sicherheit" | "System"
+type LogSeverity = "Info" | "Warnung" | "Kritisch"
+type MonitoringLogRow = {
+  id: string
+  category: LogCategory
+  severity: LogSeverity
+  source: string
+  event: string
+  actor: string
+  target: string
+  ip: string
+  createdAt: string
+  details: string
+}
+
+const fallbackMonitoringLogs: MonitoringLogRow[] = [
+  { id: "log-activity-1", category: "Aktivitaet", severity: "Info", source: "workspace", event: "Dokument finalisiert", actor: "System", target: "RE-2026-0104", ip: "-", createdAt: "2026-06-24T08:42:00.000Z", details: "Aktivitaetsprotokoll fuer Dokumentaktionen und Statuswechsel." },
+  { id: "log-login-1", category: "Login", severity: "Info", source: "auth", event: "Anmeldung erfolgreich", actor: "admin", target: "Dashboard", ip: "192.168.20.25", createdAt: "2026-06-24T08:12:00.000Z", details: "Login-Historie fuer Benutzerkonto und aktive Sitzung." },
+  { id: "log-audit-1", category: "Audit", severity: "Info", source: "audit", event: "user.update", actor: "Admin", target: "Benutzer", ip: "-", createdAt: "2026-06-23T16:30:00.000Z", details: "Audit-Log aus geschuetzten Settings-Aktionen." },
+  { id: "log-api-1", category: "API", severity: "Warnung", source: "api", event: "Rate Limit vorbereitet", actor: "API Client", target: "/api/settings/users", ip: "-", createdAt: "2026-06-23T12:05:00.000Z", details: "API-Protokoll fuer technische Zugriffe und Token-Scopes." },
+  { id: "log-webhook-1", category: "Webhook", severity: "Info", source: "webhooks", event: "Webhook Queue bereit", actor: "System", target: "invoice.finalized", ip: "-", createdAt: "2026-06-22T14:20:00.000Z", details: "Webhook-Protokoll fuer spaetere Zustellungen und Retry-Status." },
+  { id: "log-error-1", category: "Fehler", severity: "Kritisch", source: "runtime", event: "Export fehlgeschlagen", actor: "System", target: "CSV Export", ip: "-", createdAt: "2026-06-21T09:18:00.000Z", details: "Fehlerprotokoll mit zentraler Detailansicht." },
+  { id: "log-security-1", category: "Sicherheit", severity: "Warnung", source: "security", event: "2FA Backup-Code genutzt", actor: "Benutzer", target: "Konto", ip: "-", createdAt: "2026-06-20T17:50:00.000Z", details: "Sicherheitsereignis ohne Vermischung mit Profilformularen." },
+  { id: "log-system-1", category: "System", severity: "Info", source: "system", event: "Healthcheck OK", actor: "System", target: "web-app", ip: "127.0.0.1", createdAt: "2026-06-20T06:00:00.000Z", details: "Systemereignisse und Ueberwachung zentral gebuendelt." }
+]
+
+function severityClass(severity: LogSeverity) {
+  if (severity === "Kritisch") return "bg-red-50 text-red-700 ring-red-200"
+  if (severity === "Warnung") return "bg-amber-50 text-amber-700 ring-amber-200"
+  return "bg-emerald-50 text-emerald-700 ring-emerald-200"
+}
+
+function formatLogDate(value: string) {
+  return new Intl.DateTimeFormat("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date(value))
+}
+
+function csvCell(value: unknown) {
+  return `"${String(value ?? "").replaceAll('"', '""')}"`
+}
+
+function exportLogs(rows: MonitoringLogRow[]) {
+  const header = ["Zeit", "Kategorie", "Schwere", "Quelle", "Ereignis", "Akteur", "Ziel", "IP", "Details"]
+  const csv = [
+    header.join(";"),
+    ...rows.map((row) => [
+      row.createdAt,
+      row.category,
+      row.severity,
+      row.source,
+      row.event,
+      row.actor,
+      row.target,
+      row.ip,
+      row.details
+    ].map(csvCell).join(";"))
+  ].join("\n")
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" })
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement("a")
+  anchor.href = url
+  anchor.download = "logs-und-ueberwachung.csv"
+  anchor.click()
+  URL.revokeObjectURL(url)
+}
+
+function LogsMonitoringSettingsPage() {
+  const [query, setQuery] = useState("")
+  const [category, setCategory] = useState<"Alle" | LogCategory>("Alle")
+  const [severity, setSeverity] = useState<"Alle" | LogSeverity>("Alle")
+  const [sortDirection, setSortDirection] = useState<"desc" | "asc">("desc")
+  const [page, setPage] = useState(1)
+  const [selectedId, setSelectedId] = useState(fallbackMonitoringLogs[0]?.id ?? "")
+  const [apiRows, setApiRows] = useState<MonitoringLogRow[]>([])
+  const pageSize = 5
+
+  useEffect(() => {
+    async function loadAuditRows() {
+      try {
+        const response = await fetch("/api/audit/events?limit=80", { cache: "no-store" })
+        const result = await response.json().catch(() => null)
+        if (!response.ok || !result?.ok || !Array.isArray(result.logs)) return
+
+        setApiRows(result.logs.map((row: { id: string; action: string; entity: string; entityId?: string | null; reason?: string | null; ipAddress?: string | null; createdAt: string }) => ({
+          id: row.id,
+          category: row.action?.includes("login") ? "Login" : "Audit",
+          severity: "Info",
+          source: "audit",
+          event: row.action,
+          actor: "System",
+          target: row.entityId || row.entity,
+          ip: row.ipAddress || "-",
+          createdAt: row.createdAt,
+          details: row.reason || "Audit-Ereignis aus der bestehenden Audit-API."
+        })))
+      } catch {
+        setApiRows([])
+      }
+    }
+
+    loadAuditRows()
+  }, [])
+
+  const rows = useMemo(() => [...apiRows, ...fallbackMonitoringLogs], [apiRows])
+  const filteredRows = useMemo(() => {
+    const needle = query.trim().toLowerCase()
+    return rows
+      .filter((row) => category === "Alle" || row.category === category)
+      .filter((row) => severity === "Alle" || row.severity === severity)
+      .filter((row) => !needle || [row.category, row.severity, row.source, row.event, row.actor, row.target, row.ip, row.details].some((value) => value.toLowerCase().includes(needle)))
+      .sort((a, b) => sortDirection === "desc"
+        ? new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        : new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+  }, [category, query, rows, severity, sortDirection])
+  const pageCount = Math.max(1, Math.ceil(filteredRows.length / pageSize))
+  const currentPage = Math.min(page, pageCount)
+  const pagedRows = filteredRows.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+  const selectedRow = rows.find((row) => row.id === selectedId) ?? filteredRows[0] ?? rows[0]
+
+  useEffect(() => {
+    setPage(1)
+  }, [category, query, severity, sortDirection])
+
+  return (
+    <SettingsLayout title="Logs & Ueberwachung" description="Aktivitaetsprotokoll, Login-Historie, Audit-Log, API, Webhooks, Fehler, Sicherheit und Systemereignisse zentral pruefen.">
+      <div className="grid gap-3 md:grid-cols-4">
+        {[
+          ["Ereignisse", String(rows.length), SlidersHorizontal],
+          ["Kritisch", String(rows.filter((row) => row.severity === "Kritisch").length), AlertTriangle],
+          ["Audit", String(rows.filter((row) => row.category === "Audit").length), FileText],
+          ["System", String(rows.filter((row) => row.category === "System").length), Activity]
+        ].map(([label, value, Icon]) => {
+          const StatIcon = Icon as SettingsIcon
+          return (
+            <div key={String(label)} className="rounded-lg border border-[var(--settings-line)] bg-[var(--settings-surface)] p-4 shadow-[var(--settings-card-shadow)]">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[11px] font-extrabold uppercase text-[var(--settings-muted)]">{String(label)}</p>
+                <StatIcon className="h-4 w-4 text-[var(--settings-accent)]" />
+              </div>
+              <strong className="mt-2 block text-2xl font-extrabold text-[var(--settings-title)]">{String(value)}</strong>
+            </div>
+          )
+        })}
+      </div>
+
+      <SettingCard title="Protokolle" description="Suchen, filtern, sortieren, exportieren und Detailinformationen pruefen.">
+        <div className="grid gap-3 lg:grid-cols-[minmax(220px,1fr)_160px_150px_auto_auto]">
+          <label className="relative block">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--settings-muted)]" />
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Suche nach Ereignis, Akteur, Ziel oder Quelle"
+              className="h-10 w-full rounded-lg border border-[var(--settings-input-border)] bg-[var(--settings-input-bg)] pl-9 pr-3 text-sm font-semibold text-[var(--settings-title)] outline-none focus:border-[var(--settings-accent)] focus:bg-[var(--settings-input-focus-bg)] focus:ring-2 focus:ring-[var(--settings-accent-soft)]"
+            />
+          </label>
+          <select value={category} onChange={(event) => setCategory(event.target.value as "Alle" | LogCategory)} className="h-10 rounded-lg border border-[var(--settings-input-border)] bg-[var(--settings-input-bg)] px-3 text-sm font-extrabold text-[var(--settings-title)] outline-none">
+            {["Alle", "Aktivitaet", "Login", "Audit", "API", "Webhook", "Fehler", "Sicherheit", "System"].map((item) => <option key={item} value={item}>{item}</option>)}
+          </select>
+          <select value={severity} onChange={(event) => setSeverity(event.target.value as "Alle" | LogSeverity)} className="h-10 rounded-lg border border-[var(--settings-input-border)] bg-[var(--settings-input-bg)] px-3 text-sm font-extrabold text-[var(--settings-title)] outline-none">
+            {["Alle", "Info", "Warnung", "Kritisch"].map((item) => <option key={item} value={item}>{item}</option>)}
+          </select>
+          <button type="button" onClick={() => setSortDirection((current) => current === "desc" ? "asc" : "desc")} className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[var(--settings-line)] bg-[var(--settings-subtle)] px-3 text-xs font-extrabold text-[var(--settings-title)]">
+            <SortAsc className="h-4 w-4" />
+            {sortDirection === "desc" ? "Neueste" : "Aelteste"}
+          </button>
+          <button type="button" onClick={() => exportLogs(filteredRows)} className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[var(--settings-accent-strong)] px-4 text-xs font-extrabold text-white shadow-[var(--settings-card-shadow)]">
+            <Download className="h-4 w-4" />
+            Export
+          </button>
+        </div>
+
+        <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="overflow-x-auto rounded-lg border border-[var(--settings-line)]">
+            <table className="min-w-[850px] w-full border-collapse text-left">
+              <thead className="bg-[var(--settings-subtle)] text-[11px] font-extrabold uppercase text-[var(--settings-muted)]">
+                <tr>
+                  <th className="px-3 py-2">Zeit</th>
+                  <th className="px-3 py-2">Kategorie</th>
+                  <th className="px-3 py-2">Ereignis</th>
+                  <th className="px-3 py-2">Akteur</th>
+                  <th className="px-3 py-2">Ziel</th>
+                  <th className="px-3 py-2">Status</th>
+                  <th className="px-3 py-2 text-right">Detail</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--settings-line)]">
+                {pagedRows.map((row) => (
+                  <tr key={row.id} className="bg-[var(--settings-surface)]">
+                    <td className="px-3 py-3 text-xs font-bold text-[var(--settings-muted)]">{formatLogDate(row.createdAt)}</td>
+                    <td className="px-3 py-3 text-sm font-extrabold text-[var(--settings-title)]">{row.category}</td>
+                    <td className="px-3 py-3 text-sm font-bold text-[var(--settings-title)]">{row.event}</td>
+                    <td className="px-3 py-3 text-xs font-medium text-[var(--settings-muted)]">{row.actor}</td>
+                    <td className="px-3 py-3 text-xs font-medium text-[var(--settings-muted)]">{row.target}</td>
+                    <td className="px-3 py-3"><span className={`inline-flex rounded-md px-2 py-1 text-[11px] font-extrabold ring-1 ${severityClass(row.severity)}`}>{row.severity}</span></td>
+                    <td className="px-3 py-3 text-right">
+                      <button type="button" onClick={() => setSelectedId(row.id)} className="inline-flex h-8 items-center gap-2 rounded-md border border-[var(--settings-line)] px-2.5 text-xs font-extrabold text-[var(--settings-title)] hover:bg-[var(--settings-subtle)]">
+                        <Eye className="h-3.5 w-3.5" />
+                        Oeffnen
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {selectedRow ? (
+            <aside className="rounded-lg border border-[var(--settings-line)] bg-[var(--settings-subtle)] p-4">
+              <p className="text-[11px] font-extrabold uppercase text-[var(--settings-muted)]">Detailansicht</p>
+              <h3 className="mt-2 text-lg font-extrabold text-[var(--settings-title)]">{selectedRow.event}</h3>
+              <div className="mt-3 grid gap-2 text-sm">
+                {[
+                  ["Kategorie", selectedRow.category],
+                  ["Quelle", selectedRow.source],
+                  ["Akteur", selectedRow.actor],
+                  ["Ziel", selectedRow.target],
+                  ["IP", selectedRow.ip],
+                  ["Zeit", formatLogDate(selectedRow.createdAt)]
+                ].map(([label, value]) => (
+                  <div key={label} className="flex items-center justify-between gap-3 rounded-md bg-[var(--settings-surface)] px-3 py-2">
+                    <span className="text-xs font-extrabold uppercase text-[var(--settings-muted)]">{label}</span>
+                    <strong className="text-right text-xs font-extrabold text-[var(--settings-title)]">{value}</strong>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-3 rounded-md bg-[var(--settings-surface)] p-3 text-sm font-medium leading-6 text-[var(--settings-muted)]">{selectedRow.details}</p>
+            </aside>
+          ) : null}
+        </div>
+
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-xs font-bold text-[var(--settings-muted)]">{filteredRows.length} Treffer, Seite {currentPage} von {pageCount}</p>
+          <div className="flex items-center gap-2">
+            <button type="button" disabled={currentPage <= 1} onClick={() => setPage((value) => Math.max(1, value - 1))} className="inline-flex h-9 items-center gap-2 rounded-lg border border-[var(--settings-line)] px-3 text-xs font-extrabold text-[var(--settings-title)] disabled:cursor-not-allowed disabled:opacity-50">
+              <ChevronLeft className="h-4 w-4" />
+              Zurueck
+            </button>
+            <button type="button" disabled={currentPage >= pageCount} onClick={() => setPage((value) => Math.min(pageCount, value + 1))} className="inline-flex h-9 items-center gap-2 rounded-lg border border-[var(--settings-line)] px-3 text-xs font-extrabold text-[var(--settings-title)] disabled:cursor-not-allowed disabled:opacity-50">
+              Weiter
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </SettingCard>
+    </SettingsLayout>
   )
 }
 
@@ -528,7 +848,7 @@ function AutomationSettingsPage() {
         { name: "Regeln", detail: "Wenn-Dann-Ablaeufe fuer Rechnungen und Mahnungen", owner: "Operations", status: "Vorbereitet", activity: "Automation-API vorhanden", href: "/dashboard-v2/automation?q=Regeln", icon: Workflow },
         { name: "Trigger", detail: "Ereignisse fuer Dokumente, Zahlungen und E-Mails", owner: "Operations", status: "Vorbereitet", activity: "Trigger-Modell vorbereitet", href: "/dashboard-v2/automation?q=Trigger", icon: Activity },
         { name: "Zeitplaene", detail: "Wiederkehrende Jobs und Erinnerungen", owner: "System", status: "Teilweise aktiv", activity: "Reminder-Settings aktiv", href: "/dashboard-v2/settings/reminders", icon: Clock3 },
-        { name: "Run-Verlauf", detail: "Ausfuehrungen und Fehler nachvollziehen", owner: "Audit", status: "Vorbereitet", activity: "Audit-Verknuepfung vorbereitet", href: "/dashboard-v2/settings/audit-logs?q=Workflow", icon: FileText }
+        { name: "Run-Verlauf", detail: "Ausfuehrungen und Fehler nachvollziehen", owner: "Audit", status: "Vorbereitet", activity: "Monitoring verknuepft", href: "/dashboard-v2/settings/logs-monitoring?tab=aktivitaet", icon: FileText }
       ]}
       activity={[
         ["Regeln", "Regeluebersichten sind strukturiert angelegt.", "Vorbereitet"],
@@ -548,18 +868,18 @@ const premiumSettingsSectionComponents: Record<PremiumSettingsSection, Component
   email: EmailSettingsPage,
   users: UsersRolesSettingsPage,
   security: SecuritySettingsPage,
-  "audit-logs": AuditLogsSettingsPage,
   license: LicenseSettingsPage,
   integrations: IntegrationsSettingsPage,
   reports: ReportsSettingsPage,
   archive: ArchiveSettingsPage,
   system: SystemSettingsPage,
   automation: AutomationSettingsPage,
+  dev: DevSettingsPage,
+  "logs-monitoring": LogsMonitoringSettingsPage,
   legal: LegalSettingsPage,
   notifications: NotificationSettingsPage,
   reminders: RemindersSettingsPage,
   "number-ranges": NumberRangesSettingsPage,
-  "add-ons": ApiWebhooksSettingsPage,
   locations: CompanySettingsPage,
   tenants: CompanySettingsPage,
   branding: CompanySettingsPage,
@@ -568,7 +888,6 @@ const premiumSettingsSectionComponents: Record<PremiumSettingsSection, Component
   permissions: UsersRolesSettingsPage,
   api: ApiWebhooksSettingsPage,
   webhooks: ApiWebhooksSettingsPage,
-  audit: AuditLogsSettingsPage,
   templates: DocumentsSettingsPage,
   portal: PortalSettingsPage
 }

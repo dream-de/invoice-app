@@ -291,5 +291,10 @@
   "settings.backup.createTitle": "Veritabanini yedekle",
   "settings.backup.createDescription": "Mevcut verilerin yedegini olustur.",
   "settings.backup.restoreTitle": "Veritabanini geri yukle",
-  "settings.backup.restoreDescription": "Mevcut bir yedekten verileri geri yukle."
+  "settings.backup.restoreDescription": "Mevcut bir yedekten verileri geri yukle.",
+  "settings.users.permissions.admin.security": "Manage security",
+  "settings.users.permissions.admin.api": "Manage API",
+  "settings.users.permissions.admin.webhooks": "Manage webhooks",
+  "settings.users.permissions.admin.logsView": "View logs",
+  "settings.users.permissions.admin.logsExport": "Export logs"
 }

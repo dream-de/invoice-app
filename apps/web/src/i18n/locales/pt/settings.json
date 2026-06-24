@@ -291,5 +291,10 @@
   "settings.backup.createTitle": "Fazer backup do banco de dados",
   "settings.backup.createDescription": "Criar um backup dos dados atuais.",
   "settings.backup.restoreTitle": "Restaurar banco de dados",
-  "settings.backup.restoreDescription": "Restaurar dados de um backup existente."
+  "settings.backup.restoreDescription": "Restaurar dados de um backup existente.",
+  "settings.users.permissions.admin.security": "Manage security",
+  "settings.users.permissions.admin.api": "Manage API",
+  "settings.users.permissions.admin.webhooks": "Manage webhooks",
+  "settings.users.permissions.admin.logsView": "View logs",
+  "settings.users.permissions.admin.logsExport": "Export logs"
 }

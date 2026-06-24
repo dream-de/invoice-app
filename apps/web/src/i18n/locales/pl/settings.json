@@ -291,5 +291,10 @@
   "settings.backup.createTitle": "Utworz kopie bazy danych",
   "settings.backup.createDescription": "Utworz kopie zapasowa aktualnych danych.",
   "settings.backup.restoreTitle": "Przywroc baze danych",
-  "settings.backup.restoreDescription": "Przywroc dane z istniejacej kopii zapasowej."
+  "settings.backup.restoreDescription": "Przywroc dane z istniejacej kopii zapasowej.",
+  "settings.users.permissions.admin.security": "Manage security",
+  "settings.users.permissions.admin.api": "Manage API",
+  "settings.users.permissions.admin.webhooks": "Manage webhooks",
+  "settings.users.permissions.admin.logsView": "View logs",
+  "settings.users.permissions.admin.logsExport": "Export logs"
 }

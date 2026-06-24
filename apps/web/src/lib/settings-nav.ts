@@ -5,6 +5,7 @@ import {
   Bell,
   Building2,
   CalendarClock,
+  Code2,
   FileText,
   Hash,
   KeyRound,
@@ -15,6 +16,7 @@ import {
   Scale,
   Settings,
   ShieldCheck,
+  SlidersHorizontal,
   Users,
   Wallet,
   Webhook,
@@ -68,7 +70,8 @@ export const settingsNav = [
   { key: "integrations", title: "Integrationen", description: "Externe Dienste und Datenuebergaben", href: "/dashboard-v2/settings/integrations", icon: Plug, category: "platform", order: 330, status: "Premium vorbereitet", accent: "#0891b2", accentSoft: "#cffafe" },
   { key: "automation", title: "Automatisierung", description: "Regeln, Trigger und geplante Ablaeufe", href: "/dashboard-v2/settings/automation", icon: Workflow, category: "platform", order: 340, status: "Premium vorbereitet", accent: "#c2410c", accentSoft: "#ffedd5" },
   { key: "system", title: "System", description: "Sprache, Systemoptionen, Logs und Wartung", href: "/dashboard-v2/settings/system", legacyHref: "/settings/system", icon: Settings, category: "platform", order: 350, status: "Teilweise aktiv", accent: "#475569", accentSoft: "#e2e8f0" },
-  { key: "audit", title: "Audit Logs", description: "Sicherheitsereignisse, Zugriff und Systemaktivitaeten", href: "/dashboard-v2/settings/audit", icon: FileText, category: "compliance", order: 410, status: "Teilweise aktiv", accent: "#0f172a", accentSoft: "#e2e8f0" },
+  { key: "dev", title: "Dev", description: "Entwickleroptionen, technische Freigaben und Diagnose", href: "/dashboard-v2/settings/dev", icon: Code2, category: "platform", order: 360, status: "Premium vorbereitet", accent: "#6366f1", accentSoft: "#e0e7ff" },
+  { key: "logs-monitoring", title: "Logs & Ueberwachung", description: "Aktivitaeten, Login-Historie, Audit, API, Webhooks und Systemereignisse", href: "/dashboard-v2/settings/logs-monitoring", icon: SlidersHorizontal, category: "platform", order: 370, status: "Teilweise aktiv", accent: "#7c3aed", accentSoft: "#ede9fe" },
   { key: "reports", title: "Berichte", description: "Auswertungen, Umsatz, KPIs und Exporte", href: "/dashboard-v2/settings/reports", icon: BarChart3, category: "compliance", order: 420, status: "Aktiv", accent: "#16a34a", accentSoft: "#dcfce7" },
   { key: "archive", title: "Archiv", description: "Dokumentenarchiv, Export und Ablage", href: "/dashboard-v2/settings/archive", icon: Archive, category: "compliance", order: 430, status: "Nicht eingerichtet", accent: "#64748b", accentSoft: "#e2e8f0" },
   { key: "legal", title: "Rechtliches", description: "Steuern, E-Rechnung, Impressum und Pflichttexte", href: "/dashboard-v2/settings/legal", legacyHref: "/settings/legal", icon: Scale, category: "compliance", order: 440, status: "Premium vorbereitet", accent: "#a16207", accentSoft: "#fef3c7" },
@@ -77,8 +80,6 @@ export const settingsNav = [
   { key: "notifications", title: "Benachrichtigungen", description: "Ereigniskategorien und Systemhinweise", href: "/dashboard-v2/settings/notifications", legacyHref: "/settings/notifications", icon: Bell, category: "communication", order: 520, status: "Teilweise aktiv", accent: "#ea580c", accentSoft: "#ffedd5" },
   { key: "templates", title: "Vorlagen", description: "Dokument- und Kommunikationsvorlagen", href: "/dashboard-v2/settings/templates", icon: FileText, category: "communication", order: 530, status: "Aktiv", accent: "#2563eb", accentSoft: "#dbeafe" },
   { key: "portal", title: "Portal", description: "Angebotslinks, Kundenportal und Sync", href: "/dashboard-v2/settings/portal", legacyHref: "/settings/portal", icon: Archive, category: "communication", order: 540, status: "Premium vorbereitet", accent: "#64748b", accentSoft: "#e2e8f0" },
-  { key: "add-ons", title: "Add-ons", description: "Bestehender Bereich fuer API und Webhooks", href: "/dashboard-v2/settings/add-ons", icon: Plug, category: "platform", order: 900, status: "Premium vorbereitet", accent: "#7e22ce", accentSoft: "#f3e8ff" },
-  { key: "audit-logs", title: "Audit Logs", description: "Bestehender Audit-Logs-Zugang", href: "/dashboard-v2/settings/audit-logs", icon: FileText, category: "compliance", order: 910, status: "Teilweise aktiv", accent: "#0f172a", accentSoft: "#e2e8f0" },
   { key: "categories", title: "Kategorien", description: "Produkte und Leistungen", href: "/settings/categories", legacyHref: "/settings/categories", icon: Archive, category: "core", order: 920, status: "Aktiv", accent: "#64748b", accentSoft: "#e2e8f0" }
 ] as const satisfies readonly SettingsNavItem[]
 
@@ -92,8 +93,8 @@ export const premiumSettingsGroups = [
   { key: "company", title: "Firma & Branding", href: "/dashboard-v2/settings/company", itemKeys: ["company", "locations", "tenants", "branding"] },
   { key: "finance", title: "Finanzen & Dokumente", href: "/dashboard-v2/settings/finance", itemKeys: ["finance", "documents", "number-ranges", "reminders", "payment-terms"] },
   { key: "security", title: "Benutzer & Sicherheit", href: "/dashboard-v2/settings/users", itemKeys: ["users", "security", "sessions", "permissions"] },
-  { key: "platform", title: "Technik & Plattform", href: "/dashboard-v2/settings/api", itemKeys: ["api", "webhooks", "integrations", "automation", "system"] },
-  { key: "compliance", title: "Compliance & Analyse", href: "/dashboard-v2/settings/audit", itemKeys: ["audit", "reports", "archive", "legal", "license"] },
+  { key: "platform", title: "Technik & Plattform", href: "/dashboard-v2/settings/api", itemKeys: ["api", "webhooks", "integrations", "automation", "system", "dev", "logs-monitoring"] },
+  { key: "compliance", title: "Compliance & Analyse", href: "/dashboard-v2/settings/reports", itemKeys: ["reports", "archive", "legal", "license"] },
   { key: "communication", title: "Kommunikation", href: "/dashboard-v2/settings/email", itemKeys: ["email", "notifications", "templates", "portal"] }
 ] as const satisfies readonly SettingsNavGroup[]
 

@@ -291,5 +291,10 @@
   "settings.backup.createTitle": "Esegui backup database",
   "settings.backup.createDescription": "Crea una copia di sicurezza dei dati attuali.",
   "settings.backup.restoreTitle": "Ripristina database",
-  "settings.backup.restoreDescription": "Ripristina i dati da un backup esistente."
+  "settings.backup.restoreDescription": "Ripristina i dati da un backup esistente.",
+  "settings.users.permissions.admin.security": "Manage security",
+  "settings.users.permissions.admin.api": "Manage API",
+  "settings.users.permissions.admin.webhooks": "Manage webhooks",
+  "settings.users.permissions.admin.logsView": "View logs",
+  "settings.users.permissions.admin.logsExport": "Export logs"
 }

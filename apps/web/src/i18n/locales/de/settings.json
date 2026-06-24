@@ -291,5 +291,10 @@
   "settings.users.permissions.portal.description": "Angebotsportal und externe Archiv-Exporte freigeben.",
   "settings.users.permissions.portal.offerPortal": "Angebotsportal nutzen",
   "settings.users.permissions.portal.archiveUse": "Archiv-Export nutzen",
-  "settings.users.permissions.portal.archiveConfigure": "Archiv-Export konfigurieren"
+  "settings.users.permissions.portal.archiveConfigure": "Archiv-Export konfigurieren",
+  "settings.users.permissions.admin.security": "Sicherheit verwalten",
+  "settings.users.permissions.admin.api": "API verwalten",
+  "settings.users.permissions.admin.webhooks": "Webhooks verwalten",
+  "settings.users.permissions.admin.logsView": "Logs ansehen",
+  "settings.users.permissions.admin.logsExport": "Logs exportieren"
 }

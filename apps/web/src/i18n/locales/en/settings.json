@@ -291,5 +291,10 @@
   "settings.users.permissions.portal.description": "Grant access to the offer portal and external archive exports.",
   "settings.users.permissions.portal.offerPortal": "Use offer portal",
   "settings.users.permissions.portal.archiveUse": "Use archive export",
-  "settings.users.permissions.portal.archiveConfigure": "Configure archive export"
+  "settings.users.permissions.portal.archiveConfigure": "Configure archive export",
+  "settings.users.permissions.admin.security": "Manage security",
+  "settings.users.permissions.admin.api": "Manage API",
+  "settings.users.permissions.admin.webhooks": "Manage webhooks",
+  "settings.users.permissions.admin.logsView": "View logs",
+  "settings.users.permissions.admin.logsExport": "Export logs"
 }

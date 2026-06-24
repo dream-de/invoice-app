@@ -291,5 +291,10 @@
   "settings.backup.createTitle": "Respaldar base de datos",
   "settings.backup.createDescription": "Crear una copia de seguridad de los datos actuales.",
   "settings.backup.restoreTitle": "Restaurar base de datos",
-  "settings.backup.restoreDescription": "Restaurar datos desde una copia de seguridad existente."
+  "settings.backup.restoreDescription": "Restaurar datos desde una copia de seguridad existente.",
+  "settings.users.permissions.admin.security": "Manage security",
+  "settings.users.permissions.admin.api": "Manage API",
+  "settings.users.permissions.admin.webhooks": "Manage webhooks",
+  "settings.users.permissions.admin.logsView": "View logs",
+  "settings.users.permissions.admin.logsExport": "Export logs"
 }

@@ -67,12 +67,23 @@ export const permissionGroups: PermissionGroup[] = [
       { scope: "settings", action: "manage", labelKey: "settings.users.permissions.admin.settings" },
       { scope: "templates", action: "manage", labelKey: "settings.users.permissions.admin.templates" },
       { scope: "system", action: "manage", labelKey: "settings.users.permissions.admin.system" },
-      { scope: "users", action: "manage", labelKey: "settings.users.permissions.admin.userRights" }
+      { scope: "users", action: "manage", labelKey: "settings.users.permissions.admin.userRights" },
+      { scope: "security", action: "manage", labelKey: "settings.users.permissions.admin.security" },
+      { scope: "api", action: "manage", labelKey: "settings.users.permissions.admin.api" },
+      { scope: "webhooks", action: "manage", labelKey: "settings.users.permissions.admin.webhooks" },
+      { scope: "logs", action: "view", labelKey: "settings.users.permissions.admin.logsView" },
+      { scope: "logs", action: "export", labelKey: "settings.users.permissions.admin.logsExport" }
     ]
   }
 ]
 
-export const allPermissionDefinitions = permissionGroups.flatMap((group) => group.permissions)
+export const allPermissionDefinitions = Array.from(
+  new Map(
+    permissionGroups
+      .flatMap((group) => group.permissions)
+      .map((permission) => [permissionKey(permission), permission])
+  ).values()
+)
 
 export function permissionKey(permission: Pick<UserPermissionSetting, "scope" | "action">) {
   return `${permission.scope}:${permission.action}`

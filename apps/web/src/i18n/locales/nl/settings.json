@@ -291,5 +291,10 @@
   "settings.backup.createTitle": "Database back-uppen",
   "settings.backup.createDescription": "Maak een backup van de huidige gegevens.",
   "settings.backup.restoreTitle": "Database herstellen",
-  "settings.backup.restoreDescription": "Herstel gegevens vanuit een bestaande backup."
+  "settings.backup.restoreDescription": "Herstel gegevens vanuit een bestaande backup.",
+  "settings.users.permissions.admin.security": "Manage security",
+  "settings.users.permissions.admin.api": "Manage API",
+  "settings.users.permissions.admin.webhooks": "Manage webhooks",
+  "settings.users.permissions.admin.logsView": "View logs",
+  "settings.users.permissions.admin.logsExport": "Export logs"
 }
