@@ -92,7 +92,9 @@ async function sendWithSmtp(settings: EmailSettings, input: SendEmailInput) {
     host,
     port,
     secure: Boolean(settings.smtpSecure),
-    auth: smtpUser ? { user: smtpUser, pass: smtpPassword } : undefined
+    auth: smtpUser ? { user: smtpUser, pass: smtpPassword } : undefined,
+    disableFileAccess: true,
+    disableUrlAccess: true
   })
 
   const result = await transport.sendMail({
@@ -105,7 +107,9 @@ async function sendWithSmtp(settings: EmailSettings, input: SendEmailInput) {
       filename: attachment.filename,
       content: attachment.content,
       contentType: attachment.contentType
-    }))
+    })),
+    disableFileAccess: true,
+    disableUrlAccess: true
   })
 
   return { provider: "smtp" as const, id: result.messageId || null }
