@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { Check, LockKeyhole, ShieldCheck, Trash2 } from "lucide-react"
 import { useMemo, useState } from "react"
 import { getPlanByKey, type LicensePlanKey } from "@/lib/license/plans"
@@ -14,7 +15,6 @@ import {
 } from "@/lib/users/permissions"
 import { useLanguage } from "@/lib/i18n"
 import { SettingsLayout } from "../_components/SettingsLayout"
-import { LicenseActivationForm } from "./LicenseActivationForm"
 
 type LicenseSummary = {
   activeUsers: number
@@ -372,7 +372,7 @@ export function UsersAndPermissionsClient({
                 <p className="text-[11px] font-black uppercase text-[var(--settings-muted)]">Plan</p>
                 <p className="mt-2 text-sm font-black leading-none text-[var(--settings-title)]">{activePlan.name} · {limit.remainingUsers} frei</p>
                 <a href="#license-manage" className="mt-3 inline-flex h-8 items-center rounded-lg bg-[var(--settings-accent-strong)] px-3 text-xs font-black text-white no-underline shadow-[var(--settings-card-shadow)]">
-                  Lizenz verwalten
+                  Plan verwalten
                 </a>
               </div>
             </div>
@@ -621,7 +621,7 @@ export function UsersAndPermissionsClient({
           <div className="mb-4 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
             <div>
               <p className="text-xs font-black uppercase tracking-[0.2em] text-[#94a3b8]">{t("settings.users.license.eyebrow")}</p>
-              <h2 className="mt-2 text-lg font-black text-[#111827]">Lizenz verwalten</h2>
+              <h2 className="mt-2 text-lg font-black text-[#111827]">Plan verwalten</h2>
             </div>
             <span className={`inline-flex w-fit rounded-lg px-3 py-1 text-xs font-black ${limit.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
               {licenseStatusLabel}
@@ -655,7 +655,20 @@ export function UsersAndPermissionsClient({
                 </div>
               </div>
             </div>
-            <LicenseActivationForm />
+            <div className="rounded-lg border border-[var(--settings-line)] bg-white p-5 shadow-sm">
+              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#94a3b8]">Plan & Marketplace</p>
+                  <h3 className="mt-1 text-lg font-black text-[#111827]">Freischaltung ueber Feature Flags</h3>
+                  <p className="mt-1 max-w-2xl text-sm font-semibold text-[#64748b]">Benutzerplaetze bleiben hier sichtbar. Lizenzschluessel, Dateiimport und Synchronisierung liegen nur noch unter Erweiterte Aktivierung.</p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Link href="/dashboard-v2/settings/license-billing/plans" className="rounded-md bg-[#111827] px-3 py-2 text-sm font-black text-white no-underline">Upgrade Plan</Link>
+                  <Link href="/dashboard-v2/settings/license-billing/marketplace" className="rounded-md border border-[#cbd5e1] px-3 py-2 text-sm font-black text-[#111827] no-underline">Marketplace oeffnen</Link>
+                  <Link href="/dashboard-v2/settings/license-billing/advanced-activation" className="rounded-md border border-[#cbd5e1] px-3 py-2 text-sm font-black text-[#111827] no-underline">Erweiterte Aktivierung</Link>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
       </div>

@@ -43,6 +43,7 @@ import PortalSettingsPage from "../../settings/portal/page"
 import RemindersSettingsPage from "../../settings/reminders/page"
 import SystemSettingsPage from "../../settings/system/page"
 import { UsersAndPermissionsClient } from "../../settings/users/UsersAndPermissionsClient"
+import { LicenseActivationForm } from "../../settings/users/LicenseActivationForm"
 import { SettingCard } from "../../settings/_components/SettingsControls"
 import { SettingsLayout } from "../../settings/_components/SettingsLayout"
 import { type PremiumSettingsSection } from "./sectionMap"
@@ -668,9 +669,9 @@ function LicenseBillingSettingsPage() {
 
   function renderAdvancedActivation() {
     const rows = [
-      { name: "Lizenz synchronisieren", detail: "Spaetere SaaS-Synchronisierung vorbereiten", href: "/dashboard-v2/license?q=Lizenz%20synchronisieren", icon: CheckCircle2 },
-      { name: "Lizenzdatei importieren", detail: "Bestehenden Dateiimport weiterverwenden", href: "/dashboard-v2/license?q=Lizenzdatei", icon: Download },
-      { name: "Lizenzschluessel", detail: "Bestehende Key-Aktivierung weiterverwenden", href: "/dashboard-v2/license?q=Lizenz-Key", icon: KeyRound }
+      { name: "Lizenz synchronisieren", detail: "Spaetere SaaS-Synchronisierung im Compatibility Layer", href: "#license-compatibility-form", icon: CheckCircle2 },
+      { name: "Lizenzdatei importieren", detail: "Bestehenden Dateiimport nur hier weiterverwenden", href: "#license-compatibility-form", icon: Download },
+      { name: "Lizenzschluessel", detail: "Optionale Legacy-Key-Aktivierung nur fuer Bestandskunden", href: "#license-compatibility-form", icon: KeyRound }
     ]
 
     return (
@@ -678,12 +679,19 @@ function LicenseBillingSettingsPage() {
         {rows.map((row) => {
           const Icon = row.icon
           return (
-            <Link key={row.name} href={row.href} className="flex items-center gap-3 rounded-lg border border-[var(--settings-line)] bg-[var(--settings-surface)] p-4 text-[var(--settings-title)] no-underline shadow-[var(--settings-card-shadow)] hover:bg-[var(--settings-subtle)]">
+            <a key={row.name} href={row.href} className="flex items-center gap-3 rounded-lg border border-[var(--settings-line)] bg-[var(--settings-surface)] p-4 text-[var(--settings-title)] no-underline shadow-[var(--settings-card-shadow)] hover:bg-[var(--settings-subtle)]">
               <span className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-[var(--settings-accent-soft)] text-[var(--settings-title)]"><Icon className="h-5 w-5" /></span>
               <span><strong className="block font-black">{row.name}</strong><small className="font-bold text-[var(--settings-muted)]">{row.detail}</small></span>
-            </Link>
+            </a>
           )
         })}
+        <div id="license-compatibility-form" className="rounded-lg border border-[var(--settings-line)] bg-[var(--settings-surface)] p-4 shadow-[var(--settings-card-shadow)]">
+          <div className="mb-4">
+            <h3 className="font-black text-[var(--settings-title)]">Legacy Compatibility Layer</h3>
+            <p className="text-sm font-bold text-[var(--settings-muted)]">Lizenzschluessel und Dateiimport bleiben erhalten, sind aber nicht mehr der Standardweg fuer Premium-Freischaltung.</p>
+          </div>
+          <LicenseActivationForm />
+        </div>
       </div>
     )
   }
@@ -732,18 +740,18 @@ function LicenseSettingsPage() {
   return (
     <ManagementPage
       title="Lizenzverwaltung"
-      description="Lizenzstatus, Aktivierung, Benutzerlimit und interne Key-Verwaltung als eigene Kategorie."
+      description="Plan, Marketplace, Benutzerplaetze und Compatibility Layer als eigene Kategorie."
       rows={[
         { name: "Lizenzstatus", detail: "Aktuellen Plan, Laufzeit und Status pruefen", owner: "Billing", status: "Aktiv", activity: "Lizenzseite aktiv", href: "/dashboard-v2/license", icon: KeyRound },
-        { name: "Lizenz aktivieren", detail: "Lizenzschluessel eintragen oder Lizenzdatei laden", owner: "Billing", status: "Aktiv", activity: "Aktivierungs-API aktiv", href: "/dashboard-v2/license?q=Lizenz-Key", icon: ShieldCheck },
-        { name: "Benutzerlimit", detail: "Planlimit und verfuegbare Benutzerplaetze kontrollieren", owner: "Billing", status: "Aktiv", activity: "Limit-Pruefung aktiv", href: "/dashboard-v2/license?q=Benutzerlimit", icon: Users2 },
-        { name: "Key-Verwaltung", detail: "Interne Lizenz-Keys erzeugen, sofern der Admin-Modus aktiviert ist", owner: "Intern", status: "Vorbereitet", activity: "Admin-Route geschuetzt", href: "/dashboard-v2/license-admin", icon: LockKeyhole }
+        { name: "Upgrade Plan", detail: "Planmodell und Benutzerplaetze verwalten", owner: "Billing", status: "Aktiv", activity: "Planmodell aktiv", href: "/dashboard-v2/settings/license-billing/plans", icon: ShieldCheck },
+        { name: "Marketplace oeffnen", detail: "Erweiterungen installieren und Feature Flags vorbereiten", owner: "Billing", status: "Aktiv", activity: "Marketplace vorbereitet", href: "/dashboard-v2/settings/license-billing/marketplace", icon: Users2 },
+        { name: "Erweiterte Aktivierung", detail: "Legacy-Key, Dateiimport und Synchronisierung nur hier anzeigen", owner: "Intern", status: "Vorbereitet", activity: "Compatibility Layer aktiv", href: "/dashboard-v2/settings/license-billing/advanced-activation", icon: LockKeyhole }
       ]}
       filters={["Alle", "Aktiv", "Vorbereitet"]}
       activity={[
-        ["Aktivierung", "Lizenzaktivierung bleibt in der Lizenzverwaltung.", "Aktiv"],
+        ["Plan", "Plan und Marketplace sind der bevorzugte Freischaltweg.", "Aktiv"],
         ["Limits", "Benutzerlimits sind aus Benutzer & Rollen ausgelagert.", "Aktiv"],
-        ["Admin", "Key-Erzeugung bleibt intern geschuetzt erreichbar.", "Vorbereitet"]
+        ["Compatibility", "Legacy-Keys bleiben nur in Erweiterte Aktivierung sichtbar.", "Vorbereitet"]
       ]}
     />
   )

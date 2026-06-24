@@ -512,10 +512,10 @@ const premiumViewMeta: Record<Exclude<PremiumView, "account-security">, { title:
     primary: "Benutzer einladen"
   },
   license: {
-    title: "Lizenzen",
-    eyebrow: "Premium",
-    description: "Lizenzstatus, Aktivierung, Limits und Upgrade-Optionen ueberblicken.",
-    primary: "Lizenz aktivieren"
+    title: "Plan & Marketplace",
+    eyebrow: "SaaS",
+    description: "Plan, Marketplace, Feature Flags und Benutzerplaetze ueberblicken.",
+    primary: "Upgrade Plan"
   },
   "license-admin": {
     title: "Lizenz Admin",
@@ -1279,10 +1279,10 @@ const moduleContent: Record<ModuleView, ModuleConfig> = {
   license: {
     stats: [["Free", "Tarif"], ["100", "Rechnungen"], ["1 GB", "Speicher"]],
     rows: [["Benutzerlimit", "5 von 5 verwendet", "Voll", "Limit"], ["Dokumente im Workspace", "Geladene Dokumente", "Lokal", "Aktiv"], ["Speicher", "Nicht gemessen", "Lokal", "Info"]],
-    focus: [["Upgrade Vorteil", "Unbegrenzt"], ["Premium Support", "Enthalten"], ["Aktivierung", "Lizenz-Key"]],
-    actions: [["Lizenz aktivieren", "/dashboard-v2/license?q=Lizenz-Key"], ["Demo-Key pruefen", "/dashboard-v2/license?q=Lizenz%20aktiviert"], ["Benutzerlimit", "/dashboard-v2/license?q=Benutzerlimit"]],
-    timeline: [["Limit erreicht", "Kostenloser Plan ist vollstaendig ausgereizt."], ["Upgrade vorbereitet", "Premium schaltet unbegrenzte Benutzer frei."], ["Abrechnung bereit", "Lizenzdaten koennen hinterlegt werden."]],
-    primaryHref: "/dashboard-v2/license?q=Lizenz-Key"
+    focus: [["Upgrade Plan", "Business"], ["Marketplace", "Erweiterungen"], ["Feature Flags", "Aktiv"]],
+    actions: [["Upgrade Plan", "/dashboard-v2/settings/license-billing/plans"], ["Marketplace oeffnen", "/dashboard-v2/settings/license-billing/marketplace"], ["Benutzerplaetze", "/dashboard-v2/settings/license-billing/seats"]],
+    timeline: [["Planmodell aktiv", "Plan, Marketplace und Feature Flags sind der bevorzugte Freischaltweg."], ["Marketplace vorbereitet", "Erweiterungen koennen installiert werden."], ["Compatibility Layer", "Legacy-Keys bleiben unter Erweiterte Aktivierung erreichbar."]],
+    primaryHref: "/dashboard-v2/settings/license-billing/plans"
   },
   "license-admin": {
     stats: [["5", "Verkaufsplaene"], ["Signiert", "Key-Modus"], ["Intern", "Zugriff"]],
@@ -1917,8 +1917,8 @@ function LicensePanel({ data, mode }: { data: PremiumData; mode: ThemeMode }) {
       )}
 
       {expanded ? (
-        <Link href={withPremiumTheme("/dashboard-v2/license?q=Lizenz-Key", mode)}>
-          <span>Lizenz / Upgrade aktivieren</span>
+        <Link href={withPremiumTheme("/dashboard-v2/settings/license-billing/plans", mode)}>
+          <span>Upgrade Plan</span>
           <KeyRound size={18} />
         </Link>
       ) : null}
@@ -2289,7 +2289,7 @@ function moduleRows(view: ModuleView, data: PremiumData): ModuleRow[] {
     const documentCount = invoiceDisplaySource(data).length
     return [
       ["Benutzerlimit", `${limit.currentUsers} von ${limit.maxUsers} verwendet`, limit.plan, limit.isFull ? "Limit" : "OK"],
-      ["Lizenz-Key", "Aktivierungsformular und Upload", "API bereit", "Aktiv"],
+      ["Erweiterte Aktivierung", "Legacy-Key, Dateiimport und Synchronisierung", "Compatibility Layer", "Bereit"],
       ["Upgrade", "Tarif und Benutzerplaetze pruefen", limit.isFull ? "Empfohlen" : "Optional", limit.isFull ? "Noetig" : "Bereit"],
       ["Dokumente im Workspace", `${documentCount} geladen`, dataSourceLabel(data), "Aktiv"],
       ["Lizenzablauf", limit.validUntil ? limit.validUntil.slice(0, 10) : "Kein Ablaufdatum", "Status", limit.isFull ? "Upgrade" : "Aktiv"]
@@ -2952,175 +2952,42 @@ const premiumSettingsFutureRegistry = [
 
 function PremiumLicensePanel({ data, mode, searchQuery }: { data: PremiumData; mode: ThemeMode; searchQuery: string }) {
   const limit = userLimitFromData(data)
-  const [licenseKey, setLicenseKey] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [state, setState] = useState<LicensePanelState>({ type: "idle", message: "" })
   const normalizedQuery = searchQuery.toLowerCase()
-  const shouldFocusKey = normalizedQuery.includes("lizenz-key") || normalizedQuery.includes("lizenz aktiviert")
-  const shouldFocusUpgrade = normalizedQuery.includes("upgrade") || normalizedQuery.includes("benutzerlimit")
-  const routeMessage = normalizedQuery.includes("lizenz aktiviert")
-    ? "Demo-Lizenz wurde geprueft. Der Aktivierungsweg ist bereit."
-    : normalizedQuery.includes("lizenz-key")
-      ? "Lizenzschluessel-Eingabe ist bereit."
-      : normalizedQuery.includes("benutzerlimit")
-        ? "Benutzerlimit wurde geprueft. Upgrade-Optionen sind vorbereitet."
-        : normalizedQuery.includes("upgrade")
-          ? "Upgrade-Check ist bereit. Benutzerlimit und Tarif koennen erweitert werden."
-          : ""
-  const currentState = state.message ? state : routeMessage ? { type: "success" as const, message: routeMessage } : state
-
-  async function handleLicenseFile(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0]
-    if (!file) return
-
-    try {
-      const content = await file.text()
-      setLicenseKey(content.trim())
-      setState({ type: "success", message: `Lizenzdatei geladen: ${file.name}` })
-    } catch {
-      setState({ type: "error", message: "Lizenzdatei konnte nicht gelesen werden." })
-    } finally {
-      event.target.value = ""
-    }
-  }
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const trimmedKey = licenseKey.trim()
-
-    if (!trimmedKey) {
-      setState({ type: "error", message: "Bitte Lizenzschluessel eintragen." })
-      return
-    }
-
-    setIsSubmitting(true)
-    setState({ type: "idle", message: "" })
-
-    try {
-      const response = await fetch("/api/settings/license/activate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ licenseKey: trimmedKey })
-      })
-      const result = await response.json()
-
-      if (!response.ok || !result?.ok) {
-        setState({ type: "success", message: "Lizenz wurde lokal geprueft. Echte Aktivierung erfolgt mit signiertem Lizenzschluessel." })
-        return
-      }
-
-      setLicenseKey("")
-      setState({ type: "success", message: `Lizenz aktiviert: ${result.license?.plan || "Premium"} / ${result.license?.maxUsers || "unbegrenzt"} Benutzer` })
-    } catch {
-      setState({ type: "success", message: "Lizenz wurde lokal geprueft. Echte Aktivierung erfolgt mit signiertem Lizenzschluessel." })
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
-
-  async function runLicensePanelAction(action: "demo" | "limit" | "users") {
-    setIsSubmitting(true)
-    setState({ type: "idle", message: "" })
-
-    try {
-      if (action === "users" || action === "limit") {
-        const response = await fetch("/api/settings/users", { credentials: "same-origin" })
-        const result = await response.json()
-
-        if (!response.ok || !result?.ok) {
-          setState({
-            type: "success",
-            message: action === "users"
-              ? `Benutzer verwaltet: ${data.appUsers.length} echte Benutzer geladen.`
-              : `Benutzerlimit geprueft: ${limit.currentUsers} / ${limit.maxUsers} Benutzer.`
-          })
-          return
-        }
-
-        const checkedLimit = result.limit || limit
-        const checkedUsers = checkedLimit.activeUsers ?? checkedLimit.currentUsers ?? limit.currentUsers
-        const checkedMaxUsers = checkedLimit.maxUsers ?? limit.maxUsers
-        setState({
-          type: "success",
-          message: action === "users"
-            ? `Benutzer verwaltet: ${result.users?.length || checkedUsers} Benutzer geladen.`
-            : `Benutzerlimit geprueft: ${checkedUsers} / ${checkedMaxUsers} Benutzer.`
-        })
-        return
-      }
-
-      const response = await fetch("/api/premium/actions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        body: JSON.stringify({
-          type: "license",
-          action: "license.demo.check",
-          label: "Demo-Key geprueft",
-          payload: { plan: limit.plan, currentUsers: limit.currentUsers, maxUsers: limit.maxUsers }
-        })
-      })
-      const result = await response.json()
-
-      if (!response.ok || !result?.ok) {
-        setState({ type: "success", message: "Demo-Key wurde lokal geprueft. Echte Aktivierung erfolgt mit signiertem Lizenzschluessel." })
-        return
-      }
-
-      setState({ type: "success", message: "Demo-Key wurde geprueft. Echte Aktivierung erfolgt mit signiertem Lizenzschluessel." })
-    } catch {
-      setState({
-        type: "success",
-        message: action === "users"
-          ? `Benutzer verwaltet: ${data.appUsers.length} echte Benutzer geladen.`
-          : action === "limit"
-            ? `Benutzerlimit geprueft: ${limit.currentUsers} / ${limit.maxUsers} Benutzer.`
-            : "Demo-Key wurde lokal geprueft. Echte Aktivierung erfolgt mit signiertem Lizenzschluessel."
-      })
-    } finally {
-      setIsSubmitting(false)
-    }
-  }
+  const shouldFocusActivation = normalizedQuery.includes("lizenz") || normalizedQuery.includes("aktivierung")
+  const shouldFocusUpgrade = normalizedQuery.includes("upgrade") || normalizedQuery.includes("benutzerlimit") || normalizedQuery.includes("marketplace")
+  const planHref = withPremiumTheme("/dashboard-v2/settings/license-billing/plans", mode)
+  const marketplaceHref = withPremiumTheme("/dashboard-v2/settings/license-billing/marketplace", mode)
+  const seatsHref = withPremiumTheme("/dashboard-v2/settings/license-billing/seats", mode)
+  const activationHref = withPremiumTheme("/dashboard-v2/settings/license-billing/advanced-activation", mode)
 
   return (
     <article className={`${styles.panel} ${styles.licenseActionPanel}`}>
       <div className={styles.panelHead}>
         <div>
-          <h2>Lizenz aktivieren</h2>
-          <span>Key eingeben, Datei hochladen und Limit direkt pruefen</span>
+          <h2>Plan & Erweiterungen</h2>
+          <span>Premium-Freischaltung laeuft ueber Plan, Marketplace und Feature Flags</span>
         </div>
         <span className={styles.freeBadge}>{limit.plan}</span>
       </div>
 
       <div className={styles.licenseActionGrid}>
-        <form action="/dashboard-v2/license" method="get" onSubmit={handleSubmit} className={styles.licenseKeyForm} data-active={shouldFocusKey}>
-          <input type="hidden" name="q" value="Lizenz-Key" />
-          <input type="hidden" name="theme" value={mode} />
-          <label htmlFor="premium-license-key">Lizenzschluessel</label>
-          <textarea
-            id="premium-license-key"
-            value={licenseKey}
-            onChange={(event) => setLicenseKey(event.target.value)}
-            rows={1}
-            placeholder="INV1-PREM-2026-XXXX-XXXX-XXXX-XXXX"
-            spellCheck={false}
-          />
+        <div className={styles.licenseKeyForm} data-active={shouldFocusActivation}>
+          <label>Erweiterte Aktivierung</label>
+          <p data-state="success">Legacy-Lizenzschluessel, Lizenzdatei und Synchronisierung bleiben als Compatibility Layer erhalten und sind nur noch in Lizenz & Abrechnung verfuegbar.</p>
           <div className={styles.licenseFormActions}>
-            <label>
-              Lizenzdatei hochladen
-              <input type="file" accept=".lic,.license,.txt,.json,application/json,text/plain" onChange={handleLicenseFile} />
-            </label>
-            <button type="button" disabled={isSubmitting} onClick={() => void runLicensePanelAction("demo")}>Demo-Key pruefen</button>
-            <button type="submit" disabled={isSubmitting}>{isSubmitting ? "Pruefe..." : "Aktivieren"}</button>
+            <Link href={activationHref}>Erweiterte Aktivierung</Link>
+            <Link href={marketplaceHref}>Marketplace oeffnen</Link>
           </div>
-          {currentState.message ? <p data-state={currentState.type}>{currentState.message}</p> : null}
-        </form>
+        </div>
 
         <div className={styles.licenseUpgradeBox} data-active={shouldFocusUpgrade}>
-          <span>Upgrade-Check</span>
+          <span>Plan & Benutzerplaetze</span>
           <strong>{limit.currentUsers} / {limit.maxUsers} Benutzer</strong>
-          <p>{limit.maxUsers <= 5 ? "Free Plan: bis 5 Benutzer inklusive Admin. Lizenz erforderlich ab 6 Benutzer." : limit.isFull ? "Limit erreicht. Ein Upgrade ist fuer weitere Benutzer noetig." : `${Math.max(limit.maxUsers - limit.currentUsers, 0)} Benutzerplaetze sind aktuell frei.`}</p>
-          <button type="button" disabled={isSubmitting} onClick={() => void runLicensePanelAction("users")}>Benutzer verwalten</button>
+          <p>{limit.maxUsers <= 5 ? "Free Plan: Upgrade Plan oder Erweiterung installieren, wenn weitere Kapazitaeten benoetigt werden." : limit.isFull ? "Limit erreicht. Upgrade Plan oder zusaetzliche Benutzerplaetze vorbereiten." : `${Math.max(limit.maxUsers - limit.currentUsers, 0)} Benutzerplaetze sind aktuell frei.`}</p>
+          <div className={styles.licenseFormActions}>
+            <Link href={planHref}>Upgrade Plan</Link>
+            <Link href={seatsHref}>Benutzerplaetze</Link>
+          </div>
         </div>
       </div>
     </article>
@@ -8733,7 +8600,7 @@ function PremiumModulePage({
     }
   }
 
-  async function runLicenseQuickAction(action: "activate" | "demo" | "limit") {
+  async function runLicenseQuickAction(action: "upgrade" | "marketplace" | "limit") {
     setIsModuleActionSaving(true)
     setModuleActionState({ type: "idle", message: "" })
 
@@ -8743,13 +8610,13 @@ function PremiumModulePage({
         const result = await response.json()
         if (!response.ok || !result?.ok) {
           const limit = userLimitFromData(data)
-          setModuleActionState({ type: "success", message: `Benutzerlimit geprueft: ${limit.currentUsers} / ${limit.maxUsers} Benutzer.` })
+          setModuleActionState({ type: "success", message: `Benutzerplaetze geprueft: ${limit.currentUsers} / ${limit.maxUsers} Benutzer. Upgrade Plan bleibt der bevorzugte Weg.` })
           return
         }
         const limit = result.limit
         const activeUsers = limit?.activeUsers ?? limit?.currentUsers ?? "-"
         const maxUsers = limit?.maxUsers ?? "-"
-        setModuleActionState({ type: "success", message: `Benutzerlimit geprueft: ${activeUsers} / ${maxUsers} Benutzer.` })
+        setModuleActionState({ type: "success", message: `Benutzerplaetze geprueft: ${activeUsers} / ${maxUsers} Benutzer. Upgrade Plan bleibt der bevorzugte Weg.` })
         return
       }
 
@@ -8759,8 +8626,8 @@ function PremiumModulePage({
         credentials: "same-origin",
         body: JSON.stringify({
           type: "license",
-          action: action === "activate" ? "license.activate.prepare" : "license.demo.check",
-          label: action === "activate" ? "Lizenz aktivieren" : "Demo-Key geprueft",
+          action: action === "upgrade" ? "plan.upgrade.prepare" : "marketplace.open.prepare",
+          label: action === "upgrade" ? "Upgrade Plan" : "Marketplace oeffnen",
           payload: { source: "quick-action" }
         })
       })
@@ -8768,27 +8635,27 @@ function PremiumModulePage({
       if (!response.ok || !result?.ok) {
         setModuleActionState({
           type: "success",
-          message: action === "activate"
-            ? "Lizenzaktivierung ist lokal bereit. Key im Formular eintragen oder Lizenzdatei hochladen und Aktivieren klicken."
-            : "Demo-Key wurde lokal geprueft. Echte Aktivierung erfolgt mit signiertem Lizenzschluessel."
+          message: action === "upgrade"
+            ? "Upgrade Plan ist vorbereitet. Plan und Benutzerplaetze werden unter Lizenz & Abrechnung verwaltet."
+            : "Marketplace ist vorbereitet. Erweiterungen werden unter Lizenz & Abrechnung installiert."
         })
         return
       }
       setModuleActionState({
         type: "success",
-        message: action === "activate"
-          ? "Lizenzaktivierung ist bereit. Key im Formular eintragen oder Lizenzdatei hochladen und Aktivieren klicken."
-          : "Demo-Key wurde geprueft. Echte Aktivierung erfolgt mit signiertem Lizenzschluessel."
+        message: action === "upgrade"
+          ? "Upgrade Plan ist vorbereitet. Plan und Benutzerplaetze werden unter Lizenz & Abrechnung verwaltet."
+          : "Marketplace ist vorbereitet. Erweiterungen werden unter Lizenz & Abrechnung installiert."
       })
     } catch {
       const limit = userLimitFromData(data)
       setModuleActionState({
         type: "success",
         message: action === "limit"
-          ? `Benutzerlimit geprueft: ${limit.currentUsers} / ${limit.maxUsers} Benutzer.`
-          : action === "activate"
-            ? "Lizenzaktivierung ist lokal bereit. Key im Formular eintragen oder Lizenzdatei hochladen und Aktivieren klicken."
-            : "Demo-Key wurde lokal geprueft. Echte Aktivierung erfolgt mit signiertem Lizenzschluessel."
+          ? `Benutzerplaetze geprueft: ${limit.currentUsers} / ${limit.maxUsers} Benutzer.`
+          : action === "upgrade"
+            ? "Upgrade Plan ist lokal vorbereitet."
+            : "Marketplace ist lokal vorbereitet."
       })
     } finally {
       setIsModuleActionSaving(false)
@@ -9364,7 +9231,7 @@ function PremiumModulePage({
           ) : view === "users" ? (
             <button type="button" disabled={isModuleActionSaving} onClick={() => void runUserQuickAction("invite")}><Plus size={18} />{meta.primary}</button>
           ) : view === "license" ? (
-            <button type="button" disabled={isModuleActionSaving} onClick={() => void runLicenseQuickAction("activate")}><Plus size={18} />{meta.primary}</button>
+            <button type="button" disabled={isModuleActionSaving} onClick={() => void runLicenseQuickAction("upgrade")}><Plus size={18} />{meta.primary}</button>
           ) : view === "integrations" ? (
             <button type="button" disabled={isModuleActionSaving} onClick={() => void runIntegrationQuickAction("connect")}><Plus size={18} />{meta.primary}</button>
           ) : (
@@ -9411,8 +9278,8 @@ function PremiumModulePage({
               </>
             ) : view === "license" ? (
               <>
-                <button type="button" disabled={isModuleActionSaving} onClick={() => void runLicenseQuickAction("demo")}><Search size={16} />Demo-Key pruefen</button>
-                <button type="button" disabled={isModuleActionSaving} onClick={() => void runLicenseQuickAction("limit")}><BarChart3 size={16} />Benutzerlimit</button>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runLicenseQuickAction("marketplace")}><Search size={16} />Marketplace oeffnen</button>
+                <button type="button" disabled={isModuleActionSaving} onClick={() => void runLicenseQuickAction("limit")}><BarChart3 size={16} />Benutzerplaetze</button>
               </>
             ) : view === "integrations" ? (
               <>
