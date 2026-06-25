@@ -19,6 +19,51 @@ export const saasPlans: readonly SaasPlan[] = [
   { key: "enterprise", name: "Enterprise", status: "Vorbereitet", seats: "Individuell", monthlyPrice: "Individuell", target: "Mandanten, SLA und individuelle Limits", includedFlags: newFeatureFlags }
 ]
 
+export type LicenseActivationMode = "cloud" | "enterprise" | "offline" | "self-hosted" | "trial" | "demo"
+export type LicenseActivationModel = {
+  key: LicenseActivationMode
+  name: string
+  status: "Vorbereitet" | "Aktiv" | "Preview"
+  defaultPlan: SaasPlanKey
+  cloudSync: boolean
+  offlineSupported: boolean
+  licenseFileSupported: boolean
+  licenseKeySupported: boolean
+  description: string
+  runtime: "cloud" | "enterprise" | "offline" | "self-hosted" | "preview"
+}
+
+export const activationModels: readonly LicenseActivationModel[] = [
+  { key: "cloud", name: "Cloud-Lizenz", status: "Vorbereitet", defaultPlan: "business", cloudSync: true, offlineSupported: false, licenseFileSupported: false, licenseKeySupported: true, description: "Synchronisierte SaaS-Lizenz mit Plan, Marketplace und Feature Flags.", runtime: "cloud" },
+  { key: "enterprise", name: "Enterprise-Lizenz", status: "Vorbereitet", defaultPlan: "enterprise", cloudSync: true, offlineSupported: true, licenseFileSupported: true, licenseKeySupported: true, description: "Enterprise-Plan mit allen Feature Flags, optionaler Offline-Aktivierung und Self-Hosted-Faehigkeit.", runtime: "enterprise" },
+  { key: "offline", name: "Offline-Lizenz", status: "Vorbereitet", defaultPlan: "business", cloudSync: false, offlineSupported: true, licenseFileSupported: true, licenseKeySupported: true, description: "Signierte Lizenzdatei oder Schluessel ohne dauerhafte Cloud-Verbindung.", runtime: "offline" },
+  { key: "self-hosted", name: "Self-Hosted", status: "Vorbereitet", defaultPlan: "enterprise", cloudSync: false, offlineSupported: true, licenseFileSupported: true, licenseKeySupported: true, description: "Eigene Infrastruktur mit Enterprise-/Offline-Aktivierung und Healthcheck-Konzept.", runtime: "self-hosted" },
+  { key: "trial", name: "Trial", status: "Preview", defaultPlan: "starter", cloudSync: true, offlineSupported: false, licenseFileSupported: false, licenseKeySupported: false, description: "Zeitlich begrenzte Testaktivierung fuer SaaS-Onboarding.", runtime: "preview" },
+  { key: "demo", name: "Demo", status: "Preview", defaultPlan: "free", cloudSync: false, offlineSupported: false, licenseFileSupported: false, licenseKeySupported: false, description: "Lokaler Demo-Modus ohne produktive Freischaltung.", runtime: "preview" }
+]
+
+export type LicenseRuntimeResolutionInput = {
+  activationMode?: LicenseActivationMode | null
+  plan?: SaasPlanKey | null
+  featureFlags?: readonly FeatureLookup[] | null
+  marketplaceExtensionKeys?: readonly MarketplaceModuleKey[] | null
+  licenseKeyPresent?: boolean
+  licenseFilePresent?: boolean
+  cloudConnected?: boolean
+}
+
+export type LicenseRuntimeResolution = {
+  activation: LicenseActivationModel
+  plan: SaasPlan
+  featureFlags: readonly NewFeatureFlag[]
+  marketplaceModules: readonly ResolvedMarketplaceModule[]
+  offlineReady: boolean
+  cloudReady: boolean
+  licenseKeyReady: boolean
+  licenseFileReady: boolean
+  status: "Vorbereitet" | "Aktivierungsbereit" | "Offline bereit" | "Cloud bereit"
+}
+
 export type MarketplaceModuleStatus = "Verfuegbar" | "Installiert" | "Aktiv" | "Nicht verfuegbar"
 export type MarketplaceFeatureFlag = NewFeatureFlag | "feature.api_premium"
 export type MarketplaceModuleKey =
@@ -146,6 +191,45 @@ export const dynamicPremiumModules = marketplaceModules.filter((module) => modul
 
 export function getVisiblePremiumModules(input: MarketplaceModuleResolutionInput = {}) {
   return resolveMarketplaceModules(input).filter((module) => module.active && module.canonicalFeatureFlag)
+}
+
+export function resolveLicenseRuntime(input: LicenseRuntimeResolutionInput = {}): LicenseRuntimeResolution {
+  const activation = activationModels.find((model) => model.key === input.activationMode) ?? activationModels[0]
+  const plan = saasPlans.find((item) => item.key === (input.plan ?? activation.defaultPlan)) ?? saasPlans[0]
+  const marketplaceModules = resolveMarketplaceModules({
+    activeExtensionKeys: input.marketplaceExtensionKeys,
+    featureFlags: input.featureFlags
+  })
+  const explicitFlags = (input.featureFlags ?? [])
+    .map((feature) => normalizeFeatureKey(feature))
+    .filter((feature): feature is NewFeatureFlag => Boolean(feature))
+  const moduleFlags = marketplaceModules
+    .filter((module) => module.active && module.canonicalFeatureFlag)
+    .map((module) => module.canonicalFeatureFlag as NewFeatureFlag)
+  const featureFlags = uniqueSorted([...plan.includedFlags, ...explicitFlags, ...moduleFlags])
+  const offlineReady = activation.offlineSupported && (Boolean(input.licenseFilePresent) || activation.key === "self-hosted" || activation.key === "enterprise")
+  const cloudReady = activation.cloudSync && input.cloudConnected !== false
+  const licenseKeyReady = activation.licenseKeySupported && Boolean(input.licenseKeyPresent)
+  const licenseFileReady = activation.licenseFileSupported && Boolean(input.licenseFilePresent)
+  const status = offlineReady
+    ? "Offline bereit"
+    : cloudReady
+      ? "Cloud bereit"
+      : licenseKeyReady || licenseFileReady
+        ? "Aktivierungsbereit"
+        : "Vorbereitet"
+
+  return {
+    activation,
+    plan,
+    featureFlags,
+    marketplaceModules: marketplaceModules.filter((module) => module.installed || module.active),
+    offlineReady,
+    cloudReady,
+    licenseKeyReady,
+    licenseFileReady,
+    status
+  }
 }
 
 export type InstalledExtensionKey = MarketplaceModuleKey

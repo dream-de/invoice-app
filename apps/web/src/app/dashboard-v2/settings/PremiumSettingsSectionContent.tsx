@@ -48,7 +48,7 @@ import { SettingCard } from "../../settings/_components/SettingsControls"
 import { SettingsLayout } from "../../settings/_components/SettingsLayout"
 import { type PremiumSettingsSection } from "./sectionMap"
 import { settingsItemByKey } from "@/lib/settings-nav"
-import { featureFlags, getVisiblePremiumModules, installedExtensions, marketplaceCategories, marketplaceModulesByCategory, resolveMarketplaceModules, rolePermissionActions, saasPlans, usageLimits, type MarketplaceModuleCategory, type MarketplaceModuleKey, type ResolvedMarketplaceModule } from "@/lib/saas-license-architecture"
+import { activationModels, featureFlags, getVisiblePremiumModules, installedExtensions, marketplaceCategories, marketplaceModulesByCategory, resolveLicenseRuntime, resolveMarketplaceModules, rolePermissionActions, saasPlans, usageLimits, type MarketplaceModuleCategory, type MarketplaceModuleKey, type ResolvedMarketplaceModule } from "@/lib/saas-license-architecture"
 import { createFeatureChecker, resolveSaasCompatibility } from "@/lib/feature-flags/compatibility"
 
 type SettingsIcon = ComponentType<{ className?: string }>
@@ -570,6 +570,23 @@ function LicenseBillingSettingsPage() {
       premiumLicense: true
     }
   })
+  const enterpriseRuntime = resolveLicenseRuntime({
+    activationMode: "enterprise",
+    plan: "enterprise",
+    featureFlags: activeFeatureFlags,
+    marketplaceExtensionKeys: activeMarketplaceKeys,
+    licenseKeyPresent: true,
+    licenseFilePresent: true,
+    cloudConnected: true
+  })
+  const offlineRuntime = resolveLicenseRuntime({
+    activationMode: "offline",
+    plan: activePlan.key,
+    featureFlags: activeFeatureFlags,
+    marketplaceExtensionKeys: activeMarketplaceKeys,
+    licenseFilePresent: true,
+    cloudConnected: false
+  })
   const usedSeats = 3
   const availableSeats = typeof activePlan.seats === "number" ? Math.max(activePlan.seats - usedSeats, 0) : "Individuell"
   const seatLimit = typeof activePlan.seats === "number" ? activePlan.seats : 100
@@ -793,22 +810,79 @@ function LicenseBillingSettingsPage() {
 
   function renderAdvancedActivation() {
     const rows = [
-      { name: "Lizenz synchronisieren", detail: "Spaetere SaaS-Synchronisierung im Compatibility Layer", href: "#license-compatibility-form", icon: CheckCircle2 },
-      { name: "Lizenzdatei importieren", detail: "Bestehenden Dateiimport nur hier weiterverwenden", href: "#license-compatibility-form", icon: Download },
-      { name: "Lizenzschluessel", detail: "Optionale Legacy-Key-Aktivierung nur fuer Bestandskunden", href: "#license-compatibility-form", icon: KeyRound }
+      { name: "Lizenz synchronisieren", detail: "Cloud-Lizenz synchronisieren und SaaS-Status aktualisieren", href: "#activation-sync", icon: CheckCircle2, status: enterpriseRuntime.cloudReady ? "Cloud bereit" : "Vorbereitet" },
+      { name: "Lizenzdatei importieren", detail: "Signierte Enterprise- oder Offline-Datei laden", href: "#license-compatibility-form", icon: Download, status: enterpriseRuntime.licenseFileReady ? "Aktivierungsbereit" : "Vorbereitet" },
+      { name: "Lizenzschluessel", detail: "Optionaler Legacy-/Enterprise-Schluessel fuer Bestandskunden", href: "#license-compatibility-form", icon: KeyRound, status: enterpriseRuntime.licenseKeyReady ? "Aktivierungsbereit" : "Vorbereitet" },
+      { name: "Offline-Aktivierung", detail: "Offline- und Self-Hosted-Aktivierung ueber dieselbe Runtime", href: "#offline-activation", icon: LockKeyhole, status: offlineRuntime.status },
+      { name: "Aktivierungsstatus", detail: "Plan, Marketplace und Feature Flags aus gemeinsamer Logik", href: "#activation-status", icon: Activity, status: enterpriseRuntime.status },
+      { name: "Lizenzinformationen", detail: "Enterprise-, Cloud-, Trial- und Demo-Profile dokumentieren", href: "#license-information", icon: FileText, status: "Vorbereitet" }
     ]
 
     return (
-      <div className="grid gap-3">
-        {rows.map((row) => {
-          const Icon = row.icon
-          return (
-            <a key={row.name} href={row.href} className="flex items-center gap-3 rounded-lg border border-[var(--settings-line)] bg-[var(--settings-surface)] p-4 text-[var(--settings-title)] no-underline shadow-[var(--settings-card-shadow)] hover:bg-[var(--settings-subtle)]">
-              <span className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-[var(--settings-accent-soft)] text-[var(--settings-title)]"><Icon className="h-5 w-5" /></span>
-              <span><strong className="block font-black">{row.name}</strong><small className="font-bold text-[var(--settings-muted)]">{row.detail}</small></span>
-            </a>
-          )
-        })}
+      <div className="grid gap-4">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {rows.map((row) => {
+            const Icon = row.icon
+            return (
+              <a key={row.name} href={row.href} className="flex items-start gap-3 rounded-lg border border-[var(--settings-line)] bg-[var(--settings-surface)] p-4 text-[var(--settings-title)] no-underline shadow-[var(--settings-card-shadow)] hover:bg-[var(--settings-subtle)]">
+                <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[var(--settings-accent-soft)] text-[var(--settings-title)]"><Icon className="h-5 w-5" /></span>
+                <span className="min-w-0"><strong className="block font-black">{row.name}</strong><small className="block font-bold text-[var(--settings-muted)]">{row.detail}</small><small className="mt-2 inline-flex rounded-md bg-[var(--settings-subtle)] px-2 py-1 text-[11px] font-extrabold text-[var(--settings-muted)]">{row.status}</small></span>
+              </a>
+            )
+          })}
+        </div>
+
+        <div id="activation-sync" className="rounded-lg border border-[var(--settings-line)] bg-[var(--settings-surface)] p-4 shadow-[var(--settings-card-shadow)]">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-[11px] font-extrabold uppercase text-[var(--settings-muted)]">Runtime</p>
+              <h3 className="font-black text-[var(--settings-title)]">Gemeinsame Aktivierungslogik</h3>
+              <p className="mt-1 text-sm font-bold text-[var(--settings-muted)]">Feature Flags, Marketplace, Planmodell, Enterprise und Offline-Aktivierung verwenden denselben Resolver.</p>
+            </div>
+            <StatusPill status="Vorbereitet" />
+          </div>
+          <div id="activation-status" className="mt-4 grid gap-3 md:grid-cols-4">
+            <div className="rounded-lg bg-[var(--settings-subtle)] p-3"><p className="text-[11px] font-extrabold uppercase text-[var(--settings-muted)]">Plan</p><strong className="text-lg font-black text-[var(--settings-title)]">{enterpriseRuntime.plan.name}</strong></div>
+            <div className="rounded-lg bg-[var(--settings-subtle)] p-3"><p className="text-[11px] font-extrabold uppercase text-[var(--settings-muted)]">Aktivierung</p><strong className="text-lg font-black text-[var(--settings-title)]">{enterpriseRuntime.activation.name}</strong></div>
+            <div className="rounded-lg bg-[var(--settings-subtle)] p-3"><p className="text-[11px] font-extrabold uppercase text-[var(--settings-muted)]">Feature Flags</p><strong className="text-lg font-black text-[var(--settings-title)]">{enterpriseRuntime.featureFlags.length}</strong></div>
+            <div className="rounded-lg bg-[var(--settings-subtle)] p-3"><p className="text-[11px] font-extrabold uppercase text-[var(--settings-muted)]">Status</p><strong className="text-lg font-black text-[var(--settings-title)]">{enterpriseRuntime.status}</strong></div>
+          </div>
+        </div>
+
+        <div id="offline-activation" className="rounded-lg border border-[var(--settings-line)] bg-[var(--settings-surface)] p-4 shadow-[var(--settings-card-shadow)]">
+          <div className="flex items-start gap-3">
+            <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-[var(--settings-accent-soft)] text-[var(--settings-title)]"><LockKeyhole className="h-5 w-5" /></span>
+            <div>
+              <h3 className="font-black text-[var(--settings-title)]">Offline-Aktivierung</h3>
+              <p className="mt-1 text-sm font-bold text-[var(--settings-muted)]">Offline- und Self-Hosted-Installationen nutzen signierte Lizenzdatei oder optionalen Lizenzschluessel. Cloud-Sync ist dafuer nicht erforderlich.</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <span className="rounded-md bg-[var(--settings-subtle)] px-2 py-1 text-xs font-extrabold text-[var(--settings-muted)]">{offlineRuntime.status}</span>
+                <span className="rounded-md bg-[var(--settings-subtle)] px-2 py-1 text-xs font-extrabold text-[var(--settings-muted)]">Plan {offlineRuntime.plan.name}</span>
+                <span className="rounded-md bg-[var(--settings-subtle)] px-2 py-1 text-xs font-extrabold text-[var(--settings-muted)]">Cloud Sync aus</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="license-information" className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {activationModels.map((model) => (
+            <div key={model.key} className="rounded-lg border border-[var(--settings-line)] bg-[var(--settings-surface)] p-4 shadow-[var(--settings-card-shadow)]">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h3 className="font-black text-[var(--settings-title)]">{model.name}</h3>
+                  <p className="mt-1 text-xs font-bold text-[var(--settings-muted)]">{model.description}</p>
+                </div>
+                <StatusPill status={model.status === "Aktiv" ? "Aktiv" : "Vorbereitet"} />
+              </div>
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                <span className="rounded-md bg-[var(--settings-subtle)] px-2 py-1 text-[11px] font-extrabold text-[var(--settings-muted)]">{model.defaultPlan}</span>
+                <span className="rounded-md bg-[var(--settings-subtle)] px-2 py-1 text-[11px] font-extrabold text-[var(--settings-muted)]">{model.cloudSync ? "Cloud" : "Offline"}</span>
+                <span className="rounded-md bg-[var(--settings-subtle)] px-2 py-1 text-[11px] font-extrabold text-[var(--settings-muted)]">{model.licenseFileSupported ? "Datei" : "Keine Datei"}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+
         <div id="license-compatibility-form" className="rounded-lg border border-[var(--settings-line)] bg-[var(--settings-surface)] p-4 shadow-[var(--settings-card-shadow)]">
           <div className="mb-4">
             <h3 className="font-black text-[var(--settings-title)]">Legacy Compatibility Layer</h3>

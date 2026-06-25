@@ -10,6 +10,10 @@ ENV NODE_ENV="production"
 ENV PORT="3020"
 ENV WEB_PRO_PORT="3020"
 ENV HOSTNAME="0.0.0.0"
+ENV DREAM_INVOICE_RUNTIME="web-pro-preview"
+ENV LICENSE_ACTIVATION_MODE="cloud"
+ENV LICENSE_OFFLINE_MODE="false"
+ENV NEXT_PUBLIC_LICENSE_RUNTIME="web-pro-preview"
 ENV PUPPETEER_SKIP_DOWNLOAD="true"
 ENV PUPPETEER_EXECUTABLE_PATH="/usr/bin/chromium"
 
@@ -44,6 +48,8 @@ RUN pnpm --filter @dream-invoice/premium build
 RUN pnpm --filter @dream-invoice/web-pro build
 
 EXPOSE 3020
+
+HEALTHCHECK --interval=30s --timeout=5s --retries=5 CMD node -e "fetch('http://127.0.0.1:3020/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 RUN mkdir -p data "$COREPACK_HOME" && chown dreaminvoice:dreaminvoice data
 

@@ -36,6 +36,8 @@ UI:
 http://127.0.0.1:3020/dashboard-v2
 http://127.0.0.1:3020/dashboard-v2/settings
 http://127.0.0.1:3020/dashboard-v2/settings/license-billing
+http://127.0.0.1:3020/dashboard-v2/settings/license-billing/marketplace
+http://127.0.0.1:3020/dashboard-v2/settings/license-billing/advanced-activation
 ```
 
 ## Docker Preview starten
@@ -62,3 +64,20 @@ docker compose -f docker-compose.yml -f docker-compose.web-pro.example.yml --pro
 - Datenbank-, Auth- und License-Env im Runtime-Kontext testen.
 - Smoke-Test fuer `/dashboard-v2`, `/dashboard-v2/settings`, `/dashboard-v2/settings/license-billing`, `/dashboard-v2/settings/license-billing/marketplace` und `/api/health`.
 - Erst danach Dockerfile oder aktiven `web-app` Service umstellen.
+
+## Runtime-ENV
+
+Web-Pro bleibt Preview auf Port 3020. Fuer Enterprise-/Offline-Tests sind nur vorbereitete ENV-Schalter vorgesehen:
+
+```bash
+DREAM_INVOICE_RUNTIME=web-pro-preview
+LICENSE_ACTIVATION_MODE=cloud # cloud | enterprise | offline | self-hosted | trial | demo
+LICENSE_OFFLINE_MODE=false
+NEXT_PUBLIC_LICENSE_RUNTIME=web-pro-preview
+LICENSE_ENTERPRISE_CUSTOMER_ID=
+LICENSE_OFFLINE_FILE_PATH=
+LICENSE_SYNC_ENDPOINT=
+LICENSE_SELF_HOSTED=false
+```
+
+Diese Variablen aendern keinen produktiven Container und stellen Port 3012 nicht um.

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import test from "node:test"
-import { getVisiblePremiumModules, marketplaceCategories, marketplaceModules, resolveMarketplaceModules } from "@/lib/saas-license-architecture"
+import { activationModels, getVisiblePremiumModules, marketplaceCategories, marketplaceModules, resolveLicenseRuntime, resolveMarketplaceModules } from "@/lib/saas-license-architecture"
 import { getInstalledMarketplaceExtensions, hasFeature, normalizeFeatureKey, resolveSaasCompatibility } from "./compatibility"
 
 test("normalizes canonical feature aliases for central hasFeature checks", () => {
@@ -93,4 +93,30 @@ test("exposes dynamic marketplace modules with prepared runtime statuses", () =>
   assert.equal(modules.find((module) => module.key === "multi-tenant")?.runtimeStatus, "Nicht verfuegbar")
   assert.equal(modules.find((module) => module.key === "api-premium")?.featureFlag, "feature.api_premium")
   assert.deepEqual(getVisiblePremiumModules({ activeExtensionKeys: ["api-premium"] }).map((module) => module.key), ["api-premium"])
+})
+
+
+test("resolves enterprise and offline activation through the shared runtime", () => {
+  assert.deepEqual(activationModels.map((model) => model.key), ["cloud", "enterprise", "offline", "self-hosted", "trial", "demo"])
+
+  const enterprise = resolveLicenseRuntime({
+    activationMode: "enterprise",
+    plan: "enterprise",
+    featureFlags: ["feature.api_premium"],
+    marketplaceExtensionKeys: ["api-premium"],
+    licenseFilePresent: true,
+    licenseKeyPresent: true
+  })
+  assert.equal(enterprise.plan.key, "enterprise")
+  assert.equal(enterprise.offlineReady, true)
+  assert.equal(enterprise.featureFlags.includes("feature.api"), true)
+
+  const offline = resolveLicenseRuntime({
+    activationMode: "offline",
+    plan: "business",
+    licenseFilePresent: true,
+    cloudConnected: false
+  })
+  assert.equal(offline.status, "Offline bereit")
+  assert.equal(offline.cloudReady, false)
 })
