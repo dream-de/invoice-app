@@ -30,42 +30,42 @@ export const licensePlans: LicensePlan[] = [
     name: "Starter",
     maxUsers: 10,
     billing: "Monatlich / Jaehrlich",
-    note: "Lizenzschluessel"
+    note: "Plan + Marketplace"
   },
   {
     key: "pro",
     name: "Pro",
     maxUsers: 15,
     billing: "Monatlich / Jaehrlich",
-    note: "Lizenzschluessel"
+    note: "Plan + Marketplace"
   },
   {
     key: "team",
     name: "Team",
     maxUsers: 25,
     billing: "Monatlich / Jaehrlich",
-    note: "Lizenzschluessel"
+    note: "Plan + Marketplace"
   },
   {
     key: "business",
     name: "Business",
     maxUsers: 50,
     billing: "Monatlich / Jaehrlich",
-    note: "Lizenzschluessel"
+    note: "Plan + Marketplace"
   },
   {
     key: "enterprise",
     name: "Enterprise",
     maxUsers: 100,
     billing: "Individuell",
-    note: "Lizenzschluessel"
+    note: "Plan + Marketplace"
   },
   {
     key: "unlimited",
     name: "Unlimited",
     maxUsers: null,
     billing: "Individuell",
-    note: "Sonderlizenz"
+    note: "Sondervertrag"
   }
 ]
 
