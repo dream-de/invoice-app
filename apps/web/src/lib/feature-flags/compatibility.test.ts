@@ -1,5 +1,6 @@
 import assert from "node:assert/strict"
 import test from "node:test"
+import { getVisiblePremiumModules, marketplaceCategories, marketplaceModules, resolveMarketplaceModules } from "@/lib/saas-license-architecture"
 import { getInstalledMarketplaceExtensions, hasFeature, normalizeFeatureKey, resolveSaasCompatibility } from "./compatibility"
 
 test("normalizes canonical feature aliases for central hasFeature checks", () => {
@@ -75,4 +76,21 @@ test("resolves marketplace-compatible installed extensions from feature flags", 
   }).map((extension) => extension.name)
 
   assert.deepEqual(extensions, ["DATEV", "OCR", "API Erweiterung"])
+})
+
+
+test("exposes dynamic marketplace modules with prepared runtime statuses", () => {
+  assert.equal(marketplaceModules.length, 16)
+  assert.deepEqual(marketplaceCategories.map((group) => group.category), ["Finanzen", "KI", "E-Commerce", "Projektmanagement", "Produktion", "Business"])
+
+  const modules = resolveMarketplaceModules({
+    installedExtensionKeys: ["banking", "api-premium"],
+    activeExtensionKeys: ["api-premium"]
+  })
+
+  assert.equal(modules.find((module) => module.key === "banking")?.runtimeStatus, "Installiert")
+  assert.equal(modules.find((module) => module.key === "api-premium")?.runtimeStatus, "Aktiv")
+  assert.equal(modules.find((module) => module.key === "multi-tenant")?.runtimeStatus, "Nicht verfuegbar")
+  assert.equal(modules.find((module) => module.key === "api-premium")?.featureFlag, "feature.api_premium")
+  assert.deepEqual(getVisiblePremiumModules({ activeExtensionKeys: ["api-premium"] }).map((module) => module.key), ["api-premium"])
 })
