@@ -52,7 +52,7 @@
     "eslint-plugin-import": "^2",
     "eslint-plugin-unused-imports": "^4",
     "turbo": "^2.9.14",
-    "typescript": "latest"
+    "typescript": "^5.9.3"
   },
   "pnpm": {
     "overrides": {

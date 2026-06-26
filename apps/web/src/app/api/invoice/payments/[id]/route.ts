@@ -93,7 +93,12 @@ async function updateInvoicePaymentStatus(tx: Prisma.TransactionClient, invoiceI
   const paidAmount = invoice.payments.reduce((sum, payment) => sum + Number(payment.amount), 0)
   const grossTotal = Number(invoice.grossTotal)
   const isFullyPaid = grossTotal > 0 && paidAmount >= grossTotal
-  const nextStatus = isFullyPaid ? "paid" : invoice.status === "paid" ? "open" : invoice.status
+  const isPastDue = invoice.dueDate ? invoice.dueDate.getTime() < Date.now() : false
+  const nextStatus = isFullyPaid
+    ? "paid"
+    : invoice.status === "paid"
+      ? isPastDue ? "overdue" : "open"
+      : invoice.status
   const paidAt = isFullyPaid ? invoice.payments[0]?.paidAt ?? new Date() : null
 
   return tx.invoice.update({
@@ -153,9 +158,20 @@ export async function POST(
         throw new AuthServiceError("invalid_request", "Zahlungen koennen nur fuer Rechnungen erfasst werden.", 400)
       }
 
-      const payment = data.paymentId
-        ? await tx.payment.update({
+      const existingPayment = data.paymentId
+        ? await tx.payment.findFirst({
           where: { id: data.paymentId, invoiceId: id },
+          select: { id: true }
+        })
+        : null
+
+      if (data.paymentId && !existingPayment) {
+        throw new AuthServiceError("not_found", "Zahlung nicht gefunden.", 404)
+      }
+
+      const payment = existingPayment
+        ? await tx.payment.update({
+          where: { id: existingPayment.id },
           data: {
             amount: data.amount,
             method: data.method,
@@ -229,11 +245,20 @@ export async function DELETE(
     const actor = await requireInvoicePermission()
 
     const result = await prisma.$transaction(async (tx) => {
-      const payment = await tx.payment.delete({
+      const existingPayment = await tx.payment.findFirst({
         where: {
           id: parsed.data.paymentId,
           invoiceId: id
         },
+        select: { id: true }
+      })
+
+      if (!existingPayment) {
+        throw new AuthServiceError("not_found", "Zahlung nicht gefunden.", 404)
+      }
+
+      const payment = await tx.payment.delete({
+        where: { id: existingPayment.id },
         include: { invoice: true }
       })
 

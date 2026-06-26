@@ -9,7 +9,7 @@
     "test": "tsx --test src/**/*.test.ts"
   },
   "devDependencies": {
-    "typescript": "latest",
+    "typescript": "^5.9.3",
     "@types/node": "^20",
     "tsx": "^4.22.4"
   }

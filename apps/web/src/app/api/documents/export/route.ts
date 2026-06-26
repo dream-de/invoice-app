@@ -55,7 +55,6 @@ function parseExportIds(request: Request) {
 }
 
 function staticRows(ids: string[]) {
-  const now = new Date().toISOString()
   const selected = ids.length > 0 ? documents.filter((document) => ids.includes(document.id)) : documents
 
   return selected.map((document) => {
@@ -68,8 +67,8 @@ function staticRows(ids: string[]) {
       document.type,
       document.status,
       document.customer,
-      formatDate(now),
-      formatDate(now),
+      formatDate(document.issueDate),
+      formatDate(document.dueDate),
       netTotal.toFixed(2),
       vatTotal.toFixed(2),
       grossTotal.toFixed(2)

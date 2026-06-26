@@ -14,6 +14,6 @@
     "@dream-invoice/licensing": "workspace:*"
   },
   "devDependencies": {
-    "typescript": "latest"
+    "typescript": "^5.9.3"
   }
 }
