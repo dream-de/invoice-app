@@ -1,8 +1,10 @@
 "use client"
 
 import { useState, type ComponentType } from "react"
+import Link from "next/link"
 import {
   Archive,
+  BarChart3,
   Building2,
   CheckCircle2,
   Code2,
@@ -11,6 +13,7 @@ import {
   Landmark,
   Mail,
   Palette,
+  ScrollText,
   Settings,
   TerminalSquare,
   Users
@@ -29,36 +32,66 @@ type SettingsCategory = {
 
 type SettingsValues = Record<string, Record<string, string>>
 
+const DEV_CARDS = [
+  {
+    title: "Berichte",
+    description: "Analysen, Statistiken und Auswertungen oeffnen.",
+    icon: BarChart3,
+    href: "/dashboard-v2/reports"
+  },
+  {
+    title: "Logs",
+    description: "Logs und Aktivitaeten detailliert anzeigen.",
+    icon: ScrollText,
+    href: "/dashboard-v2/logs"
+  }
+]
+
 const SETTINGS: Record<string, SettingsCategory> = {
   Unternehmen: {
     icon: Building2,
-    description: "Verwalten Sie alle Einstellungen und Informationen fuer Ihr Unternehmen",
+    description: "Verwalten Sie alle Unternehmensdaten",
     items: ["Firmendaten", "Adresse", "Kontakt", "Stammdaten"]
   },
   User: {
     icon: Users,
-    description: "Verwalten Sie Benutzer, Rollen, Rechte und Sicherheit",
+    description: "Benutzer, Rollen, Rechte und Sicherheit verwalten",
     items: ["User", "Rollen", "Rechte", "2FA", "Sitzungen"]
   },
   Branding: {
     icon: Palette,
-    description: "Passen Sie Logo, Farben und Dokumentauftritt an",
+    description: "Logo, Farben und Dokumentauftritt verwalten",
     items: ["Logo", "Farben", "Dokumentauftritt"]
   },
   Finanzen: {
     icon: Landmark,
-    description: "Verwalten Sie Bankdaten, Steuern und Zahlungsanbieter",
+    description: "Bankdaten, Steuerdaten und Zahlungsanbieter verwalten",
     items: ["Bankdaten", "Steuerdaten", "Zahlungsbasis", "PayPal"]
   },
   Dokumente: {
     icon: FileText,
-    description: "Verwalten Sie Dokumenttypen, Vorlagen und Nummernkreise",
+    description: "Dokumenttypen, Vorlagen und Nummernkreise verwalten",
     items: ["Dokumenttypen", "Vorlagen", "Nummernkreise", "Export", "Import"]
+  },
+  "E-Mail": {
+    icon: Mail,
+    description: "E-Mail-Anbieter, SMTP und Mailserver verwalten",
+    items: ["E-Mail-Anbieter", "SMTP", "Eigener Mail-Server"]
+  },
+  Portal: {
+    icon: Globe,
+    description: "Portal, Paperless, Nextcloud und Google Drive verwalten",
+    items: ["Portal Base URL", "Publish API Key", "Paperless-ngx", "Nextcloud", "Google Drive"]
   },
   "API / Webhooks": {
     icon: Code2,
-    description: "Verwalten Sie API-Zugaenge, Keys, Webhooks und Limits",
+    description: "API-Zugaenge, Keys, Webhooks und Limits verwalten",
     items: ["API", "Webhooks", "Kategorien", "API-Zugang", "API Keys", "Berechtigungen", "Limits"]
+  },
+  Archiv: {
+    icon: Archive,
+    description: "Archivdaten exportieren, importieren und archivieren",
+    items: ["Export", "Import", "Archivieren"]
   },
   System: {
     icon: Settings,
@@ -67,23 +100,8 @@ const SETTINGS: Record<string, SettingsCategory> = {
   },
   Dev: {
     icon: TerminalSquare,
-    description: "Entwicklerberichte und Logs anzeigen",
+    description: "Berichte und Logs anzeigen",
     items: ["Berichte", "Logs"]
-  },
-  Archiv: {
-    icon: Archive,
-    description: "Archivdaten exportieren, importieren und archivieren",
-    items: ["Export", "Import", "Archivieren"]
-  },
-  "E-Mail": {
-    icon: Mail,
-    description: "E-Mail-Anbieter, SMTP und Mailserver konfigurieren",
-    items: ["E-Mail-Anbieter", "SMTP", "Eigener Mail-Server"]
-  },
-  Portal: {
-    icon: Globe,
-    description: "Portal, Paperless, Nextcloud und Google Drive verbinden",
-    items: ["Portal Base URL", "Publish API Key", "Paperless-ngx", "Nextcloud", "Google Drive"]
   }
 }
 
@@ -158,6 +176,7 @@ export function PremiumSettingsSectionContent({ section = "company" }: { section
 
   const current = SETTINGS[activeCategory]
   const CategoryIcon = current.icon
+  const isDevCategory = activeCategory === "Dev"
   const formKey = `${activeCategory}/${activeSubcategory}`
   const fields = FIELD_DEFINITIONS[formKey] ?? ["Name", "Status", "Beschreibung", "Aktiv"]
 
@@ -213,60 +232,83 @@ export function PremiumSettingsSectionContent({ section = "company" }: { section
             </div>
           </section>
 
-          <section className={styles.settingsCardGrid}>
-            {current.items.map((item) => (
-              <button
-                key={item}
-                type="button"
-                className={`${styles.settingsCard} ${activeSubcategory === item ? styles.active : ""}`}
-                onClick={() => setActiveSubcategory(item)}
-              >
-                <span className={styles.cardStatusDot} />
+          {isDevCategory ? (
+            <section className={styles.settingsCardGrid}>
+              {DEV_CARDS.map((card) => {
+                const Icon = card.icon
 
-                <div className={styles.settingsCardIcon}>
-                  <CategoryIcon size={34} />
+                return (
+                  <Link key={card.title} href={card.href} className={styles.settingsCard}>
+                    <span className={styles.cardStatusDot} />
+
+                    <div className={styles.settingsCardIcon}>
+                      <Icon size={34} />
+                    </div>
+
+                    <h3>{card.title}</h3>
+                    <p>{card.description}</p>
+                  </Link>
+                )
+              })}
+            </section>
+          ) : (
+            <>
+              <section className={styles.settingsCardGrid}>
+                {current.items.map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    className={`${styles.settingsCard} ${activeSubcategory === item ? styles.active : ""}`}
+                    onClick={() => setActiveSubcategory(item)}
+                  >
+                    <span className={styles.cardStatusDot} />
+
+                    <div className={styles.settingsCardIcon}>
+                      <CategoryIcon size={34} />
+                    </div>
+
+                    <h3>{item}</h3>
+                    <p>{getDescription(activeCategory, item)}</p>
+                  </button>
+                ))}
+              </section>
+
+              <section className={styles.settingsFormCard}>
+                <div className={styles.settingsFormHeader}>
+                  <div>
+                    <h2>{activeCategory} / {activeSubcategory}</h2>
+                    <p>Hier koennen die Daten fuer diese Unterkategorie eingetragen und bearbeitet werden.</p>
+                  </div>
+                  <span className={styles.formStatusDot} />
                 </div>
 
-                <h3>{item}</h3>
-                <p>{getDescription(activeCategory, item)}</p>
-              </button>
-            ))}
-          </section>
+                <div className={styles.settingsFormGrid}>
+                  {fields.map((field) => (
+                    <label key={field} className={styles.settingsField}>
+                      <span>{field}</span>
+                      {renderField({
+                        field,
+                        value: settingsValues[formKey]?.[field] ?? "",
+                        onChange: (value) => handleChange(field, value)
+                      })}
+                    </label>
+                  ))}
+                </div>
 
-          <section className={styles.settingsFormCard}>
-            <div className={styles.settingsFormHeader}>
-              <div>
-                <h2>{activeCategory} / {activeSubcategory}</h2>
-                <p>Hier koennen die Daten fuer diese Unterkategorie eingetragen und bearbeitet werden.</p>
-              </div>
-              <span className={styles.formStatusDot} />
-            </div>
+                <div className={styles.settingsFormActions}>
+                  <button type="button" className={styles.btnPrimary} onClick={handleSave}>Speichern</button>
+                  <button type="button" className={styles.btnSecondary} onClick={handleReset}>Zuruecksetzen</button>
+                  {shouldShowTestButton(activeSubcategory) ? (
+                    <button type="button" className={styles.btnSecondary} onClick={handleConnectionTest}>
+                      Verbindung testen
+                    </button>
+                  ) : null}
+                </div>
 
-            <div className={styles.settingsFormGrid}>
-              {fields.map((field) => (
-                <label key={field} className={styles.settingsField}>
-                  <span>{field}</span>
-                  {renderField({
-                    field,
-                    value: settingsValues[formKey]?.[field] ?? "",
-                    onChange: (value) => handleChange(field, value)
-                  })}
-                </label>
-              ))}
-            </div>
-
-            <div className={styles.settingsFormActions}>
-              <button type="button" className={styles.btnPrimary} onClick={handleSave}>Speichern</button>
-              <button type="button" className={styles.btnSecondary} onClick={handleReset}>Zuruecksetzen</button>
-              {shouldShowTestButton(activeSubcategory) ? (
-                <button type="button" className={styles.btnSecondary} onClick={handleConnectionTest}>
-                  Verbindung testen
-                </button>
-              ) : null}
-            </div>
-
-            {saveMessage ? <p className={styles.settingsSaveMessage}>{saveMessage}</p> : null}
-          </section>
+                {saveMessage ? <p className={styles.settingsSaveMessage}>{saveMessage}</p> : null}
+              </section>
+            </>
+          )}
 
           <section className={styles.settingsInfoBox}>
             <div className={styles.settingsInfoIcon}>i</div>

@@ -1,7 +1,7 @@
 "use client"
 
 import type { CSSProperties, ChangeEvent, ComponentType, FormEvent, RefObject } from "react"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { Fragment, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { articles as fallbackArticlesData, customers as fallbackCustomersData, projects as fallbackProjectsData } from "@/data/invoice-data"
@@ -66,6 +66,8 @@ import { DocumentManagementClient } from "./documents/DocumentManagementClient"
 import { ShareReleaseDialog } from "@/components/share/ShareReleaseDialog"
 import { PremiumSettingsSectionContent } from "./settings/PremiumSettingsSectionContent"
 import { type PremiumSettingsSection } from "./settings/sectionMap"
+import { LogsPageClient } from "./_components/LogsPageClient"
+import { ReportsPageClient } from "./_components/ReportsPageClient"
 import { visiblePremiumSettingsNav } from "@/lib/settings-nav"
 import styles from "./DashboardV2.module.css"
 
@@ -88,6 +90,7 @@ type PremiumView =
   | "ai-assistant"
   | "articles"
   | "reports"
+  | "logs"
   | "settings"
   | "users"
   | "license"
@@ -498,6 +501,12 @@ const premiumViewMeta: Record<Exclude<PremiumView, "account-security">, { title:
     eyebrow: "Controlling",
     description: "Umsatz, Ausgaben, Cashflow, Kundenwert und Monatsvergleiche auswerten.",
     primary: "Report exportieren"
+  },
+  logs: {
+    title: "Logs",
+    eyebrow: "Aktivitaeten",
+    description: "Aktivitaeten, Login-Historie, Exporte und Systemereignisse verfolgen.",
+    primary: "Logs exportieren"
   },
   settings: {
     title: "Einstellungen",
@@ -1260,6 +1269,14 @@ const moduleContent: Record<ModuleView, ModuleConfig> = {
     timeline: [["Report erstellt", "Cashflow Juni wurde aktualisiert."], ["Abweichung erkannt", "Ausgaben liegen 8% unter Prognose."], ["Export geplant", "Steuerreport wird Freitag vorbereitet."]],
     primaryHref: "/dashboard-v2/reports?q=Report%20exportiert"
   },
+  logs: {
+    stats: [["248", "Events"], ["0", "Risiken"], ["30 T", "Aufbewahrung"]],
+    rows: [["Admin", "Rechnung exportiert", "OF-2026-5001", "Heute"], ["Teammitglied", "Kunde bearbeitet", "Aurora Labs", "Heute"], ["System", "Webhook ausgeliefert", "invoice.created", "Gestern"]],
+    focus: [["Systemstatus", "Gruen"], ["Letzter Export", "Heute"], ["Admin Aktionen", "14"]],
+    actions: [["Logs exportieren", "/dashboard-v2/logs?q=Logs%20exportiert"], ["Filter setzen", "/dashboard-v2/logs?q=Logs%20Filter%20aktiv"], ["Ereignis suchen", "/dashboard-v2/logs?q=Ereignis%20gefunden"]],
+    timeline: [["Export protokolliert", "PDF-Download wurde in den Logs gespeichert."], ["Zugriff erlaubt", "Ein Teammitglied hat Kundenprofil geoeffnet."], ["Webhook signiert", "Event wurde erfolgreich ausgeliefert."]],
+    primaryHref: "/dashboard-v2/logs?q=Logs%20exportiert"
+  },
   settings: {
     stats: [["9", "Bereiche"], ["3", "Formulare"], ["P1", "Produktionsnah"]],
     rows: [["Unternehmen", "CompanySettings", "Speicherbar", "Aktiv"], ["Nummernkreise", "Invoice/Offer/Customer", "Speicherbar", "Aktiv"], ["E-Mail Versand", "SMTP serverseitig", "Konfigurierbar", "Teilweise aktiv"]],
@@ -1304,7 +1321,7 @@ const moduleContent: Record<ModuleView, ModuleConfig> = {
     stats: [["14", "Workflows"], ["9", "Aktiv"], ["312", "Runs"]],
     rows: [["Mahnung nach 7 Tagen", "Rechnungen", "9 Runs", "Aktiv"], ["Monatsreport senden", "Berichte", "1 Run", "Geplant"], ["Beleg automatisch taggen", "Ausgaben", "42 Runs", "Aktiv"]],
     focus: [["Gesparte Zeit", "18 h"], ["Fehlerquote", "0,8%"], ["Naechster Run", "Morgen 08:00"]],
-    actions: [["Workflow erstellen", "/dashboard-v2/automation?q=Workflow%20erstellt"], ["Regel testen", "/dashboard-v2/automation?q=Workflow%20getestet"], ["Run Verlauf", "/dashboard-v2/audit?q=Workflow"]],
+    actions: [["Workflow erstellen", "/dashboard-v2/automation?q=Workflow%20erstellt"], ["Regel testen", "/dashboard-v2/automation?q=Workflow%20getestet"], ["Run Verlauf", "/dashboard-v2/logs?q=Workflow"]],
     timeline: [["Mahnlauf ausgefuehrt", "3 Kunden wurden automatisch erinnert."], ["Regel getestet", "Belegtagging erkennt Softwarekosten."], ["Workflow pausiert", "Alter Export wurde deaktiviert."]],
     primaryHref: "/dashboard-v2/automation?q=Workflow%20erstellt"
   },
@@ -1320,15 +1337,15 @@ const moduleContent: Record<ModuleView, ModuleConfig> = {
     stats: [["248", "Events"], ["0", "Risiken"], ["30 T", "Aufbewahrung"]],
     rows: [["Dev Admin", "Rechnung exportiert", "OF-2026-5001", "Heute"], ["Teammitglied", "Kunde bearbeitet", "Aurora Labs", "Heute"], ["System", "Webhook ausgeliefert", "invoice.created", "Gestern"]],
     focus: [["Sicherheitsstatus", "Gruen"], ["Letzter Export", "Heute"], ["Admin Aktionen", "14"]],
-    actions: [["Audit exportieren", "/dashboard-v2/audit?q=Audit%20exportiert"], ["Filter setzen", "/dashboard-v2/audit?q=Audit%20Filter%20aktiv"], ["Ereignis suchen", "/dashboard-v2/audit?q=Ereignis%20gefunden"]],
-    timeline: [["Export protokolliert", "PDF-Download wurde im Audit gespeichert."], ["Zugriff erlaubt", "Ein Teammitglied hat Kundenprofil geoeffnet."], ["Webhook signiert", "Event wurde erfolgreich ausgeliefert."]],
-    primaryHref: "/dashboard-v2/audit?q=Audit%20exportiert"
+    actions: [["Logs exportieren", "/dashboard-v2/logs?q=Logs%20exportiert"], ["Filter setzen", "/dashboard-v2/logs?q=Logs%20Filter%20aktiv"], ["Ereignis suchen", "/dashboard-v2/logs?q=Ereignis%20gefunden"]],
+    timeline: [["Export protokolliert", "PDF-Download wurde in den Logs gespeichert."], ["Zugriff erlaubt", "Ein Teammitglied hat Kundenprofil geoeffnet."], ["Webhook signiert", "Event wurde erfolgreich ausgeliefert."]],
+    primaryHref: "/dashboard-v2/logs?q=Logs%20exportiert"
   },
   api: {
     stats: [["3", "Keys"], ["8", "Webhooks"], ["99.9%", "Uptime"]],
     rows: [["invoice.created", "Webhook", "200 OK", "Aktiv"], ["payment.received", "Webhook", "200 OK", "Aktiv"], ["customer.updated", "Webhook", "Retry 1", "Pruefung"]],
     focus: [["Rate Limit", "18% genutzt"], ["Letzter Fehler", "Gestern"], ["Signaturen", "Aktiv"]],
-    actions: [["Webhook erstellen", "/dashboard-v2/api?q=Webhook%20erstellt"], ["API-Key rotieren", "/dashboard-v2/api?q=API-Key%20rotiert"], ["Logs oeffnen", "/dashboard-v2/audit?q=Webhook%20Logs"]],
+    actions: [["Webhook erstellen", "/dashboard-v2/api?q=Webhook%20erstellt"], ["API-Key rotieren", "/dashboard-v2/api?q=API-Key%20rotiert"], ["Logs oeffnen", "/dashboard-v2/logs?q=Webhook%20Logs"]],
     timeline: [["Webhook ausgeliefert", "invoice.created wurde in 184 ms bestaetigt."], ["Key rotiert", "Alter Schluessel wurde deaktiviert."], ["Retry geplant", "customer.updated wird erneut gesendet."]],
     primaryHref: "/dashboard-v2/api?q=Webhook%20erstellt"
   }
@@ -1869,7 +1886,7 @@ function BarPanel({ data, mode }: { data: PremiumData; mode: ThemeMode }) {
 
 function ActivityFeed({ data, mode }: { data: PremiumData; mode: ThemeMode }) {
   const rows = notificationRows(data)
-  return <article className={`${styles.panel} ${styles.activityPanel}`}><div className={styles.panelHead}><h2>Aktivitaetsfeed</h2><Link href={withPremiumTheme("/dashboard-v2/audit?q=Ereignis%20gefunden", mode)}>Alle anzeigen</Link></div><div className={styles.activityList}>{rows.map(([title, text, time, tone]) => <Link key={`${title}-${time}`} href={withPremiumTheme(`/dashboard-v2/audit?q=${encodeURIComponent(title)}`, mode)} className={styles.activityItem}><span data-tone={tone}><CheckCircle2 size={14} /></span><div><strong>{title}</strong><p>{text}</p></div><time>{time}</time></Link>)}</div></article>
+  return <article className={`${styles.panel} ${styles.activityPanel}`}><div className={styles.panelHead}><h2>Aktivitaetsfeed</h2><Link href={withPremiumTheme("/dashboard-v2/logs?q=Ereignis%20gefunden", mode)}>Alle anzeigen</Link></div><div className={styles.activityList}>{rows.map(([title, text, time, tone]) => <Link key={`${title}-${time}`} href={withPremiumTheme(`/dashboard-v2/logs?q=${encodeURIComponent(title)}`, mode)} className={styles.activityItem}><span data-tone={tone}><CheckCircle2 size={14} /></span><div><strong>{title}</strong><p>{text}</p></div><time>{time}</time></Link>)}</div></article>
 }
 
 function UsersPanel({ data, mode, sessionUser }: { data: PremiumData; mode: ThemeMode; sessionUser: SessionUser | null }) {
@@ -2940,6 +2957,38 @@ type ArticleImportDraft = {
 
 const premiumSettingsModules = visiblePremiumSettingsNav
 
+const settingsOverviewSubpoints: Record<string, string[]> = {
+  company: ["Firmendaten", "Adresse", "Kontakt", "Stammdaten"],
+  locations: ["Filialliste", "Adresse", "Ansprechpartner", "Oeffnungszeiten", "Standardfiliale"],
+  users: ["Benutzer", "Rollen", "Rechte", "Einladungen"],
+  branding: ["Logo", "Farben", "Dokumentauftritt"],
+  finance: ["Bankdaten", "Steuerdaten", "Zahlungsbasis", "PayPal"],
+  documents: ["Dokumenttypen", "Vorlagen", "Nummernkreise", "Export", "Import"],
+  email: ["E-Mail-Anbieter", "SMTP", "Eigener Mail-Server"],
+  portal: ["Portal Base URL", "Publish API Key", "Paperless-ngx", "Nextcloud", "Google Drive"],
+  api: ["API-Zugang", "API Keys", "Berechtigungen", "Limits"],
+  webhooks: ["Endpunkte", "Events", "Signaturen", "Logs"],
+  system: ["Backup erstellen", "Restore", "Export CSV"],
+  dev: ["Berichte", "Logs"],
+  archive: ["Export", "Import", "Archivieren"]
+}
+
+const settingsOverviewFields: Record<string, Array<[string, string]>> = {
+  company: [["Firmenname", "DreamInvoice GmbH"], ["Kontakt-E-Mail", "admin@dreaminvoice.local"], ["Adresse", "Musterstrasse 12, 10115 Berlin"], ["Steuer-ID", "DE-000000000"]],
+  locations: [["Filialname", "Hauptfiliale"], ["Filialcode", "BER-01"], ["Ansprechpartner", "Admin Team"], ["Standardfiliale", "Aktiv"]],
+  users: [["Name", "Neuer Benutzer"], ["E-Mail", "benutzer@dreaminvoice.local"], ["Rolle", "Benutzer"], ["Status", "Eingeladen"]],
+  branding: [["Logo Datei", "dreaminvoice-logo.svg"], ["Primaerfarbe", "#6d28d9"], ["Akzentfarbe", "#2563eb"], ["Dokumentlayout", "Premium Standard"]],
+  finance: [["IBAN", "DE00 0000 0000 0000 0000 00"], ["BIC", "DREAMDEB1XXX"], ["Steuersatz", "19%"], ["PayPal", "Sandbox"]],
+  documents: [["Dokumenttyp", "Rechnung"], ["Vorlage", "Premium Standard"], ["Rechnungsprefix", "RE-"], ["Exportformat", "PDF"]],
+  email: [["Anbieter", "SMTP"], ["SMTP Host", "smtp.example.com"], ["SMTP Port", "587"], ["Absender", "rechnung@dreaminvoice.local"]],
+  portal: [["Portal Base URL", "https://portal.dreaminvoice.local"], ["Publish API Key", "pub_demo_key"], ["Paperless URL", "https://paperless.local"], ["Nextcloud Ordner", "/DreamInvoice"]],
+  api: [["Base URL", "https://api.dreaminvoice.local/v1"], ["API Key Name", "Production Key"], ["Scopes", "invoices:read invoices:write"], ["Limit", "120 Requests / Minute"]],
+  webhooks: [["Endpoint URL", "https://example.com/webhook"], ["Events", "invoice.created, invoice.paid"], ["Signing Secret", "whsec_demo_secret"], ["Retries", "3"]],
+  system: [["Backup Name", "daily-backup"], ["Restore Quelle", "Letztes Backup"], ["CSV Trennzeichen", ";"], ["Encoding", "UTF-8"]],
+  dev: [["Bericht", "Systemdiagnose"], ["Log Level", "Info"], ["Trace ID", "optional"], ["Format", "JSON"]],
+  archive: [["Archivpfad", "Archiv / 2026"], ["Exportformat", "ZIP"], ["Importquelle", "Upload"], ["Regel", "Aelter als 10 Jahre"]]
+}
+
 const premiumSettingsFutureRegistry = [
   "Payments",
   "Open Banking",
@@ -3425,9 +3474,11 @@ function PremiumWorkflowPanel({
   mode,
   searchQuery,
   view,
+  settingsSection,
   onDataChange
 }: {
   view: ModuleView
+  settingsSection?: PremiumSettingsSection | null
   data: PremiumData
   language: AppLanguage
   mode: ThemeMode
@@ -4719,7 +4770,7 @@ function PremiumWorkflowPanel({
             <input type="hidden" name="theme" value={mode} />
             <button type="submit" disabled={isWorkflowSaving}>Workflow erstellen</button>
           </form>
-          <Link href={withPremiumTheme("/dashboard-v2/audit?q=Workflow", mode)}>Run Verlauf</Link>
+          <Link href={withPremiumTheme("/dashboard-v2/logs?q=Workflow", mode)}>Run Verlauf</Link>
           <Link href={withPremiumTheme("/dashboard-v2/automation?q=Nummernkreis%20geprueft", mode)}>Nummernkreise</Link>
         </div>
         {workflowState.message ? <p data-state={workflowState.type}>{workflowState.message}</p> : null}
@@ -4731,7 +4782,7 @@ function PremiumWorkflowPanel({
   if (view === "api") {
     return (
       <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.includes("webhook") || query.includes("api") || query.includes("key")} data-premium-workflow="api">
-        <div className={styles.panelHead}><div><h2>API pruefen</h2><span>Live-Endpoints testen und Webhook vorbereiten</span></div><Link href={withPremiumTheme("/dashboard-v2/audit?q=Webhook%20Logs", mode)}>Logs oeffnen</Link></div>
+        <div className={styles.panelHead}><div><h2>API pruefen</h2><span>Live-Endpoints testen und Webhook vorbereiten</span></div><Link href={withPremiumTheme("/dashboard-v2/logs?q=Webhook%20Logs", mode)}>Logs oeffnen</Link></div>
         <form
           className={styles.workflowForm}
           action="/dashboard-v2/api"
@@ -4759,7 +4810,7 @@ function PremiumWorkflowPanel({
             <input type="hidden" name="theme" value={mode} />
             <button type="submit" disabled={isWorkflowSaving}>API-Key rotieren</button>
           </form>
-          <form action="/dashboard-v2/audit" method="get" onSubmit={(event) => { event.preventDefault(); void runPremiumAction("audit", "webhook.logs", "Webhook Logs", apiDraft, "Webhook Logs wurden gefiltert und geoeffnet.") }}>
+          <form action="/dashboard-v2/logs" method="get" onSubmit={(event) => { event.preventDefault(); void runPremiumAction("audit", "webhook.logs", "Webhook Logs", apiDraft, "Webhook Logs wurden gefiltert und geoeffnet.") }}>
             <input type="hidden" name="q" value="Webhook Logs" />
             <input type="hidden" name="theme" value={mode} />
             <button type="submit" disabled={isWorkflowSaving}>Webhook Logs</button>
@@ -4772,41 +4823,87 @@ function PremiumWorkflowPanel({
   }
 
   if (view === "settings") {
+    const overviewModules = premiumSettingsModules.filter((module) => settingsOverviewSubpoints[module.key])
+    const activeModule = overviewModules[0] ?? premiumSettingsModules[0]
+    const ActiveIcon = activeModule.icon
+    const activeSubpoints = settingsOverviewSubpoints[activeModule.key] ?? []
+    const activeFields = settingsOverviewFields[activeModule.key] ?? []
+
     return (
-      <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.length > 0} data-premium-workflow="settings">
+      <article className={`${styles.panel} ${styles.workflowPanel} ${styles.settingsMenuPanel}`} data-active="true" data-premium-workflow="settings">
         <section className={styles.settingsDashboardHeader}>
           <div className={styles.settingsDashboardTitle}>
             <h2>Einstellungen</h2>
-            <p>Alle Settings-Module sind einzeln erreichbar. Im Modul erscheinen nur dessen Unterpunkte.</p>
+            <p>Moderne Settings-Struktur mit klaren Hauptkategorien links, Unterkategorien oben und bearbeitbaren Feldern im Arbeitsbereich.</p>
           </div>
         </section>
-        <div className={styles.settingsModuleGrid}>
-          {premiumSettingsModules.map((module) => {
-            const Icon = module.icon
 
-            return (
-              <Link
-                key={module.key}
-                href={withPremiumTheme(module.href, mode)}
-                className={styles.settingsModuleCard}
-                style={{
-                  "--settings-module-accent": module.accent,
-                  "--settings-module-accent-soft": module.accentSoft
-                } as CSSProperties}
-              >
-                <div className={styles.settingsModuleCardTop}>
-                  <div className={styles.settingsModuleIcon}>
-                    <Icon size={26} />
-                  </div>
-                  <span className={styles.settingsModuleBadge} data-status={module.status}>{module.status}</span>
+        <div className={styles.settingsMenuShell}>
+          <aside className={styles.settingsMenuSidebar} aria-label="Settings Kategorien">
+            <div className={styles.settingsMenuSidebarHead}>
+              <strong>Einstellungen</strong>
+              <span>Basis</span>
+            </div>
+            <nav className={styles.settingsMenuNav}>
+              {overviewModules.map((module) => {
+                const Icon = module.icon
+                const active = module.key === activeModule.key
+                return (
+                  <Link
+                    key={module.key}
+                    href={withPremiumTheme(module.href, mode)}
+                    className={active ? styles.settingsMenuItemActive : styles.settingsMenuItem}
+                    style={{
+                      "--settings-module-accent": module.accent,
+                      "--settings-module-accent-soft": module.accentSoft
+                    } as CSSProperties}
+                  >
+                    <span><Icon size={18} /></span>
+                    <b>{module.title}</b>
+                    <small>{(settingsOverviewSubpoints[module.key] ?? []).length}</small>
+                  </Link>
+                )
+              })}
+            </nav>
+          </aside>
+
+          <section className={styles.settingsMenuContent}>
+            <div className={styles.settingsMenuHero} style={{
+              "--settings-module-accent": activeModule.accent,
+              "--settings-module-accent-soft": activeModule.accentSoft
+            } as CSSProperties}>
+              <span><ActiveIcon size={26} /></span>
+              <div>
+                <h3>{activeModule.title}</h3>
+                <p>{activeModule.description}</p>
+              </div>
+              <Link href={withPremiumTheme(activeModule.href, mode)}>Bearbeiten</Link>
+            </div>
+
+            <nav className={styles.settingsMenuTabs} aria-label={`Unterkategorien fuer ${activeModule.title}`}>
+              {activeSubpoints.map((tab, index) => (
+                <Link key={tab} href={withPremiumTheme(activeModule.href + "?tab=" + encodeURIComponent(tab.toLowerCase().replace(/[^a-z0-9]+/g, "-")), mode)} data-active={index === 0 ? "true" : "false"}>{tab}</Link>
+              ))}
+            </nav>
+
+            <form className={styles.settingsMenuForm}>
+              <div className={styles.settingsMenuFormHead}>
+                <div>
+                  <strong>{activeSubpoints[0] ?? activeModule.title} bearbeiten</strong>
+                  <span>Nur Formularfelder fuer die ausgewaehlte Kategorie. Keine Statusberichte, keine Modulstatus-Karten.</span>
                 </div>
-                <div className={styles.settingsModuleBody}>
-                  <strong>{module.title}</strong>
-                  <p>{module.description}</p>
-                </div>
-              </Link>
-            )
-          })}
+                <button type="button">Speichern</button>
+              </div>
+              <div className={styles.settingsMenuFields}>
+                {activeFields.map(([label, value]) => (
+                  <label key={label}>
+                    <span>{label}</span>
+                    <input value={value} readOnly />
+                  </label>
+                ))}
+              </div>
+            </form>
+          </section>
         </div>
         {workflowState.message ? <p data-state={workflowState.type}>{workflowState.message}</p> : null}
         {message}
@@ -4849,22 +4946,22 @@ function PremiumWorkflowPanel({
           ) : null}
           {view === "audit" ? (
             <>
-              <form action="/dashboard-v2/audit" method="get" onSubmit={(event) => { event.preventDefault(); void runWorkflowAuditAction("export") }}>
+              <form action="/dashboard-v2/logs" method="get" onSubmit={(event) => { event.preventDefault(); void runWorkflowAuditAction("export") }}>
                 <input type="hidden" name="q" value="Audit exportiert" />
                 <input type="hidden" name="theme" value={mode} />
                 <button type="submit" disabled={isWorkflowSaving}>Audit exportieren</button>
               </form>
-              <form action="/dashboard-v2/audit" method="get" onSubmit={(event) => { event.preventDefault(); void runWorkflowAuditAction("filter") }}>
+              <form action="/dashboard-v2/logs" method="get" onSubmit={(event) => { event.preventDefault(); void runWorkflowAuditAction("filter") }}>
                 <input type="hidden" name="q" value="Audit Filter aktiv" />
                 <input type="hidden" name="theme" value={mode} />
                 <button type="submit" disabled={isWorkflowSaving}>Filter setzen</button>
               </form>
-              <form action="/dashboard-v2/audit" method="get" onSubmit={(event) => { event.preventDefault(); void runWorkflowAuditAction("search") }}>
+              <form action="/dashboard-v2/logs" method="get" onSubmit={(event) => { event.preventDefault(); void runWorkflowAuditAction("search") }}>
                 <input type="hidden" name="q" value="Ereignis gefunden" />
                 <input type="hidden" name="theme" value={mode} />
                 <button type="submit" disabled={isWorkflowSaving}>Ereignis suchen</button>
               </form>
-              <form action="/dashboard-v2/audit" method="get" onSubmit={(event) => { event.preventDefault(); void runPremiumAction("audit", "webhook.logs", "Webhook Logs", { source: "api" }, "Webhook Logs wurden geoeffnet und fuer Pruefung gefiltert.") }}>
+              <form action="/dashboard-v2/logs" method="get" onSubmit={(event) => { event.preventDefault(); void runPremiumAction("audit", "webhook.logs", "Webhook Logs", { source: "api" }, "Webhook Logs wurden geoeffnet und fuer Pruefung gefiltert.") }}>
                 <input type="hidden" name="q" value="Webhook Logs" />
                 <input type="hidden" name="theme" value={mode} />
                 <button type="submit" disabled={isWorkflowSaving}>Webhook Logs</button>
@@ -6824,6 +6921,7 @@ type TimeSectionKey =
   | "taetigkeiten"
   | "benutzerzeiten"
   | "arbeitsvertrag"
+  | "auswertung"
   | "berichte"
 
 function timeSectionFromQuery(searchQuery: string): TimeSectionKey {
@@ -6835,7 +6933,8 @@ function timeSectionFromQuery(searchQuery: string): TimeSectionKey {
   if (query.includes("projekte") || query.includes("projekt")) return "projekte"
   if (query.includes("taetigkeiten") || query.includes("tätigkeiten")) return "taetigkeiten"
   if (query.includes("benutzerzeiten") || query.includes("benutzer")) return "benutzerzeiten"
-  if (query.includes("arbeitsvertrag") || query.includes("vertrag")) return "arbeitsvertrag"
+  if (query.includes("auswertung") || query.includes("analytics")) return "auswertung"
+  if (query.includes("arbeitsvertrag") || query.includes("vertrag")) return "overview"
   if (query.includes("berichte") || query.includes("bericht")) return "berichte"
   return "overview"
 }
@@ -6930,10 +7029,6 @@ function TimeSparkline({ tone = "violet" }: { tone?: "violet" | "green" | "rose"
   )
 }
 
-type TimeMonthCell =
-  | { key: string; empty: true }
-  | { key: string; empty: false; date: Date; day: number; tone: string; label: string; minutes: number }
-
 function PremiumTimeModulePage({
   data,
   mode,
@@ -6947,9 +7042,10 @@ function PremiumTimeModulePage({
 }) {
   const router = useRouter()
   const projectsSource = data.projects.length ? data.projects : fallbackProjects
-  const usersSource = data.appUsers.length ? data.appUsers : [{ id: "admin", name: "Daniel Klozbuecher", email: "admin@dreaminvoice.local", role: "Administrator", status: "active" }]
+  const usersSource = data.appUsers.length ? data.appUsers : [{ id: "admin", name: "Admin Benutzer", email: "admin@dreaminvoice.local", role: "Administrator", status: "active" }]
   const routeSearchParams = useSearchParams()
-  const activeSection = timeSectionFromQuery(routeSearchParams.get("timeView") ?? searchQuery)
+  const rawSection = timeSectionFromQuery(routeSearchParams.get("timeView") ?? searchQuery)
+  const activeSection: TimeSectionKey = rawSection === "arbeitstag" || rawSection === "wochenzeiten" || rawSection === "monatsansicht" || rawSection === "berichte" ? rawSection : "wochenzeiten"
   const selectedDate = parseLocalDate(routeSearchParams.get("date")) ?? new Date(2026, 5, 22)
   const selectedMonth = Number(routeSearchParams.get("month"))
   const selectedYear = Number(routeSearchParams.get("year"))
@@ -6960,28 +7056,71 @@ function PremiumTimeModulePage({
     selectedPeriodMonth,
     Math.min(selectedDate.getDate(), new Date(selectedPeriodYear, selectedPeriodMonth + 1, 0).getDate())
   )
+  type TimeEntryDraft = {
+    id: string
+    date: string
+    day: number
+    start: string
+    end: string
+    pause: string
+    project: string
+    activity: string
+    note: string
+    tone: string
+    source: "api" | "local"
+    customerId?: string | null
+    projectId?: string | null
+    articleId?: string | null
+    billable?: boolean
+  }
+  const defaultProject = projectsSource[0]?.name || "Portal Relaunch"
+  const defaultActivity = "Design & UI/UX"
+  const weekStart = startOfLocalWeek(selectedDate)
+  const weekDates = Array.from({ length: 7 }).map((_, index) => addLocalDays(weekStart, index))
+  const baseWeekEntries = useMemo<TimeEntryDraft[]>(() => [
+    ["0-0800", 0, "08:00", "10:00", "Design & UI/UX", "Portal Relaunch", "violet", "Dashboard Layout"],
+    ["0-1015", 0, "10:15", "12:00", "Operations Integration", "Portal Relaunch", "blue", "API Anbindung"],
+    ["0-1300", 0, "13:00", "15:30", "Client Portal Setup", "Portal Relaunch", "orange", "Sprint Planung"],
+    ["0-1545", 0, "15:45", "17:00", "Kundengespraech", "Portal Relaunch", "green", "Workshop"],
+    ["1-0800", 1, "08:00", "11:00", "Design & UI/UX", "Portal Relaunch", "violet", "Komponenten"],
+    ["1-1130", 1, "11:30", "13:15", "Kundengespraech", "Portal Relaunch", "green", "Abstimmung"],
+    ["1-1400", 1, "14:00", "16:00", "Projektsteuerung", "Intern", "amber", "Planung"],
+    ["1-1615", 1, "16:15", "17:00", "Dokumentation", "Intern", "gray", "Dokumentation"],
+    ["2-0800", 2, "08:00", "10:30", "Design & UI/UX", "Portal Relaunch", "violet", "Design Review"],
+    ["2-1100", 2, "11:00", "13:15", "Operations Integration", "Portal Relaunch", "blue", "Implementierung"],
+    ["2-1400", 2, "14:00", "16:00", "Client Portal Setup", "Portal Relaunch", "orange", "Testing"],
+    ["2-1615", 2, "16:15", "17:00", "Dokumentation", "Intern", "gray", "Dokumentation"],
+    ["3-0800", 3, "08:00", "10:00", "Design & UI/UX", "Portal Relaunch", "violet", "UI Check"],
+    ["3-1015", 3, "10:15", "12:00", "Operations Integration", "Portal Relaunch", "blue", "Review"],
+    ["3-1300", 3, "13:00", "14:30", "Projektsteuerung", "Intern", "amber", "Roadmap"],
+    ["3-1445", 3, "14:45", "16:00", "Kundengespraech", "Portal Relaunch", "green", "Rueckfragen"],
+    ["3-1615", 3, "16:15", "17:00", "Dokumentation", "Intern", "gray", "Dokumentation"],
+    ["4-0800", 4, "08:00", "09:30", "Design & UI/UX", "Portal Relaunch", "violet", "Feinschliff"],
+    ["4-0945", 4, "09:45", "11:15", "Operations Integration", "Portal Relaunch", "blue", "API Test"],
+    ["4-1130", 4, "11:30", "13:00", "Client Portal Setup", "Portal Relaunch", "orange", "Setup"],
+    ["4-1400", 4, "14:00", "15:00", "Projektsteuerung", "Intern", "amber", "Controlling"],
+    ["4-1515", 4, "15:15", "16:45", "Kundengespraech", "Portal Relaunch", "green", "Kunde"]
+  ].map(([id, day, startTime, endTime, activity, project, tone, note]) => ({
+    id: String(id),
+    day: Number(day),
+    date: isoLocalDate(addLocalDays(weekStart, Number(day))),
+    start: String(startTime),
+    end: String(endTime),
+    pause: "00:00",
+    project: String(project),
+    activity: String(activity),
+    note: String(note),
+    tone: String(tone),
+    source: "local" as const
+  })), [weekStart])
+  const [entries, setEntries] = useState<TimeEntryDraft[]>(baseWeekEntries)
   const [timerState, setTimerState] = useState<"idle" | "active" | "paused">("idle")
   const [timerSeconds, setTimerSeconds] = useState(0)
-  const [timerProject, setTimerProject] = useState(projectsSource[0]?.name || "Website Relaunch")
-  const [timerActivity, setTimerActivity] = useState("Design & UI/UX")
-  const [timerDescription, setTimerDescription] = useState("Landingpage erstellen")
+  const [timerContext, setTimerContext] = useState({ project: defaultProject, activity: defaultActivity, note: "Live Timer" })
   const [timerNotice, setTimerNotice] = useState("")
-  const [reportFocus, setReportFocus] = useState<"project" | "users" | "activity">("project")
-  const [annualFocus, setAnnualFocus] = useState<"work" | "revenue" | "users" | "activity">("work")
-  const [editingEntryIndex, setEditingEntryIndex] = useState<number | null>(null)
-  const [selectedWorkDate, setSelectedWorkDate] = useState(selectedDate)
-  const [monthEntryDraft, setMonthEntryDraft] = useState({
-    project: projectsSource[0]?.name || "Website Relaunch",
-    activity: "Design & UI/UX",
-    start: "09:00",
-    end: "17:00",
-    description: "Manuelle Arbeitszeit"
-  })
-  const [dayEntryDrafts, setDayEntryDrafts] = useState([
-    { start: "09:00", end: "11:15", project: projectsSource[0]?.name || "Website Relaunch", activity: "Design & UI/UX" },
-    { start: "11:30", end: "13:15", project: projectsSource[1]?.name || "Brand Portal", activity: "Konzeption" },
-    { start: "14:00", end: "17:20", project: projectsSource[2]?.name || "Support Retainer", activity: "Umsetzung" }
-  ])
+  const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null)
+  const [editorDraft, setEditorDraft] = useState<TimeEntryDraft | null>(null)
+  const [activeDayDetails, setActiveDayDetails] = useState(isoLocalDate(selectedPeriodDate))
 
   useEffect(() => {
     if (timerState !== "active") return
@@ -6989,42 +7128,70 @@ function PremiumTimeModulePage({
     return () => window.clearInterval(interval)
   }, [timerState])
 
-  async function stopTimer() {
-    if (timerSeconds <= 0) {
-      setTimerState("idle")
-      setTimerNotice("Timer ist noch nicht gestartet.")
-      return
-    }
-    setTimerState("paused")
-    setTimerNotice("Timer wird gespeichert ...")
-    const hours = Math.max(timerSeconds / 3600, 0.01)
-    try {
-      const response = await fetch("/api/time/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        body: JSON.stringify({
-          project: timerProject,
-          task: timerActivity,
-          description: timerDescription,
-          hours: hours.toFixed(2),
-          rate: "0",
-          status: "internal"
+  useEffect(() => {
+    let cancelled = false
+    async function loadEntries() {
+      try {
+        const response = await fetch("/api/time-tracking/list", { credentials: "same-origin" })
+        const result = await response.json().catch(() => ({}))
+        if (!response.ok || !Array.isArray(result?.entries) || !result.entries.length || cancelled) return
+        const startMap = new Map<string, number>()
+        const rawEntries = result.entries.slice(0, 32)
+        const sameDateCount = new Map<string, number>()
+        rawEntries.forEach((entry: { date?: string }) => {
+          const key = entry.date || "unknown"
+          sameDateCount.set(key, (sameDateCount.get(key) ?? 0) + 1)
         })
-      })
-      const result = await response.json().catch(() => ({}))
-      if (!response.ok || !result?.ok) throw new Error("Timer konnte nicht gespeichert werden.")
-      onDataChange((current) => ({
-        ...current,
-        projects: current.projects.map((project) => project.name === timerProject
-          ? { ...project, progress: `${Math.min(parsePercent(project.progress) + 1, 100)}%` }
-          : project)
-      }))
-      setTimerNotice(`Gespeichert: ${hours.toFixed(2)} h fuer ${timerProject}.`)
-    } catch {
-      setTimerNotice("Timer lokal gestoppt. API-Speicherung ist nicht bestaetigt.")
+        const mappedEntries = rawEntries.map((entry: {
+          id?: string
+          date?: string
+          duration?: number
+          project?: string
+          article?: string
+          note?: string
+          customerId?: string | null
+          projectId?: string | null
+          articleId?: string | null
+          billable?: boolean
+        }, index: number) => {
+          const parsedDate = parseLocalDate(entry.date ?? null)
+          const shouldSpreadAcrossWeek = parsedDate && (sameDateCount.get(entry.date || "") ?? 0) > 5
+          const date = shouldSpreadAcrossWeek ? addLocalDays(weekStart, index % 5) : parsedDate ?? addLocalDays(weekStart, Math.min(index, 4))
+          const day = Math.max(0, Math.min(6, (date.getDay() + 6) % 7))
+          const key = isoLocalDate(date)
+          const slot = startMap.get(key) ?? 8 * 60
+          const durationMinutes = Math.max(30, Math.round(Number(entry.duration ?? 1) * 60))
+          startMap.set(key, slot + durationMinutes + 15)
+          const startValue = `${padDatePart(Math.floor(slot / 60))}:${padDatePart(slot % 60)}`
+          const endValue = slot + durationMinutes
+          return {
+            id: entry.id || `api-${index}`,
+            date: key,
+            day,
+            start: startValue,
+            end: `${padDatePart(Math.floor(endValue / 60))}:${padDatePart(endValue % 60)}`,
+            pause: "00:00",
+            project: entry.project || defaultProject,
+            activity: entry.article || defaultActivity,
+            note: entry.note || "Zeiteintrag",
+            tone: ["violet", "blue", "green", "orange", "amber"][index % 5],
+            source: "api" as const,
+            customerId: entry.customerId,
+            projectId: entry.projectId,
+            articleId: entry.articleId,
+            billable: entry.billable
+          }
+        })
+        setEntries(mappedEntries)
+      } catch {
+        setTimerNotice("API-Zeiten konnten nicht geladen werden. Lokale Ansicht bleibt aktiv.")
+      }
     }
-  }
+    void loadEntries()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   function timeHref(section: TimeSectionKey, date = selectedDate) {
     const params = new URLSearchParams({ timeView: section, date: isoLocalDate(date), month: String(date.getMonth() + 1), year: String(date.getFullYear()) })
@@ -7039,315 +7206,545 @@ function PremiumTimeModulePage({
     const nextDate =
       activeSection === "arbeitstag" ? addLocalDays(selectedDate, direction) :
       activeSection === "wochenzeiten" ? addLocalDays(selectedDate, direction * 7) :
-      activeSection === "monatsansicht" || activeSection === "kalender" || activeSection === "berichte" ? addLocalMonths(selectedPeriodDate, direction) :
       addLocalMonths(selectedPeriodDate, direction)
-    navigateTime(activeSection === "overview" ? "wochenzeiten" : activeSection, nextDate)
+    navigateTime(activeSection, nextDate)
   }
 
   function changePeriod(value: string) {
-    const section = value === "day" ? "arbeitstag" : value === "month" ? "monatsansicht" : value === "year" ? "berichte" : "wochenzeiten"
+    const section = value === "day" ? "arbeitstag" : value === "month" ? "monatsansicht" : value === "reports" ? "berichte" : "wochenzeiten"
     navigateTime(section, selectedPeriodDate)
   }
 
   function updateMonth(month: string) {
     const nextDate = new Date(selectedPeriodDate.getFullYear(), Number(month), Math.min(selectedPeriodDate.getDate(), new Date(selectedPeriodDate.getFullYear(), Number(month) + 1, 0).getDate()))
-    navigateTime(activeSection === "overview" ? "monatsansicht" : activeSection, nextDate)
+    navigateTime(activeSection, nextDate)
   }
 
   function updateYear(year: string) {
     const parsedYear = Number(year)
     if (!Number.isFinite(parsedYear)) return
     const nextDate = new Date(parsedYear, selectedPeriodDate.getMonth(), Math.min(selectedPeriodDate.getDate(), new Date(parsedYear, selectedPeriodDate.getMonth() + 1, 0).getDate()))
-    navigateTime(activeSection === "overview" ? "monatsansicht" : activeSection, nextDate)
+    navigateTime(activeSection, nextDate)
   }
 
-  function updateDayEntry(index: number, field: "start" | "end" | "project" | "activity", value: string) {
-    setDayEntryDrafts((current) => current.map((entry, itemIndex) => itemIndex === index ? { ...entry, [field]: value } : entry))
+  function entryDurationMinutes(entry: TimeEntryDraft) {
+    return Math.max(0, minutesFromTime(entry.end) - minutesFromTime(entry.start) - minutesFromTime(entry.pause))
   }
 
-  function updateMonthEntry(field: keyof typeof monthEntryDraft, value: string) {
-    setMonthEntryDraft((current) => ({ ...current, [field]: value }))
+  function formatMinutes(minutes: number) {
+    const abs = Math.abs(minutes)
+    return `${Math.floor(abs / 60)}:${padDatePart(abs % 60)} h`
   }
 
-  function startTimerForSelectedDay() {
-    setTimerProject(monthEntryDraft.project)
-    setTimerActivity(monthEntryDraft.activity)
-    setTimerDescription(`${formatShortDate(selectedWorkDate)} ${monthEntryDraft.description}`)
+  function formatSignedMinutes(minutes: number) {
+    return `${minutes >= 0 ? "+" : "-"}${formatMinutes(minutes)}`
+  }
+
+  function shiftTime(time: string, minutes: number) {
+    const next = Math.max(0, Math.min(23 * 60 + 59, minutesFromTime(time) + minutes))
+    return `${padDatePart(Math.floor(next / 60))}:${padDatePart(next % 60)}`
+  }
+
+  function timeBlockStyle(start: string, end: string): CSSProperties {
+    const dayStart = 8 * 60
+    const dayDuration = 10 * 60
+    const startOffset = Math.max(0, minutesFromTime(start) - dayStart)
+    const endOffset = Math.min(dayDuration, Math.max(startOffset + 15, minutesFromTime(end) - dayStart))
+    return {
+      top: `${(startOffset / dayDuration) * 100}%`,
+      height: `${((endOffset - startOffset) / dayDuration) * 100}%`
+    }
+  }
+
+  function groupEntries(source: TimeEntryDraft[], key: "project" | "activity") {
+    const total = source.reduce((sum, entry) => sum + entryDurationMinutes(entry), 0) || 1
+    const grouped = new Map<string, number>()
+    source.forEach((entry) => grouped.set(entry[key], (grouped.get(entry[key]) ?? 0) + entryDurationMinutes(entry)))
+    return Array.from(grouped.entries()).map(([label, minutes], index) => ({
+      label,
+      value: formatMinutes(minutes),
+      percent: `${Math.round((minutes / total) * 100)}%`,
+      tone: ["violet", "blue", "green", "amber", "orange"][index % 5]
+    }))
+  }
+
+  async function createEntryViaApi(entry: TimeEntryDraft) {
+    const hours = Math.max(entryDurationMinutes(entry) / 60, 0.01)
+    const project = projectsSource.find((item) => item.name === entry.project)
+    const customerId = project?.customerId ?? data.customers[0]?.id
+    const articleId = data.articles[0]?.id
+    const payload = project?.id && customerId && articleId
+      ? {
+          customerId,
+          projectId: project.id,
+          articleId,
+          duration: hours,
+          date: entry.date,
+          note: entry.note,
+          billable: true
+        }
+      : null
+    const fallbackPayload = {
+      project: entry.project,
+      task: entry.activity,
+      description: entry.note,
+      hours: hours.toFixed(2),
+      rate: "0",
+      status: "internal"
+    }
+    const response = await fetch(payload ? "/api/time-tracking/create" : "/api/time/create", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      body: JSON.stringify(payload ?? fallbackPayload)
+    })
+    const result = await response.json().catch(() => ({}))
+    if ((!response.ok || !result?.ok) && payload) {
+      const fallbackResponse = await fetch("/api/time/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify(fallbackPayload)
+      })
+      const fallbackResult = await fallbackResponse.json().catch(() => ({}))
+      if (!fallbackResponse.ok || !fallbackResult?.ok) throw new Error("create failed")
+      return fallbackResult?.entry?.id || fallbackResult?.timeEntry?.id || fallbackResult?.id
+    }
+    if (!response.ok || !result?.ok) throw new Error("create failed")
+    return result?.entry?.id || result?.timeEntry?.id || result?.id
+  }
+
+  async function saveEntry(entry: TimeEntryDraft) {
+    const exists = entries.some((item) => item.id === entry.id)
+    setEntries((current) => exists ? current.map((item) => item.id === entry.id ? entry : item) : [...current, entry])
+    setEditorDraft(null)
+    setSelectedEntryId(null)
+    try {
+      if (!exists || entry.source !== "api") {
+        const apiId = await createEntryViaApi(entry)
+        if (apiId) setEntries((current) => current.map((item) => item.id === entry.id ? { ...item, id: String(apiId), source: "api" } : item))
+      }
+      setTimerNotice(exists ? "Zeiteintrag gespeichert." : "Zeiteintrag per API erstellt.")
+    } catch {
+      setTimerNotice(exists ? "Zeiteintrag lokal gespeichert. Update-API ist vorbereitet." : "Zeiteintrag lokal erstellt. API-Speicherung ist nicht bestaetigt.")
+    }
+  }
+
+  function deleteEntry(entryId: string) {
+    setEntries((current) => current.filter((entry) => entry.id !== entryId))
+    setSelectedEntryId(null)
+    setTimerNotice("Eintrag entfernt. Delete-API ist vorbereitet, aber nicht vorhanden.")
+  }
+
+  function duplicateEntry(entry: TimeEntryDraft) {
+    const clone = { ...entry, id: `copy-${Date.now()}`, start: shiftTime(entry.start, 15), end: shiftTime(entry.end, 15), source: "local" as const }
+    setEntries((current) => [...current, clone])
+    setSelectedEntryId(clone.id)
+    void createEntryViaApi(clone).catch(() => setTimerNotice("Duplikat lokal erstellt. API-Speicherung ist nicht bestaetigt."))
+  }
+
+  function openEditor(entry: TimeEntryDraft) {
+    setEditorDraft(entry)
+    setSelectedEntryId(null)
+  }
+
+  function openNewEntry(day = 0, start = "09:00") {
+    const startMinutes = minutesFromTime(start)
+    const endMinutes = Math.min(18 * 60, startMinutes + 90)
+    setEditorDraft({
+      id: `new-${Date.now()}`,
+      day,
+      date: isoLocalDate(addLocalDays(weekStart, day)),
+      start,
+      end: `${padDatePart(Math.floor(endMinutes / 60))}:${padDatePart(endMinutes % 60)}`,
+      pause: "00:00",
+      project: defaultProject,
+      activity: defaultActivity,
+      note: "",
+      tone: "violet",
+      source: "local"
+    })
+  }
+
+  function startEntryTimer(entry?: TimeEntryDraft) {
+    if (entry) setTimerContext({ project: entry.project, activity: entry.activity, note: entry.note || "Timer fortsetzen" })
     setTimerState("active")
-    setTimerNotice(`Timer fuer ${formatGermanDate(selectedWorkDate)} gestartet.`)
+    setTimerNotice("Timer laeuft.")
   }
 
-  const timeWorkTabs: Array<{ key: TimeSectionKey; title: string }> = [
-    { key: "arbeitstag", title: "Arbeitstag" },
-    { key: "wochenzeiten", title: "Woche" },
-    { key: "monatsansicht", title: "Monat" }
-  ]
-  const timeAnalysisItems: Array<{ key: TimeSectionKey; title: string; icon: IconType }> = [
-    { key: "berichte", title: "Berichte", icon: BarChart3 },
-    { key: "projekte", title: "Projekt-Auswertung", icon: Folder },
-    { key: "taetigkeiten", title: "Taetigkeiten", icon: Activity },
-    { key: "benutzerzeiten", title: "Benutzerzeiten", icon: Users }
-  ]
+  function pauseTimer() {
+    setTimerState((current) => current === "active" ? "paused" : "active")
+  }
 
-  const weekStart = startOfLocalWeek(selectedDate)
-  const weekDates = Array.from({ length: 7 }).map((_, index) => addLocalDays(weekStart, index))
+  function stopTimer() {
+    if (timerSeconds <= 0) {
+      setTimerState("idle")
+      setTimerNotice("Timer ist noch nicht gestartet.")
+      return
+    }
+    setTimerState("paused")
+    setTimerNotice("Timer gestoppt. Speichern erstellt den Zeiteintrag.")
+  }
+
+  async function saveTimer() {
+    if (timerSeconds <= 0) {
+      setTimerNotice("Timer ist noch nicht gestartet.")
+      return
+    }
+    const now = new Date()
+    const end = `${padDatePart(now.getHours())}:${padDatePart(now.getMinutes())}`
+    const startMinutes = Math.max(8 * 60, minutesFromTime(end) - Math.round(timerSeconds / 60))
+    const timerEntry: TimeEntryDraft = {
+      id: `timer-${Date.now()}`,
+      date: isoLocalDate(selectedDate),
+      day: (selectedDate.getDay() + 6) % 7,
+      start: `${padDatePart(Math.floor(startMinutes / 60))}:${padDatePart(startMinutes % 60)}`,
+      end,
+      pause: "00:00",
+      project: timerContext.project,
+      activity: timerContext.activity,
+      note: timerContext.note,
+      tone: "green",
+      source: "local"
+    }
+    try {
+      const apiId = await createEntryViaApi(timerEntry)
+      setEntries((current) => [...current, { ...timerEntry, id: apiId ? String(apiId) : timerEntry.id, source: apiId ? "api" : "local" }])
+      onDataChange((current) => ({
+        ...current,
+        projects: current.projects.map((project) => project.name === timerContext.project
+          ? { ...project, progress: `${Math.min(parsePercent(project.progress) + 1, 100)}%` }
+          : project)
+      }))
+      setTimerSeconds(0)
+      setTimerState("idle")
+      setTimerNotice("Timer gespeichert.")
+    } catch {
+      setEntries((current) => [...current, timerEntry])
+      setTimerNotice("Timer lokal gespeichert. API-Speicherung ist nicht bestaetigt.")
+    }
+  }
+
+  function handleSlotDoubleClick(event: { currentTarget: HTMLDivElement; clientY: number }, dayIndex: number) {
+    const rect = event.currentTarget.getBoundingClientRect()
+    const relative = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height))
+    const minutes = 8 * 60 + Math.round((relative * 10 * 60) / 15) * 15
+    openNewEntry(dayIndex, `${padDatePart(Math.floor(minutes / 60))}:${padDatePart(minutes % 60)}`)
+  }
+
+  function updateEditor(field: keyof TimeEntryDraft, value: string) {
+    setEditorDraft((current) => current ? { ...current, [field]: value } : current)
+  }
+
   const periodLabel = activeSection === "arbeitstag"
     ? formatGermanDate(selectedDate)
-    : activeSection === "monatsansicht" || activeSection === "kalender" || activeSection === "berichte"
+    : activeSection === "monatsansicht" || activeSection === "berichte"
       ? formatMonthYear(selectedPeriodDate)
       : formatWeekRange(selectedDate)
-  const periodValue = activeSection === "arbeitstag" ? "day" : activeSection === "monatsansicht" || activeSection === "kalender" ? "month" : activeSection === "berichte" ? "year" : "week"
+  const periodValue = activeSection === "arbeitstag" ? "day" : activeSection === "monatsansicht" ? "month" : activeSection === "berichte" ? "reports" : "week"
   const availableYears = Array.from({ length: 7 }).map((_, index) => selectedPeriodDate.getFullYear() - 3 + index)
+  const visibleWeekEntries = entries.filter((entry) => weekDates.some((date) => entry.date === isoLocalDate(date)))
+  const dayEntries = entries.filter((entry) => entry.date === isoLocalDate(selectedDate)).sort((a, b) => minutesFromTime(a.start) - minutesFromTime(b.start))
   const weekRows = weekDates.map((date, index) => {
-    const weekend = date.getDay() === 0 || date.getDay() === 6
-    const value = weekend ? "00:00" : index === 4 ? "06:45" : "08:00"
-    return {
-      day: `${shortGermanWeekdays[date.getDay()]}. ${formatShortDate(date)}`,
-      value,
-      tone: weekend ? "neutral" : value === "08:00" ? "green" : "rose"
-    }
+    const valueMinutes = entries.filter((entry) => entry.date === isoLocalDate(date)).reduce((sum, entry) => sum + entryDurationMinutes(entry), 0)
+    return { day: `${shortGermanWeekdays[date.getDay()]}. ${formatShortDate(date)}`, minutes: valueMinutes, value: formatMinutes(valueMinutes), tone: date.getDay() === 0 || date.getDay() === 6 ? "neutral" : valueMinutes >= 8 * 60 ? "green" : "rose", index }
   })
-  const weekTotalMinutes = weekRows.reduce((sum, row) => sum + minutesFromTime(row.value), 0)
-  const monthFirstDay = new Date(selectedPeriodDate.getFullYear(), selectedPeriodDate.getMonth(), 1)
-  const daysInSelectedMonth = new Date(selectedPeriodDate.getFullYear(), selectedPeriodDate.getMonth() + 1, 0).getDate()
-  const monthLeadingCells = (monthFirstDay.getDay() + 6) % 7
-  const monthCells: TimeMonthCell[] = [
-    ...Array.from({ length: monthLeadingCells }).map((_, index) => ({ key: `empty-${index}`, empty: true as const })),
-    ...Array.from({ length: daysInSelectedMonth }).map((_, index) => {
-      const date = new Date(selectedPeriodDate.getFullYear(), selectedPeriodDate.getMonth(), index + 1)
-      const weekend = date.getDay() === 0 || date.getDay() === 6
-      const day = date.getDate()
-      const meta = weekend
-        ? { tone: "gray", label: "Kein Eintrag", minutes: 0 }
-        : day % 11 === 0
-          ? { tone: "blue", label: "Krankheit", minutes: 0 }
-          : day % 8 === 0
-            ? { tone: "orange", label: "Urlaub", minutes: 0 }
-            : day % 5 === 0
-              ? { tone: "rose", label: "-1:10", minutes: 410 }
-              : { tone: "green", label: "8:00", minutes: 480 }
-      return { key: isoLocalDate(date), empty: false as const, date, day, ...meta }
-    })
-  ]
-  const monthWorkdays = Array.from({ length: daysInSelectedMonth }).filter((_, index) => {
-    const date = new Date(selectedPeriodDate.getFullYear(), selectedPeriodDate.getMonth(), index + 1)
-    return date.getDay() !== 0 && date.getDay() !== 6
-  }).length
-  const monthSollMinutes = monthWorkdays * 480
-  const monthIstMinutes = monthCells.reduce((sum, cell) => sum + ("minutes" in cell ? Number(cell.minutes) : 0), 0)
-  const monthDiffMinutes = monthIstMinutes - monthSollMinutes
-  const formatSignedHours = (minutes: number) => `${minutes < 0 ? "-" : "+"}${padDatePart(Math.floor(Math.abs(minutes) / 60))}:${padDatePart(Math.abs(minutes) % 60)} h`
-  const projectCards = projectsSource.slice(0, 4).map((project, index) => ({
-    project,
-    hours: [42, 31, 18, 12][index] ?? 8,
-    share: [38, 28, 19, 15][index] ?? 10,
-    progress: parsePercent(project.progress)
-  }))
-  const activityRows = [
-    ["Design & UI/UX", "42:15 h", "36%", "violet"],
-    ["Entwicklung", "38:40 h", "33%", "green"],
-    ["Kundengespraech", "18:05 h", "15%", "blue"],
-    ["Projektsteuerung", "12:30 h", "11%", "amber"]
+  const weekTotalMinutes = weekRows.reduce((sum, row) => sum + row.minutes, 0)
+  const timerMinutes = timerState === "active" ? Math.floor(timerSeconds / 60) : 0
+  const sidebarWeekMinutes = weekTotalMinutes + timerMinutes
+  const weekTargetMinutes = 40 * 60
+  const weekProgress = Math.min(100, Math.round((sidebarWeekMinutes / weekTargetMinutes) * 100))
+  const calendarHours = Array.from({ length: 11 }).map((_, index) => 8 + index)
+  const selectedEntry = entries.find((entry) => entry.id === selectedEntryId) ?? null
+  const projectGroups = groupEntries(entries, "project")
+  const activityGroups = groupEntries(entries, "activity")
+  const reportKpis = [
+    { label: "Gesamtstunden", value: formatMinutes(entries.reduce((sum, entry) => sum + entryDurationMinutes(entry), 0)), tone: "violet", hint: "Aktuelle Daten" },
+    { label: "Abrechenbar", value: formatMinutes(Math.round(entries.reduce((sum, entry) => sum + entryDurationMinutes(entry), 0) * 0.8)), tone: "green", hint: "80%" },
+    { label: "Nicht exportiert", value: formatMinutes(Math.round(entries.reduce((sum, entry) => sum + entryDurationMinutes(entry), 0) * 0.2)), tone: "amber", hint: `${entries.length} Eintraege` },
+    { label: "Differenz", value: formatSignedMinutes(sidebarWeekMinutes - weekTargetMinutes), tone: sidebarWeekMinutes >= weekTargetMinutes ? "green" : "rose", hint: "Aktuelle Woche" }
   ]
 
-  function renderDetail() {
-    if (activeSection === "arbeitstag") {
-      const editingEntry = editingEntryIndex === null ? null : dayEntryDrafts[editingEntryIndex]
-      return (
-        <section className={styles.timeDetailGrid}>
-          <article className={styles.timeDetailPanel}>
-            <div className={styles.timePanelHead}><div><span>Tagesansicht</span><h2>{formatGermanDate(selectedDate)}</h2></div><button type="button" onClick={() => setEditingEntryIndex(0)}><Plus size={16} /> Eintrag</button></div>
-            <div className={styles.timeEntryCards}>{dayEntryDrafts.map((entry, index) => (
-              <button key={`${entry.start}-${entry.project}`} type="button" className={styles.timeEntryCard} data-active={editingEntryIndex === index} onClick={() => setEditingEntryIndex(index)}>
-                <span><Clock3 size={18} /></span>
-                <div><strong>{entry.project}</strong><small>{entry.activity}</small></div>
-                <b>{entry.start} - {entry.end}</b>
-                <em>{durationFromTimes(entry.start, entry.end)}</em>
-              </button>
-            ))}</div>
-          </article>
-          <article className={styles.timeDetailPanel}>
-            <div className={styles.timePanelHead}><div><span>Bearbeiten</span><h2>{editingEntry ? editingEntry.project : "Eintrag waehlen"}</h2></div><button type="button" onClick={() => setEditingEntryIndex(null)}><X size={16} />Schliessen</button></div>
-            {editingEntry && editingEntryIndex !== null ? (
-              <form className={styles.timeEditForm} onSubmit={(event) => { event.preventDefault(); setEditingEntryIndex(null) }}>
-                <label>Projekt<select value={editingEntry.project} onChange={(event) => updateDayEntry(editingEntryIndex, "project", event.target.value)}>{projectsSource.map((project) => <option key={project.id} value={project.name}>{project.name}</option>)}</select></label>
-                <label>Taetigkeit<select value={editingEntry.activity} onChange={(event) => updateDayEntry(editingEntryIndex, "activity", event.target.value)}><option>Design & UI/UX</option><option>Konzeption</option><option>Umsetzung</option><option>Kundengespraech</option><option>Projektsteuerung</option></select></label>
-                <label>Startzeit<input type="time" value={editingEntry.start} onChange={(event) => updateDayEntry(editingEntryIndex, "start", event.target.value)} /></label>
-                <label>Endzeit<input type="time" value={editingEntry.end} onChange={(event) => updateDayEntry(editingEntryIndex, "end", event.target.value)} /></label>
-                <div className={styles.timeEditDuration}><span>Dauer</span><strong>{durationFromTimes(editingEntry.start, editingEntry.end)}</strong></div>
-                <button type="submit"><Save size={16} />Speichern</button>
-              </form>
-            ) : (
-              <div className={styles.timeEditEmpty}>Klicke links auf einen Zeiteintrag, um Projekt, Taetigkeit, Startzeit und Endzeit zu bearbeiten.</div>
-            )}
-          </article>
-        </section>
-      )
-    }
-
-    if (activeSection === "wochenzeiten") {
-      return (
-        <article className={styles.timeDetailPanel}>
-          <div className={styles.timePanelHead}><div><span>Wochenzeiten</span><h2>{formatWeekRange(selectedDate)}</h2></div><strong>Gesamt: {padDatePart(Math.floor(weekTotalMinutes / 60))}:{padDatePart(weekTotalMinutes % 60)} h</strong></div>
-          <div className={styles.weekModernGrid}>{weekRows.map((row) => (
-            <label key={row.day} data-tone={row.tone}>
-              <span>{row.day}</span>
-              <input defaultValue={row.value} />
-              <select defaultValue={projectsSource[0]?.name || ""}>{projectsSource.map((project) => <option key={project.id} value={project.name}>{project.name}</option>)}</select>
-              <button type="button"><Save size={14} />Speichern</button>
-              <small>{row.tone === "green" ? "Soll erfuellt" : row.tone === "rose" ? "Unterstunden" : "Wochenende"}</small>
-            </label>
-          ))}</div>
-        </article>
-      )
-    }
-
-    if (activeSection === "monatsansicht" || activeSection === "kalender") {
-      const selectedCell = monthCells.find((cell) => "date" in cell && isoLocalDate(cell.date) === isoLocalDate(selectedWorkDate))
-      return (
-        <section className={styles.timeMonthBoard}>
-          <div className={styles.timeMonthMain}>
-            <article className={`${styles.timeDetailPanel} ${styles.timeMonthPanel}`}>
-              <div className={styles.timePanelHead}>
-                <div><h2>{formatMonthYear(selectedPeriodDate)}</h2></div>
-              </div>
-              <div className={styles.monthStats}>
-                <span>Sollstunden <strong>{padDatePart(Math.floor(monthSollMinutes / 60))}:{padDatePart(monthSollMinutes % 60)} h</strong><small>Plan fuer {formatMonthYear(selectedPeriodDate)}</small></span>
-                <span>Iststunden <strong>{padDatePart(Math.floor(monthIstMinutes / 60))}:{padDatePart(monthIstMinutes % 60)} h</strong><small>Erfasst in {formatMonthYear(selectedPeriodDate)}</small></span>
-                <span>Differenz <strong data-tone={monthDiffMinutes < 0 ? "rose" : "green"}>{formatSignedHours(monthDiffMinutes)}</strong><small>Abweichung</small></span>
-              </div>
-              <div className={styles.monthWeekHead}>{["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((day) => <span key={day}>{day}</span>)}</div>
-              <div className={styles.monthModernGrid}>{monthCells.map((item) => {
-                if (!("date" in item)) return <div key={item.key} data-empty="true" />
-                const isActive = isoLocalDate(item.date) === isoLocalDate(selectedWorkDate)
-                return (
-                  <button key={item.key} type="button" onClick={() => setSelectedWorkDate(item.date)} data-tone={item.tone} data-active={isActive}>
-                    <strong>{item.day}</strong>
-                    <em data-status={item.tone}>{item.tone === "green" ? <CheckCircle2 size={14} /> : item.tone === "rose" ? <ChevronDown size={15} /> : item.tone === "gray" ? null : <i />}</em>
-                    <span>{item.label}</span>
-                  </button>
-                )
-              })}</div>
-              <div className={styles.monthLegend}>
-                <span data-tone="green">Erfuellt</span>
-                <span data-tone="rose">Unterstunden</span>
-                <span data-tone="orange">Urlaub</span>
-                <span data-tone="blue">Krankheit</span>
-                <span data-tone="gray">Kein Eintrag</span>
-              </div>
-            </article>
-            <article className={styles.timeMonthAnalytics}>
-              <header><strong>Auswertung - {formatMonthYear(selectedPeriodDate)}</strong></header>
-              <div>
-                <section>
-                  <div className={styles.timeChartHead}><span>Stunden nach Woche</span><small><i />Iststunden <i data-empty="true" />Sollstunden</small></div>
-                  <div className={styles.timeWeeklyBars}>{["KW 23", "KW 24", "KW 25", "KW 26", "KW 27"].map((week, index) => <span key={week}><b>{["38:30", "45:15", "31:00", "15:25", "00:00"][index]}</b><i style={{ height: `${[62, 78, 52, 30, 4][index]}%` }} /><small>{week}</small></span>)}</div>
-                </section>
-                <section>
-                  <div className={styles.timeChartHead}><span>Stunden nach Taetigkeit</span></div>
-                  <div className={styles.timeActivityDonutRow}>
-                    <div className={styles.timeDonutChart} data-mode="activity"><span /></div>
-                    <ul>{activityRows.map(([label, hours, percent, tone]) => <li key={label} data-tone={tone}><span>{label}</span><b>{hours}</b><small>{percent}</small></li>)}</ul>
-                  </div>
-                </section>
-              </div>
-            </article>
-          </div>
-          <aside className={styles.timeDayDrawer}>
-            <header>
-              <button type="button" aria-label="Bearbeitung schliessen"><X size={16} /></button>
-              <span>Tag bearbeiten</span>
-              <h3>{formatGermanDate(selectedWorkDate)}</h3>
-              <small>{selectedCell && "label" in selectedCell ? selectedCell.label : "Kein Eintrag"}</small>
-            </header>
-            <form className={styles.timeEditForm} onSubmit={(event) => event.preventDefault()}>
-              <label>Projekt *<select value={monthEntryDraft.project} onChange={(event) => updateMonthEntry("project", event.target.value)}>{projectsSource.map((project) => <option key={project.id} value={project.name}>{project.name}</option>)}</select></label>
-              <label>Taetigkeit *<select value={monthEntryDraft.activity} onChange={(event) => updateMonthEntry("activity", event.target.value)}><option>Design & UI/UX</option><option>Konzeption</option><option>Umsetzung</option><option>Kundengespraech</option><option>Projektsteuerung</option></select></label>
-              <label>Startzeit<input type="time" value={monthEntryDraft.start} onChange={(event) => updateMonthEntry("start", event.target.value)} /></label>
-              <label>Endzeit<input type="time" value={monthEntryDraft.end} onChange={(event) => updateMonthEntry("end", event.target.value)} /></label>
-              <label className={styles.timeEditWide}>Beschreibung<textarea value={monthEntryDraft.description} onChange={(event) => updateMonthEntry("description", event.target.value)} /></label>
-              <div className={styles.timeEditDuration}><span>Dauer</span><strong>{durationFromTimes(monthEntryDraft.start, monthEntryDraft.end)}</strong></div>
-              <button type="submit"><Save size={16} />Speichern</button>
-              <button type="button" onClick={startTimerForSelectedDay}><Play size={16} />Timer starten</button>
-            </form>
-          </aside>
-        </section>
-      )
-    }
-
-    if (activeSection === "projekte") {
-      return (
-        <section className={styles.projectTimeGrid}>{projectCards.map(({ project, hours, share, progress }) => (
-          <article key={project.id} className={styles.projectTimeCard}>
-            <div><span><Folder size={20} /></span><strong>{project.name}</strong><small>{project.customer}</small></div>
-            <b>{hours}:00 h</b>
-            <div className={styles.timeProgress}><i style={{ width: `${progress}%` }} /></div>
-            <p><span>Anteil</span><strong>{share}%</strong></p>
-            <TimeSparkline tone="violet" />
-          </article>
-        ))}</section>
-      )
-    }
-
-    if (activeSection === "taetigkeiten") {
-      return (
-        <article className={styles.timeDetailPanel}>
-          <div className={styles.timePanelHead}><div><span>Taetigkeitsauswertung</span><h2>Stunden pro Taetigkeit</h2></div><div className={styles.timeFilters}><button type="button">Zeitraum</button><button type="button">Benutzer</button><button type="button">Projekt</button></div></div>
-          <div className={styles.timeConnectedFilters}>
-            <label>Zeitraum<select defaultValue="month"><option value="month">Aktueller Monat</option><option value="quarter">Quartal</option><option value="year">Jahr</option></select></label>
-            <label>Benutzer<select defaultValue={usersSource[0]?.id}>{usersSource.map((user) => <option key={user.id} value={user.id}>{user.name || user.email}</option>)}</select></label>
-            <label>Projekt<select defaultValue={projectsSource[0]?.id}>{projectsSource.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
-          </div>
-          <div className={styles.activityBars}>{activityRows.map(([label, hours, percent, tone]) => (
-            <div key={label} data-tone={tone}><span>{label}</span><strong>{hours}</strong><em>{percent}</em><i style={{ width: percent }} /></div>
-          ))}</div>
-        </article>
-      )
-    }
-
-    if (activeSection === "benutzerzeiten") {
-      return (
-        <section className={styles.userTimeGrid}>{usersSource.slice(0, 6).map((user, index) => (
-          <article key={user.id} className={styles.userTimeCard}>
-            <span>{(user.name || user.email || "U").slice(0, 2).toUpperCase()}</span>
-            <div><strong>{user.name || user.email || "Benutzer"}</strong><small>{user.role || "Team"}</small></div>
-            <p><b>Heute</b><strong>{index === 0 ? "06:35 h" : "04:20 h"}</strong></p>
-            <p><b>Woche</b><strong>{index === 0 ? "32:45 h" : "21:10 h"}</strong></p>
-            <p><b>Monat</b><strong>{index === 0 ? "128:30 h" : "86:00 h"}</strong></p>
-            <TimeSparkline tone={index === 0 ? "green" : "blue"} />
-          </article>
-        ))}</section>
-      )
-    }
-
-    if (activeSection === "berichte") {
-      return (
-        <article className={styles.timeDetailPanel}>
-          <div className={styles.timePanelHead}><div><span>Berichte</span><h2>Ist, Soll und Differenz</h2></div><div className={styles.timeFilters}><button type="button">Monat</button><button type="button">Jahr</button><button type="button">Benutzer</button><button type="button">Projekt</button></div></div>
-          <div className={styles.timeConnectedFilters}>
-            <label>Monat<select value={selectedPeriodDate.getMonth()} onChange={(event) => updateMonth(event.target.value)}>{germanMonths.map((month, index) => <option key={month} value={index}>{month}</option>)}</select></label>
-            <label>Jahr<select value={selectedPeriodDate.getFullYear()} onChange={(event) => updateYear(event.target.value)}>{availableYears.map((year) => <option key={year} value={year}>{year}</option>)}</select></label>
-            <label>Benutzer<select defaultValue={usersSource[0]?.id}>{usersSource.map((user) => <option key={user.id} value={user.id}>{user.name || user.email}</option>)}</select></label>
-            <label>Projekt<select defaultValue={projectsSource[0]?.id}>{projectsSource.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
-          </div>
-          <div className={styles.timeReportSplit}>
-            <div className={styles.reportChart}><span style={{ height: "66%" }}><b>Ist</b></span><span style={{ height: "82%" }}><b>Soll</b></span><span data-tone="rose" style={{ height: "34%" }}><b>Differenz</b></span></div>
-            <div className={styles.timeDonutChart} data-mode="activity"><span /></div>
-          </div>
-          <div className={styles.timeExportActions}><Link href="/api/time-tracking/export?format=pdf"><Download size={16} />PDF</Link><Link href="/api/time-tracking/export?format=csv"><Download size={16} />CSV</Link></div>
-        </article>
-      )
-    }
-
+  function renderEntryEditor() {
+    if (!editorDraft) return null
     return (
-      <article className={styles.timeDetailPanel}>
-        <div className={styles.timePanelHead}><div><span>Arbeitsvertrag</span><h2>Arbeitszeitmodell</h2></div><button type="button"><Save size={16} />Speichern</button></div>
-        <form className={styles.contractModernForm}>
-          {["Montag", "Dienstag", "Mittwoch", "Donnerstag", "Freitag", "Samstag", "Sonntag"].map((day, index) => <label key={day}>{day}<input defaultValue={index < 5 ? "08:00" : "00:00"} /></label>)}
-          <label>Arbeitszeitberechnung<select defaultValue="weekly"><option value="weekly">Woechentliches Soll</option><option value="monthly">Monatliches Soll</option><option value="flex">Gleitzeitkonto</option></select></label>
+      <div className={styles.timeEditorOverlay} role="presentation" onMouseDown={(event) => {
+        if (event.target === event.currentTarget) setEditorDraft(null)
+      }}>
+        <form className={styles.timeEditorDialog} onSubmit={(event) => { event.preventDefault(); void saveEntry(editorDraft) }}>
+          <header>
+            <div><span>Zeiteintrag</span><h2>{editorDraft.id.startsWith("new-") ? "Neue Zeit erfassen" : "Eintrag bearbeiten"}</h2></div>
+            <button type="button" aria-label="Schliessen" onClick={() => setEditorDraft(null)}><X size={18} /></button>
+          </header>
+          <div className={styles.timeEditorFields}>
+            <label>Projekt<select value={editorDraft.project} onChange={(event) => updateEditor("project", event.target.value)}>{projectsSource.map((project) => <option key={project.id} value={project.name}>{project.name}</option>)}</select></label>
+            <label>Taetigkeit<select value={editorDraft.activity} onChange={(event) => updateEditor("activity", event.target.value)}><option>Design & UI/UX</option><option>Operations Integration</option><option>Client Portal Setup</option><option>Kundengespraech</option><option>Projektsteuerung</option><option>Dokumentation</option></select></label>
+            <label>Startzeit<input type="time" value={editorDraft.start} onChange={(event) => updateEditor("start", event.target.value)} /></label>
+            <label>Endzeit<input type="time" value={editorDraft.end} onChange={(event) => updateEditor("end", event.target.value)} /></label>
+            <label>Pause<input type="time" value={editorDraft.pause} onChange={(event) => updateEditor("pause", event.target.value)} /></label>
+            <label className={styles.timeEditorWide}>Notiz<textarea value={editorDraft.note} onChange={(event) => updateEditor("note", event.target.value)} rows={4} /></label>
+          </div>
+          <footer>
+            <span><Clock3 size={16} />Dauer: <strong>{formatMinutes(entryDurationMinutes(editorDraft))}</strong></span>
+            <button type="button" onClick={() => setEditorDraft(null)}>Abbrechen</button>
+            <button type="submit"><Save size={16} />Speichern</button>
+          </footer>
         </form>
+      </div>
+    )
+  }
+
+  function renderTimerCard() {
+    return (
+      <article className={styles.timePlannerTimer} data-state={timerState}>
+        <span><TimerReset size={26} /></span>
+        <div><strong>{timerState === "active" || timerState === "paused" ? formatPremiumTimer(timerSeconds) : "00:00:00"}</strong><small>{timerState === "active" ? "Aktiv" : timerState === "paused" ? "Pausiert" : "Bereit"} <i /></small></div>
+        <div><b>{timerContext.project}</b><small>{timerContext.activity} · Start: 08:00</small></div>
+        <TimeSparkline tone="green" />
+        <button type="button" onClick={() => startEntryTimer()}><Play size={14} />Start</button>
+        <button type="button" onClick={pauseTimer}><Pause size={14} />Pause</button>
+        <button type="button" data-danger="true" onClick={stopTimer}><Square size={12} />Stopp</button>
+        <button type="button" data-save="true" onClick={() => void saveTimer()}><Save size={14} />Speichern</button>
+        <em>{timerNotice || "Automatisch minimieren in 5s"}</em>
       </article>
     )
+  }
+
+  function renderPopover(entry: TimeEntryDraft, dayMode = false) {
+    return (
+      <aside className={styles.timeEntryPopover} data-day={dayMode} onClick={(event) => event.stopPropagation()}>
+        <strong><i /> {entry.project}</strong>
+        <small>{entry.activity}</small>
+        <p><Clock3 size={14} /> {entry.start} - {entry.end}</p>
+        <p><TimerReset size={14} /> Dauer: {formatMinutes(entryDurationMinutes(entry))}</p>
+        <p><Folder size={14} /> Projekt: {entry.project}</p>
+        <p><Tag size={14} /> Taetigkeit: {entry.activity}</p>
+        <div>
+          <button type="button" aria-label="Bearbeiten" onClick={() => openEditor(entry)}><Pencil size={15} /></button>
+          <button type="button" aria-label="Timer fortsetzen" onClick={() => startEntryTimer(entry)}><Play size={15} /></button>
+          <button type="button" aria-label="Duplizieren" onClick={() => duplicateEntry(entry)}><Archive size={15} /></button>
+          <button type="button" aria-label="Loeschen" onClick={() => deleteEntry(entry.id)}><Trash2 size={15} /></button>
+        </div>
+      </aside>
+    )
+  }
+
+  function renderTimeRightRail() {
+    return (
+      <aside className={styles.timeRightRail}>
+        <section>
+          <h3>Wochenzeiten</h3>
+          <p><span>Geplante Stunden</span><strong>40:00 h</strong></p>
+          <p><span>Erfasste Stunden</span><strong>{formatMinutes(sidebarWeekMinutes)}</strong></p>
+          <p><span>Differenz</span><strong data-negative={sidebarWeekMinutes < weekTargetMinutes}>{formatSignedMinutes(sidebarWeekMinutes - weekTargetMinutes)}</strong></p>
+          <div className={styles.timeProgress}><i style={{ width: `${weekProgress}%` }} /></div>
+          <Link href={timeHref("wochenzeiten")}>Zur Wochenansicht</Link>
+        </section>
+        <section>
+          <h3>Projekt Budget</h3>
+          {projectGroups.slice(0, 3).map((project, index) => <p key={project.label}><span><i data-tone={project.tone} />{project.label}</span><strong>{project.value}</strong><em>{project.percent}</em></p>)}
+          <Link href={timeHref("berichte")}>Alle Projekte</Link>
+        </section>
+        <section>
+          <h3>Monatszeiten - {formatMonthYear(selectedPeriodDate)}</h3>
+          <div className={styles.timeMiniHeatmap}>{Array.from({ length: 35 }).map((_, index) => <i key={index} data-level={index % 7 > 4 ? 0 : (index % 4) + 1} />)}</div>
+          <small>0 h · 1-4 h · 4-8 h · 8+ h</small>
+          <Link href={timeHref("monatsansicht")}>Zum Monatsreport</Link>
+        </section>
+        <section>
+          <h3>Auswertung</h3>
+          {activityGroups.slice(0, 5).map((activity) => <p key={activity.label}><span><i data-tone={activity.tone} />{activity.label}</span><strong>{activity.value}</strong><em>{activity.percent}</em></p>)}
+          <Link href={timeHref("berichte")}>Detaillierte Auswertung</Link>
+        </section>
+      </aside>
+    )
+  }
+
+  function renderWeeklyDashboard() {
+    const compactEntry = (start: string, end: string) => minutesFromTime(end) - minutesFromTime(start) <= 60
+    return (
+      <section className={styles.timePlannerShell} onClick={() => setSelectedEntryId(null)}>
+        {renderTimerCard()}
+        <section className={styles.timePlannerLayout}>
+          <article className={styles.timeWeekCalendar}>
+            <div className={styles.timeWeekHeader}>
+              <span>KW 26</span>
+              {weekRows.map((row, index) => <Link key={row.day} href={timeHref("arbeitstag", weekDates[index])} data-active={isoLocalDate(weekDates[index]) === isoLocalDate(selectedDate)}><strong>{row.day}</strong><small>{row.value}</small></Link>)}
+            </div>
+            <div className={styles.timeWeekGrid}>
+              <div className={styles.timeHourRail}>{calendarHours.map((hour) => <span key={hour}>{padDatePart(hour)}:00</span>)}</div>
+              {weekRows.map((row, dayIndex) => (
+                <div key={row.day} className={styles.timeDayColumn} data-weekend={dayIndex > 4} onDoubleClick={(event) => handleSlotDoubleClick(event, dayIndex)}>
+                  {dayIndex > 4 ? <div className={styles.timeEmptyDay}>Kein Eintrag</div> : null}
+                  {visibleWeekEntries.filter((entry) => entry.day === dayIndex).map((entry) => (
+                    <button key={entry.id} type="button" className={styles.timeCalendarBlock} data-tone={entry.tone} data-selected={selectedEntryId === entry.id} data-compact={compactEntry(entry.start, entry.end)} style={timeBlockStyle(entry.start, entry.end)} onClick={(event) => { event.stopPropagation(); setSelectedEntryId(entry.id) }} onDoubleClick={(event) => { event.stopPropagation(); openEditor(entry) }}>
+                      <span>{entry.start} - {entry.end}</span>
+                      <strong>{entry.activity}</strong>
+                      <small>{entry.project}</small>
+                      <em>{formatMinutes(entryDurationMinutes(entry))}</em>
+                    </button>
+                  ))}
+                </div>
+              ))}
+              <div className={styles.timeNowLine}><span>10:15</span></div>
+              {selectedEntry ? renderPopover(selectedEntry) : null}
+            </div>
+            <div className={styles.timeWeekFooter}>
+              <span>Tages-Summe</span>
+              {weekRows.map((row) => <strong key={row.day}>{row.value}</strong>)}
+            </div>
+            <div className={styles.timeLegend}>
+              {[["Design & UI/UX", "violet"], ["Operations Integration", "blue"], ["Client Portal Setup", "orange"], ["Projektsteuerung", "amber"], ["Kundengespraech", "green"], ["Dokumentation", "gray"]].map(([label, tone]) => <span key={label}><i data-tone={tone} />{label}</span>)}
+            </div>
+          </article>
+          {renderTimeRightRail()}
+        </section>
+        {renderEntryEditor()}
+      </section>
+    )
+  }
+
+  function renderDayView() {
+    const dayTotal = dayEntries.reduce((sum, entry) => sum + entryDurationMinutes(entry), 0)
+    const pauseTotal = dayEntries.reduce((sum, entry) => sum + minutesFromTime(entry.pause), 0)
+    return (
+      <section className={styles.timeDayPremium} onClick={() => setSelectedEntryId(null)}>
+        {renderTimerCard()}
+        <article className={styles.timeDayTimeline}>
+          <header><div><span>Tagesansicht</span><h2>{formatGermanDate(selectedDate)}</h2></div><button type="button" onClick={() => openNewEntry((selectedDate.getDay() + 6) % 7, "09:00")}><Plus size={16} />Eintrag</button></header>
+          {dayEntries.map((entry) => (
+            <button key={entry.id} type="button" data-tone={entry.tone} onClick={(event) => { event.stopPropagation(); setSelectedEntryId(entry.id) }} onDoubleClick={(event) => { event.stopPropagation(); openEditor(entry) }}>
+              <span><Clock3 size={18} /></span>
+              <div><strong>{entry.project}</strong><small>{entry.activity}</small></div>
+              <b>{entry.start} - {entry.end}</b>
+              <em>{formatMinutes(entryDurationMinutes(entry))}</em>
+            </button>
+          ))}
+          {!dayEntries.length ? <button type="button" data-empty="true" onDoubleClick={() => openNewEntry((selectedDate.getDay() + 6) % 7, "09:00")}>Doppelklick fuer neuen Eintrag</button> : null}
+        </article>
+        <aside className={styles.timeDaySummary}>
+          <h3>Tagesuebersicht</h3>
+          <p><span>Sollzeit</span><strong>08:00 h</strong></p>
+          <p><span>Istzeit</span><strong>{formatMinutes(dayTotal)}</strong></p>
+          <p><span>Pause</span><strong>{formatMinutes(pauseTotal)}</strong></p>
+          <p><span>Differenz</span><strong>{formatSignedMinutes(dayTotal - 8 * 60)}</strong></p>
+          <button type="button" onClick={() => openNewEntry((selectedDate.getDay() + 6) % 7, "09:00")}><Plus size={16} />Zeit erfassen</button>
+        </aside>
+        {selectedEntry ? renderPopover(selectedEntry, true) : null}
+        {renderEntryEditor()}
+      </section>
+    )
+  }
+
+  function renderMonthView() {
+    const daysInMonth = new Date(selectedPeriodDate.getFullYear(), selectedPeriodDate.getMonth() + 1, 0).getDate()
+    const firstWeekdayOffset = (new Date(selectedPeriodDate.getFullYear(), selectedPeriodDate.getMonth(), 1).getDay() + 6) % 7
+    const statusFromEntries = (iso: string) => {
+      const text = entries.filter((entry) => entry.date === iso).map((entry) => `${entry.activity} ${entry.project} ${entry.note}`).join(" ").toLowerCase()
+      if (text.includes("urlaub")) return "Urlaub"
+      if (text.includes("krank")) return "Krank"
+      if (text.includes("feiertag")) return "Feiertag"
+      if (text.includes("abbau")) return "Abbau"
+      return ""
+    }
+    const monthDays = Array.from({ length: daysInMonth }).map((_, index) => {
+      const date = new Date(selectedPeriodDate.getFullYear(), selectedPeriodDate.getMonth(), index + 1)
+      const iso = isoLocalDate(date)
+      const minutes = entries.filter((entry) => entry.date === iso).reduce((sum, entry) => sum + entryDurationMinutes(entry), 0)
+      const status = statusFromEntries(iso)
+      return { date, iso, minutes, status }
+    })
+    const monthTotal = monthDays.reduce((sum, day) => sum + day.minutes, 0)
+    const selectedDay = monthDays.find((day) => day.iso === activeDayDetails) ?? monthDays[0]
+    const selectedEntries = entries.filter((entry) => entry.date === selectedDay.iso)
+    return (
+      <section className={styles.timeMonthPremium}>
+        <article className={styles.timeMonthMain}>
+          <header><div><span>Monatsansicht</span><h2>{formatMonthYear(selectedPeriodDate)}</h2></div><strong>{formatMinutes(monthTotal)}</strong></header>
+          <div className={styles.timeMonthKpis}>
+            <span><small>Sollstunden</small><strong>176:00 h</strong><em>Plan fuer {germanMonths[selectedPeriodDate.getMonth()]}</em></span>
+            <span><small>Iststunden</small><strong>{formatMinutes(monthTotal)}</strong><em>Erfasst im Monat</em></span>
+            <span data-tone={monthTotal >= 176 * 60 ? "green" : "rose"}><small>Differenz</small><strong>{formatSignedMinutes(monthTotal - 176 * 60)}</strong><em>Abweichung</em></span>
+          </div>
+          <div className={styles.timeMonthGridLarge}>
+            {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((day) => <b key={day}>{day}</b>)}
+            {Array.from({ length: firstWeekdayOffset }).map((_, index) => <em key={`blank-${index}`} aria-hidden="true" />)}
+            {monthDays.map((day) => (
+              <button key={day.iso} type="button" data-level={day.minutes === 0 ? 0 : day.minutes < 240 ? 1 : day.minutes < 480 ? 2 : 3} data-active={day.iso === selectedDay.iso} onClick={() => setActiveDayDetails(day.iso)} onDoubleClick={() => openNewEntry((day.date.getDay() + 6) % 7, "09:00")}>
+                <strong>{day.date.getDate()}</strong>
+                <span>{day.status || (day.minutes ? formatMinutes(day.minutes) : "Kein Eintrag")}</span>
+              </button>
+            ))}
+          </div>
+          <footer>
+            <span><i data-tone="gray" />0 h</span>
+            <span><i data-tone="blue" />0-4 h</span>
+            <span><i data-tone="violet" />4-8 h</span>
+            <span><i data-tone="rose" />8+ h</span>
+            <span><i data-tone="amber" />Urlaub</span>
+            <span><i data-tone="blue" />Krank</span>
+            <span><i data-tone="green" />Feiertag</span>
+            <span><i data-tone="green" />Abbau</span>
+          </footer>
+        </article>
+        <aside className={styles.timeMonthEditor}>
+          <header><div><span>Tag bearbeiten</span><h2>{formatGermanDate(selectedDay.date)}</h2></div><button type="button" onClick={() => openNewEntry((selectedDay.date.getDay() + 6) % 7, "09:00")}><Plus size={15} />Eintrag</button></header>
+          <div><small>Status</small><strong>{selectedDay.status || "Arbeitstag"}</strong></div>
+          {selectedEntries.map((entry) => <button key={entry.id} type="button" onClick={() => setSelectedEntryId(entry.id)} onDoubleClick={() => openEditor(entry)}><span>{entry.start} - {entry.end}</span><strong>{entry.activity}</strong><small>{entry.project}</small></button>)}
+          {!selectedEntries.length ? <p>Keine Eintraege fuer diesen Tag.</p> : null}
+          <button type="button" data-primary="true" onClick={() => startEntryTimer(selectedEntries[0])}><Play size={15} />Timer starten</button>
+        </aside>
+        {renderEntryEditor()}
+      </section>
+    )
+  }
+
+  function renderReportsView() {
+    const reportGroups = [
+      { title: "Wochenreport", tone: "violet", items: [{ title: "Wochenansicht fuer einen Benutzer", description: "Arbeitszeiten einer Person pro Kalenderwoche.", icon: Clock3, href: timeHref("wochenzeiten") }, { title: "Wochenansicht fuer alle Benutzer", description: "Teamzeiten fuer die aktuelle Woche vergleichen.", icon: Users, href: timeHref("wochenzeiten") }] },
+      { title: "Monatsreport", tone: "blue", items: [{ title: "Monatsansicht fuer einen Benutzer", description: "Monatswerte, Tage und Export fuer eine Person.", icon: CalendarDays, href: timeHref("monatsansicht") }, { title: "Monatsansicht fuer alle Benutzer", description: "Monatsauswertung aller aktiven Benutzer.", icon: Users, href: timeHref("monatsansicht") }, { title: "Monatsauswertung", description: "Soll, Ist, Differenz und Status pro Tag.", icon: BarChart3, href: timeHref("monatsansicht") }] },
+      { title: "Projektzeiten", tone: "green", items: [{ title: "Projektdetails", description: "Zeiten, Kontingent und letzte Eintraege pro Projekt.", icon: Briefcase, href: timeHref("berichte") }, { title: "Projektuebersicht", description: "Alle Projektzeiten kompakt nebeneinander.", icon: Folder, href: timeHref("berichte") }, { title: "Inaktive Projekte", description: "Archivierte oder pausierte Projekte auswerten.", icon: Archive, href: timeHref("berichte") }, { title: "Projekte nach Monat, Taetigkeit und Benutzer", description: "Projektzeiten nach Zeitraum, Aufgabe und Person filtern.", icon: Grid3X3, href: timeHref("berichte") }] },
+      { title: "Export", tone: "amber", items: [{ title: "PDF", description: "Bericht als PDF exportieren.", icon: FileText, href: "/api/time-tracking/export?format=pdf" }, { title: "CSV", description: "Tabellarische Rohdaten exportieren.", icon: Download, href: "/api/time-tracking/export?format=csv" }, { title: "XML", description: "XML Export fuer Weiterverarbeitung.", icon: FileText, href: "/api/time-tracking/export?format=xml" }, { title: "Excel", description: "Excel Export vorbereiten.", icon: Download, href: "/api/time-tracking/export?format=xls" }] }
+    ]
+    return (
+      <article className={`${styles.timeDetailPanel} ${styles.timeReportsOverview}`}>
+        <div className={styles.timePanelHead}>
+          <div><span>Berichte</span><h2>Report Center</h2></div>
+          <div className={styles.timeReportQuickExport}>
+            <Link href="/api/time-tracking/export?format=pdf"><Download size={15} />PDF</Link>
+            <Link href="/api/time-tracking/export?format=csv"><Download size={15} />CSV</Link>
+            <Link href="/api/time-tracking/export?format=xml"><Download size={15} />XML</Link>
+            <Link href="/api/time-tracking/export?format=xls"><Download size={15} />Excel</Link>
+          </div>
+        </div>
+        <div className={styles.timeReportsToolbar}>
+          <label><Search size={16} /><input placeholder="Bericht suchen" /></label>
+          <select defaultValue="month" aria-label="Zeitraum"><option value="week">Aktuelle Woche</option><option value="month">Aktueller Monat</option><option value="year">Aktuelles Jahr</option></select>
+          <select defaultValue={usersSource[0]?.id} aria-label="Benutzer">{usersSource.map((user) => <option key={user.id} value={user.id}>{user.name || user.email}</option>)}</select>
+          <select defaultValue={projectsSource[0]?.id} aria-label="Projekt">{projectsSource.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select>
+          <button type="button" data-active="true">Alle</button>
+          <button type="button">Benutzer</button>
+          <button type="button">Projekte</button>
+          <button type="button">Taetigkeit</button>
+          <button type="button">Export</button>
+        </div>
+        <div className={styles.timeReportKpis}>{reportKpis.map((item) => <span key={item.label} data-tone={item.tone}><small>{item.label}</small><strong>{item.value}</strong><em>{item.hint}</em></span>)}</div>
+        <div className={styles.timeReportCenterGrid}>
+          <div className={styles.timeReportGroupGrid}>{reportGroups.map((group) => <section key={group.title} className={styles.timeReportGroup} data-tone={group.tone}><header><span /> <strong>{group.title}</strong></header><div>{group.items.map((item, index) => { const Icon = item.icon; return <Link key={item.title} href={item.href} className={styles.timeReportTile}><span><Icon size={20} /></span><div><strong>{item.title}</strong><small>{item.description}</small><i style={{ width: `${72 - index * 11}%` }} /></div><ChevronRight size={17} /></Link> })}</div></section>)}</div>
+          <aside className={styles.timeReportSidePanel}>
+            <section><h3>Letzte Berichte</h3><p><FileText size={15} /><span>Wochenansicht Benutzer</span><small>Heute</small></p><p><Folder size={15} /><span>Projektuebersicht</span><small>Gestern</small></p><p><Activity size={15} /><span>Taetigkeiten</span><small>Juni</small></p></section>
+            <section><h3>Schnell exportieren</h3><Link href="/api/time-tracking/export?format=pdf"><Download size={15} />PDF exportieren</Link><Link href="/api/time-tracking/export?format=csv"><Download size={15} />CSV exportieren</Link><Link href="/api/time-tracking/export?format=xml"><Download size={15} />XML exportieren</Link><Link href="/api/time-tracking/export?format=xls"><Download size={15} />Excel exportieren</Link></section>
+          </aside>
+        </div>
+      </article>
+    )
+  }
+
+  function renderCurrentView() {
+    if (activeSection === "arbeitstag") return renderDayView()
+    if (activeSection === "monatsansicht") return renderMonthView()
+    if (activeSection === "berichte") return renderReportsView()
+    return renderWeeklyDashboard()
   }
 
   return (
@@ -7356,7 +7753,7 @@ function PremiumTimeModulePage({
         <Link href={withPremiumTheme("/dashboard-v2", mode)}><ChevronLeft size={16} />Zurueck</Link>
         <div><h1>Zeiterfassung</h1><p>Arbeitszeiten erfassen</p></div>
         <div className={styles.timeHeaderActions}>
-          <select value={periodValue} aria-label="Zeitraum" onChange={(event) => changePeriod(event.target.value)}><option value="day">Tag</option><option value="week">Woche</option><option value="month">Monat</option><option value="year">Jahr</option></select>
+          <select value={periodValue} aria-label="Zeitraum" onChange={(event) => changePeriod(event.target.value)}><option value="day">Tag</option><option value="week">Woche</option><option value="month">Monat</option><option value="reports">Berichte</option></select>
           <div className={styles.timeDateStepper}>
             <button type="button" aria-label="Vorheriger Zeitraum" onClick={() => moveDate(-1)}><ChevronLeft size={16} /></button>
             <strong>{periodLabel}</strong>
@@ -7364,141 +7761,16 @@ function PremiumTimeModulePage({
           </div>
           <select value={selectedPeriodDate.getMonth()} aria-label="Monat wechseln" onChange={(event) => updateMonth(event.target.value)}>{germanMonths.map((month, index) => <option key={month} value={index}>{month}</option>)}</select>
           <select value={selectedPeriodDate.getFullYear()} aria-label="Jahr wechseln" onChange={(event) => updateYear(event.target.value)}>{availableYears.map((year) => <option key={year} value={year}>{year}</option>)}</select>
-          <button type="button" onClick={() => navigateTime(activeSection === "overview" ? "arbeitstag" : activeSection, new Date())}>Heute</button>
-          <Link href={timeHref("arbeitstag", selectedDate)}><Plus size={16} />Manuelle Zeit</Link>
+          <button type="button" onClick={() => navigateTime(activeSection, new Date())}>Heute</button>
+          <button type="button" className={styles.timeCaptureButton} onClick={() => openNewEntry((selectedDate.getDay() + 6) % 7, "09:00")}><Plus size={16} />Zeit erfassen</button>
         </div>
       </header>
-
-      {activeSection === "overview" ? (
-        <>
-          <section className={styles.timeReportCockpit}>
-            <article className={styles.timeReportToolbar}>
-              <div className={styles.timeBreadcrumb}><Link href={timeHref("berichte")}>Berichte</Link><ChevronRight size={14} /><span>Projekte</span></div>
-              <label>Projekt<select value={timerProject} onChange={(event) => setTimerProject(event.target.value)}>{projectsSource.map((project) => <option key={project.id} value={project.name}>{project.name}</option>)}</select></label>
-              <label>Jahr<select value={selectedPeriodDate.getFullYear()} onChange={(event) => updateYear(event.target.value)}>{availableYears.map((year) => <option key={year} value={year}>{year}</option>)}</select></label>
-              <div className={styles.timeReportActions}>
-                <button type="button"><Eye size={16} />Anzeigen</button>
-                <button type="button"><Pencil size={16} />Bearbeiten</button>
-                <button type="button"><Filter size={16} />Daten filtern</button>
-              </div>
-              <aside className={styles.timeCompactTimer}>
-                <div><span>{formatPremiumTimer(timerSeconds)}</span><small>{timerState === "active" ? "Aktiv" : timerState === "paused" ? "Pause" : "Bereit"}</small></div>
-                <button type="button" onClick={() => setTimerState("active")}><Play size={15} />Start</button>
-                <button type="button" onClick={() => setTimerState("paused")} aria-label="Timer pausieren"><Pause size={15} /></button>
-                <button type="button" onClick={() => { setTimerSeconds(0); setTimerState("idle"); setTimerNotice("") }} aria-label="Timer zuruecksetzen"><TimerReset size={15} /></button>
-              </aside>
-            </article>
-
-            <section className={styles.timeCockpitGrid}>
-              <div className={styles.timeCockpitMain}>
-                <article className={styles.timeReportCard}>
-                  <header className={styles.timeReportCardHead}>
-                    <div><span data-dot="rose" /> <strong>{timerProject}</strong></div>
-                    <nav>
-                      <button type="button" data-active={reportFocus === "project"} onClick={() => setReportFocus("project")}>Projektdetails</button>
-                      <button type="button" data-active={reportFocus === "users"} onClick={() => setReportFocus("users")}>Benutzer</button>
-                      <button type="button" data-active={reportFocus === "activity"} onClick={() => setReportFocus("activity")}>Taetigkeit</button>
-                    </nav>
-                    <div><b>99:00</b><b>0,00 EUR</b></div>
-                  </header>
-                  <div className={styles.timeReportBody}>
-                    <div className={styles.timeReportFacts}>
-                      {reportFocus === "project" ? (
-                        <>
-                          <span><small>Kunde</small><strong>Acme GmbH</strong></span>
-                          <span><small>Gesamt</small><strong>99:00 h</strong></span>
-                          <span><small>Umsatz gesamt</small><strong>0,00 EUR</strong></span>
-                          <span><small>Abrechenbar</small><strong>0,00 EUR</strong></span>
-                          <span><small>Nicht exportiert</small><strong>99:00 h</strong></span>
-                          <span><small>Letzter Eintrag</small><strong>{formatShortDate(selectedDate)}{selectedDate.getFullYear()}</strong></span>
-                        </>
-                      ) : reportFocus === "users" ? (
-                        <>
-                          <span><small>Benutzer</small><strong>{usersSource[0]?.name || "admin"}</strong></span>
-                          <span><small>Dauer</small><strong>99:00 h</strong></span>
-                          <span><small>Anteil</small><strong>100%</strong></span>
-                          <span><small>Abrechenbar</small><strong>0,00 EUR</strong></span>
-                        </>
-                      ) : (
-                        <>
-                          <span><small>Planung</small><strong>73:00 h</strong></span>
-                          <span><small>Kundengespraech</small><strong>26:00 h</strong></span>
-                          <span><small>Umsatz gesamt</small><strong>0,00 EUR</strong></span>
-                          <span><small>Taetigkeiten</small><strong>2 aktiv</strong></span>
-                        </>
-                      )}
-                    </div>
-                    <div className={styles.timeReportVisual}>
-                      {reportFocus === "project" ? (
-                        <div className={styles.timeLineChart} aria-label="Stundenkontingent">
-                          {[20, 20, 20, 20, -78, -78, -78, -78, -78, -78, -78, -78].map((value, index) => <i key={index} style={{ "--point": `${50 - value / 2}%` } as CSSProperties} data-negative={value < 0} />)}
-                        </div>
-                      ) : (
-                        <div className={styles.timeDonutChart} data-mode={reportFocus}><span /></div>
-                      )}
-                    </div>
-                  </div>
-                  <footer className={styles.timeQuotaBar}>
-                    <span>Stundenkontingent</span>
-                    <strong>99:00</strong>
-                    <div><i /></div>
-                    <em>120:00</em>
-                  </footer>
-                </article>
-
-                <article className={styles.timeYearReportCard}>
-                  <header className={styles.timeReportCardHead}>
-                    <strong>{selectedPeriodDate.getFullYear()}</strong>
-                    <nav>
-                      <button type="button" data-active={annualFocus === "work"} onClick={() => setAnnualFocus("work")}>Arbeitszeit</button>
-                      <button type="button" data-active={annualFocus === "revenue"} onClick={() => setAnnualFocus("revenue")}>Umsatz</button>
-                      <button type="button" data-active={annualFocus === "users"} onClick={() => setAnnualFocus("users")}>Benutzer</button>
-                      <button type="button" data-active={annualFocus === "activity"} onClick={() => setAnnualFocus("activity")}>Taetigkeit</button>
-                    </nav>
-                    <div><b>99:00</b><b>0,00 EUR</b></div>
-                  </header>
-                  <div className={styles.timeAnnualReport}>
-                    <div className={styles.timeBarChart}>{germanMonths.map((month, index) => <span key={month}><i style={{ height: `${index === 4 ? 96 : index === 5 ? 28 : index < 4 ? 4 : 12}%` }} data-active={index === selectedPeriodDate.getMonth()} /><small>{month.slice(0, 3)}</small></span>)}</div>
-                    <div className={styles.timeActivitySummary}>
-                      <div className={styles.timeDonutChart} data-mode="activity"><span /></div>
-                      <strong>{annualFocus === "revenue" ? "0,00 EUR" : "99:00 h"}</strong>
-                      <small>{annualFocus === "users" ? "Benutzeranteile" : annualFocus === "activity" ? "Taetigkeiten" : "Jahresauswertung"}</small>
-                    </div>
-                  </div>
-                </article>
-              </div>
-
-              <aside className={styles.timeDrilldownPanel}>
-                <strong>Details</strong>
-                <p>Direkt in die Arbeitszeit springen.</p>
-                <Link href={timeHref("arbeitstag")}><CalendarDays size={17} />Arbeitstag<ChevronRight size={15} /></Link>
-                <Link href={timeHref("wochenzeiten")}><Clock3 size={17} />Wochenzeiten<ChevronRight size={15} /></Link>
-                <Link href={timeHref("monatsansicht")}><CalendarDays size={17} />Monatszeiten<ChevronRight size={15} /></Link>
-                <Link href={timeHref("kalender")}><CalendarDays size={17} />Kalender<ChevronRight size={15} /></Link>
-                <Link href={timeHref("berichte")}><FileText size={17} />Berichte<ChevronRight size={15} /></Link>
-                <Link href={timeHref("arbeitsvertrag")}><Briefcase size={17} />Arbeitsvertrag<ChevronRight size={15} /></Link>
-              </aside>
-            </section>
-          </section>
-        </>
-      ) : (
-        <>
-          <nav className={styles.timeSubNav} aria-label="Zeiterfassung Ansichten">
-            <div className={styles.timePrimaryTabs}>
-              {timeWorkTabs.map((item) => <Link key={item.key} href={timeHref(item.key)} data-active={activeSection === item.key || (item.key === "monatsansicht" && activeSection === "kalender")}>{item.title}</Link>)}
-            </div>
-            <div className={styles.timeAnalysisMenu} data-active={timeAnalysisItems.some((item) => item.key === activeSection)}>
-              <button type="button">Auswertung <ChevronDown size={14} /></button>
-              <div>{timeAnalysisItems.map((item) => {
-                const Icon = item.icon
-                return <Link key={item.key} href={timeHref(item.key)} data-active={activeSection === item.key}><Icon size={15} />{item.title}</Link>
-              })}</div>
-            </div>
-            <Link className={styles.timeContractTab} href={timeHref("arbeitsvertrag")} data-active={activeSection === "arbeitsvertrag"}>Vertrag</Link>
-          </nav>
-          {renderDetail()}
-        </>
-      )}
+      <nav className={styles.timeSubNav} aria-label="Zeiterfassung Ansichten">
+        <div className={styles.timePrimaryTabs}>
+          {[{ key: "arbeitstag" as TimeSectionKey, title: "Tag" }, { key: "wochenzeiten" as TimeSectionKey, title: "Woche" }, { key: "monatsansicht" as TimeSectionKey, title: "Monat" }, { key: "berichte" as TimeSectionKey, title: "Berichte" }].map((item) => <Link key={item.key} href={timeHref(item.key)} data-active={activeSection === item.key || (item.key === "wochenzeiten" && rawSection === "overview")}>{item.title}</Link>)}
+        </div>
+      </nav>
+      {renderCurrentView()}
     </section>
   )
 }
@@ -8032,8 +8304,8 @@ function PremiumModulePage({
     }
   }
 
-  if (view === "settings" && settingsSection) {
-    return <PremiumSettingsSectionContent section={settingsSection} />
+  if (view === "settings") {
+    return <PremiumSettingsSectionContent section={settingsSection ?? "company"} />
   }
 
   if (view === "customers") {
@@ -9207,19 +9479,16 @@ function PremiumModulePage({
   }
 
   if (view === "reports") {
-    return (
-      <PremiumReportsPage
-        data={data}
-        mode={mode}
-        isExporting={isModuleActionSaving}
-        onReportExport={() => void runReportQuickAction("documents")}
-      />
-    )
+    return <ReportsPageClient />
+  }
+
+  if (view === "logs") {
+    return <LogsPageClient />
   }
 
   return (
     <section className={styles.modulePage} data-view={view}>
-      {view !== "settings" && !isOffersSimpleView ? (
+      {!isOffersSimpleView ? (
         <article className={`${styles.panel} ${styles.moduleHero}`}>
           <div>
             <span>{meta.eyebrow}</span>
@@ -9242,7 +9511,7 @@ function PremiumModulePage({
 
       {!isOffersSimpleView ? <DataQualityNotice health={health} /> : null}
 
-      {view !== "settings" && !isOffersSimpleView ? (
+      {!isOffersSimpleView ? (
         <section className={styles.moduleStatsGrid}>
           {stats.map(([value, label]) => (
             <article key={`${label}-${value}`} className={`${styles.panel} ${styles.moduleStatCard}`}>
@@ -9255,10 +9524,9 @@ function PremiumModulePage({
 
       {view === "license" ? <PremiumLicensePanel data={data} mode={mode} searchQuery={searchQuery} /> : null}
       {view === "finance" ? <PremiumFinancePanel mode={mode} searchQuery={searchQuery} /> : null}
-      {view !== "finance" ? <PremiumWorkflowPanel view={view} data={data} language={language} mode={mode} searchQuery={searchQuery} onDataChange={onDataChange} /> : null}
-      {view !== "settings" && !isOffersSimpleView ? <ModuleSelectionPanel view={view} data={data} mode={mode} row={selectedRow} searchQuery={searchQuery} /> : null}
+      {view !== "finance" ? <PremiumWorkflowPanel view={view} settingsSection={settingsSection} data={data} language={language} mode={mode} searchQuery={searchQuery} onDataChange={onDataChange} /> : null}
+      {!isOffersSimpleView ? <ModuleSelectionPanel view={view} data={data} mode={mode} row={selectedRow} searchQuery={searchQuery} /> : null}
 
-      {view !== "settings" ? (
       <section className={`${styles.moduleGrid} ${view === "finance" ? styles.moduleGridCompact : ""} ${isOffersSimpleView ? styles.moduleGridSingle : ""}`}>
         {view !== "finance" && !isOffersSimpleView ? (
         <article className={`${styles.panel} ${styles.moduleCard}`}>
@@ -9266,12 +9534,7 @@ function PremiumModulePage({
           <details className={styles.moreActions}>
             <summary><ChevronDown size={16} />Sekundaere Aktionen anzeigen</summary>
             <div className={styles.actionStrip}>
-            {view === "audit" ? (
-              <>
-                <button type="button" disabled={isModuleActionSaving} onClick={() => void runAuditQuickAction("filter")}><Search size={16} />Filter setzen</button>
-                <button type="button" disabled={isModuleActionSaving} onClick={() => void runAuditQuickAction("search")}><BarChart3 size={16} />Ereignis suchen</button>
-              </>
-            ) : view === "users" ? (
+            {view === "users" ? (
               <>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runUserQuickAction("role")}><Search size={16} />Rolle bearbeiten</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runUserQuickAction("2fa")}><BarChart3 size={16} />2FA pruefen</button>
@@ -9349,7 +9612,6 @@ function PremiumModulePage({
           </div>
         </article>
       </section>
-      ) : null}
     </section>
   )
 }
