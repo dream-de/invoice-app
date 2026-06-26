@@ -1,0 +1,740 @@
+.licensePage {
+  padding: 24px;
+  background: #fbfbff;
+  color: #0f172a;
+}
+
+.licenseHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.licenseHeader h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 850;
+  letter-spacing: 0;
+}
+
+.licenseHeader p {
+  margin: 8px 0 0;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.licenseHeaderActions {
+  display: flex;
+  gap: 12px;
+}
+
+.statusStrip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.statusCard {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.04);
+  min-height: 86px;
+  padding: 14px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  min-width: 0;
+}
+
+.statusIcon {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  background: #f3e8ff;
+  color: #7c3aed;
+  flex: none;
+}
+
+.statusCard span,
+.statusCard small {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.statusCard strong {
+  display: block;
+  margin: 3px 0;
+  font-size: 16px;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.lbBtn {
+  min-height: 40px;
+  border-radius: 12px;
+  padding: 0 14px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  color: #0f172a;
+  font-size: 13px;
+}
+
+.primary {
+  color: #fff;
+  border-color: transparent;
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  box-shadow: 0 12px 24px rgba(124, 58, 237, 0.22);
+}
+
+.secondary {
+  background: #fff;
+}
+
+.licenseTabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 8px;
+  margin-bottom: 18px;
+  scrollbar-width: thin;
+  scroll-padding-inline: 8px;
+}
+
+.licenseTabs::-webkit-scrollbar {
+  height: 7px;
+}
+
+.licenseTabs::-webkit-scrollbar-thumb {
+  background: #ddd6fe;
+  border-radius: 999px;
+}
+
+.licenseTabs button {
+  border: 0;
+  background: transparent;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 13px;
+  color: #475569;
+  white-space: nowrap;
+  cursor: pointer;
+  min-width: max-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.licenseTabs button svg {
+  flex: none;
+}
+
+.licenseTabs button.active {
+  color: #6d28d9;
+  background: #f3e8ff;
+}
+
+.licenseGrid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  grid-template-areas:
+    "plan plan plan plan feature feature feature feature feature installed installed installed"
+    "marketplace marketplace marketplace marketplace marketplace marketplace marketplace invoices invoices invoices invoices invoices"
+    "api api api api payment payment payment payment team team team team"
+    "history history history history history history history system system system system system"
+    "advanced advanced advanced advanced advanced advanced advanced advanced advanced advanced advanced advanced";
+  gap: 14px;
+  align-items: stretch;
+}
+
+.singleMode {
+  grid-template-columns: 1fr;
+  grid-template-areas: none;
+}
+
+.lbCard {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.04);
+  min-width: 0;
+  min-height: auto;
+}
+
+.planCard {
+  grid-area: plan;
+}
+
+.featureCard {
+  grid-area: feature;
+}
+
+.installedCard {
+  grid-area: installed;
+}
+
+.marketplaceCard {
+  grid-area: marketplace;
+}
+
+.invoicesCard {
+  grid-area: invoices;
+}
+
+.apiCard {
+  grid-area: api;
+}
+
+.paymentCard {
+  grid-area: payment;
+}
+
+.teamCard {
+  grid-area: team;
+}
+
+.historyCard {
+  grid-area: history;
+}
+
+.systemCard {
+  grid-area: system;
+}
+
+.advancedCard {
+  grid-area: advanced;
+}
+
+.cardTitle {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 14px;
+  color: #7c3aed;
+}
+
+.cardTitle h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 16px;
+}
+
+.between {
+  justify-content: space-between;
+}
+
+.between > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.textBtn {
+  border: 0;
+  background: transparent;
+  color: #7c3aed;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.planBox {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.planIcon {
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+.planBox h3 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.planBox p {
+  color: #64748b;
+  line-height: 1.5;
+  font-size: 13px;
+}
+
+.greenBadge {
+  display: inline-flex;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #15803d;
+  font-weight: 850;
+  font-size: 12px;
+}
+
+.planSwitch {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.planSwitch button {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.planSwitch button.active {
+  border-color: #7c3aed;
+  background: #f3e8ff;
+  color: #6d28d9;
+}
+
+.planStats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-top: 1px solid #eef2f7;
+  padding-top: 14px;
+  gap: 10px;
+}
+
+.planStats span,
+.usageMeta,
+.muted {
+  color: #64748b;
+}
+
+.planStats span {
+  font-size: 12px;
+}
+
+.planStats strong {
+  display: block;
+  margin-top: 5px;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.featureColumns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px;
+}
+
+.featureGroups {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.featureColumns h4 {
+  margin: 0 0 14px;
+}
+
+.featureGroups h4 {
+  margin: 0 0 12px;
+  font-size: 13px;
+}
+
+.featureRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  font-weight: 750;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.featureActive span {
+  color: #22c55e;
+}
+
+
+.marketGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 12px;
+}
+
+.marketItem {
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 13px;
+  min-height: 190px;
+  min-width: 0;
+}
+
+.marketIcon {
+  width: 38px;
+  height: 38px;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+  color: #7c3aed;
+  background: #f3e8ff;
+}
+
+.marketItem h3 {
+  margin: 12px 0 6px;
+  font-size: 14px;
+}
+
+.marketItem p {
+  margin: 0 0 12px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.marketItem strong {
+  display: block;
+  color: #16a34a;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.marketItem small {
+  display: block;
+  color: #64748b;
+  margin-bottom: 12px;
+  font-size: 12px;
+}
+
+.marketItem button {
+  width: 100%;
+  min-height: 34px;
+  border-radius: 10px;
+  border: 1px solid #7c3aed;
+  background: #fff;
+  color: #7c3aed;
+  font-weight: 850;
+  font-size: 13px;
+}
+
+.marketItem button.installed {
+  background: #dcfce7;
+  border-color: transparent;
+  color: #15803d;
+}
+
+.installedRow,
+.invoiceRow,
+.paymentRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-bottom: 1px solid #eef2f7;
+  padding: 11px 0;
+  font-size: 12px;
+  min-width: 0;
+}
+
+.installedRow div strong,
+.installedRow div span,
+.invoiceRow div strong,
+.invoiceRow div span {
+  display: block;
+}
+
+.installedRow div span {
+  color: #64748b;
+  margin-top: 4px;
+}
+
+.invoiceRow em,
+.paymentRow span {
+  color: #15803d;
+  background: #dcfce7;
+  border-radius: 999px;
+  padding: 5px 9px;
+  font-style: normal;
+  font-weight: 850;
+  font-size: 12px;
+}
+
+.installedRow em {
+  color: #15803d;
+  background: #dcfce7;
+  border-radius: 999px;
+  padding: 5px 9px;
+  font-style: normal;
+  font-weight: 850;
+  font-size: 12px;
+}
+
+.invoiceRow div span {
+  display: block;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+.invoiceRow button {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+}
+
+.apiGauge {
+  height: 135px;
+  border-radius: 18px;
+  background: radial-gradient(circle at center, #fff 45%, transparent 46%), conic-gradient(#7c3aed 0 45%, #e5e7eb 45%);
+  display: grid;
+  place-items: center;
+  text-align: center;
+  margin-bottom: 14px;
+}
+
+.apiGauge strong {
+  font-size: 26px;
+}
+
+.apiGauge span {
+  display: block;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.usageBar {
+  height: 9px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  overflow: hidden;
+}
+
+.usageBar span {
+  display: block;
+  height: 100%;
+  background: #7c3aed;
+}
+
+.usageMeta {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 10px;
+  font-size: 12px;
+}
+
+.paymentRow {
+  border: 0;
+}
+
+.paymentRow b,
+.paymentRow em {
+  color: #0f172a;
+  font-style: normal;
+}
+
+.teamStats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.teamStats div {
+  text-align: center;
+  border-right: 1px solid #eef2f7;
+}
+
+.teamStats div:last-child {
+  border-right: 0;
+}
+
+.teamStats strong {
+  display: block;
+  font-size: 20px;
+}
+
+.teamStats span {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.historyRow {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr);
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid #eef2f7;
+  font-size: 12px;
+}
+
+.historyRow span {
+  color: #64748b;
+}
+
+.historyRow p {
+  margin: 4px 0 0;
+  color: #64748b;
+}
+
+.systemGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.systemGrid span {
+  color: #64748b;
+}
+
+.online {
+  color: #16a34a;
+}
+
+.advancedToggle {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 16px;
+  font-weight: 850;
+  cursor: pointer;
+  color: #0f172a;
+}
+
+.advancedToggle span {
+  margin-left: auto;
+  font-size: 22px;
+  color: #7c3aed;
+}
+
+.advancedContent {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.advancedContent label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-weight: 750;
+}
+
+.advancedContent input {
+  min-height: 40px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 0 14px;
+}
+
+@media (max-width: 1500px) {
+  .licenseGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      "plan feature"
+      "installed marketplace"
+      "invoices api"
+      "payment team"
+      "history system"
+      "advanced advanced";
+  }
+
+  .singleMode {
+    grid-template-columns: 1fr;
+    grid-template-areas: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .licenseGrid {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "plan"
+      "feature"
+      "installed"
+      "marketplace"
+      "invoices"
+      "api"
+      "payment"
+      "team"
+      "history"
+      "system"
+      "advanced";
+  }
+
+  .featureGroups,
+  .advancedContent,
+  .planStats,
+  .teamStats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .licensePage {
+    padding: 16px;
+  }
+
+  .licenseHeader,
+  .licenseHeaderActions {
+    flex-direction: column;
+  }
+
+  .licenseHeader h1 {
+    font-size: 24px;
+  }
+
+  .lbCard {
+    padding: 16px;
+  }
+
+  .statusCard {
+    min-height: auto;
+  }
+
+  .licenseGrid,
+  .featureColumns,
+  .featureGroups,
+  .marketGrid,
+  .advancedContent,
+  .planStats,
+  .teamStats,
+  .statusStrip,
+  .systemGrid,
+  .historyRow {
+    grid-template-columns: 1fr;
+  }
+
+  .installedRow,
+  .invoiceRow,
+  .paymentRow {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

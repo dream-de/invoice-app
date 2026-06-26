@@ -312,7 +312,7 @@ export function PremiumAccountSecurityClient({ initialProfile }: { initialProfil
     async function loadAudit() {
       setAuditLoading(true)
       try {
-        const response = await fetch("/api/audit/events?limit=6", { cache: "no-store" })
+        const response = await fetch("/api/logs/events?limit=6", { cache: "no-store" })
         const result = await response.json().catch(() => null)
         if (!cancelled && response.ok && result?.ok && Array.isArray(result.logs)) {
           setAuditEntries(result.logs)

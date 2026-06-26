@@ -13,6 +13,7 @@ import {
   Landmark,
   Mail,
   Palette,
+  Puzzle,
   ScrollText,
   Settings,
   TerminalSquare,
@@ -44,6 +45,15 @@ const DEV_CARDS = [
     description: "Logs und Aktivitaeten detailliert anzeigen.",
     icon: ScrollText,
     href: "/dashboard-v2/logs"
+  }
+]
+
+const LICENSE_BILLING_CARDS = [
+  {
+    title: "Lizenz & Abrechnung",
+    description: "Plan, Marketplace, Feature Flags, Module und Abrechnung oeffnen.",
+    icon: Puzzle,
+    href: "/dashboard-v2/license-billing"
   }
 ]
 
@@ -87,6 +97,11 @@ const SETTINGS: Record<string, SettingsCategory> = {
     icon: Code2,
     description: "API-Zugaenge, Keys, Webhooks und Limits verwalten",
     items: ["API", "Webhooks", "Kategorien", "API-Zugang", "API Keys", "Berechtigungen", "Limits"]
+  },
+  "Lizenz & Abrechnung": {
+    icon: Puzzle,
+    description: "Plan, Marketplace, Feature Flags, Module und Abrechnung verwalten",
+    items: ["Lizenz & Abrechnung"]
   },
   Archiv: {
     icon: Archive,
@@ -162,6 +177,7 @@ const sectionToCategory: Partial<Record<PremiumSettingsSection, string>> = {
   webhooks: "API / Webhooks",
   system: "System",
   dev: "Dev",
+  "license-billing": "Lizenz & Abrechnung",
   archive: "Archiv",
   email: "E-Mail",
   portal: "Portal"
@@ -177,6 +193,7 @@ export function PremiumSettingsSectionContent({ section = "company" }: { section
   const current = SETTINGS[activeCategory]
   const CategoryIcon = current.icon
   const isDevCategory = activeCategory === "Dev"
+  const isLicenseBillingCategory = activeCategory === "Lizenz & Abrechnung"
   const formKey = `${activeCategory}/${activeSubcategory}`
   const fields = FIELD_DEFINITIONS[formKey] ?? ["Name", "Status", "Beschreibung", "Aktiv"]
 
@@ -232,9 +249,9 @@ export function PremiumSettingsSectionContent({ section = "company" }: { section
             </div>
           </section>
 
-          {isDevCategory ? (
+          {isDevCategory || isLicenseBillingCategory ? (
             <section className={styles.settingsCardGrid}>
-              {DEV_CARDS.map((card) => {
+              {(isDevCategory ? DEV_CARDS : LICENSE_BILLING_CARDS).map((card) => {
                 const Icon = card.icon
 
                 return (
@@ -368,7 +385,6 @@ function renderField({ field, value, onChange }: { field: string; value: string;
         <option value="Ja">Ja</option>
         <option value="Nein">Nein</option>
         <option value="Aktiv">Aktiv</option>
-        <option value="Inaktiv">Inaktiv</option>
       </select>
     )
   }

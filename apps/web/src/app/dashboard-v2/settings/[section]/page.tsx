@@ -8,17 +8,19 @@ export default async function PremiumSettingsSectionPage({
   searchParams
 }: DashboardV2SearchPageProps & { params: Promise<{ section: string }> }) {
   const { section } = await params
-  if (section === "users-roles") redirect("/dashboard-v2/settings/users")
-  if (section === "audit" || section === "audit-logs") redirect("/dashboard-v2/settings/logs-monitoring")
-  if (section === "add-ons") redirect("/dashboard-v2/settings/api")
-  if (!isPremiumSettingsSection(section)) notFound()
+  const normalizedSection = section === "mandant" || section === "mandanten" ? "tenants" : section
+
+  if (normalizedSection === "users-roles" || normalizedSection === "tenants") redirect("/dashboard-v2/settings/users")
+  if (normalizedSection === "audit" || normalizedSection === "audit-logs") redirect("/dashboard-v2/settings/logs-monitoring")
+  if (normalizedSection === "add-ons") redirect("/dashboard-v2/settings/api")
+  if (!isPremiumSettingsSection(normalizedSection)) notFound()
 
   const { query, theme } = await dashboardV2ParamsFromSearchParams(searchParams)
 
   return (
     <PremiumWorkspacePage
       view="settings"
-      settingsSection={section as PremiumSettingsSection}
+      settingsSection={normalizedSection as PremiumSettingsSection}
       initialSearchQuery={query}
       initialTheme={theme}
     />

@@ -1,0 +1,522 @@
+.rlPage {
+  padding: 32px;
+  background: #fbfbff;
+  color: #0f172a;
+}
+
+.rlHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  margin-bottom: 26px;
+}
+
+.rlHeader h1 {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 850;
+  letter-spacing: 0;
+}
+
+.rlHeader p {
+  margin: 8px 0 0;
+  color: #64748b;
+}
+
+.rlActions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.rlBtn {
+  min-height: 44px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 12px;
+  padding: 0 16px;
+  font-weight: 750;
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #0f172a;
+}
+
+.primary {
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  color: #fff;
+  border-color: transparent;
+}
+
+.full {
+  width: 100%;
+  margin-top: 18px;
+}
+
+.rlKpiGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.rlKpiCard,
+.rlChartCard,
+.rlReportCard,
+.logDetailCard,
+.logsTimeline {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.04);
+}
+
+.rlKpiCard {
+  padding: 22px;
+}
+
+.rlIcon {
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  background: #f3e8ff;
+  color: #7c3aed;
+  display: grid;
+  place-items: center;
+  margin-bottom: 14px;
+}
+
+.rlKpiCard span {
+  display: block;
+  font-weight: 750;
+  margin-bottom: 10px;
+}
+
+.rlKpiCard strong {
+  display: block;
+  font-size: 28px;
+  font-weight: 850;
+}
+
+.rlKpiCard small {
+  display: block;
+  margin-top: 10px;
+}
+
+.success {
+  color: #16a34a;
+}
+
+.danger {
+  color: #ef4444;
+}
+
+.rlChartGrid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+
+.rlChartCard {
+  padding: 22px;
+  min-height: 220px;
+}
+
+.large {
+  min-height: 260px;
+}
+
+.rlChartCard h3,
+.rlReportCard h3 {
+  margin: 0 0 18px;
+}
+
+.fakeLineChart {
+  height: 180px;
+  border-radius: 14px;
+  background:
+    linear-gradient(180deg, rgba(124, 58, 237, 0.18), transparent),
+    repeating-linear-gradient(to bottom, #eef2f7 0 1px, transparent 1px 42px);
+  position: relative;
+  overflow: hidden;
+}
+
+.fakeLineChart::after {
+  content: "";
+  position: absolute;
+  inset: 36px 24px;
+  border-bottom: 4px solid #7c3aed;
+  border-right: 4px solid #7c3aed;
+  transform: skewY(-18deg);
+  border-radius: 12px;
+}
+
+.fakeDonut {
+  width: 128px;
+  height: 128px;
+  border-radius: 50%;
+  margin: 8px auto 18px;
+  display: grid;
+  place-items: center;
+  font-size: 26px;
+  font-weight: 850;
+  background: conic-gradient(#22c55e 0 68%, #facc15 68% 86%, #ef4444 86% 96%, #94a3b8 96%);
+}
+
+.rlLegend {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.rlLegend li {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0;
+  color: #64748b;
+}
+
+.rlLegend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-top: 5px;
+}
+
+.green {
+  background: #22c55e;
+}
+
+.yellow {
+  background: #facc15;
+}
+
+.red {
+  background: #ef4444;
+}
+
+.gray {
+  background: #94a3b8;
+}
+
+.blue {
+  background: #3b82f6;
+}
+
+.rlBarRow {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  gap: 12px;
+  align-items: center;
+  margin: 15px 0;
+}
+
+.rlBarRow span {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.rlBarRow div {
+  height: 8px;
+  border-radius: 999px;
+  background: #f1f5f9;
+}
+
+.rlBarRow b {
+  display: block;
+  height: 100%;
+  background: #7c3aed;
+  border-radius: inherit;
+}
+
+.fakeBars {
+  height: 180px;
+  display: flex;
+  align-items: end;
+  gap: 16px;
+}
+
+.fakeBars span {
+  width: 28px;
+  border-radius: 10px 10px 0 0;
+  background: linear-gradient(180deg, #a855f7, #7c3aed);
+}
+
+.rlReportCard {
+  padding: 24px;
+}
+
+.rlReportGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.rlReportItem {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  text-align: left;
+  cursor: pointer;
+  color: #0f172a;
+}
+
+.rlReportItem div {
+  flex: 1;
+}
+
+.rlReportItem small {
+  display: block;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+.liveBadge {
+  background: #dcfce7;
+  color: #15803d;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-weight: 800;
+}
+
+.logsToolbar {
+  display: grid;
+  grid-template-columns: 140px 1fr 180px auto;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.logsSearch {
+  min-height: 44px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
+}
+
+.logsSearch input {
+  border: 0;
+  outline: 0;
+  width: 100%;
+  background: transparent;
+}
+
+.logsFilterRow {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.logsFilterRow button {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 999px;
+  padding: 9px 15px;
+  font-weight: 750;
+  cursor: pointer;
+  color: #0f172a;
+}
+
+.logsFilterRow button.activeFilter {
+  background: #7c3aed;
+  color: #fff;
+}
+
+.logsLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 310px;
+  gap: 20px;
+}
+
+.logsTimeline {
+  padding: 14px;
+}
+
+.logRow {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  border-bottom: 1px solid #eef2f7;
+  display: grid;
+  grid-template-columns: 80px 18px 42px 1fr auto;
+  gap: 16px;
+  align-items: center;
+  padding: 18px 8px;
+  cursor: pointer;
+  text-align: left;
+  color: #0f172a;
+}
+
+.logRow.activeLog {
+  background: #faf5ff;
+  border-radius: 14px;
+}
+
+.logTime strong,
+.logTime span {
+  display: block;
+}
+
+.logTime span,
+.logContent span {
+  color: #64748b;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.logDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.logAvatar,
+.detailAvatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #ede9fe;
+  color: #7c3aed;
+  display: grid;
+  place-items: center;
+  font-weight: 850;
+}
+
+.logType {
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: #f8fafc;
+  font-weight: 800;
+}
+
+.typeGreen {
+  color: #16a34a;
+  background: #dcfce7;
+}
+
+.typeBlue {
+  color: #2563eb;
+  background: #dbeafe;
+}
+
+.typeRed {
+  color: #dc2626;
+  background: #fee2e2;
+}
+
+.typeYellow {
+  color: #ca8a04;
+  background: #fef9c3;
+}
+
+.loadMore {
+  width: 100%;
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  margin-top: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.logDetailCard {
+  padding: 22px;
+}
+
+.detailHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.detailAvatar {
+  width: 58px;
+  height: 58px;
+  font-size: 24px;
+  margin: 24px auto 12px;
+}
+
+.logDetailCard h4,
+.logDetailCard p {
+  text-align: center;
+}
+
+.logDetailCard p {
+  color: #64748b;
+}
+
+.detailGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 24px 0;
+}
+
+.detailGrid span {
+  color: #64748b;
+}
+
+.changeBox {
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 12px;
+}
+
+.changeBox span {
+  display: block;
+  color: #64748b;
+  margin-top: 8px;
+}
+
+@media (max-width: 1400px) {
+  .rlKpiGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .rlChartGrid,
+  .logsLayout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 900px) {
+  .rlPage {
+    padding: 22px;
+  }
+
+  .rlHeader,
+  .rlActions {
+    flex-direction: column;
+  }
+
+  .logsToolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .rlReportGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .logRow {
+    grid-template-columns: 64px 14px 36px 1fr;
+  }
+
+  .logType {
+    grid-column: 4;
+    width: fit-content;
+  }
+}

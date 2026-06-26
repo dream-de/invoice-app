@@ -64,6 +64,7 @@ import {
 import { PremiumAccountSecurityClient } from "./account/security/PremiumAccountSecurityClient"
 import { DocumentManagementClient } from "./documents/DocumentManagementClient"
 import { ShareReleaseDialog } from "@/components/share/ShareReleaseDialog"
+import { LicenseBillingControlCenter } from "./_components/LicenseBillingControlCenter"
 import { PremiumSettingsSectionContent } from "./settings/PremiumSettingsSectionContent"
 import { type PremiumSettingsSection } from "./settings/sectionMap"
 import { LogsPageClient } from "./_components/LogsPageClient"
@@ -94,6 +95,7 @@ type PremiumView =
   | "settings"
   | "users"
   | "license"
+  | "license-billing"
   | "license-admin"
   | "integrations"
   | "automation"
@@ -415,7 +417,7 @@ const sideNav: Array<{ section: string; marker?: string; items: NavItem[] }> = [
     section: "System",
     items: [
       { label: "Einstellungen", href: "/dashboard-v2/settings", icon: Settings },
-      { label: "Lizenz & Abrechnung", href: "/dashboard-v2/settings/license-billing", icon: KeyRound }
+      { label: "Lizenz & Abrechnung", href: "/dashboard-v2/license-billing", icon: KeyRound }
     ]
   },
   {
@@ -526,6 +528,12 @@ const premiumViewMeta: Record<Exclude<PremiumView, "account-security">, { title:
     description: "Plan, Marketplace, Feature Flags und Benutzerplaetze ueberblicken.",
     primary: "Upgrade Plan"
   },
+  "license-billing": {
+    title: "Lizenz & Abrechnung",
+    eyebrow: "Control Center",
+    description: "Plan, Marketplace, Feature Flags, Module, Abrechnung und Team-Lizenzen verwalten.",
+    primary: "Marketplace oeffnen"
+  },
   "license-admin": {
     title: "Lizenz Admin",
     eyebrow: "Intern",
@@ -554,7 +562,7 @@ const premiumViewMeta: Record<Exclude<PremiumView, "account-security">, { title:
     title: "Aktivitaetsprotokoll",
     eyebrow: "Audit",
     description: "Aenderungen, Zugriffe, Exporte und sicherheitsrelevante Ereignisse verfolgen.",
-    primary: "Audit exportieren"
+    primary: "Logs exportieren"
   },
   api: {
     title: "API & Webhooks",
@@ -1234,7 +1242,7 @@ const moduleContent: Record<ModuleView, ModuleConfig> = {
     rows: [["Bankverbindungen", "finAPI / PSD2 Consent", "0 verbunden", "Vorbereitet"], ["Konten", "BankAccounts Modell", "0 synchronisiert", "Inaktiv"], ["Zahlungsabgleich", "Rechnung -> Zahlung erkannt", "Automatik aus", "Vorbereitet"], ["Synchronisation", "Webhook und Token-Status", "Nicht gestartet", "Vorbereitet"]],
     focus: [["Verbundene Banken", "0"], ["Offene Zahlungen", "0"], ["Letzte Bankbewegungen", "Keine Synchronisation"]],
     actions: [["Open Banking oeffnen", "/finance/open-banking"], ["Manuelles Konto anlegen", "/dashboard-v2/finance?q=Bankkonto%20anlegen"], ["CSV Bankimport", "/dashboard-v2/finance?q=Bankimport"], ["Finanzbericht", "/dashboard-v2/finance?q=Finanzbericht"]],
-    timeline: [["finAPI vorbereitet", "Client ID, Secret und Webhook URL koennen in den Finanz-Einstellungen gepflegt werden."], ["Zahlungsabgleich vorbereitet", "Rechnung, erkannte Zahlung und Statusupdate sind modelliert; keine Automatik aktiv."], ["Sicherheit vorbereitet", "Verschluesselte Token-Felder, Token-Verwaltung und Audit Log sind vorgesehen."]],
+    timeline: [["finAPI vorbereitet", "Client ID, Secret und Webhook URL koennen in den Finanz-Einstellungen gepflegt werden."], ["Zahlungsabgleich vorbereitet", "Rechnung, erkannte Zahlung und Statusupdate sind modelliert; keine Automatik aktiv."], ["Sicherheit vorbereitet", "Verschluesselte Token-Felder, Token-Verwaltung und Logs sind vorgesehen."]],
     primaryHref: "/dashboard-v2/finance?q=Bankkonto%20anlegen"
   },
   documents: {
@@ -1297,9 +1305,17 @@ const moduleContent: Record<ModuleView, ModuleConfig> = {
     stats: [["Free", "Tarif"], ["100", "Rechnungen"], ["1 GB", "Speicher"]],
     rows: [["Benutzerlimit", "5 von 5 verwendet", "Voll", "Limit"], ["Dokumente im Workspace", "Geladene Dokumente", "Lokal", "Aktiv"], ["Speicher", "Nicht gemessen", "Lokal", "Info"]],
     focus: [["Upgrade Plan", "Business"], ["Marketplace", "Erweiterungen"], ["Feature Flags", "Aktiv"]],
-    actions: [["Upgrade Plan", "/dashboard-v2/settings/license-billing/plans"], ["Marketplace oeffnen", "/dashboard-v2/settings/license-billing/marketplace"], ["Benutzerplaetze", "/dashboard-v2/settings/license-billing/seats"]],
+    actions: [["Upgrade Plan", "/dashboard-v2/license-billing"], ["Marketplace oeffnen", "/dashboard-v2/license-billing"], ["Benutzerplaetze", "/dashboard-v2/license-billing"]],
     timeline: [["Planmodell aktiv", "Plan, Marketplace und Feature Flags sind der bevorzugte Freischaltweg."], ["Marketplace vorbereitet", "Erweiterungen koennen installiert werden."], ["Compatibility Layer", "Legacy-Keys bleiben unter Erweiterte Aktivierung erreichbar."]],
-    primaryHref: "/dashboard-v2/settings/license-billing/plans"
+    primaryHref: "/dashboard-v2/license-billing"
+  },
+  "license-billing": {
+    stats: [["Business", "Plan"], ["12 / 20", "Benutzer"], ["10", "Aktive Module"]],
+    rows: [["Aktueller Plan", "DreamInvoice Business", "99,00 EUR / Monat", "Aktiv"], ["Marketplace", "DATEV installiert", "1 Erweiterung", "Aktiv"], ["API Nutzung", "45.223 von 100.000", "45%", "Aktiv"]],
+    focus: [["Verlaengerung", "26.07.2026"], ["Feature Flags", "Banking, API, Portal"], ["Rechnungen", "3 bezahlt"]],
+    actions: [["Marketplace oeffnen", "/dashboard-v2/license-billing"], ["Lizenz synchronisieren", "/dashboard-v2/license-billing?q=Lizenz%20synchronisiert"], ["Rechnungen", "/dashboard-v2/license-billing?q=Rechnungen"]],
+    timeline: [["Plan aktiv", "Business-Plan steuert die sichtbaren Basismodule."], ["DATEV installiert", "Marketplace-Erweiterung ist aktiv."], ["API Nutzung", "45% des Monatslimits sind verbraucht."]],
+    primaryHref: "/dashboard-v2/license-billing"
   },
   "license-admin": {
     stats: [["5", "Verkaufsplaene"], ["Signiert", "Key-Modus"], ["Intern", "Zugriff"]],
@@ -1934,7 +1950,7 @@ function LicensePanel({ data, mode }: { data: PremiumData; mode: ThemeMode }) {
       )}
 
       {expanded ? (
-        <Link href={withPremiumTheme("/dashboard-v2/settings/license-billing/plans", mode)}>
+        <Link href={withPremiumTheme("/dashboard-v2/license-billing", mode)}>
           <span>Upgrade Plan</span>
           <KeyRound size={18} />
         </Link>
@@ -2670,7 +2686,7 @@ const premiumActionQueryTerms = [
   "2fa geprueft",
   "regeln aktualisiert",
   "alle gelesen",
-  "audit filter aktiv",
+  "logs filter aktiv",
   "filter aktiv",
   "integration vorbereitet",
   "integration verbunden",
@@ -2678,7 +2694,7 @@ const premiumActionQueryTerms = [
   "token vorbereitet",
   "workflow erstellt",
   "workflow getestet",
-  "audit exportiert",
+  "logs exportiert",
   "ereignis gefunden",
   "webhook logs",
   "api-key rotiert",
@@ -3004,10 +3020,10 @@ function PremiumLicensePanel({ data, mode, searchQuery }: { data: PremiumData; m
   const normalizedQuery = searchQuery.toLowerCase()
   const shouldFocusActivation = normalizedQuery.includes("lizenz") || normalizedQuery.includes("aktivierung")
   const shouldFocusUpgrade = normalizedQuery.includes("upgrade") || normalizedQuery.includes("benutzerlimit") || normalizedQuery.includes("marketplace")
-  const planHref = withPremiumTheme("/dashboard-v2/settings/license-billing/plans", mode)
-  const marketplaceHref = withPremiumTheme("/dashboard-v2/settings/license-billing/marketplace", mode)
-  const seatsHref = withPremiumTheme("/dashboard-v2/settings/license-billing/seats", mode)
-  const activationHref = withPremiumTheme("/dashboard-v2/settings/license-billing/advanced-activation", mode)
+  const planHref = withPremiumTheme("/dashboard-v2/license-billing?q=Aktueller%20Plan", mode)
+  const marketplaceHref = withPremiumTheme("/dashboard-v2/license-billing?q=Marketplace", mode)
+  const seatsHref = withPremiumTheme("/dashboard-v2/license-billing?q=Team-Lizenzen", mode)
+  const activationHref = withPremiumTheme("/dashboard-v2/license-billing?q=Erweiterte%20Aktivierung", mode)
 
   return (
     <article className={`${styles.panel} ${styles.licenseActionPanel}`}>
@@ -3786,33 +3802,33 @@ function PremiumWorkflowPanel({
     if (action === "export") params.set("format", "csv")
 
     try {
-      const response = await fetch(`/api/audit/events?${params.toString()}`, { credentials: "same-origin" })
+      const response = await fetch(`/api/logs/events?${params.toString()}`, { credentials: "same-origin" })
 
       if (action === "export") {
         const text = await response.text()
-        if (!response.ok) throw new Error(text || "Audit export failed")
-        downloadTextFile(text, "audit-export.csv")
-        setWorkflowState({ type: "success", message: "Audit Export wurde aus AuditLog-Daten erstellt." })
+        if (!response.ok) throw new Error(text || "Logs export failed")
+        downloadTextFile(text, "logs-export.csv")
+        setWorkflowState({ type: "success", message: "Logs Export wurde aus Log-Daten erstellt." })
         return
       }
 
       const result = await response.json()
-      if (!response.ok || !result?.ok) throw new Error(result?.error || "Audit logs unavailable")
+      if (!response.ok || !result?.ok) throw new Error(result?.error || "Logs unavailable")
       const count = Number(result.count ?? result.logs?.length ?? 0)
       setWorkflowState({
         type: "success",
         message: action === "filter"
-          ? `Audit Filter ist aktiv: ${count} Webhook/System-Ereignisse gefunden.`
+          ? `Logs Filter ist aktiv: ${count} Webhook/System-Ereignisse gefunden.`
           : `Ereignissuche ausgefuehrt: ${count} passende Audit-Eintraege gefunden.`
       })
     } catch {
       setWorkflowState({
         type: "error",
         message: action === "export"
-          ? "Audit Export konnte nicht aus AuditLog-Daten erstellt werden."
+          ? "Logs Export konnte nicht aus Log-Daten erstellt werden."
           : action === "filter"
-            ? "Audit Filter konnte keine AuditLog-Daten laden."
-            : "Ereignissuche konnte keine AuditLog-Daten laden."
+            ? "Logs Filter konnte keine Log-Daten laden."
+            : "Ereignissuche konnte keine Log-Daten laden."
       })
     } finally {
       setIsWorkflowSaving(false)
@@ -4436,7 +4452,7 @@ function PremiumWorkflowPanel({
     [query.includes("2fa geprueft"), "2FA Sicherheitscheck wurde vorbereitet."],
     [query.includes("regeln aktualisiert"), "Benachrichtigungsregeln wurden aktualisiert."],
     [query.includes("alle gelesen"), "Alle Benachrichtigungen wurden als gelesen markiert."],
-    [query.includes("audit filter aktiv"), "Audit Filter ist aktiv und zeigt relevante Sicherheitsereignisse."],
+    [query.includes("logs filter aktiv"), "Logs Filter ist aktiv und zeigt relevante Sicherheitsereignisse."],
     [query.includes("filter aktiv"), "Filter aktiv: wichtige Zahlung, Rechnung und Systemmeldungen."],
     [query.includes("integration vorbereitet"), "Integration wurde als Readiness-Konfiguration vorbereitet; keine Live-Verbindung wurde erstellt."],
     [query.includes("integration verbunden"), "Integration wurde als Readiness-Konfiguration vorbereitet; keine Live-Verbindung wurde erstellt."],
@@ -4444,7 +4460,7 @@ function PremiumWorkflowPanel({
     [query.includes("token vorbereitet"), "Secret-/Token-Konzept wurde vorbereitet; keine produktive Rotation wurde ausgefuehrt."],
     [query.includes("workflow erstellt"), "Workflow wurde erstellt und ist bereit fuer den Testlauf."],
     [query.includes("workflow getestet"), "Workflow wurde erfolgreich getestet."],
-    [query.includes("audit exportiert"), "Audit Export wurde vorbereitet und protokolliert."],
+    [query.includes("logs exportiert"), "Logs Export wurde vorbereitet und protokolliert."],
     [query.includes("ereignis gefunden"), "Ereignissuche wurde ausgefuehrt und passende Eintraege sind markiert."],
     [query.includes("webhook logs"), "Webhook Logs wurden geoeffnet und fuer Pruefung gefiltert."],
     [query.includes("api-key rotiert"), "API-Key Rotation wurde vorbereitet."],
@@ -4918,7 +4934,7 @@ function PremiumWorkflowPanel({
 
     return (
       <article className={`${styles.panel} ${styles.workflowPanel}`} data-active={query.length > 0}>
-        <div className={styles.panelHead}><div><h2>{view === "reports" ? "Reports & Export" : "Audit Aktionen"}</h2><span>Schnelle Wege zu echten Bereichen</span></div></div>
+        <div className={styles.panelHead}><div><h2>{view === "reports" ? "Reports & Export" : "Logs Aktionen"}</h2><span>Schnelle Wege zu echten Bereichen</span></div></div>
         <div className={styles.workflowActions}>
           {view === "reports" ? (
             <>
@@ -4947,12 +4963,12 @@ function PremiumWorkflowPanel({
           {view === "audit" ? (
             <>
               <form action="/dashboard-v2/logs" method="get" onSubmit={(event) => { event.preventDefault(); void runWorkflowAuditAction("export") }}>
-                <input type="hidden" name="q" value="Audit exportiert" />
+                <input type="hidden" name="q" value="Logs exportiert" />
                 <input type="hidden" name="theme" value={mode} />
-                <button type="submit" disabled={isWorkflowSaving}>Audit exportieren</button>
+                <button type="submit" disabled={isWorkflowSaving}>Logs exportieren</button>
               </form>
               <form action="/dashboard-v2/logs" method="get" onSubmit={(event) => { event.preventDefault(); void runWorkflowAuditAction("filter") }}>
-                <input type="hidden" name="q" value="Audit Filter aktiv" />
+                <input type="hidden" name="q" value="Logs Filter aktiv" />
                 <input type="hidden" name="theme" value={mode} />
                 <button type="submit" disabled={isWorkflowSaving}>Filter setzen</button>
               </form>
@@ -8781,33 +8797,33 @@ function PremiumModulePage({
     if (action === "export") params.set("format", "csv")
 
     try {
-      const response = await fetch(`/api/audit/events?${params.toString()}`, { credentials: "same-origin" })
+      const response = await fetch(`/api/logs/events?${params.toString()}`, { credentials: "same-origin" })
 
       if (action === "export") {
         const text = await response.text()
-        if (!response.ok) throw new Error(text || "Audit export failed")
-        downloadTextFile(text, "audit-export.csv")
-        setModuleActionState({ type: "success", message: "Audit Export wurde aus AuditLog-Daten erstellt." })
+        if (!response.ok) throw new Error(text || "Logs export failed")
+        downloadTextFile(text, "logs-export.csv")
+        setModuleActionState({ type: "success", message: "Logs Export wurde aus Log-Daten erstellt." })
         return
       }
 
       const result = await response.json()
-      if (!response.ok || !result?.ok) throw new Error(result?.error || "Audit logs unavailable")
+      if (!response.ok || !result?.ok) throw new Error(result?.error || "Logs unavailable")
       const count = Number(result.count ?? result.logs?.length ?? 0)
       setModuleActionState({
         type: "success",
         message: action === "filter"
-          ? `Audit Filter ist aktiv: ${count} Webhook/System-Ereignisse gefunden.`
+          ? `Logs Filter ist aktiv: ${count} Webhook/System-Ereignisse gefunden.`
           : `Ereignissuche ausgefuehrt: ${count} passende Audit-Eintraege gefunden.`
       })
     } catch {
       setModuleActionState({
         type: "error",
         message: action === "export"
-          ? "Audit Export konnte nicht aus AuditLog-Daten erstellt werden."
+          ? "Logs Export konnte nicht aus Log-Daten erstellt werden."
           : action === "filter"
-            ? "Audit Filter konnte keine AuditLog-Daten laden."
-            : "Ereignissuche konnte keine AuditLog-Daten laden."
+            ? "Logs Filter konnte keine Log-Daten laden."
+            : "Ereignissuche konnte keine Log-Daten laden."
       })
     } finally {
       setIsModuleActionSaving(false)
@@ -9066,7 +9082,7 @@ function PremiumModulePage({
           ? "API-Status wurde als Dev-Check markiert. API-Key/Webhook-Verwaltung bleibt vorbereitet."
           : action === "key"
             ? "API-Key Rotation ist als Dev-Flow markiert und wurde nicht produktiv ausgefuehrt."
-            : "Webhook Logs werden ueber Audit Logs geprueft; keine Webhook-Konfiguration wurde geaendert."
+            : "Webhook Logs werden ueber Logss geprueft; keine Webhook-Konfiguration wurde geaendert."
       })
     } finally {
       setIsModuleActionSaving(false)
@@ -9480,6 +9496,10 @@ function PremiumModulePage({
 
   if (view === "reports") {
     return <ReportsPageClient />
+  }
+
+  if (view === "license-billing") {
+    return <LicenseBillingControlCenter />
   }
 
   if (view === "logs") {

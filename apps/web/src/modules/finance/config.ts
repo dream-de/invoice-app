@@ -21,6 +21,6 @@ export const financeConfig = {
     region: "Deutschland / EU",
     activeConnection: false,
     storesBankCredentials: false,
-    preparedAreas: ["Bankverbindungen", "Konten", "Zahlungsabgleich", "Synchronisation", "Token-Verwaltung", "Audit Log"]
+    preparedAreas: ["Bankverbindungen", "Konten", "Zahlungsabgleich", "Synchronisation", "Token-Verwaltung", "Logs"]
   }
 } as const;

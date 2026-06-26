@@ -52,8 +52,8 @@ export type SettingsNavGroup = {
 
 export const settingsNav = [
   { key: "company", title: "Unternehmen", description: "Firmendaten, Adresse, Kontakt und Stammdaten", href: "/dashboard-v2/settings/company", legacyHref: "/settings/company", icon: Building2, category: "core", order: 10, status: "Aktiv", accent: "#2563eb", accentSoft: "#dbeafe" },
-  { key: "locations", title: "Standorte", description: "Standorte und Standortkontakte", href: "/dashboard-v2/settings/locations", icon: MapPin, category: "core", order: 20, status: "Teilweise aktiv", accent: "#0f766e", accentSoft: "#ccfbf1" },
-  { key: "tenants", title: "Mandanten", description: "Mandantenstruktur und Rollenmodell", href: "/dashboard-v2/settings/tenants", icon: Users, category: "core", order: 30, status: "Teilweise aktiv", accent: "#4f46e5", accentSoft: "#e0e7ff" },
+  { key: "locations", title: "Filialen", description: "Filialliste, Adressen, Ansprechpartner und Standardfiliale", href: "/dashboard-v2/settings/locations", icon: MapPin, category: "core", order: 20, status: "Teilweise aktiv", accent: "#0f766e", accentSoft: "#ccfbf1" },
+  { key: "tenants", title: "Mandanten", description: "Altbereich, leitet auf Benutzer & Rollen", href: "/dashboard-v2/settings/tenants", icon: Users, category: "core", order: 900, status: "Teilweise aktiv", accent: "#4f46e5", accentSoft: "#e0e7ff" },
   { key: "branding", title: "Branding", description: "Logo, Farben und Dokumentauftritt", href: "/dashboard-v2/settings/branding", icon: Palette, category: "core", order: 40, status: "Aktiv", accent: "#7c3aed", accentSoft: "#ede9fe" },
   { key: "finance", title: "Finanzen", description: "Bankdaten, Steuerdaten und Zahlungsbasis", href: "/dashboard-v2/settings/finance", legacyHref: "/settings/finance", icon: Wallet, category: "finance", order: 110, status: "Teilweise aktiv", accent: "#0f766e", accentSoft: "#ccfbf1" },
   { key: "documents", title: "Dokumente", description: "Dokumenttypen, Vorlagen und Ablage", href: "/dashboard-v2/settings/documents", icon: FileText, category: "finance", order: 120, status: "Aktiv", accent: "#7c3aed", accentSoft: "#ede9fe" },
@@ -62,7 +62,7 @@ export const settingsNav = [
   { key: "number-ranges", title: "Nummernkreise", description: "Rechnungs-, Angebots- und Kundennummern", href: "/dashboard-v2/settings/number-ranges", legacyHref: "/settings/number-ranges", icon: Hash, category: "finance", order: 130, status: "Teilweise aktiv", accent: "#0d9488", accentSoft: "#ccfbf1" },
   { key: "reminders", title: "Mahnwesen", description: "Mahnstufen, Wiedervorlagen und E-Mail-Folgen", href: "/dashboard-v2/settings/reminders", legacyHref: "/settings/reminders", icon: CalendarClock, category: "finance", order: 140, status: "Teilweise aktiv", accent: "#ca8a04", accentSoft: "#fef9c3" },
   { key: "payment-terms", title: "Zahlungsziele", description: "Standard-Zahlungsziele fuer neue Rechnungen", href: "/dashboard-v2/settings/payment-terms", icon: CalendarClock, category: "finance", order: 150, status: "Teilweise aktiv", accent: "#db2777", accentSoft: "#fce7f3" },
-  { key: "users", title: "Benutzer & Rollen", description: "Team, Rollen und Einladungen", href: "/dashboard-v2/settings/users", legacyHref: "/settings/users", icon: Users, category: "security", order: 210, status: "Aktiv", accent: "#4f46e5", accentSoft: "#e0e7ff" },
+  { key: "users", title: "Benutzer & Rollen", description: "Benutzerliste, Rollen, Rechte und Einladungen", href: "/dashboard-v2/settings/users", legacyHref: "/settings/users", icon: Users, category: "core", order: 30, status: "Aktiv", accent: "#4f46e5", accentSoft: "#e0e7ff" },
   { key: "security", title: "Sicherheit", description: "Passwort, 2FA und Kontoschutz", href: "/dashboard-v2/settings/security", icon: ShieldCheck, category: "security", order: 220, status: "Teilweise aktiv", accent: "#dc2626", accentSoft: "#fee2e2" },
   { key: "sessions", title: "Sitzungen", description: "Aktive Sitzungen und Login-Sicherheit", href: "/dashboard-v2/settings/sessions", icon: ShieldCheck, category: "security", order: 230, status: "Aktiv", accent: "#0f172a", accentSoft: "#e2e8f0" },
   { key: "permissions", title: "Berechtigungen", description: "Rechte, Limits und Zugriffsebenen", href: "/dashboard-v2/settings/permissions", icon: KeyRound, category: "security", order: 240, status: "Aktiv", accent: "#6d28d9", accentSoft: "#ede9fe" },
@@ -72,16 +72,16 @@ export const settingsNav = [
   { key: "automation", title: "Automatisierung", description: "Regeln, Trigger und geplante Ablaeufe", href: "/dashboard-v2/settings/automation", icon: Workflow, category: "platform", order: 340, status: "Marketplace vorbereitet", accent: "#c2410c", accentSoft: "#ffedd5" },
   { key: "system", title: "System", description: "Sprache, Systemoptionen, Logs und Wartung", href: "/dashboard-v2/settings/system", legacyHref: "/settings/system", icon: Settings, category: "platform", order: 350, status: "Teilweise aktiv", accent: "#475569", accentSoft: "#e2e8f0" },
   { key: "dev", title: "Dev", description: "Entwickleroptionen, technische Freigaben und Diagnose", href: "/dashboard-v2/settings/dev", icon: Code2, category: "platform", order: 360, status: "Marketplace vorbereitet", accent: "#6366f1", accentSoft: "#e0e7ff" },
-  { key: "logs-monitoring", title: "Logs & Ueberwachung", description: "Aktivitaeten, Login-Historie, Audit, API, Webhooks und Systemereignisse", href: "/dashboard-v2/settings/logs-monitoring", icon: SlidersHorizontal, category: "platform", order: 370, status: "Teilweise aktiv", accent: "#7c3aed", accentSoft: "#ede9fe" },
+  { key: "logs-monitoring", title: "Logs & Ueberwachung", description: "Aktivitaeten, Login-Historie, API, Webhooks und Systemereignisse", href: "/dashboard-v2/settings/logs-monitoring", icon: SlidersHorizontal, category: "platform", order: 370, status: "Teilweise aktiv", accent: "#7c3aed", accentSoft: "#ede9fe" },
   { key: "reports", title: "Berichte", description: "Auswertungen, Umsatz, KPIs und Exporte", href: "/dashboard-v2/settings/reports", icon: BarChart3, category: "compliance", order: 420, status: "Aktiv", accent: "#16a34a", accentSoft: "#dcfce7" },
   { key: "archive", title: "Archiv", description: "Dokumentenarchiv, Export und Ablage", href: "/dashboard-v2/settings/archive", icon: Archive, category: "compliance", order: 430, status: "Nicht eingerichtet", accent: "#64748b", accentSoft: "#e2e8f0" },
   { key: "legal", title: "Rechtliches", description: "Steuern, E-Rechnung, Impressum und Pflichttexte", href: "/dashboard-v2/settings/legal", legacyHref: "/settings/legal", icon: Scale, category: "compliance", order: 440, status: "Marketplace vorbereitet", accent: "#a16207", accentSoft: "#fef3c7" },
-  { key: "license-billing", title: "Lizenz & Abrechnung", description: "Plan, Marketplace, Seats, Limits, Rechnungen und Aktivierung", href: "/dashboard-v2/settings/license-billing", icon: Landmark, category: "compliance", order: 450, status: "Marketplace vorbereitet", accent: "#6d28d9", accentSoft: "#ede9fe" },
+  { key: "license-billing", title: "Lizenz & Abrechnung", description: "Plan, Marketplace, Seats, Limits, Rechnungen und Aktivierung", href: "/dashboard-v2/license-billing", icon: Landmark, category: "compliance", order: 450, status: "Marketplace vorbereitet", accent: "#6d28d9", accentSoft: "#ede9fe" },
   { key: "license", title: "Lizenzverwaltung", description: "Plan, Benutzerplaetze und Compatibility Layer", href: "/dashboard-v2/settings/license", icon: KeyRound, category: "compliance", order: 455, status: "Aktiv", accent: "#6d28d9", accentSoft: "#ede9fe" },
   { key: "email", title: "E-Mail", description: "SMTP, Resend, Versand und Absender", href: "/dashboard-v2/settings/email", legacyHref: "/settings/email", icon: Mail, category: "communication", order: 510, status: "Teilweise aktiv", accent: "#0891b2", accentSoft: "#cffafe" },
   { key: "notifications", title: "Benachrichtigungen", description: "Ereigniskategorien und Systemhinweise", href: "/dashboard-v2/settings/notifications", legacyHref: "/settings/notifications", icon: Bell, category: "communication", order: 520, status: "Teilweise aktiv", accent: "#ea580c", accentSoft: "#ffedd5" },
   { key: "templates", title: "Vorlagen", description: "Dokument- und Kommunikationsvorlagen", href: "/dashboard-v2/settings/templates", icon: FileText, category: "communication", order: 530, status: "Aktiv", accent: "#2563eb", accentSoft: "#dbeafe" },
-  { key: "portal", title: "Portal", description: "Angebotslinks, Kundenportal und Sync", href: "/dashboard-v2/settings/portal", legacyHref: "/settings/portal", icon: Archive, category: "communication", order: 540, status: "Marketplace vorbereitet", accent: "#64748b", accentSoft: "#e2e8f0" },
+  { key: "portal", title: "Portal", description: "Portal Base URL, Publish API Key, Paperless-ngx, Nextcloud und Google Drive", href: "/dashboard-v2/settings/portal", legacyHref: "/settings/portal", icon: Archive, category: "communication", order: 540, status: "Marketplace vorbereitet", accent: "#64748b", accentSoft: "#e2e8f0" },
   { key: "categories", title: "Kategorien", description: "Produkte und Leistungen", href: "/settings/categories", legacyHref: "/settings/categories", icon: Archive, category: "core", order: 920, status: "Aktiv", accent: "#64748b", accentSoft: "#e2e8f0" }
 ] as const satisfies readonly SettingsNavItem[]
 
@@ -92,12 +92,11 @@ export const premiumSettingsNav = typedSettingsNav
   .sort((a, b) => a.order - b.order)
 
 export const premiumSettingsGroups = [
-  { key: "company", title: "Firma & Branding", href: "/dashboard-v2/settings/company", itemKeys: ["company", "locations", "tenants", "branding"] },
-  { key: "finance", title: "Finanzen & Dokumente", href: "/dashboard-v2/settings/finance", itemKeys: ["finance", "documents", "number-ranges", "reminders", "payment-terms"] },
-  { key: "security", title: "Benutzer & Sicherheit", href: "/dashboard-v2/settings/users", itemKeys: ["users", "security", "sessions", "permissions"] },
-  { key: "platform", title: "Technik & Plattform", href: "/dashboard-v2/settings/api", itemKeys: ["api", "webhooks", "integrations", "automation", "system", "dev", "logs-monitoring"] },
-  { key: "compliance", title: "Compliance & Analyse", href: "/dashboard-v2/settings/reports", itemKeys: ["reports", "archive", "legal", "license-billing"] },
-  { key: "communication", title: "Kommunikation", href: "/dashboard-v2/settings/email", itemKeys: ["email", "notifications", "templates", "portal"] }
+  { key: "company", title: "Basis", href: "/dashboard-v2/settings/company", itemKeys: ["company", "locations", "users", "branding"] },
+  { key: "finance", title: "Finanzen & Dokumente", href: "/dashboard-v2/settings/finance", itemKeys: ["finance", "documents"] },
+  { key: "communication", title: "Kommunikation & Portal", href: "/dashboard-v2/settings/email", itemKeys: ["email", "portal"] },
+  { key: "platform", title: "Technik", href: "/dashboard-v2/settings/api", itemKeys: ["api", "webhooks", "system", "dev"] },
+  { key: "compliance", title: "Archiv", href: "/dashboard-v2/settings/archive", itemKeys: ["archive"] }
 ] as const satisfies readonly SettingsNavGroup[]
 
 export const visiblePremiumSettingsNav = typedSettingsNav

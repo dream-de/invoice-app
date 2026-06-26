@@ -663,9 +663,9 @@ export function UsersAndPermissionsClient({
                   <p className="mt-1 max-w-2xl text-sm font-semibold text-[#64748b]">Benutzerplaetze bleiben hier sichtbar. Lizenzschluessel, Dateiimport und Synchronisierung liegen nur noch unter Erweiterte Aktivierung.</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <Link href="/dashboard-v2/settings/license-billing/plans" className="rounded-md bg-[#111827] px-3 py-2 text-sm font-black text-white no-underline">Upgrade Plan</Link>
-                  <Link href="/dashboard-v2/settings/license-billing/marketplace" className="rounded-md border border-[#cbd5e1] px-3 py-2 text-sm font-black text-[#111827] no-underline">Marketplace oeffnen</Link>
-                  <Link href="/dashboard-v2/settings/license-billing/advanced-activation" className="rounded-md border border-[#cbd5e1] px-3 py-2 text-sm font-black text-[#111827] no-underline">Erweiterte Aktivierung</Link>
+                  <Link href="/dashboard-v2/license-billing" className="rounded-md bg-[#111827] px-3 py-2 text-sm font-black text-white no-underline">Upgrade Plan</Link>
+                  <Link href="/dashboard-v2/license-billing?q=Marketplace" className="rounded-md border border-[#cbd5e1] px-3 py-2 text-sm font-black text-[#111827] no-underline">Marketplace oeffnen</Link>
+                  <Link href="/dashboard-v2/license-billing?q=Erweiterte%20Aktivierung" className="rounded-md border border-[#cbd5e1] px-3 py-2 text-sm font-black text-[#111827] no-underline">Erweiterte Aktivierung</Link>
                 </div>
               </div>
             </div>
