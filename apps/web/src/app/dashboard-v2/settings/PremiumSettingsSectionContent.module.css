@@ -1,0 +1,393 @@
+.settingsPage {
+  padding: 32px 24px 32px 32px;
+  background: #fbfbff;
+  color: #0f172a;
+}
+
+.settingsHeader {
+  margin-bottom: 34px;
+}
+
+.settingsHeader h1 {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 850;
+  letter-spacing: -0.03em;
+}
+
+.settingsHeader p {
+  margin: 10px 0 0;
+  color: #64748b;
+  font-size: 15px;
+}
+
+.settingsLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  column-gap: 18px;
+  align-items: start;
+}
+
+.settingsMain {
+  min-width: 0;
+}
+
+.settingsCategoryHead {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.settingsCategoryHead h2 {
+  margin: 0;
+  font-size: 27px;
+  font-weight: 850;
+  letter-spacing: -0.03em;
+}
+
+.settingsCategoryHead p {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 15px;
+}
+
+.settingsCategoryIcon {
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  background: #f3e8ff;
+  color: #7c3aed;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+.settingsCardGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+.settingsCard {
+  position: relative;
+  min-height: 292px;
+  padding: 32px 22px 28px;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+  cursor: pointer;
+  transition: 0.22s ease;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.settingsCard:hover {
+  transform: translateY(-3px);
+  border-color: #a855f7;
+  box-shadow: 0 18px 36px rgba(124, 58, 237, 0.12);
+}
+
+.settingsCard.active {
+  border: 2px solid #7c3aed;
+  box-shadow: 0 20px 44px rgba(124, 58, 237, 0.16);
+}
+
+.cardStatusDot {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #22c55e;
+  box-shadow: 0 0 0 5px rgba(34, 197, 94, 0.08);
+}
+
+.settingsCardIcon {
+  width: 76px;
+  height: 76px;
+  border-radius: 24px;
+  background: #f5efff;
+  color: #7c3aed;
+  display: grid;
+  place-items: center;
+  margin-bottom: 28px;
+}
+
+.settingsCard h3 {
+  margin: 0 0 16px;
+  font-size: 23px;
+  font-weight: 850;
+  letter-spacing: -0.025em;
+  text-align: center;
+}
+
+.settingsCard p {
+  margin: 0;
+  color: #64748b;
+  font-size: 15px;
+  line-height: 1.65;
+  text-align: center;
+  max-width: 210px;
+}
+
+.settingsFormCard {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  padding: 28px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
+  margin-bottom: 28px;
+}
+
+.settingsFormHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+.settingsFormHeader h2 {
+  margin: 0 0 8px;
+  font-size: 21px;
+}
+
+.settingsFormHeader p {
+  margin: 0;
+  color: #64748b;
+}
+
+.formStatusDot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 8px rgba(34, 197, 94, 0.1);
+  flex: none;
+  margin-top: 8px;
+}
+
+.settingsFormGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+.settingsField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settingsField span {
+  font-weight: 750;
+  color: #334155;
+}
+
+.settingsField input,
+.settingsField select {
+  height: 46px;
+  border: 1px solid #dbe1ea;
+  border-radius: 12px;
+  padding: 0 14px;
+  font-size: 15px;
+  outline: none;
+  background: #fff;
+}
+
+.settingsField input:focus,
+.settingsField select:focus {
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.08);
+}
+
+.settingsFormActions {
+  display: flex;
+  gap: 12px;
+  margin-top: 28px;
+  flex-wrap: wrap;
+}
+
+.btnPrimary,
+.btnSecondary {
+  border-radius: 12px;
+  padding: 12px 18px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.btnPrimary {
+  border: 0;
+  background: linear-gradient(135deg, #7c3aed, #6d28d9);
+  color: white;
+  box-shadow: 0 10px 22px rgba(124, 58, 237, 0.22);
+}
+
+.btnSecondary {
+  border: 1px solid #e5e7eb;
+  background: white;
+  color: #0f172a;
+}
+
+.settingsSaveMessage {
+  margin: 18px 0 0;
+  color: #16a34a;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.settingsInfoBox {
+  border: 1px solid #ddd6fe;
+  background: linear-gradient(135deg, #ffffff, #faf5ff);
+  border-radius: 18px;
+  padding: 26px;
+  display: flex;
+  gap: 22px;
+  align-items: center;
+}
+
+.settingsInfoIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #7c3aed, #4f46e5);
+  color: #ffffff;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  flex: none;
+}
+
+.settingsInfoBox h3 {
+  margin: 0 0 8px;
+}
+
+.settingsInfoBox p {
+  margin: 0;
+  color: #64748b;
+  line-height: 1.6;
+}
+
+.settingsStatusPanel {
+  width: 300px;
+  min-width: 300px;
+  max-width: 300px;
+  justify-self: end;
+  position: sticky;
+  top: 24px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  padding: 22px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.04);
+}
+
+.settingsStatusPanel h3 {
+  margin: 0 0 20px;
+  font-size: 17px;
+}
+
+.statusRow {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid #eef2f7;
+  background: transparent;
+  padding: 15px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  color: #0f172a;
+}
+
+.statusRow span {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 750;
+}
+
+.statusRow strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #16a34a;
+  font-size: 13px;
+}
+
+.statusRow strong i {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #22c55e;
+  display: block;
+}
+
+.statusRow.active span {
+  color: #7c3aed;
+}
+
+.systemStatus {
+  margin-top: 22px;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  gap: 12px;
+  color: #16a34a;
+}
+
+.systemStatus h4 {
+  margin: 0 0 4px;
+  color: #0f172a;
+}
+
+.systemStatus p {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+}
+
+@media (max-width: 1500px) {
+  .settingsCardGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1200px) {
+  .settingsLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .settingsStatusPanel {
+    width: 100%;
+    min-width: unset;
+    max-width: unset;
+    justify-self: stretch;
+    position: static;
+  }
+
+  .settingsCardGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .settingsPage {
+    padding: 22px;
+  }
+
+  .settingsCardGrid,
+  .settingsFormGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .settingsCategoryHead {
+    align-items: flex-start;
+  }
+}
