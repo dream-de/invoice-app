@@ -11,6 +11,7 @@ import {
   AlertCircle,
   Activity,
   Archive,
+  ArrowRight,
   BarChart3,
   MoonStar,
   SunMedium,
@@ -23,6 +24,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock3,
+  CreditCard,
   Crown,
   Download,
   Eye,
@@ -36,6 +38,7 @@ import {
   KeyRound,
   Landmark,
   List,
+  Lock,
   MoreVertical,
   Pencil,
   Plug,
@@ -65,6 +68,7 @@ import { PremiumAccountSecurityClient } from "./account/security/PremiumAccountS
 import { DocumentManagementClient } from "./documents/DocumentManagementClient"
 import { ShareReleaseDialog } from "@/components/share/ShareReleaseDialog"
 import { LicenseBillingControlCenter } from "./_components/LicenseBillingControlCenter"
+import { BankConnectPage } from "./finance/bank-connect/BankConnectPage"
 import { PremiumSettingsSectionContent } from "./settings/PremiumSettingsSectionContent"
 import { type PremiumSettingsSection } from "./settings/sectionMap"
 import { LogsPageClient } from "./_components/LogsPageClient"
@@ -87,6 +91,7 @@ type PremiumView =
   | "time"
   | "expenses"
   | "finance"
+  | "finance-bank-connect"
   | "documents"
   | "ai-assistant"
   | "articles"
@@ -153,6 +158,17 @@ type FinanceImportResult = {
   transactions?: FinanceImportTransaction[]
   warnings?: string[]
   message?: string
+}
+type OpenBankingRuntime = {
+  plan: "free" | "starter" | "business" | "enterprise"
+  installedMarketplaceModules: readonly string[]
+  featureFlags: readonly string[]
+}
+type FinanceCapability = {
+  key: string
+  label: string
+  active: boolean
+  tier: "Free" | "Business" | "Enterprise"
 }
 type ApiInvoice = {
   id: string
@@ -479,6 +495,12 @@ const premiumViewMeta: Record<Exclude<PremiumView, "account-security">, { title:
     eyebrow: "Banking",
     description: "Bankkonten, Transaktionen, Kategorien, DATEV Export und Finanzberichte steuern.",
     primary: "Bankkonto anlegen"
+  },
+  "finance-bank-connect": {
+    title: "Bank verbinden",
+    eyebrow: "Open Banking",
+    description: "PSD2 Bankverbindung als sicheren Mock-Flow vorbereiten.",
+    primary: "Bank verbinden"
   },
   documents: {
     title: "Dokumentenmanagement",
@@ -1238,12 +1260,20 @@ const moduleContent: Record<ModuleView, ModuleConfig> = {
     primaryHref: "/dashboard-v2/expenses?q=Ausgabe%20erfasst"
   },
   finance: {
-    stats: [["0", "Verbundene Banken"], ["0", "Offene Zahlungen"], ["finAPI", "Standardanbieter"]],
-    rows: [["Bankverbindungen", "finAPI / PSD2 Consent", "0 verbunden", "Vorbereitet"], ["Konten", "BankAccounts Modell", "0 synchronisiert", "Inaktiv"], ["Zahlungsabgleich", "Rechnung -> Zahlung erkannt", "Automatik aus", "Vorbereitet"], ["Synchronisation", "Webhook und Token-Status", "Nicht gestartet", "Vorbereitet"]],
+    stats: [["0", "Verbundene Banken"], ["0", "Offene Zahlungen"], ["PSD2", "Vorbereitet"]],
+    rows: [["Bankverbindungen", "PSD2 Consent", "0 verbunden", "Vorbereitet"], ["Konten", "BankAccounts Modell", "0 synchronisiert", "Inaktiv"], ["Zahlungsabgleich", "Rechnung -> Zahlung erkannt", "Automatik aus", "Vorbereitet"], ["Synchronisation", "Provider-Adapter und Sync-Status", "Nicht gestartet", "Vorbereitet"]],
     focus: [["Verbundene Banken", "0"], ["Offene Zahlungen", "0"], ["Letzte Bankbewegungen", "Keine Synchronisation"]],
-    actions: [["Open Banking oeffnen", "/finance/open-banking"], ["Manuelles Konto anlegen", "/dashboard-v2/finance?q=Bankkonto%20anlegen"], ["CSV Bankimport", "/dashboard-v2/finance?q=Bankimport"], ["Finanzbericht", "/dashboard-v2/finance?q=Finanzbericht"]],
-    timeline: [["finAPI vorbereitet", "Client ID, Secret und Webhook URL koennen in den Finanz-Einstellungen gepflegt werden."], ["Zahlungsabgleich vorbereitet", "Rechnung, erkannte Zahlung und Statusupdate sind modelliert; keine Automatik aktiv."], ["Sicherheit vorbereitet", "Verschluesselte Token-Felder, Token-Verwaltung und Logs sind vorgesehen."]],
+    actions: [["Open Banking aktivieren", "/dashboard-v2/license-billing?q=Open%20Banking"], ["Manuelles Konto anlegen", "/dashboard-v2/finance?q=Bankkonto%20anlegen"], ["CSV Bankimport", "/dashboard-v2/finance?q=Bankimport"], ["Finanzbericht", "/dashboard-v2/finance?q=Finanzbericht"]],
+    timeline: [["Open Banking vorbereitet", "PSD2 Provider-Adapter, Feature Flags und Marketplace-Modul sind vorbereitet."], ["Zahlungsabgleich vorbereitet", "Rechnung, erkannte Zahlung und Statusupdate sind modelliert; keine Automatik aktiv."], ["Sicherheit vorbereitet", "Keine Bank-Logins, keine harten Secrets und keine echten Provider-Aufrufe."]],
     primaryHref: "/dashboard-v2/finance?q=Bankkonto%20anlegen"
+  },
+  "finance-bank-connect": {
+    stats: [["PSD2", "Mock Flow"], ["4", "Schritte"], ["0", "Secrets"]],
+    rows: [["Bank wählen", "Mock-Banken", "Bereit", "UI"], ["Authentifizierung", "Weiterleitung simuliert", "Bereit", "UI"], ["Konto auswählen", "Mock-Konten", "Bereit", "UI"], ["Verbindung bestätigen", "Audit-Stub", "Bereit", "UI"]],
+    focus: [["Provider", "Open Banking Mock"], ["Status", "Synchronisation läuft"], ["Rückkehr", "Finance"]],
+    actions: [["Bank verbinden", "/dashboard-v2/finance/bank-connect"], ["Open Banking aktivieren", "/dashboard-v2/license-billing?q=Open%20Banking"]],
+    timeline: [["Mock-Flow vorbereitet", "Keine echte Bank-API und keine Bank-Logins."], ["Audit-Stub vorbereitet", "bank_connected Event ist lokal modelliert."], ["Rückkehr vorbereitet", "Fertig führt zurück zu Finanzen."]],
+    primaryHref: "/dashboard-v2/finance/bank-connect"
   },
   documents: {
     stats: [["0", "Dokumente"], ["Version 1", "Standard"], ["5", "Dateitypen"]],
@@ -1400,6 +1430,7 @@ function storePremiumTheme(mode: ThemeMode) {
 function premiumViewPath(view: PremiumView) {
   if (view === "dashboard") return "/dashboard-v2"
   if (view === "account-security") return "/dashboard-v2/account/security"
+  if (view === "finance-bank-connect") return "/dashboard-v2/finance/bank-connect"
   return `/dashboard-v2/${view}`
 }
 
@@ -2251,7 +2282,7 @@ function moduleRows(view: ModuleView, data: PremiumData): ModuleRow[] {
         formatEuro(account.balance),
         account.status === "active" ? "Provider aktiv" : account.status === "syncing" ? "Provider prueft" : "Manuell"
       ] as ModuleRow),
-      ["Open Banking", "finAPI vorbereitet, keine Bankverbindung aktiv", "0 Banken", "Vorbereitet"],
+      ["Open Banking", "PSD2 Marketplace-Modul vorbereitet, keine Bankverbindung aktiv", "0 Banken", "Vorbereitet"],
       ["Zahlungsabgleich", "Rechnung -> Zahlung erkannt -> Status aktualisieren", "Automatik aus", "Vorbereitet"],
       ["CSV Bankimport", "CSV/TXT Import mit Vorschau", "Bereit", "Vorbereitet"],
       ["DATEV Export", "Buchungsdaten", "CSV", "Bereit"]
@@ -4995,7 +5026,64 @@ function PremiumWorkflowPanel({
   return null
 }
 
-function PremiumFinancePanel({ mode, searchQuery }: { mode: ThemeMode; searchQuery: string }) {
+const businessOpenBankingFlags = [
+  "open_banking.enabled",
+  "open_banking.psd2",
+  "open_banking.bank_sync",
+  "open_banking.payment_matching"
+] as const
+
+const enterpriseOpenBankingFlags = [
+  ...businessOpenBankingFlags,
+  "open_banking.bank_rules",
+  "open_banking.cashflow_forecast"
+] as const
+
+function normalizeFinancePlan(plan?: string | null): OpenBankingRuntime["plan"] {
+  const normalized = (plan || "").toLowerCase()
+  if (normalized.includes("enterprise") || normalized.includes("unlimited")) return "enterprise"
+  if (normalized.includes("business")) return "business"
+  return "free"
+}
+
+function openBankingRuntimeFromData(data: PremiumData): OpenBankingRuntime {
+  const limit = userLimitFromData(data)
+  return {
+    plan: normalizeFinancePlan(limit.plan),
+    installedMarketplaceModules: [],
+    featureFlags: []
+  }
+}
+
+function isOpenBankingActive(runtime: OpenBankingRuntime) {
+  return (
+    runtime.plan === "business" ||
+    runtime.plan === "enterprise" ||
+    runtime.installedMarketplaceModules.includes("open_banking") ||
+    runtime.featureFlags.includes("open_banking.enabled")
+  )
+}
+
+function financeCapabilities(runtime: OpenBankingRuntime): FinanceCapability[] {
+  const openBankingActive = isOpenBankingActive(runtime)
+  const enterpriseActive = runtime.plan === "enterprise"
+  return [
+    { key: "manual_accounts", label: "Manuelle Konten", active: true, tier: "Free" },
+    { key: "csv_import", label: "CSV Import", active: true, tier: "Free" },
+    { key: "categories", label: "Kategorien", active: true, tier: "Free" },
+    { key: "transaction_table", label: "Transaktionstabelle", active: true, tier: "Free" },
+    { key: "reports", label: "Reports", active: true, tier: "Free" },
+    { key: "open_banking", label: "Open Banking / PSD2", active: openBankingActive, tier: "Business" },
+    { key: "bank_sync", label: "Bank Sync", active: openBankingActive, tier: "Business" },
+    { key: "payment_matching", label: "Zahlungsabgleich", active: openBankingActive, tier: "Business" },
+    { key: "bank_rules", label: "Bankregeln", active: enterpriseActive, tier: "Enterprise" },
+    { key: "multi_banking", label: "Multi-Banking", active: enterpriseActive, tier: "Enterprise" },
+    { key: "cashflow_forecast", label: "Cashflow Forecast", active: enterpriseActive, tier: "Enterprise" },
+    { key: "datev_sync", label: "DATEV Sync", active: enterpriseActive, tier: "Enterprise" }
+  ]
+}
+
+function PremiumFinancePanel({ data, mode, searchQuery }: { data: PremiumData; mode: ThemeMode; searchQuery: string }) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [accounts, setAccounts] = useState<FinanceAccount[]>(fallbackFinanceAccounts)
   const [transactions, setTransactions] = useState<FinanceTransaction[]>(fallbackFinanceTransactions)
@@ -5010,6 +5098,17 @@ function PremiumFinancePanel({ mode, searchQuery }: { mode: ThemeMode; searchQue
 
   const filteredTransactions = transactions.filter((transaction) => selectedAccount === "all" || transaction.accountId === selectedAccount)
   const balance = accounts.reduce((sum, account) => sum + account.balance, 0)
+  const financeRuntime = openBankingRuntimeFromData(data)
+  const openBankingActive = isOpenBankingActive(financeRuntime)
+  const enterpriseActive = financeRuntime.plan === "enterprise"
+  const openBankingFlags = financeRuntime.plan === "enterprise" ? enterpriseOpenBankingFlags : businessOpenBankingFlags
+  const capabilities = financeCapabilities(financeRuntime)
+  const freeCapabilities = capabilities.filter((capability) => capability.tier === "Free")
+  const businessCapabilities = capabilities.filter((capability) => capability.tier === "Business")
+  const enterpriseCapabilities = capabilities.filter((capability) => capability.tier === "Enterprise")
+  const openPayments = transactions.filter((transaction) => transaction.status === "open").length
+  const connectedBanksLabel = openBankingActive ? "2" : "0"
+  const lastSyncLabel = openBankingActive ? "Heute" : "Keine Sync"
   useEffect(() => {
     const query = searchQuery.toLowerCase()
     if (query.includes("bankkonto")) setShowAccountForm(true)
@@ -5142,25 +5241,115 @@ function PremiumFinancePanel({ mode, searchQuery }: { mode: ThemeMode; searchQue
     setFinanceState({ type: "success", message: "Transaktion wurde als gebucht markiert." })
   }
 
-    return (
-    <article className={`${styles.panel} ${styles.financeWorkspace}`} data-finance-panel data-active={searchQuery ? "true" : "false"}>
-      <div className={styles.panelHead}>
-        <div>
-          <h2>Finanz-Arbeitsbereich</h2>
-          <span>Manuelle Bankdaten, CSV-Import, Kategorien und Export</span>
-        </div>
-        <Link href={withPremiumTheme("/dashboard-v2/reports?q=Finanzbericht", mode)}>Reports</Link>
-      </div>
-      <p data-state="warning">Open Banking ist vorbereitet, aber inaktiv. finAPI ist als PSD2-Provider vorgesehen; hier werden keine Bank-Logins, PINs oder TANs gespeichert.</p>
+  const capabilityGroups: Array<[tier: string, title: string, items: FinanceCapability[]]> = [
+    ["Free", "Manuelle Finanzen", freeCapabilities],
+    ["Business", "Open Banking", businessCapabilities],
+    ["Enterprise", "Automatisierung", enterpriseCapabilities]
+  ]
 
-      <div className={styles.financeToolbar}>
-        <button type="button" data-finance-add-account onClick={() => setShowAccountForm((current) => !current)}><Plus size={16} />Manuelles Konto</button>
-        <button type="button" disabled={isBusy} onClick={() => fileInputRef.current?.click()}><Upload size={16} />CSV Import</button>
-        <button type="button" disabled={isBusy} onClick={() => void downloadFinanceFile("/api/finance/datev-export", "datev-export.csv", "datev", "DATEV Export wurde geladen.")}><Download size={16} />DATEV</button>
-        <button type="button" disabled={isBusy} onClick={() => void downloadFinanceFile("/api/finance/report", "finanzbericht.csv", "report", "Finanzbericht wurde geladen.")}><FileText size={16} />Finanzbericht</button>
-        <button type="button" disabled={isBusy} onClick={() => void downloadFinanceFile("/api/finance/accounts/import-template", "bankimport-vorlage.csv", "template", "Importvorlage wurde geladen.")}><Download size={16} />Vorlage</button>
-        <input ref={fileInputRef} className={styles.visuallyHidden} data-finance-import-file type="file" accept=".csv,.txt,text/csv,text/plain" onChange={(event) => void handleImportFile(event)} />
-      </div>
+  return (
+    <article className={styles.financePage} data-finance-panel data-active={searchQuery ? "true" : "false"}>
+      <section className={styles.financeHero}>
+        <div>
+          <span>Finanzen</span>
+          <h1>Finanzen im Überblick</h1>
+          <p>Bankkonten, Transaktionen, Kategorien, DATEV Export und Finanzberichte steuern.</p>
+        </div>
+        {openBankingActive ? (
+          <Link className={styles.financeHeroButton} href={withPremiumTheme("/dashboard-v2/finance/bank-connect", mode)}><Landmark size={17} />Bank verbinden</Link>
+        ) : (
+          <Link className={styles.financeHeroButton} href={withPremiumTheme("/dashboard-v2/license-billing?q=Open%20Banking", mode)}><Lock size={17} />Open Banking aktivieren</Link>
+        )}
+      </section>
+
+      <section className={styles.financeKpis} aria-label="Finanz-Kennzahlen">
+        <div className={styles.financeKpi}><span><Landmark size={22} /></span><div><small>Verbundene Banken</small><strong>{connectedBanksLabel}</strong><em>Konten verbunden</em></div></div>
+        <div className={styles.financeKpi}><span><CreditCard size={22} /></span><div><small>Offene Zahlungen</small><strong>{openPayments}</strong><em>Zu überprüfen</em></div></div>
+        <div className={styles.financeKpi}><span><Wallet size={22} /></span><div><small>Bankbestand</small><strong>{formatEuro(balance)}</strong><em>Gesamtbestand</em></div></div>
+        <div className={styles.financeKpi}><span><RefreshCcw size={22} /></span><div><small>Letzte Bankbewegungen</small><strong>{lastSyncLabel}</strong><em>Synchronisation</em></div></div>
+      </section>
+
+      <section className={`${styles.panel} ${styles.financeWorkspace}`}>
+        <div className={styles.panelHead}>
+          <div>
+            <h2>Finanz-Arbeitsbereich</h2>
+            <span>Manuelle Bankdaten, CSV-Import, Kategorien und Export</span>
+          </div>
+          <Link href={withPremiumTheme("/dashboard-v2/reports?q=Finanzbericht", mode)}><FileText size={16} />Reports</Link>
+        </div>
+        <p data-state="warning">Open Banking ist als Marketplace-Modul vorbereitet. Es werden keine Bank-Logins, PINs, TANs oder Provider-Secrets gespeichert.</p>
+
+        <div className={styles.financeToolbar}>
+          <button type="button" data-finance-add-account onClick={() => setShowAccountForm((current) => !current)}><Plus size={16} />Manuelles Konto</button>
+          <button type="button" disabled={isBusy} onClick={() => fileInputRef.current?.click()}><Upload size={16} />CSV Import</button>
+          <button type="button" disabled={isBusy} onClick={() => void downloadFinanceFile("/api/finance/datev-export", "datev-export.csv", "datev", "DATEV Export wurde geladen.")}><Download size={16} />DATEV</button>
+          <button type="button" disabled={isBusy} onClick={() => void downloadFinanceFile("/api/finance/report", "finanzbericht.csv", "report", "Finanzbericht wurde geladen.")}><FileText size={16} />Finanzbericht</button>
+          <button type="button" disabled={isBusy} onClick={() => void downloadFinanceFile("/api/finance/accounts/import-template", "bankimport-vorlage.csv", "template", "Importvorlage wurde geladen.")}><Download size={16} />Vorlage</button>
+          <input ref={fileInputRef} className={styles.visuallyHidden} data-finance-import-file type="file" accept=".csv,.txt,text/csv,text/plain" onChange={(event) => void handleImportFile(event)} />
+        </div>
+
+        <section className={styles.openBankingPanel} data-active={openBankingActive ? "true" : "false"}>
+          <div className={styles.openBankingHeader}>
+            <div>
+              <i>{openBankingActive ? <CheckCircle2 size={22} /> : <Lock size={22} />}</i>
+              <span>{openBankingActive ? "PSD2 Bankverbindungen" : "Open Banking (PSD2)"}</span>
+              <h3>{openBankingActive ? "PSD2 Bankverbindungen" : "Open Banking (PSD2)"}</h3>
+              <p>{openBankingActive ? "Ihre Bankkonten sind verbunden. Kontostände und Umsätze werden automatisch synchronisiert." : "Verbinden Sie Ihr Bankkonto automatisch. PSD2 Bankverbindung, Synchronisation und Zahlungsabgleich sind als Marketplace-Erweiterung verfügbar."}</p>
+            </div>
+            {openBankingActive ? (
+              <Link href={withPremiumTheme("/dashboard-v2/finance/bank-connect", mode)}>Bank verbinden<ArrowRight size={16} /></Link>
+            ) : (
+              <Link href={withPremiumTheme("/dashboard-v2/license-billing?q=Open%20Banking", mode)}>Open Banking aktivieren<ArrowRight size={16} /></Link>
+            )}
+          </div>
+
+          {openBankingActive ? (
+            <>
+              <div className={styles.openBankingGrid}>
+                <div><span>Sync Status</span><strong>Aktiv</strong></div>
+                <div><span>Letzte Synchronisation</span><strong>Heute, 08:45</strong></div>
+                <div><span>Zahlungsabgleich</span><strong>Vorbereitet</strong></div>
+              </div>
+              <div className={styles.openBankingFlags}>
+                {openBankingFlags.map((flag) => <span key={flag}>{flag}</span>)}
+              </div>
+            </>
+          ) : (
+            <div className={styles.openBankingBenefits}>
+              <span><CheckCircle2 size={15} />Live Kontostand</span>
+              <span><CheckCircle2 size={15} />Automatische Synchronisation</span>
+              <span><CheckCircle2 size={15} />Zahlungsabgleich</span>
+            </div>
+          )}
+        </section>
+
+        <section className={styles.financeCapabilityGrid} aria-label="Finance Plan-Funktionen">
+        {capabilityGroups.map(([tier, title, items]) => (
+          <div key={tier} className={styles.financeCapabilityCard} data-tier={tier} data-active={items.every((item) => item.active) ? "true" : "false"}>
+            <div>
+              <span>{tier}</span>
+              <strong>{title}</strong>
+            </div>
+            <ul>
+              {items.map((item) => (
+                <li key={item.key} data-active={item.active ? "true" : "false"}>
+                  <CheckCircle2 size={15} />
+                  <span>{item.label}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </section>
+
+      {enterpriseActive ? (
+        <section className={styles.financeEnterpriseGrid} aria-label="Enterprise-Funktionen">
+          <div><h4>Bankregeln</h4><p>Automatische Regeln für wiederkehrende Buchungen.</p></div>
+          <div><h4>Multi-Banking</h4><p>Mehrere Banken und Mandanten zentral verwalten.</p></div>
+          <div><h4>Cashflow Forecast</h4><p>Liquidität und Prognosen automatisch berechnen.</p></div>
+          <div><h4>DATEV Sync</h4><p>Buchungsdaten direkt für DATEV vorbereiten.</p></div>
+        </section>
+      ) : null}
 
       {financeState.message ? <p data-state={financeState.type}>{financeState.message}</p> : null}
 
@@ -5172,13 +5361,6 @@ function PremiumFinancePanel({ mode, searchQuery }: { mode: ThemeMode; searchQue
           <button type="button" onClick={addAccount}>Speichern</button>
         </section>
       ) : null}
-
-      <section className={styles.financeSummary}>
-        <div><span>Verbundene Banken</span><strong>0</strong></div>
-        <div><span>Offene Zahlungen</span><strong>{transactions.filter((transaction) => transaction.status === "open").length}</strong></div>
-        <div><span>Letzte Bankbewegungen</span><strong>Keine Sync</strong></div>
-        <div><span>Bankbestand</span><strong>{formatEuro(balance)}</strong></div>
-      </section>
 
       <section className={styles.financeAccountGrid}>
         {accounts.map((account) => (
@@ -5237,6 +5419,7 @@ function PremiumFinancePanel({ mode, searchQuery }: { mode: ThemeMode; searchQue
             )
           })}
         </div>
+      </section>
       </section>
     </article>
   )
@@ -7891,6 +8074,10 @@ function PremiumModulePage({
   })
   const allVisibleExpensesSelected = visibleExpenseRows.length > 0 && visibleExpenseRows.every((expense) => selectedExpenseIds.includes(expense.id))
 
+  if (view === "finance-bank-connect") {
+    return <BankConnectPage />
+  }
+
   function toggleExpenseSelection(expenseId: string) {
     setSelectedExpenseIds((current) => {
       const next = current.includes(expenseId) ? current.filter((id) => id !== expenseId) : [...current, expenseId]
@@ -9508,16 +9695,14 @@ function PremiumModulePage({
 
   return (
     <section className={styles.modulePage} data-view={view}>
-      {!isOffersSimpleView ? (
+      {!isOffersSimpleView && view !== "finance" ? (
         <article className={`${styles.panel} ${styles.moduleHero}`}>
           <div>
             <span>{meta.eyebrow}</span>
             <h1>{meta.title}</h1>
             <p>{meta.description}</p>
           </div>
-          {view === "finance" ? (
-            <button type="button" disabled={isModuleActionSaving} onClick={() => void runFinanceQuickAction("account")}><Banknote size={18} />{meta.primary}</button>
-          ) : view === "users" ? (
+          {view === "users" ? (
             <button type="button" disabled={isModuleActionSaving} onClick={() => void runUserQuickAction("invite")}><Plus size={18} />{meta.primary}</button>
           ) : view === "license" ? (
             <button type="button" disabled={isModuleActionSaving} onClick={() => void runLicenseQuickAction("upgrade")}><Plus size={18} />{meta.primary}</button>
@@ -9529,9 +9714,9 @@ function PremiumModulePage({
         </article>
       ) : null}
 
-      {!isOffersSimpleView ? <DataQualityNotice health={health} /> : null}
+      {!isOffersSimpleView && view !== "finance" ? <DataQualityNotice health={health} /> : null}
 
-      {!isOffersSimpleView ? (
+      {!isOffersSimpleView && view !== "finance" ? (
         <section className={styles.moduleStatsGrid}>
           {stats.map(([value, label]) => (
             <article key={`${label}-${value}`} className={`${styles.panel} ${styles.moduleStatCard}`}>
@@ -9543,12 +9728,13 @@ function PremiumModulePage({
       ) : null}
 
       {view === "license" ? <PremiumLicensePanel data={data} mode={mode} searchQuery={searchQuery} /> : null}
-      {view === "finance" ? <PremiumFinancePanel mode={mode} searchQuery={searchQuery} /> : null}
+      {view === "finance" ? <PremiumFinancePanel data={data} mode={mode} searchQuery={searchQuery} /> : null}
       {view !== "finance" ? <PremiumWorkflowPanel view={view} settingsSection={settingsSection} data={data} language={language} mode={mode} searchQuery={searchQuery} onDataChange={onDataChange} /> : null}
-      {!isOffersSimpleView ? <ModuleSelectionPanel view={view} data={data} mode={mode} row={selectedRow} searchQuery={searchQuery} /> : null}
+      {!isOffersSimpleView && view !== "finance" ? <ModuleSelectionPanel view={view} data={data} mode={mode} row={selectedRow} searchQuery={searchQuery} /> : null}
 
-      <section className={`${styles.moduleGrid} ${view === "finance" ? styles.moduleGridCompact : ""} ${isOffersSimpleView ? styles.moduleGridSingle : ""}`}>
-        {view !== "finance" && !isOffersSimpleView ? (
+      {view !== "finance" ? (
+      <section className={`${styles.moduleGrid} ${isOffersSimpleView ? styles.moduleGridSingle : ""}`}>
+        {!isOffersSimpleView ? (
         <article className={`${styles.panel} ${styles.moduleCard}`}>
           <div className={styles.panelHead}><h2>Weitere Aktionen</h2><span>Sekundaer & Dev</span></div>
           <details className={styles.moreActions}>
@@ -9632,6 +9818,7 @@ function PremiumModulePage({
           </div>
         </article>
       </section>
+      ) : null}
     </section>
   )
 }
