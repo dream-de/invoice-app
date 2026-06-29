@@ -1977,54 +1977,72 @@ function ActivityFeed({ data, mode }: { data: PremiumData; mode: ThemeMode }) {
 
 function UsersPanel({ data, mode, sessionUser }: { data: PremiumData; mode: ThemeMode; sessionUser: SessionUser | null }) {
   const sessionFallback = sessionUserToAppUser(sessionUser)
-  const cards = data.appUsers.length ? userCardsFromData(data) : sessionFallback ? userCardsFromData({ ...data, appUsers: [sessionFallback] }) : []
   const limit = userLimitFromData(data)
   const usageWidth = Math.min(100, Math.round((limit.currentUsers / Math.max(limit.maxUsers, 1)) * 100))
   const setupIsOpen = data.setupAvailable === true && !data.appUsers.length && !sessionUser
-  return <article className={`${styles.panel} ${styles.usersPanel}`}><div className={styles.usersMeta}><h2>Benutzer & Rollen</h2><span>{limit.currentUsers}/{limit.maxUsers} Benutzer</span><div><i style={{ width: `${usageWidth}%` }} /></div><Link href={withPremiumTheme(setupIsOpen ? "/setup" : "/dashboard-v2/users?q=Benutzer%20eingeladen", mode)}>{setupIsOpen ? "Ersteinrichtung starten" : "Benutzer verwalten"}</Link></div><div className={styles.userCards}>{cards.length ? cards.map(([name, role, initials, crown]) => <Link key={`${name}-${role}`} href={withPremiumTheme(`/dashboard-v2/users?q=${encodeURIComponent(name)}`, mode)} className={styles.userCard}><div className={styles.avatar}>{initials}</div>{crown ? <Crown size={15} /> : null}<strong>{name}</strong><span>{role}</span><em>{sessionFallback && !data.appUsers.length ? "Session" : "Aktiv"}</em></Link>) : setupIsOpen ? <Link href={withPremiumTheme("/setup", mode)} className={styles.addUser}><Users size={24} /><span>Noch keine Benutzer eingerichtet</span></Link> : <span className={styles.addUser}><Users size={24} /><span>Keine echten Benutzer geladen</span></span>}<Link href={withPremiumTheme(setupIsOpen ? "/setup" : "/dashboard-v2/users?q=Benutzer%20eingeladen", mode)} className={styles.addUser}><Plus size={24} /><span>{setupIsOpen ? "Ersteinrichtung starten" : "Benutzer hinzufuegen"}</span></Link></div></article>
-}
-
-function LicensePanel({ data, mode }: { data: PremiumData; mode: ThemeMode }) {
-  const [expanded, setExpanded] = useState(false)
-  const limit = userLimitFromData(data)
-  const documentCount = invoiceDisplaySource(data).length
+  const primaryUser = data.appUsers[0] ?? sessionFallback
+  const workspaceName = data.companySettings?.company || fallbackCompanySettings.company || "Acme GmbH"
+  const role = primaryUser?.role || "Admin"
+  const status = String(primaryUser?.status || "active").toLowerCase() === "active" ? "Aktiv" : "Pruefen"
+  const manageHref = withPremiumTheme(setupIsOpen ? "/setup" : "/dashboard-v2/users", mode)
+  const inviteHref = withPremiumTheme(setupIsOpen ? "/setup" : "/dashboard-v2/users?q=Benutzer%20eingeladen", mode)
 
   return (
-    <article className={`${styles.panel} ${styles.licensePanel}`}>
+    <article className={`${styles.panel} ${styles.usersPanel} ${styles.workspacePanel}`}>
+      <div className={styles.usersMeta}>
+        <h2>Workspace</h2>
+        <span>{workspaceName}</span>
+        <div><i style={{ width: `${usageWidth}%` }} /></div>
+        <Link href={manageHref}>Benutzer verwalten</Link>
+      </div>
+      <div className={styles.workspaceDetails}>
+        <div className={styles.workspaceFacts}>
+          <div><span>Workspace</span><strong>{workspaceName}</strong></div>
+          <div><span>Benutzer</span><strong>{limit.currentUsers} / {limit.maxUsers}</strong></div>
+          <div><span>Rolle</span><strong>{role}</strong></div>
+          <div><span>Status</span><strong>{status}</strong></div>
+        </div>
+        <div className={styles.workspaceActions}>
+          <Link href={manageHref}>Benutzer verwalten</Link>
+          <Link href={inviteHref}>Benutzer einladen</Link>
+        </div>
+      </div>
+    </article>
+  )
+}
+
+function LicensePanel({ mode }: { data: PremiumData; mode: ThemeMode }) {
+  const billingHref = withPremiumTheme("/dashboard-v2/license-billing", mode)
+  const quickLinks = [
+    ["Lizenz & Abrechnung", "/dashboard-v2/license-billing", KeyRound],
+    ["Marketplace", "/dashboard-v2/license-billing?tab=marketplace", Grid3X3],
+    ["Abrechnung", "/dashboard-v2/license-billing?tab=invoices", CreditCard],
+    ["Einstellungen", "/dashboard-v2/settings", Settings]
+  ] as const
+
+  return (
+    <article className={`${styles.panel} ${styles.licensePanel} ${styles.quickAccessPanel}`}>
       <div className={styles.panelHead}>
         <div>
-          <h2>Lizenzstatus</h2>
-          <span>Kompakt und jederzeit aufklappbar</span>
+          <h2>Schnellzugriff</h2>
+          <span>Wichtige Bereiche direkt oeffnen</span>
         </div>
-        <button type="button" className={styles.licenseToggle} onClick={() => setExpanded((value) => !value)} aria-expanded={expanded}>
-          {expanded ? "Weniger anzeigen" : "Details anzeigen"}
-          <ChevronDown size={14} data-rotated={expanded ? "true" : undefined} />
-        </button>
       </div>
 
-      <div className={styles.licenseSummary}>
-        <div className={styles.licenseSummaryRow}><span>Plan</span><strong className={styles.freeBadge}>{limit.plan}</strong></div>
-        <div className={styles.licenseSummaryRow}><span>Nutzung</span><strong>{limit.currentUsers} / {limit.maxUsers}</strong></div>
-        <div className={styles.licenseSummaryRow}><span>Status</span><strong>{limit.isFull ? "Limit erreicht" : "Aktiv"}</strong></div>
+      <div className={styles.quickAccessList}>
+        {quickLinks.map(([label, href, Icon]) => (
+          <Link key={label} href={withPremiumTheme(href, mode)}>
+            <Icon size={16} />
+            <span>{label}</span>
+            <ArrowRight size={14} />
+          </Link>
+        ))}
       </div>
 
-      {expanded ? (
-        <div className={styles.licenseGrid}>
-          <div><span>Dokumente</span><b>{documentCount}</b></div>
-          <div><span>Ablaufdatum</span><b>{limit.validUntil ? limit.validUntil.slice(0, 10) : "-"}</b></div>
-          <div><span>Vorbereitet</span><b>{limit.plan}</b></div>
-          <div><span>Admin</span><b>{limit.isFull ? "Prüfen" : "OK"}</b></div>
-        </div>
-      ) : (
-        <div className={styles.licenseCollapsedNote}>Details sind verborgen und bleiben bei Bedarf aufklappbar.</div>
-      )}
-
-      {expanded ? (
-        <Link href={withPremiumTheme("/dashboard-v2/license-billing", mode)}>
-          <span>Upgrade Plan</span>
+      <Link href={billingHref} className={styles.quickAccessButton}>
+        <span>Lizenz & Abrechnung oeffnen</span>
           <KeyRound size={18} />
-        </Link>
-      ) : null}
+      </Link>
     </article>
   )
 }

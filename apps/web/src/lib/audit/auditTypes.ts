@@ -12,6 +12,7 @@ export type AuditSource =
   | "system"
 
 export type AuditEventType =
+  | "auth_login"
   | "marketplace_module_installed"
   | "marketplace_module_uninstalled"
   | "marketplace_module_install_failed"
@@ -63,6 +64,8 @@ export type AuditEventType =
   | "feature_flag_changed"
   | "feature_flag_enabled"
   | "feature_flag_disabled"
+  | "api_request"
+  | "system_event"
 
 export type AuditActor = {
   actorId?: string
@@ -96,3 +99,93 @@ export type AuditEvent = {
 export type AuditEventInput = Omit<AuditEvent, "id" | "timestamp"> & Partial<Pick<AuditEvent, "id" | "timestamp">>
 
 export type AuditEventListener = (events: readonly AuditEvent[]) => void
+
+export type AuditJsonPrimitive = string | number | boolean | null
+export type AuditJson = AuditJsonPrimitive | AuditJson[] | { [key: string]: AuditJson | undefined }
+
+export type AuditLogInput = {
+  tenantId?: string | null
+  workspaceId?: string | null
+  actorId?: string | null
+  actorName: string
+  actorRole?: string | null
+  actorEmail?: string | null
+  type: string
+  source: AuditSource | string
+  severity: AuditSeverity
+  title: string
+  description?: string | null
+  moduleKey?: string | null
+  integrationKey?: string | null
+  marketplaceModuleKey?: string | null
+  entityType?: string | null
+  entityId?: string | null
+  ipAddress?: string | null
+  userAgent?: string | null
+  browser?: string | null
+  device?: string | null
+  location?: string | null
+  requestId?: string | null
+  metadata?: AuditJson
+  before?: AuditJson
+  after?: AuditJson
+}
+
+export type AuditLogFilters = {
+  tenantId?: string
+  workspaceId?: string
+  actorId?: string
+  type?: string
+  source?: string
+  severity?: string
+  moduleKey?: string
+  integrationKey?: string
+  marketplaceModuleKey?: string
+  requestId?: string
+  dateFrom?: string
+  dateTo?: string
+  search?: string
+  limit?: number
+  offset?: number
+  cursor?: string
+}
+
+export type AuditLogListResponse = {
+  ok: true
+  logs: AuditEvent[]
+  count: number
+  nextCursor: string | null
+}
+
+export type AuditLogStats = {
+  total: number
+  bySeverity: Record<string, number>
+  bySource: Record<string, number>
+  byType: Record<string, number>
+}
+
+export type AuditRequestContext = {
+  tenantId?: string | null
+  workspaceId?: string | null
+  actorId?: string | null
+  actorName?: string | null
+  actorRole?: string | null
+  actorEmail?: string | null
+  ipAddress?: string | null
+  userAgent?: string | null
+  browser?: string | null
+  device?: string | null
+  location?: string | null
+  requestId?: string | null
+}
+
+export type BackendAuditEventInput = Omit<AuditLogInput, "actorName"> & {
+  actor?: {
+    actorId?: string | null
+    actorName?: string | null
+    actorRole?: string | null
+    actorEmail?: string | null
+  }
+  actorName?: string
+  requestContext?: AuditRequestContext
+}

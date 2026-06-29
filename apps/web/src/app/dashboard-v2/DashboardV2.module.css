@@ -5599,6 +5599,69 @@
   cursor: pointer;
 }
 
+.workspacePanel {
+  align-items: stretch;
+}
+
+.workspaceDetails {
+  min-width: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.workspaceFacts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.workspaceFacts div {
+  min-height: 82px;
+  display: grid;
+  align-content: center;
+  gap: 7px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel-strong) 80%, transparent);
+  padding: 12px;
+}
+
+.workspaceFacts span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.workspaceFacts strong {
+  min-width: 0;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 950;
+  overflow-wrap: anywhere;
+}
+
+.workspaceActions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.workspaceActions a {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel-strong) 80%, transparent);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
 .licenseGrid {
   display: grid;
   gap: 10px;
@@ -5636,6 +5699,57 @@
   justify-content: center;
   gap: 9px;
   background: linear-gradient(135deg, rgba(22, 199, 132, 0.85), rgba(20, 184, 166, 0.86));
+}
+
+.quickAccessPanel {
+  align-content: start;
+}
+
+.quickAccessList {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.quickAccessList a {
+  min-height: 46px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel-strong) 82%, transparent);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 900;
+  padding: 0 12px;
+  text-decoration: none;
+}
+
+.quickAccessList a svg:first-child {
+  color: var(--accent);
+}
+
+.quickAccessList a svg:last-child {
+  color: var(--muted);
+}
+
+.quickAccessList a span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quickAccessButton {
+  min-height: 42px;
+  border-radius: 8px;
+  color: white;
+  font-size: 12px;
+  font-weight: 950;
+  padding: 0 14px;
+  text-decoration: none;
 }
 
 .integrationsPanel {
@@ -10427,6 +10541,13 @@
   }
 }
 
+@media (max-width: 950px) {
+  .workspaceFacts,
+  .quickAccessList {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 
 @media (max-width: 720px) {
   .themeToggleButton {
@@ -10437,6 +10558,12 @@
 
   .themeToggleButton span {
     display: none;
+  }
+
+  .workspaceFacts,
+  .workspaceActions,
+  .quickAccessList {
+    grid-template-columns: 1fr;
   }
 }
 
