@@ -11,6 +11,12 @@ export type NewFeatureFlag =
   | "feature.api"
   | "feature.time_tracking_pro"
   | "feature.archive_pro"
+  | "open_banking.enabled"
+  | "open_banking.psd2"
+  | "open_banking.bank_sync"
+  | "open_banking.payment_matching"
+  | "open_banking.bank_rules"
+  | "open_banking.cashflow_forecast"
 
 export const newFeatureFlags: readonly NewFeatureFlag[] = [
   "feature.banking",
@@ -22,7 +28,13 @@ export const newFeatureFlags: readonly NewFeatureFlag[] = [
   "feature.woocommerce",
   "feature.api",
   "feature.time_tracking_pro",
-  "feature.archive_pro"
+  "feature.archive_pro",
+  "open_banking.enabled",
+  "open_banking.psd2",
+  "open_banking.bank_sync",
+  "open_banking.payment_matching",
+  "open_banking.bank_rules",
+  "open_banking.cashflow_forecast"
 ]
 
 export type MarketplaceCategory = "Finanzen" | "KI" | "E-Commerce" | "Projektmanagement" | "Produktion" | "Business"
@@ -32,9 +44,21 @@ export type MarketplaceExtension = {
   name: string
   category: MarketplaceCategory
   featureFlag: NewFeatureFlag | null
+  description?: string
+  marketplaceVisible?: boolean
+  installable?: boolean
 }
 
 export const newMarketplaceExtensions: readonly MarketplaceExtension[] = [
+  {
+    key: "open_banking",
+    name: "Open Banking",
+    category: "Finanzen",
+    featureFlag: "open_banking.enabled",
+    description: "PSD2 Bankverbindungen, Kontosynchronisation und Zahlungsabgleich",
+    marketplaceVisible: true,
+    installable: true
+  },
   { key: "banking", name: "Banking", category: "Finanzen", featureFlag: "feature.banking" },
   { key: "datev", name: "DATEV", category: "Finanzen", featureFlag: "feature.datev" },
   { key: "ocr", name: "OCR", category: "KI", featureFlag: "feature.ocr" },

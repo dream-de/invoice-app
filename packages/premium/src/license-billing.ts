@@ -15,7 +15,7 @@ export type SaasPlan = {
 export const saasPlans: readonly SaasPlan[] = [
   { key: "free", name: "Free", status: "Vorbereitet", seats: 1, monthlyPrice: "0 EUR", target: "Einzelne Test- und Demo-Instanzen", includedFlags: [] },
   { key: "starter", name: "Starter", status: "Vorbereitet", seats: 5, monthlyPrice: "Noch offen", target: "Kleine Teams mit Basis-Automatisierung", includedFlags: ["feature.time_tracking_pro"] },
-  { key: "business", name: "Business", status: "Vorbereitet", seats: 25, monthlyPrice: "Noch offen", target: "Wachsende Unternehmen mit Erweiterungen", includedFlags: ["feature.banking", "feature.datev", "feature.ocr", "feature.api", "feature.time_tracking_pro", "feature.archive_pro"] },
+  { key: "business", name: "Business", status: "Vorbereitet", seats: 25, monthlyPrice: "Noch offen", target: "Wachsende Unternehmen mit Erweiterungen", includedFlags: ["feature.banking", "feature.datev", "feature.ocr", "feature.api", "feature.time_tracking_pro", "feature.archive_pro", "open_banking.enabled", "open_banking.psd2", "open_banking.bank_sync", "open_banking.payment_matching"] },
   { key: "enterprise", name: "Enterprise", status: "Vorbereitet", seats: "Individuell", monthlyPrice: "Individuell", target: "Mandanten, SLA und individuelle Limits", includedFlags: newFeatureFlags }
 ]
 
@@ -67,6 +67,7 @@ export type LicenseRuntimeResolution = {
 export type MarketplaceModuleStatus = "Verfuegbar" | "Installiert" | "Aktiv" | "Nicht verfuegbar"
 export type MarketplaceFeatureFlag = NewFeatureFlag | "feature.api_premium"
 export type MarketplaceModuleKey =
+  | "open_banking"
   | "datev"
   | "banking"
   | "paypal"
@@ -111,6 +112,7 @@ export type MarketplaceModuleResolutionInput = {
 export type MarketplaceModuleCategory = "Finanzen" | "KI" | "E-Commerce" | "Projektmanagement" | "Produktion" | "Business"
 
 export const marketplaceModules: readonly MarketplaceModule[] = [
+  { key: "open_banking", name: "Open Banking", category: "Finanzen", description: "PSD2 Bankverbindungen, Kontosynchronisation und Zahlungsabgleich", featureFlag: "open_banking.enabled", canonicalFeatureFlag: "open_banking.enabled", status: "Verfuegbar", detail: "PSD2 Bankverbindung, automatische Synchronisation, Zahlungsabgleich, Live Kontostand und Bankregeln als Marketplace-Modul vorbereiten.", recommendedPlan: "business" },
   { key: "datev", name: "DATEV", category: "Finanzen", description: "DATEV-Export und Buchhaltungsuebergabe", featureFlag: "feature.datev", canonicalFeatureFlag: "feature.datev", status: "Verfuegbar", detail: "Export-Workflows, Steuerberater-Uebergabe und Finance-Reporting vorbereiten.", recommendedPlan: "business" },
   { key: "banking", name: "Banking", category: "Finanzen", description: "Bankdaten, Abgleich und Zahlungsuebersicht", featureFlag: "feature.banking", canonicalFeatureFlag: "feature.banking", status: "Verfuegbar", detail: "Open-Banking-Verbindungen und Kontoabgleich ueber Feature Flags steuern.", recommendedPlan: "business" },
   { key: "paypal", name: "PayPal", category: "Finanzen", description: "PayPal-Zahlungen und Zahlungsstatus", featureFlag: null, canonicalFeatureFlag: null, status: "Verfuegbar", detail: "Payment-Erweiterung ohne eigenes Feature Flag; Aktivierung wird spaeter ueber Provider-Konfiguration gekoppelt.", recommendedPlan: "starter" },
@@ -269,7 +271,13 @@ export const featureFlags = [
   "feature.woocommerce",
   "feature.api_premium",
   "feature.time_tracking_pro",
-  "feature.archive_pro"
+  "feature.archive_pro",
+  "open_banking.enabled",
+  "open_banking.psd2",
+  "open_banking.bank_sync",
+  "open_banking.payment_matching",
+  "open_banking.bank_rules",
+  "open_banking.cashflow_forecast"
 ] as const
 
 export const marketplaceExtensions = newMarketplaceExtensions
