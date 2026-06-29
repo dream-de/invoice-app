@@ -436,6 +436,57 @@
   font-weight: 850;
 }
 
+.extensionListCompact {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 10px;
+}
+
+.extensionCompactCard {
+  min-height: 68px;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.extensionCompactCard div:nth-child(2) {
+  flex: 1;
+  min-width: 0;
+}
+
+.extensionCompactCard strong,
+.extensionCompactCard span {
+  display: block;
+}
+
+.extensionCompactCard span {
+  color: #64748b;
+  font-size: 13px;
+  margin-top: 3px;
+}
+
+.extensionCompactCard em {
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #15803d;
+  padding: 5px 9px;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 850;
+}
+
+.emptyState {
+  margin: 0;
+  border: 1px dashed #cbd5e1;
+  border-radius: 14px;
+  padding: 16px;
+  color: #64748b;
+  font-weight: 750;
+}
+
 .marketplaceHead {
   display: flex;
   justify-content: space-between;
@@ -500,12 +551,54 @@
   gap: 14px;
 }
 
+.compactMarketplaceGrid {
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
 .modernMarketplaceCard {
   background: white;
   border: 1px solid #e5e7eb;
   border-radius: 18px;
   box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
   padding: 18px;
+}
+
+.compactMarketplaceGrid .modernMarketplaceCard {
+  padding: 14px;
+}
+
+.compactMarketplaceGrid .appIcon {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+}
+
+.compactMarketplaceGrid .modernMarketplaceCard h3 {
+  margin-top: 12px;
+  font-size: 16px;
+}
+
+.compactMarketplaceGrid .modernMarketplaceCard p {
+  margin-bottom: 8px;
+}
+
+.compactMarketplaceGrid .modernMarketplaceCard ul {
+  display: none;
+}
+
+.compactMarketplaceGrid .modernMarketplaceCard li {
+  padding: 3px 0;
+}
+
+.compactMarketplaceGrid .price {
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+.compactMarketplaceGrid .installBtn,
+.compactMarketplaceGrid .installedBtn {
+  width: 100%;
+  height: 36px;
 }
 
 .marketCardTop {
@@ -580,6 +673,52 @@
 
 .systemSection {
   margin-bottom: 20px;
+}
+
+.billingOverviewGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) repeat(2, minmax(220px, 0.7fr));
+  gap: 14px;
+}
+
+.billingOverviewCard {
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  padding: 16px;
+  background: white;
+}
+
+.billingOverviewCard h3 {
+  margin: 0 0 12px;
+  font-size: 16px;
+}
+
+.billingMiniRow {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 9px 0;
+  border-top: 1px solid #eef2f7;
+}
+
+.billingMiniRow:first-of-type {
+  border-top: 0;
+}
+
+.billingMiniRow span {
+  color: #475569;
+  font-weight: 750;
+}
+
+.billingMiniRow em {
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #15803d;
+  padding: 5px 9px;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 850;
 }
 
 .systemInnerGrid {

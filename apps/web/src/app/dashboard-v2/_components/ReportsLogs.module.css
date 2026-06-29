@@ -30,6 +30,81 @@
   align-items: center;
 }
 
+.reportDatePicker {
+  position: relative;
+}
+
+.reportCalendar {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: 20;
+  width: 320px;
+  padding: 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.16);
+}
+
+.reportCalendarHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.reportCalendarHead button,
+.reportQuickRanges button {
+  border: 0;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #6d28d9;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.reportCalendarHead button {
+  padding: 8px 10px;
+}
+
+.reportCalendarGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.reportCalendarGrid label {
+  display: grid;
+  gap: 6px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.reportCalendarGrid input {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 0 10px;
+  color: #0f172a;
+  font-weight: 800;
+  color-scheme: light;
+}
+
+.reportQuickRanges {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.reportQuickRanges button {
+  min-height: 36px;
+}
+
 .rlBtn {
   min-height: 44px;
   border: 1px solid #e5e7eb;
@@ -76,6 +151,10 @@
 
 .rlKpiCard {
   padding: 22px;
+  border: 1px solid #e5e7eb;
+  text-align: left;
+  cursor: pointer;
+  color: #0f172a;
 }
 
 .rlIcon {
@@ -124,6 +203,21 @@
 .rlChartCard {
   padding: 22px;
   min-height: 220px;
+  text-align: left;
+  color: #0f172a;
+  cursor: pointer;
+}
+
+button.rlKpiCard,
+button.rlChartCard {
+  font: inherit;
+}
+
+button.rlKpiCard:hover,
+button.rlChartCard:hover,
+.rlReportItem:hover {
+  border-color: #c4b5fd;
+  box-shadow: 0 14px 34px rgba(124, 58, 237, 0.09);
 }
 
 .large {
@@ -250,6 +344,36 @@
   padding: 24px;
 }
 
+.reportSectionHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.reportSectionHead h3 {
+  margin: 0 0 6px;
+}
+
+.reportSectionHead p {
+  margin: 0;
+  color: #64748b;
+}
+
+.reportSectionHead > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #15803d;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
 .rlReportGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -277,6 +401,17 @@
   display: block;
   color: #64748b;
   margin-top: 4px;
+}
+
+.activeReportItem {
+  border-color: #7c3aed;
+  background: #faf5ff;
+}
+
+.activeReportItem > b {
+  color: #6d28d9;
+  font-size: 12px;
+  font-weight: 900;
 }
 
 .liveBadge {

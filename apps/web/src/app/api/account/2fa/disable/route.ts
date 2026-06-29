@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { prisma, prismaDbNull } from "@dream-invoice/database"
 import { writeAuditLog } from "@/lib/audit/log"
+import { auditActor, requestContext, safeJson } from "@/lib/audit/audit-event-helpers"
+import { logBackendAuditEvent } from "@/lib/audit/backendAuditEventWriter"
 import { getAuditRequestMetadata } from "@/lib/audit/request-metadata"
 import { verifyPassword } from "@/lib/auth/password"
 import { mapAuthError, requireCurrentUser } from "@/lib/auth/service"
@@ -40,6 +42,18 @@ export async function POST(request: Request) {
       entityId: current.id,
       data: { email: current.email },
       requestMetadata: getAuditRequestMetadata(request)
+    })
+    await logBackendAuditEvent({
+      type: "two_factor_disabled",
+      source: "auth",
+      severity: "warning",
+      title: "2FA deaktiviert",
+      description: "Zwei-Faktor-Authentifizierung wurde deaktiviert.",
+      actor: auditActor(current),
+      requestContext: requestContext(request, current),
+      entityType: "user",
+      entityId: current.id,
+      metadata: safeJson({ email: current.email })
     })
     await appendNotification({
       category: "security",

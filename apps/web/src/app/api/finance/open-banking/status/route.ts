@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
 import { writeAuditLog } from "@/lib/audit/log"
+import { auditActor, requestContext, safeJson } from "@/lib/audit/audit-event-helpers"
+import { logBackendAuditEvent } from "@/lib/audit/backendAuditEventWriter"
 import { FINAPI_CALLBACK_PATH, FINAPI_PROVIDER, authErrorResponse, requireOpenBankingAdmin } from "../_shared"
 
 export const dynamic = "force-dynamic"
@@ -15,6 +17,18 @@ export async function GET(request: Request) {
       entity: "BankConnection",
       reason: "finAPI status checked",
       data: { provider: FINAPI_PROVIDER, userId: user.id, configured: Boolean(configured), connections }
+    })
+    await logBackendAuditEvent({
+      type: "open_banking_sync_success",
+      source: "open_banking",
+      severity: "info",
+      title: "Open-Banking-Status geprueft",
+      description: "finAPI Status wurde geprueft.",
+      actor: auditActor(user),
+      requestContext: requestContext(request, user),
+      integrationKey: "open_banking",
+      moduleKey: "open_banking",
+      metadata: safeJson({ provider: FINAPI_PROVIDER, configured: Boolean(configured), connectionCount: connections, syncStatus: "status_checked" })
     })
 
     const url = new URL(request.url)

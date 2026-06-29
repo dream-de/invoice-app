@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
 import { writeAuditLog } from "@/lib/audit/log"
+import { auditActor, requestContext, safeJson } from "@/lib/audit/audit-event-helpers"
+import { logBackendAuditEvent } from "@/lib/audit/backendAuditEventWriter"
 import { getAuditRequestMetadata } from "@/lib/audit/request-metadata"
 import { getCurrentUser } from "@/lib/auth/service"
 import { SESSION_COOKIE_NAME, getSessionCookieOptions } from "@/lib/auth/session"
@@ -16,6 +18,18 @@ export async function POST(request: Request) {
       entityId: current.id,
       data: { email: current.email },
       requestMetadata: getAuditRequestMetadata(request)
+    })
+    await logBackendAuditEvent({
+      type: "logout",
+      source: "auth",
+      severity: "info",
+      title: "Logout",
+      description: "Benutzer wurde abgemeldet.",
+      actor: auditActor(current),
+      requestContext: requestContext(request, current),
+      entityType: "user",
+      entityId: current.id,
+      metadata: safeJson({ email: current.email })
     })
   }
 

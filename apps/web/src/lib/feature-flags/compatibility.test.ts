@@ -80,7 +80,7 @@ test("resolves marketplace-compatible installed extensions from feature flags", 
 
 
 test("exposes dynamic marketplace modules with prepared runtime statuses", () => {
-  assert.equal(marketplaceModules.length, 16)
+  assert.equal(marketplaceModules.length, 17)
   assert.deepEqual(marketplaceCategories.map((group) => group.category), ["Finanzen", "KI", "E-Commerce", "Projektmanagement", "Produktion", "Business"])
 
   const modules = resolveMarketplaceModules({

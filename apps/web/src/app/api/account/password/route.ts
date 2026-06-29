@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
 import { writeAuditLog } from "@/lib/audit/log"
+import { auditActor, requestContext, safeJson } from "@/lib/audit/audit-event-helpers"
+import { logBackendAuditEvent } from "@/lib/audit/backendAuditEventWriter"
 import { getAuditRequestMetadata } from "@/lib/audit/request-metadata"
 import { mapAuthError, requireCurrentUser } from "@/lib/auth/service"
 import { assertStrongPassword, hashPassword, PasswordError, verifyPassword } from "@/lib/auth/password"
@@ -52,6 +54,18 @@ export async function PATCH(request: Request) {
       entityId: current.id,
       data: { email: current.email },
       requestMetadata: getAuditRequestMetadata(request)
+    })
+    await logBackendAuditEvent({
+      type: "password_changed",
+      source: "auth",
+      severity: "success",
+      title: "Passwort geaendert",
+      description: "Benutzer hat das Kontopasswort geaendert.",
+      actor: auditActor(current),
+      requestContext: requestContext(request, current),
+      entityType: "user",
+      entityId: current.id,
+      metadata: safeJson({ email: current.email })
     })
     await appendNotification({
       category: "security",

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
 import { writeAuditLog } from "@/lib/audit/log"
+import { auditActor, requestContext, safeJson } from "@/lib/audit/audit-event-helpers"
+import { logBackendAuditEvent } from "@/lib/audit/backendAuditEventWriter"
 import { mapAuthError, requireCurrentUserRole } from "@/lib/auth/service"
 import { RequestBodyError, readJsonBodyWithLimit } from "@/lib/http/request-body"
 import { hashLicenseKey, previewLicenseKey, verifyLicenseKey } from "@/lib/license/keys"
@@ -68,6 +70,17 @@ export async function POST(req: Request) {
         reason: result.reason
       }
     })
+    await logBackendAuditEvent({
+      type: "license_sync_failed",
+      source: "billing",
+      severity: "warning",
+      title: "Lizenzpruefung fehlgeschlagen",
+      description: "Lizenzschluessel konnte nicht verifiziert werden.",
+      actor: auditActor(actor),
+      requestContext: requestContext(req, actor),
+      entityType: "license_issue",
+      metadata: safeJson({ keyPreview, valid: false, reason: result.reason })
+    })
 
     return NextResponse.json(
       { ok: false, error: result.reason, keyPreview },
@@ -101,6 +114,25 @@ export async function POST(req: Request) {
       validUntil: result.payload.validUntil,
       issuedStatus: issue?.status ?? "external"
     }
+  })
+  await logBackendAuditEvent({
+    type: "license_synced",
+    source: "billing",
+    severity: "success",
+    title: "Lizenz geprueft",
+    description: "Lizenzschluessel wurde verifiziert.",
+    actor: auditActor(actor),
+    requestContext: requestContext(req, actor),
+    entityType: "license_issue",
+    entityId: result.payload.licenseId,
+    metadata: safeJson({
+      keyPreview,
+      valid: true,
+      plan: result.payload.plan,
+      billingCycle: result.payload.billingCycle,
+      maxUsers: result.payload.maxUsers,
+      issuedStatus: issue?.status ?? "external"
+    })
   })
 
   return NextResponse.json({

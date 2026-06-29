@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { Prisma, prisma } from "@dream-invoice/database"
 import { writeAuditLog } from "@/lib/audit/log"
+import { auditActor, requestContext, safeJson } from "@/lib/audit/audit-event-helpers"
+import { logBackendAuditEvent } from "@/lib/audit/backendAuditEventWriter"
 import { authErrorResponse, publicAccount, requireOpenBankingAdmin } from "../_shared"
 
 export const dynamic = "force-dynamic"
@@ -267,7 +269,7 @@ async function loadReconciliation() {
   return { transactions: items, openInvoices }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const user = await requireOpenBankingAdmin()
     const autoMatched = await applyAutomaticMatches(user.id)
@@ -279,6 +281,38 @@ export async function GET() {
         entity: "BankTransaction",
         reason: "Payment match suggestions prepared",
         data: { userId: user.id, suggested, autoMatched, tokensExposed: false }
+      })
+    }
+    await logBackendAuditEvent({
+      type: "open_banking_sync_success",
+      source: "open_banking",
+      severity: "success",
+      title: "Zahlungsabgleich synchronisiert",
+      description: "Open-Banking-Zahlungsabgleich wurde geladen.",
+      actor: auditActor(user),
+      requestContext: requestContext(request, user),
+      integrationKey: "open_banking",
+      moduleKey: "open_banking",
+      metadata: safeJson({
+        provider: "finapi",
+        syncStatus: "reconciliation_loaded",
+        importedTransactionsCount: data.transactions.length,
+        suggested,
+        autoMatched
+      })
+    })
+    if (autoMatched > 0) {
+      await logBackendAuditEvent({
+        type: "open_banking_invoice_marked_paid",
+        source: "open_banking",
+        severity: "success",
+        title: "Rechnungen automatisch bezahlt markiert",
+        description: "Rechnungen wurden durch Bankabgleich automatisch als bezahlt markiert.",
+        actor: auditActor(user),
+        requestContext: requestContext(request, user),
+        integrationKey: "open_banking",
+        moduleKey: "open_banking",
+        metadata: safeJson({ provider: "finapi", count: autoMatched })
       })
     }
 
@@ -317,6 +351,34 @@ export async function POST(request: Request) {
     if (!result.ok) {
       return NextResponse.json({ ok: false, error: result.error }, { status: result.status })
     }
+    await logBackendAuditEvent({
+      type: "open_banking_payment_matched",
+      source: "open_banking",
+      severity: "success",
+      title: "Zahlung zugeordnet",
+      description: "Bankbewegung wurde manuell einer Rechnung zugeordnet.",
+      actor: auditActor(user),
+      requestContext: requestContext(request, user),
+      integrationKey: "open_banking",
+      moduleKey: "open_banking",
+      entityType: "BankTransaction",
+      entityId: transactionId,
+      metadata: safeJson({ provider: "finapi", matchedInvoiceId: invoiceId, syncStatus: "matched" })
+    })
+    await logBackendAuditEvent({
+      type: "open_banking_invoice_marked_paid",
+      source: "open_banking",
+      severity: "success",
+      title: "Rechnung bezahlt markiert",
+      description: "Rechnung wurde durch Bankabgleich als bezahlt markiert.",
+      actor: auditActor(user),
+      requestContext: requestContext(request, user),
+      integrationKey: "open_banking",
+      moduleKey: "open_banking",
+      entityType: "Invoice",
+      entityId: invoiceId,
+      metadata: safeJson({ provider: "finapi", bankTransactionId: transactionId, matchedBy: "manual" })
+    })
 
     return NextResponse.json({ ok: true, message: "Zuordnung bestaetigt. Rechnung wurde per Bankabgleich als bezahlt markiert.", ...await loadReconciliation() })
   } catch (error) {

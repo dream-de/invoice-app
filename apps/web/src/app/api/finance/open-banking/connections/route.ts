@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
 import { writeAuditLog } from "@/lib/audit/log"
+import { auditActor, requestContext, safeJson } from "@/lib/audit/audit-event-helpers"
+import { logBackendAuditEvent } from "@/lib/audit/backendAuditEventWriter"
 import { FINAPI_CALLBACK_PATH, FINAPI_PROVIDER, authErrorResponse, ensureCompanySettings, publicAccount, publicConnection, requireOpenBankingAdmin } from "../_shared"
 
 export const dynamic = "force-dynamic"
@@ -117,6 +119,43 @@ export async function POST(request: Request) {
         storesBankCredentials: false,
         tokensExposed: false
       }
+    })
+    await logBackendAuditEvent({
+      type: "open_banking_bank_connected",
+      source: "open_banking",
+      severity: "success",
+      title: "Bank verbunden",
+      description: "finAPI Bankverbindung wurde vorbereitet und gespeichert.",
+      actor: auditActor(user),
+      requestContext: requestContext(request, user),
+      integrationKey: "open_banking",
+      moduleKey: "open_banking",
+      entityType: "BankConnection",
+      entityId: saved.connection.id,
+      metadata: safeJson({
+        provider: FINAPI_PROVIDER,
+        bankName: saved.account.bankName,
+        ibanMasked: saved.account.ibanMasked,
+        accountName: saved.account.accountName,
+        syncStatus: saved.connection.lastSyncStatus,
+        storesBankCredentials: false,
+        tokensExposed: false
+      }),
+      after: safeJson({ status: saved.connection.status, consentStatus: saved.connection.consentStatus })
+    })
+    await logBackendAuditEvent({
+      type: "open_banking_consent_created",
+      source: "open_banking",
+      severity: "success",
+      title: "Bank-Consent erstellt",
+      description: "Open-Banking-Consent wurde vorbereitet.",
+      actor: auditActor(user),
+      requestContext: requestContext(request, user),
+      integrationKey: "open_banking",
+      moduleKey: "open_banking",
+      entityType: "BankConnection",
+      entityId: saved.connection.id,
+      metadata: safeJson({ provider: FINAPI_PROVIDER, consentStatus: saved.connection.consentStatus })
     })
 
     return NextResponse.json({

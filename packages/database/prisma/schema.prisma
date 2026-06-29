@@ -618,12 +618,27 @@ model NumberRange {
 }
 
 model AuditLog {
-  id              String   @id @default(cuid())
+  id              String   @id @default(uuid())
   action          String
   entity          String
   entityId        String?
   reason          String?
   data            Json?
+  tenantId        String?
+  workspaceId     String?
+  actorId         String?
+  actorName       String   @default("System")
+  actorRole       String?
+  actorEmail      String?
+  type            String   @default("legacy")
+  source          String   @default("system")
+  severity        String   @default("info")
+  title           String   @default("Audit Event")
+  description     String?
+  moduleKey       String?
+  integrationKey  String?
+  marketplaceModuleKey String?
+  entityType      String?
   ipAddress       String?
   publicIp        String?
   privateIp       String?
@@ -632,17 +647,36 @@ model AuditLog {
   accessOrigin    String?
   userAgent       String?
   browser         String?
+  device          String?
   operatingSystem String?
   deviceType      String?
+  location        String?
+  requestId       String?
   country         String?
   region          String?
   city            String?
   timezone        String?
   geoProvider     String?
   metadata        Json?
+  before          Json?
+  after           Json?
   createdAt       DateTime @default(now())
 
+  // TODO: immutable append-only storage pruefen.
+  // TODO: retention policy pro Plan definieren.
+  // TODO: PII minimization / DSGVO Loeschkonzept.
+  // TODO: Export-Funktion CSV/PDF.
   @@index([createdAt])
+  @@index([tenantId])
+  @@index([workspaceId])
+  @@index([actorId])
+  @@index([type])
+  @@index([source])
+  @@index([severity])
+  @@index([moduleKey])
+  @@index([integrationKey])
+  @@index([marketplaceModuleKey])
+  @@index([requestId])
 }
 
 

@@ -69,18 +69,30 @@ import { DocumentManagementClient } from "./documents/DocumentManagementClient"
 import { ShareReleaseDialog } from "@/components/share/ShareReleaseDialog"
 import { LicenseBillingControlCenter } from "./_components/LicenseBillingControlCenter"
 import { BankConnectPage } from "./finance/bank-connect/BankConnectPage"
+import { IntegrationCenter } from "./integrations/IntegrationCenter"
 import { PremiumSettingsSectionContent } from "./settings/PremiumSettingsSectionContent"
 import { type PremiumSettingsSection } from "./settings/sectionMap"
 import { LogsPageClient } from "./_components/LogsPageClient"
 import { ReportsPageClient } from "./_components/ReportsPageClient"
 import { visiblePremiumSettingsNav } from "@/lib/settings-nav"
+import { defaultFeatureFlags } from "@/lib/modules/featureFlags"
+import {
+  getDashboardModules,
+  getMarketplaceModules,
+  getSidebarModules,
+  isModuleUsable,
+  requireModuleAccess,
+  type ModuleEngineContext
+} from "@/lib/modules/moduleEngine"
+import { businessDatevModuleContext, enterpriseAllExtensionsModuleContext, freeModuleContext } from "@/lib/modules/mockLicenseContext"
+import type { AppModule, AppModuleKey, ModulePlan } from "@/lib/modules/appRegistry"
 import styles from "./DashboardV2.module.css"
 
 type ThemeMode = "dark" | "light"
 type ThemeLinks = { light: string; dark: string }
 const PREMIUM_THEME_STORAGE_KEY = "dream-invoice-premium-theme"
 type IconType = ComponentType<{ size?: number; className?: string }>
-type NavItem = { label: string; href: string; icon: IconType; badge?: string; disabled?: boolean }
+type NavItem = { label: string; href: string; icon: IconType; badge?: string; disabled?: boolean; moduleKey?: AppModuleKey }
 type Tone = "violet" | "green" | "rose" | "blue" | "amber"
 type PremiumView =
   | "dashboard"
@@ -158,11 +170,6 @@ type FinanceImportResult = {
   transactions?: FinanceImportTransaction[]
   warnings?: string[]
   message?: string
-}
-type OpenBankingRuntime = {
-  plan: "free" | "starter" | "business" | "enterprise"
-  installedMarketplaceModules: readonly string[]
-  featureFlags: readonly string[]
 }
 type FinanceCapability = {
   key: string
@@ -373,66 +380,66 @@ type UpgradeSummary = {
 }
 
 const mainNav: NavItem[] = [
-  { label: "Dashboard", href: "/dashboard-v2", icon: Home },
-  { label: "Kunden", href: "/dashboard-v2/customers", icon: Users },
-  { label: "Angebote", href: "/dashboard-v2/offers", icon: Tag },
-  { label: "Rechnungen", href: "/dashboard-v2/invoices", icon: FileText },
-  { label: "Projekte", href: "/dashboard-v2/projects", icon: Folder },
-  { label: "Zeiterfassung", href: "/dashboard-v2/time", icon: Clock3 },
-  { label: "Artikel", href: "/dashboard-v2/articles", icon: Briefcase },
-  { label: "Ausgaben", href: "/dashboard-v2/expenses", icon: Wallet },
-  { label: "Finanzen", href: "/dashboard-v2/finance", icon: Landmark },
-  { label: "Dokumente", href: "/dashboard-v2/documents", icon: Archive },
-  { label: "KI-Assistent", href: "/dashboard-v2/ai-assistant", icon: Plug },
-  { label: "Berichte", href: "/dashboard-v2/reports", icon: BarChart3 },
-  { label: "Einstellungen", href: "/dashboard-v2/settings", icon: Settings }
+  { label: "Dashboard", href: "/dashboard-v2", icon: Home, moduleKey: "dashboard" },
+  { label: "Kunden", href: "/dashboard-v2/customers", icon: Users, moduleKey: "customers" },
+  { label: "Angebote", href: "/dashboard-v2/offers", icon: Tag, moduleKey: "offers" },
+  { label: "Rechnungen", href: "/dashboard-v2/invoices", icon: FileText, moduleKey: "invoices" },
+  { label: "Projekte", href: "/dashboard-v2/projects", icon: Folder, moduleKey: "projects" },
+  { label: "Zeiterfassung", href: "/dashboard-v2/time", icon: Clock3, moduleKey: "time_tracking" },
+  { label: "Artikel", href: "/dashboard-v2/articles", icon: Briefcase, moduleKey: "warehouse" },
+  { label: "Ausgaben", href: "/dashboard-v2/expenses", icon: Wallet, moduleKey: "finance" },
+  { label: "Finanzen", href: "/dashboard-v2/finance", icon: Landmark, moduleKey: "finance" },
+  { label: "Dokumente", href: "/dashboard-v2/documents", icon: Archive, moduleKey: "documents" },
+  { label: "KI-Assistent", href: "/dashboard-v2/ai-assistant", icon: Plug, moduleKey: "openai" },
+  { label: "Berichte", href: "/dashboard-v2/reports", icon: BarChart3, moduleKey: "reports" },
+  { label: "Einstellungen", href: "/dashboard-v2/settings", icon: Settings, moduleKey: "settings" }
 ]
 
 const sideNav: Array<{ section: string; marker?: string; items: NavItem[] }> = [
   {
     section: "Uebersicht",
-    items: [{ label: "Dashboard", href: "/dashboard-v2", icon: Home }]
+    items: [{ label: "Dashboard", href: "/dashboard-v2", icon: Home, moduleKey: "dashboard" }]
   },
   {
     section: "Vertrieb",
     items: [
-      { label: "Kunden", href: "/dashboard-v2/customers", icon: Users },
-      { label: "Angebote", href: "/dashboard-v2/offers", icon: Tag },
-      { label: "Rechnungen", href: "/dashboard-v2/invoices", icon: FileText }
+      { label: "Kunden", href: "/dashboard-v2/customers", icon: Users, moduleKey: "customers" },
+      { label: "Angebote", href: "/dashboard-v2/offers", icon: Tag, moduleKey: "offers" },
+      { label: "Rechnungen", href: "/dashboard-v2/invoices", icon: FileText, moduleKey: "invoices" }
     ]
   },
   {
     section: "Projekte",
     items: [
-      { label: "Projekte", href: "/dashboard-v2/projects", icon: Folder },
-      { label: "Zeiterfassung", href: "/dashboard-v2/time", icon: Clock3 },
-      { label: "Artikel", href: "/dashboard-v2/articles", icon: Briefcase },
-      { label: "Kategorien", href: "/dashboard-v2/articles?q=Kategorien", icon: Tag }
+      { label: "Projekte", href: "/dashboard-v2/projects", icon: Folder, moduleKey: "projects" },
+      { label: "Zeiterfassung", href: "/dashboard-v2/time", icon: Clock3, moduleKey: "time_tracking" },
+      { label: "Artikel", href: "/dashboard-v2/articles", icon: Briefcase, moduleKey: "warehouse" },
+      { label: "Kategorien", href: "/dashboard-v2/articles?q=Kategorien", icon: Tag, moduleKey: "warehouse" }
     ]
   },
   {
     section: "Finanzen",
     items: [
-      { label: "Einnahmen & Ausgaben", href: "/dashboard-v2/finance", icon: Landmark },
-      { label: "Ausgaben", href: "/dashboard-v2/expenses", icon: Wallet }
+      { label: "Einnahmen & Ausgaben", href: "/dashboard-v2/finance", icon: Landmark, moduleKey: "finance" },
+      { label: "Ausgaben", href: "/dashboard-v2/expenses", icon: Wallet, moduleKey: "finance" }
     ]
   },
   {
     section: "Dokumente",
     items: [
-      { label: "Dokumente", href: "/dashboard-v2/documents", icon: Archive }
+      { label: "Dokumente", href: "/dashboard-v2/documents", icon: Archive, moduleKey: "documents" }
     ]
   },
   {
     section: "KI & Automation",
     items: [
-      { label: "KI-Assistent", href: "/dashboard-v2/ai-assistant", icon: Plug }
+      { label: "KI-Assistent", href: "/dashboard-v2/ai-assistant", icon: Plug, moduleKey: "openai" }
     ]
   },
   {
     section: "System",
     items: [
-      { label: "Einstellungen", href: "/dashboard-v2/settings", icon: Settings },
+      { label: "Einstellungen", href: "/dashboard-v2/settings", icon: Settings, moduleKey: "settings" },
       { label: "Lizenz & Abrechnung", href: "/dashboard-v2/license-billing", icon: KeyRound }
     ]
   },
@@ -440,8 +447,8 @@ const sideNav: Array<{ section: string; marker?: string; items: NavItem[] }> = [
     section: "Dev",
     marker: "Admin",
     items: [
-      { label: "API", href: "/dashboard-v2/settings/add-ons?q=API", icon: Grid3X3 },
-      { label: "Webhooks", href: "/dashboard-v2/settings/add-ons?q=Webhooks", icon: Workflow },
+      { label: "API", href: "/dashboard-v2/settings/add-ons?q=API", icon: Grid3X3, moduleKey: "rest_api" },
+      { label: "Webhooks", href: "/dashboard-v2/settings/add-ons?q=Webhooks", icon: Workflow, moduleKey: "webhooks" },
       { label: "Dev", href: "/dashboard-v2/settings/add-ons?q=Dev", icon: Zap }
     ]
   }
@@ -884,6 +891,36 @@ function userLimitFromData(data: PremiumData) {
     validUntil: limit.validUntil ?? null,
     isFull: currentUsers >= maxUsers
   }
+}
+
+function modulePlanFromLicensePlan(plan?: string | null): ModulePlan {
+  const normalized = String(plan || "").toLowerCase()
+  if (normalized.includes("enterprise") || normalized.includes("unlimited")) return "enterprise"
+  if (normalized.includes("business") || normalized.includes("team") || normalized.includes("pro")) return "business"
+  return "free"
+}
+
+function moduleEngineContextFromData(data: PremiumData): ModuleEngineContext {
+  const plan = modulePlanFromLicensePlan(userLimitFromData(data).plan)
+  const mockContext = plan === "enterprise" ? enterpriseAllExtensionsModuleContext : plan === "business" ? businessDatevModuleContext : freeModuleContext
+
+  return {
+    ...mockContext,
+    plan,
+    featureFlags: {
+      ...defaultFeatureFlags,
+      ...mockContext.featureFlags
+    },
+    userPermissions: mockContext.userPermissions ?? ["settings.read"]
+  }
+}
+
+function visibleModuleKeySet(modules: readonly AppModule[]) {
+  return new Set(modules.map((module) => module.key))
+}
+
+function shouldRenderNavItem(item: NavItem, sidebarModuleKeys: Set<string>) {
+  return !item.moduleKey || sidebarModuleKeys.has(item.moduleKey)
 }
 
 function userStatusLabel(value?: string | null) {
@@ -1470,7 +1507,9 @@ function ThemeToggle({ links, mode, onChange }: { links: ThemeLinks; mode: Theme
   )
 }
 
-function visibleSideNav({ canSeeDevelopment, licenseAdminEnabled }: { canSeeDevelopment: boolean; licenseAdminEnabled: boolean }) {
+function visibleSideNav({ canSeeDevelopment, licenseAdminEnabled, context }: { canSeeDevelopment: boolean; licenseAdminEnabled: boolean; context: ModuleEngineContext }) {
+  const sidebarModuleKeys = visibleModuleKeySet(getSidebarModules(context))
+
   return sideNav.map((group) => {
     if (group.marker && !canSeeDevelopment) {
       return { ...group, items: [] }
@@ -1478,18 +1517,18 @@ function visibleSideNav({ canSeeDevelopment, licenseAdminEnabled }: { canSeeDeve
 
     return {
       ...group,
-      items: group.items.filter((item) => licenseAdminEnabled || item.href !== "/dashboard-v2/license-admin")
+      items: group.items.filter((item) => (licenseAdminEnabled || item.href !== "/dashboard-v2/license-admin") && shouldRenderNavItem(item, sidebarModuleKeys))
     }
   }).filter((group) => group.items.length)
 }
 
-function Sidebar({ mode, unreadCount, upgrade, canSeeDevelopment, licenseAdminEnabled }: { mode: ThemeMode; unreadCount: number; upgrade: UpgradeSummary; canSeeDevelopment: boolean; licenseAdminEnabled: boolean }) {
+function Sidebar({ mode, unreadCount, upgrade, canSeeDevelopment, licenseAdminEnabled, moduleContext }: { mode: ThemeMode; unreadCount: number; upgrade: UpgradeSummary; canSeeDevelopment: boolean; licenseAdminEnabled: boolean; moduleContext: ModuleEngineContext }) {
   const pathname = usePathname()
 
   return (
     <aside className={styles.sidebar}>
       <div className={styles.logoWrap}><img className={styles.brandLogo} src="/brand/logo-sidebar.svg" alt="DreamInvoice" /></div>
-      <nav className={styles.sideSections}>{visibleSideNav({ canSeeDevelopment, licenseAdminEnabled }).map((group) => <div key={group.section} className={styles.sideSection} data-dev-section={group.marker ? "true" : undefined}><p>{group.section}{group.marker ? <em>{group.marker}</em> : null}</p>{group.items.map((item) => { const Icon = item.icon; const isActive = pathname === item.href; const badge = item.badge ?? ""; if (item.disabled) return <span key={item.label} className={styles.disabledSideItem} aria-disabled="true"><Icon size={16} /><span>{item.label}</span>{badge ? <em>{badge}</em> : null}</span>; return <Link key={item.label} href={withPremiumTheme(item.href, mode)} aria-current={isActive ? "page" : undefined} className={isActive ? styles.activeSideItem : styles.sideItem}><Icon size={16} /><span>{item.label}</span>{badge ? <em>{badge}</em> : null}</Link> })}</div>)}</nav>
+      <nav className={styles.sideSections}>{visibleSideNav({ canSeeDevelopment, licenseAdminEnabled, context: moduleContext }).map((group) => <div key={group.section} className={styles.sideSection} data-dev-section={group.marker ? "true" : undefined}><p>{group.section}{group.marker ? <em>{group.marker}</em> : null}</p>{group.items.map((item) => { const Icon = item.icon; const isActive = pathname === item.href; const badge = item.badge ?? ""; if (item.disabled) return <span key={item.label} className={styles.disabledSideItem} aria-disabled="true"><Icon size={16} /><span>{item.label}</span>{badge ? <em>{badge}</em> : null}</span>; return <Link key={item.label} href={withPremiumTheme(item.href, mode)} aria-current={isActive ? "page" : undefined} className={isActive ? styles.activeSideItem : styles.sideItem}><Icon size={16} /><span>{item.label}</span>{badge ? <em>{badge}</em> : null}</Link> })}</div>)}</nav>
       <div className={styles.upgradeCard}><Crown size={26} /><strong>{upgrade.title}</strong><span>{upgrade.text}</span><Link href={withPremiumTheme(upgrade.href, mode)}>{upgrade.action}</Link></div>
     </aside>
   )
@@ -2197,9 +2236,13 @@ function SearchResultsPanel({ data, mode, searchQuery, searchCategory, onSearchC
   )
 }
 
-function DashboardOverview({ data, mode, profile, searchQuery, searchCategory, sessionUser, onSearchCategoryChange, onSearchClear }: { data: PremiumData; mode: ThemeMode; profile: ReturnType<typeof profileFromData>; searchQuery: string; searchCategory: SearchCategory; sessionUser: SessionUser | null; onSearchCategoryChange: (category: SearchCategory) => void; onSearchClear: () => void }) {
+function DashboardOverview({ data, mode, profile, searchQuery, searchCategory, sessionUser, moduleContext, onSearchCategoryChange, onSearchClear }: { data: PremiumData; mode: ThemeMode; profile: ReturnType<typeof profileFromData>; searchQuery: string; searchCategory: SearchCategory; sessionUser: SessionUser | null; moduleContext: ModuleEngineContext; onSearchCategoryChange: (category: SearchCategory) => void; onSearchClear: () => void }) {
   const effectiveSearchQuery = premiumSearchQuery(searchQuery)
   const health = dataHealthFromData(data, "dashboard")
+  const dashboardModuleKeys = visibleModuleKeySet(getDashboardModules(moduleContext))
+  const showProjectsWidget = dashboardModuleKeys.has("projects")
+  const showTimeWidget = dashboardModuleKeys.has("time_tracking")
+  const showMarketplaceWidget = getMarketplaceModules(moduleContext).some((module) => module.status === "installed" || module.status === "beta")
 
   return (
     <>
@@ -2209,8 +2252,13 @@ function DashboardOverview({ data, mode, profile, searchQuery, searchCategory, s
       <SearchResultsPanel data={data} mode={mode} searchQuery={effectiveSearchQuery} searchCategory={searchCategory} onSearchCategoryChange={onSearchCategoryChange} onSearchClear={onSearchClear} />
       <section className={styles.mainGrid}><RevenueChart data={data} mode={mode} /><StatusPanel data={data} mode={mode} /><QuickActions mode={mode} profile={profile} /></section>
       <section className={styles.lowerGrid}><InvoiceTable data={data} mode={mode} searchQuery="" /><BarPanel data={data} mode={mode} /><ActivityFeed data={data} mode={mode} /></section>
-      <section className={styles.bottomGrid}><UsersPanel data={data} mode={mode} sessionUser={sessionUser} /><LicensePanel data={data} mode={mode} /><ProjectUtilizationPanel mode={mode} /><TimePreparationPanel mode={mode} /></section>
-      <IntegrationsPanel mode={mode} />
+      <section className={styles.bottomGrid}>
+        <UsersPanel data={data} mode={mode} sessionUser={sessionUser} />
+        <LicensePanel data={data} mode={mode} />
+        {showProjectsWidget ? <ProjectUtilizationPanel mode={mode} /> : null}
+        {showTimeWidget ? <TimePreparationPanel mode={mode} /> : null}
+      </section>
+      {showMarketplaceWidget ? <IntegrationsPanel mode={mode} /> : null}
     </>
   )
 }
@@ -5039,34 +5087,9 @@ const enterpriseOpenBankingFlags = [
   "open_banking.cashflow_forecast"
 ] as const
 
-function normalizeFinancePlan(plan?: string | null): OpenBankingRuntime["plan"] {
-  const normalized = (plan || "").toLowerCase()
-  if (normalized.includes("enterprise") || normalized.includes("unlimited")) return "enterprise"
-  if (normalized.includes("business")) return "business"
-  return "free"
-}
-
-function openBankingRuntimeFromData(data: PremiumData): OpenBankingRuntime {
-  const limit = userLimitFromData(data)
-  return {
-    plan: normalizeFinancePlan(limit.plan),
-    installedMarketplaceModules: [],
-    featureFlags: []
-  }
-}
-
-function isOpenBankingActive(runtime: OpenBankingRuntime) {
-  return (
-    runtime.plan === "business" ||
-    runtime.plan === "enterprise" ||
-    runtime.installedMarketplaceModules.includes("open_banking") ||
-    runtime.featureFlags.includes("open_banking.enabled")
-  )
-}
-
-function financeCapabilities(runtime: OpenBankingRuntime): FinanceCapability[] {
-  const openBankingActive = isOpenBankingActive(runtime)
-  const enterpriseActive = runtime.plan === "enterprise"
+function financeCapabilities(context: ModuleEngineContext): FinanceCapability[] {
+  const openBankingActive = isModuleUsable("open_banking", context)
+  const enterpriseActive = context.plan === "enterprise"
   return [
     { key: "manual_accounts", label: "Manuelle Konten", active: true, tier: "Free" },
     { key: "csv_import", label: "CSV Import", active: true, tier: "Free" },
@@ -5083,7 +5106,7 @@ function financeCapabilities(runtime: OpenBankingRuntime): FinanceCapability[] {
   ]
 }
 
-function PremiumFinancePanel({ data, mode, searchQuery }: { data: PremiumData; mode: ThemeMode; searchQuery: string }) {
+function PremiumFinancePanel({ data, mode, searchQuery, moduleContext }: { data: PremiumData; mode: ThemeMode; searchQuery: string; moduleContext: ModuleEngineContext }) {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [accounts, setAccounts] = useState<FinanceAccount[]>(fallbackFinanceAccounts)
   const [transactions, setTransactions] = useState<FinanceTransaction[]>(fallbackFinanceTransactions)
@@ -5098,11 +5121,10 @@ function PremiumFinancePanel({ data, mode, searchQuery }: { data: PremiumData; m
 
   const filteredTransactions = transactions.filter((transaction) => selectedAccount === "all" || transaction.accountId === selectedAccount)
   const balance = accounts.reduce((sum, account) => sum + account.balance, 0)
-  const financeRuntime = openBankingRuntimeFromData(data)
-  const openBankingActive = isOpenBankingActive(financeRuntime)
-  const enterpriseActive = financeRuntime.plan === "enterprise"
-  const openBankingFlags = financeRuntime.plan === "enterprise" ? enterpriseOpenBankingFlags : businessOpenBankingFlags
-  const capabilities = financeCapabilities(financeRuntime)
+  const openBankingActive = isModuleUsable("open_banking", moduleContext)
+  const enterpriseActive = moduleContext.plan === "enterprise"
+  const openBankingFlags = moduleContext.plan === "enterprise" ? enterpriseOpenBankingFlags : businessOpenBankingFlags
+  const capabilities = financeCapabilities(moduleContext)
   const freeCapabilities = capabilities.filter((capability) => capability.tier === "Free")
   const businessCapabilities = capabilities.filter((capability) => capability.tier === "Business")
   const enterpriseCapabilities = capabilities.filter((capability) => capability.tier === "Enterprise")
@@ -5277,7 +5299,7 @@ function PremiumFinancePanel({ data, mode, searchQuery }: { data: PremiumData; m
           </div>
           <Link href={withPremiumTheme("/dashboard-v2/reports?q=Finanzbericht", mode)}><FileText size={16} />Reports</Link>
         </div>
-        <p data-state="warning">Open Banking ist als Marketplace-Modul vorbereitet. Es werden keine Bank-Logins, PINs, TANs oder Provider-Secrets gespeichert.</p>
+        <p data-state="warning">{openBankingActive ? "Open Banking ist ueber die Module Engine nutzbar. Es werden keine Bank-Logins, PINs, TANs oder Provider-Secrets gespeichert." : "PSD2 Bankverbindung ist als Erweiterung verfügbar."}</p>
 
         <div className={styles.financeToolbar}>
           <button type="button" data-finance-add-account onClick={() => setShowAccountForm((current) => !current)}><Plus size={16} />Manuelles Konto</button>
@@ -7982,6 +8004,7 @@ function PremiumModulePage({
   mode,
   searchQuery,
   licenseAdminEnabled,
+  moduleContext,
   onDataChange
 }: {
   view: ModuleView
@@ -7991,6 +8014,7 @@ function PremiumModulePage({
   mode: ThemeMode
   searchQuery: string
   licenseAdminEnabled: boolean
+  moduleContext: ModuleEngineContext
   onDataChange: (updater: (current: PremiumData) => PremiumData) => void
 }) {
   const router = useRouter()
@@ -8075,6 +8099,23 @@ function PremiumModulePage({
   const allVisibleExpensesSelected = visibleExpenseRows.length > 0 && visibleExpenseRows.every((expense) => selectedExpenseIds.includes(expense.id))
 
   if (view === "finance-bank-connect") {
+    const openBankingAccess = requireModuleAccess("open_banking", moduleContext)
+
+    if (!openBankingAccess.usable) {
+      return (
+        <section className={styles.modulePage} data-view={view}>
+          <article className={`${styles.panel} ${styles.moduleHero}`}>
+            <div>
+              <span>Open Banking</span>
+              <h1>Open Banking aktivieren</h1>
+              <p>PSD2 Bankverbindung ist als Erweiterung verfügbar.</p>
+            </div>
+            <Link href={withPremiumTheme("/dashboard-v2/license-billing?q=Open%20Banking", mode)}><Lock size={18} />Open Banking aktivieren</Link>
+          </article>
+        </section>
+      )
+    }
+
     return <BankConnectPage />
   }
 
@@ -9301,7 +9342,7 @@ function PremiumModulePage({
   }
 
   if (view === "license-admin") {
-    return licenseAdminEnabled ? <PremiumLicenseAdminPage mode={mode} /> : <PremiumModulePage view="license" settingsSection={null} data={data} language={language} mode={mode} searchQuery={searchQuery} licenseAdminEnabled={false} onDataChange={onDataChange} />
+    return licenseAdminEnabled ? <PremiumLicenseAdminPage mode={mode} /> : <PremiumModulePage view="license" settingsSection={null} data={data} language={language} mode={mode} searchQuery={searchQuery} licenseAdminEnabled={false} moduleContext={moduleContext} onDataChange={onDataChange} />
   }
 
   if (view === "expenses") {
@@ -9686,7 +9727,11 @@ function PremiumModulePage({
   }
 
   if (view === "license-billing") {
-    return <LicenseBillingControlCenter />
+    return <LicenseBillingControlCenter moduleContext={moduleContext} />
+  }
+
+  if (view === "integrations") {
+    return <IntegrationCenter moduleContext={moduleContext} mode={mode} searchQuery={searchQuery} />
   }
 
   if (view === "logs") {
@@ -9706,8 +9751,6 @@ function PremiumModulePage({
             <button type="button" disabled={isModuleActionSaving} onClick={() => void runUserQuickAction("invite")}><Plus size={18} />{meta.primary}</button>
           ) : view === "license" ? (
             <button type="button" disabled={isModuleActionSaving} onClick={() => void runLicenseQuickAction("upgrade")}><Plus size={18} />{meta.primary}</button>
-          ) : view === "integrations" ? (
-            <button type="button" disabled={isModuleActionSaving} onClick={() => void runIntegrationQuickAction("connect")}><Plus size={18} />{meta.primary}</button>
           ) : (
             <Link href={withPremiumTheme(content.primaryHref, mode)}><Plus size={18} />{meta.primary}</Link>
           )}
@@ -9728,7 +9771,7 @@ function PremiumModulePage({
       ) : null}
 
       {view === "license" ? <PremiumLicensePanel data={data} mode={mode} searchQuery={searchQuery} /> : null}
-      {view === "finance" ? <PremiumFinancePanel data={data} mode={mode} searchQuery={searchQuery} /> : null}
+      {view === "finance" ? <PremiumFinancePanel data={data} mode={mode} searchQuery={searchQuery} moduleContext={moduleContext} /> : null}
       {view !== "finance" ? <PremiumWorkflowPanel view={view} settingsSection={settingsSection} data={data} language={language} mode={mode} searchQuery={searchQuery} onDataChange={onDataChange} /> : null}
       {!isOffersSimpleView && view !== "finance" ? <ModuleSelectionPanel view={view} data={data} mode={mode} row={selectedRow} searchQuery={searchQuery} /> : null}
 
@@ -9749,11 +9792,6 @@ function PremiumModulePage({
               <>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runLicenseQuickAction("marketplace")}><Search size={16} />Marketplace oeffnen</button>
                 <button type="button" disabled={isModuleActionSaving} onClick={() => void runLicenseQuickAction("limit")}><BarChart3 size={16} />Benutzerplaetze</button>
-              </>
-            ) : view === "integrations" ? (
-              <>
-                <button type="button" disabled={isModuleActionSaving} onClick={() => void runIntegrationQuickAction("sync")}><Search size={16} />Sync pruefen</button>
-                <button type="button" disabled={isModuleActionSaving} onClick={() => void runIntegrationQuickAction("token")}><BarChart3 size={16} />Token erneuern</button>
               </>
             ) : view === "automation" ? (
               <>
@@ -10016,6 +10054,7 @@ export function PremiumWorkspacePage({
   const canSeeDevelopment = sessionRole === "admin" || sessionRole === "owner" || sessionRole === "dev"
   const isDevelopmentView = view === "api" || view === "audit" || view === "license-admin"
   const showDevelopmentView = !isDevelopmentView || canSeeDevelopment
+  const moduleContext = useMemo(() => moduleEngineContextFromData(data), [data])
   const currentPath = premiumViewPath(view)
   const themeLinks = useMemo(() => ({
     dark: premiumThemeHref(currentPath, "dark", searchQuery),
@@ -10024,18 +10063,18 @@ export function PremiumWorkspacePage({
 
   return (
     <div className={styles.page} data-theme={mode} role="main">
-      <Sidebar mode={mode} unreadCount={unreadCount} upgrade={upgrade} canSeeDevelopment={canSeeDevelopment} licenseAdminEnabled={licenseAdminEnabled} />
+      <Sidebar mode={mode} unreadCount={unreadCount} upgrade={upgrade} canSeeDevelopment={canSeeDevelopment} licenseAdminEnabled={licenseAdminEnabled} moduleContext={moduleContext} />
       <section className={styles.contentShell}>
         <Topbar mode={mode} profile={profile} searchInputRef={searchInputRef} searchQuery={searchQuery} themeLinks={themeLinks} unreadCount={unreadCount} onModeChange={handleModeChange} onSearchChange={setSearchQuery} onSearchClear={handleSearchClear} profileMenuOpen={profileMenuOpen} onToggleProfileMenu={handleProfileMenuToggle} onCloseProfileMenu={handleProfileMenuClose} onLogout={handleLogout} />
         <CompactNav mode={mode} unreadCount={unreadCount} />
         {view === "dashboard" || !showDevelopmentView ? (
-          <DashboardOverview data={data} mode={mode} profile={profile} searchQuery={searchQuery} searchCategory={searchCategory} sessionUser={sessionUser} onSearchCategoryChange={setSearchCategory} onSearchClear={handleSearchClear} />
+          <DashboardOverview data={data} mode={mode} profile={profile} searchQuery={searchQuery} searchCategory={searchCategory} sessionUser={sessionUser} moduleContext={moduleContext} onSearchCategoryChange={setSearchCategory} onSearchClear={handleSearchClear} />
         ) : view === "account-security" && accountSecurityInitialProfile ? (
           <PremiumAccountSecurityClient initialProfile={accountSecurityInitialProfile} />
         ) : (
           <>
             {view !== "settings" ? <SearchResultsPanel data={data} mode={mode} searchQuery={premiumSearchQuery(searchQuery)} searchCategory={searchCategory} onSearchCategoryChange={setSearchCategory} onSearchClear={handleSearchClear} /> : null}
-            <PremiumModulePage view={view as ModuleView} settingsSection={settingsSection} data={data} language={language} mode={mode} searchQuery={searchQuery} licenseAdminEnabled={licenseAdminEnabled} onDataChange={setData} />
+            <PremiumModulePage view={view as ModuleView} settingsSection={settingsSection} data={data} language={language} mode={mode} searchQuery={searchQuery} licenseAdminEnabled={licenseAdminEnabled} moduleContext={moduleContext} onDataChange={setData} />
           </>
         )}
       </section>

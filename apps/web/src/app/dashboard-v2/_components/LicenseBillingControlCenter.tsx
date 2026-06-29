@@ -5,16 +5,13 @@ import {
   BadgeCheck,
   BarChart3,
   Box,
-  Boxes,
   Brain,
-  Building2,
   CalendarDays,
   CheckCircle2,
   Clock,
   Cloud,
   Code2,
   CreditCard,
-  Database,
   Download,
   FileClock,
   FileText,
@@ -35,81 +32,48 @@ import {
   Sparkles,
   SlidersHorizontal,
   Store,
-  ToggleRight,
   Upload,
   Users,
-  WalletCards,
   Webhook,
   Zap,
   type LucideIcon
 } from "lucide-react"
+import { defaultFeatureFlags } from "@/lib/modules/featureFlags"
+import { getLockedModules, getMarketplaceModules, getVisibleModules, type ModuleEngineContext } from "@/lib/modules/moduleEngine"
+import { businessDatevModuleContext } from "@/lib/modules/mockLicenseContext"
+import type { AppModule, ModulePlan, ModuleStatus } from "@/lib/modules/appRegistry"
+import { getMarketplaceStateSnapshot, installMarketplaceModule, uninstallMarketplaceModule, type MarketplaceState } from "@/lib/marketplace/marketplaceState"
 import styles from "./LicenseBillingControlCenter.module.css"
 
-const plans: Record<string, string[]> = {
-  Free: ["Kunden", "Angebote", "Rechnungen", "Dokumente", "E-Mail", "Berichte", "Dashboard", "Manuelle Finanzen", "CSV Import"],
-  Business: ["Projekte", "Zeiterfassung", "REST API", "Webhooks", "Open Banking Basis", "Zahlungsabgleich"],
-  Enterprise: [
-    "Multi-Unternehmen",
-    "SSO",
-    "White Label",
-    "Cashflow",
-    "Forecast",
-    "Bankregeln",
-    "Multi-Banking",
-    "Erweiterte Audit Logs"
-  ]
+const planLabels = ["Free", "Business", "Enterprise"] as const
+
+type PlanLabel = (typeof planLabels)[number]
+
+const planToModulePlan: Record<PlanLabel, ModulePlan> = {
+  Free: "free",
+  Business: "business",
+  Enterprise: "enterprise"
 }
 
-const moduleIcons: Record<string, LucideIcon> = {
-  Kunden: Users,
-  Angebote: FileText,
-  Rechnungen: Receipt,
-  Dokumente: FolderOpen,
-  "E-Mail": Mail,
-  Berichte: BarChart3,
-  Dashboard: BarChart3,
-  Projekte: Building2,
-  Zeiterfassung: Clock,
-  "REST API": Code2,
-  Webhooks: Webhook,
-  "Open Banking Basis": Landmark,
-  "Multi-Unternehmen": Building2,
-  SSO: ShieldCheck,
-  "White Label": ShieldCheck,
-  "Manuelle Finanzen": WalletCards,
-  "CSV Import": Upload,
-  Zahlungsabgleich: Receipt,
-  Cashflow: BarChart3,
-  Forecast: BarChart3,
-  Bankregeln: Landmark,
-  "Multi-Banking": Landmark,
-  "Erweiterte Audit Logs": ShieldCheck
+const marketplaceUiMeta: Record<string, { category: string; price: string; features: string[]; icon: LucideIcon }> = {
+  open_banking: { category: "Finanzen", price: "19,90 EUR / Monat", features: ["PSD2", "Live Sync", "Zahlungsabgleich", "Bankregeln"], icon: Landmark },
+  datev: { category: "Finanzen", price: "19,90 EUR / Monat", features: ["DATEV Export", "Buchungsdaten", "Steuerberater"], icon: FileText },
+  ocr: { category: "KI", price: "14,90 EUR / Monat", features: ["Belegerkennung", "Dokumenten-OCR", "Automatische Felder"], icon: Brain },
+  warehouse: { category: "ERP", price: "24,90 EUR / Monat", features: ["Bestand", "Lagerorte", "Artikelbewegung"], icon: Package },
+  shopify: { category: "Commerce", price: "19,90 EUR / Monat", features: ["Bestellungen", "Produkte", "Kunden Sync"], icon: Store },
+  woocommerce: { category: "Commerce", price: "19,90 EUR / Monat", features: ["Bestellungen", "Produkte", "Rechnungen"], icon: Store },
+  nextcloud: { category: "Cloud", price: "9,90 EUR / Monat", features: ["Dateien", "Dokumente", "Sync"], icon: Cloud },
+  paperless_ngx: { category: "Cloud", price: "12,90 EUR / Monat", features: ["Archiv", "Dokumente", "Tags"], icon: FolderOpen },
+  google_drive: { category: "Cloud", price: "9,90 EUR / Monat", features: ["Dateien", "Dokumente", "Export"], icon: Cloud },
+  openai: { category: "KI", price: "29,90 EUR / Monat", features: ["KI-Assistent", "Textanalyse", "Automationen"], icon: Brain },
+  whatsapp: { category: "Kommunikation", price: "9,90 EUR / Monat", features: ["Nachrichten", "Kundenkommunikation"], icon: Mail },
+  slack: { category: "Kommunikation", price: "9,90 EUR / Monat", features: ["Benachrichtigungen", "Workflows"], icon: Webhook },
+  microsoft_teams: { category: "Kommunikation", price: "9,90 EUR / Monat", features: ["Freigaben", "Benachrichtigungen"], icon: Webhook },
+  amazon: { category: "Commerce", price: "24,90 EUR / Monat", features: ["Bestellungen", "Produkte", "Rechnungen"], icon: Store },
+  ebay: { category: "Commerce", price: "19,90 EUR / Monat", features: ["Bestellungen", "Artikel", "Kunden Sync"], icon: Store }
 }
 
-const marketplace = [
-  { name: "Open Banking", price: "19,90 EUR / Monat", installed: false, module: "Open Banking", category: "Finanzen", features: ["PSD2 Bankverbindung", "Automatische Synchronisation", "Zahlungsabgleich", "Live Kontostand", "Bankregeln"] },
-  { name: "DATEV", price: "19,90 EUR / Monat", installed: true, module: "DATEV", category: "Buchhaltung", features: ["DATEV Export", "Steuerberater-Uebergabe"] },
-  { name: "OCR", price: "14,90 EUR / Monat", installed: true, module: "OCR", category: "Dokumente", features: ["Belegerkennung", "Dokumenten-OCR"] },
-  { name: "Lager", price: "24,90 EUR / Monat", installed: true, module: "Lager", category: "Waren", features: ["Bestand", "Lagerorte"] },
-  { name: "Shopify", price: "19,90 EUR / Monat", installed: true, module: "Shopify", category: "Shop", features: ["Bestellungen", "Produkte"] },
-  { name: "WooCommerce", price: "19,90 EUR / Monat", installed: true, module: "WooCommerce", category: "Shop", features: ["Bestellungen", "Produkte"] }
-]
-
-const marketplaceApps: Array<{ name: string; category: string; price: string; status: "Installiert" | "Verfuegbar" | "Update" | "Beta"; features: string[]; icon: LucideIcon }> = [
-  { name: "Open Banking", category: "Finanzen", price: "19,90 EUR / Monat", status: "Installiert", features: ["PSD2", "Live Sync", "Zahlungsabgleich", "Bankregeln"], icon: Landmark },
-  { name: "DATEV", category: "Finanzen", price: "19,90 EUR / Monat", status: "Installiert", features: ["DATEV Export", "Buchungsdaten", "Steuerberater"], icon: FileText },
-  { name: "OCR", category: "KI", price: "14,90 EUR / Monat", status: "Verfuegbar", features: ["Belegerkennung", "Dokumenten-OCR", "Automatische Felder"], icon: Brain },
-  { name: "Lager", category: "ERP", price: "24,90 EUR / Monat", status: "Verfuegbar", features: ["Bestand", "Lagerorte", "Artikelbewegung"], icon: Package },
-  { name: "Shopify", category: "Commerce", price: "19,90 EUR / Monat", status: "Verfuegbar", features: ["Bestellungen", "Produkte", "Kunden Sync"], icon: Store },
-  { name: "WooCommerce", category: "Commerce", price: "19,90 EUR / Monat", status: "Verfuegbar", features: ["Bestellungen", "Produkte", "Rechnungen"], icon: Store },
-  { name: "Nextcloud", category: "Cloud", price: "9,90 EUR / Monat", status: "Installiert", features: ["Dateien", "Dokumente", "Sync"], icon: Cloud },
-  { name: "Paperless-ngx", category: "Cloud", price: "12,90 EUR / Monat", status: "Update", features: ["Archiv", "Dokumente", "Tags"], icon: FolderOpen },
-  { name: "OpenAI", category: "KI", price: "29,90 EUR / Monat", status: "Beta", features: ["KI-Assistent", "Textanalyse", "Automationen"], icon: Brain }
-]
-
-const marketplaceCategories = ["Alle", "Finanzen", "Commerce", "Cloud", "KI", "ERP"]
-
-const featureFlags = ["open_banking.enabled", "open_banking.psd2", "open_banking.bank_sync", "open_banking.payment_matching", "API / Webhooks", "Portal"]
+const overviewMarketplaceKeys = ["open_banking", "datev", "ocr", "warehouse", "shopify", "woocommerce", "nextcloud", "paperless_ngx", "openai", "whatsapp", "slack", "amazon", "ebay"]
 
 const invoices = [
   { no: "RE-2026-0008", date: "26.06.2026", amount: "99,00 EUR", status: "Bezahlt" },
@@ -127,54 +91,124 @@ const tabs: Array<{ id: string; label: string; icon: LucideIcon }> = [
   { id: "overview", label: "Übersicht", icon: BarChart3 },
   { id: "plan", label: "Plan", icon: BadgeCheck },
   { id: "marketplace", label: "Marketplace", icon: ShoppingCart },
-  { id: "modules", label: "Module", icon: PackageCheck },
-  { id: "features", label: "Feature Flags", icon: ToggleRight },
+  { id: "modules", label: "Erweiterungen", icon: PackageCheck },
   { id: "invoices", label: "Rechnungen", icon: FileText },
   { id: "payments", label: "Zahlungen", icon: CreditCard },
-  { id: "api", label: "API Nutzung", icon: Zap },
-  { id: "team", label: "Team", icon: Users },
+  { id: "api", label: "API", icon: Zap },
   { id: "history", label: "Historie", icon: FileClock },
   { id: "activation", label: "Aktivierung", icon: KeyRound },
   { id: "settings", label: "Einstellungen", icon: Server }
 ]
 
-export function LicenseBillingControlCenter() {
-  const [plan, setPlan] = useState("Enterprise")
+type MarketplaceModuleCard = AppModule & { status: ModuleStatus }
+type MarketplaceDisplayCard = ReturnType<typeof marketplaceCard>
+
+function marketplaceStatusLabel(status: ModuleStatus, moduleKey: string, marketplaceState: MarketplaceState) {
+  if (marketplaceState.integrationErrors.includes(moduleKey)) return "Fehler"
+  if (status === "installed") return "Installiert"
+  if (status === "available") return "Verfuegbar"
+  if (status === "beta") return "Beta"
+  if (status === "locked") return "Upgrade"
+  return "Verfuegbar"
+}
+
+function marketplaceCard(module: MarketplaceModuleCard, marketplaceState: MarketplaceState) {
+  const meta = marketplaceUiMeta[module.key] ?? { category: "Marketplace", price: "Auf Anfrage", features: [module.description], icon: Package }
+
+  return {
+    ...module,
+    categoryLabel: meta.category,
+    price: meta.price,
+    features: meta.features,
+    icon: meta.icon,
+    statusLabel: marketplaceStatusLabel(module.status, module.key, marketplaceState)
+  }
+}
+
+export function LicenseBillingControlCenter({ moduleContext }: { moduleContext?: ModuleEngineContext }) {
+  const [plan, setPlan] = useState<PlanLabel>("Enterprise")
   const [activeTab, setActiveTab] = useState("overview")
   const [advancedOpen, setAdvancedOpen] = useState(false)
   const [activeCategory, setActiveCategory] = useState("Alle")
   const [marketSearch, setMarketSearch] = useState("")
+  const [marketplaceState, setMarketplaceState] = useState<MarketplaceState>(() => getMarketplaceStateSnapshot())
 
-  const visiblePlanModules = useMemo(() => [
-    ...plans.Free,
-    ...(plan === "Business" || plan === "Enterprise" ? plans.Business : []),
-    ...(plan === "Enterprise" ? plans.Enterprise : [])
-  ], [plan])
+  const moduleEngineContext = useMemo<ModuleEngineContext>(() => {
+    const baseContext = moduleContext ?? businessDatevModuleContext
 
-  const activeModules = useMemo(() => {
-    const installedModules = marketplace.filter((item) => item.installed).map((item) => item.module)
-    return Array.from(new Set([...visiblePlanModules, ...installedModules, ...featureFlags]))
-  }, [visiblePlanModules])
+    return {
+      ...baseContext,
+      plan: planToModulePlan[plan],
+      installedExtensions: Array.from(new Set([...baseContext.installedExtensions, ...marketplaceState.installedExtensions])),
+      featureFlags: {
+        ...defaultFeatureFlags,
+        ...baseContext.featureFlags
+      }
+    }
+  }, [marketplaceState.installedExtensions, moduleContext, plan])
+
+  const engineVisibleModules = useMemo(() => getVisibleModules(moduleEngineContext), [moduleEngineContext])
+  const engineLockedModules = useMemo(() => getLockedModules(moduleEngineContext), [moduleEngineContext])
+  const engineMarketplaceModules = useMemo(() => getMarketplaceModules(moduleEngineContext).map((module) => marketplaceCard(module, marketplaceState)), [marketplaceState, moduleEngineContext])
+  const installedMarketplaceModules = useMemo(() => engineMarketplaceModules.filter((module) => module.status === "installed"), [engineMarketplaceModules])
+  const overviewMarketplaceModules = useMemo<MarketplaceDisplayCard[]>(() => {
+    return overviewMarketplaceKeys.map((key) => {
+      const existing = engineMarketplaceModules.find((module) => module.key === key)
+      if (existing) return existing
+      const meta = marketplaceUiMeta[key]
+
+      return {
+        key,
+        name: key === "paperless_ngx" ? "Paperless-ngx" : key === "open_banking" ? "Open Banking" : key.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()),
+        description: meta.features.join(", "),
+        category: meta.category,
+        iconKey: key,
+        route: `/dashboard-v2/integrations/${key}`,
+        requiredPlan: "business",
+        marketplace: true,
+        featureFlag: undefined,
+        installedByDefault: false,
+        visibleInSidebar: false,
+        visibleInDashboard: false,
+        visibleInSearch: true,
+        status: "available",
+        categoryLabel: meta.category,
+        price: meta.price,
+        features: meta.features,
+        icon: meta.icon,
+        statusLabel: "Verfuegbar"
+      } as MarketplaceDisplayCard
+    })
+  }, [engineMarketplaceModules])
+  const marketplaceCategories = useMemo(() => ["Alle", ...Array.from(new Set(overviewMarketplaceModules.map((module) => module.categoryLabel)))], [overviewMarketplaceModules])
 
   const filteredMarketplaceApps = useMemo(() => {
     const query = marketSearch.trim().toLowerCase()
-    return marketplaceApps.filter((app) => {
-      const matchesCategory = activeCategory === "Alle" || app.category === activeCategory
-      const matchesSearch = !query || [app.name, app.category, ...app.features].join(" ").toLowerCase().includes(query)
+    return overviewMarketplaceModules.filter((app) => {
+      const matchesCategory = activeCategory === "Alle" || app.categoryLabel === activeCategory
+      const matchesSearch = !query || [app.name, app.categoryLabel, app.description, ...app.features].join(" ").toLowerCase().includes(query)
       return matchesCategory && matchesSearch
     })
-  }, [activeCategory, marketSearch])
+  }, [activeCategory, overviewMarketplaceModules, marketSearch])
 
   function shouldShow(...names: string[]) {
-    return activeTab === "overview" || names.includes(activeTab)
+    return activeTab !== "overview" && names.includes(activeTab)
+  }
+
+  function installModule(moduleKey: string) {
+    setMarketplaceState(installMarketplaceModule(moduleKey))
+  }
+
+  function uninstallModule(moduleKey: string) {
+    setMarketplaceState(uninstallMarketplaceModule(moduleKey))
   }
 
   return (
-    <div className={styles.licensePage}>
+    <div className={styles.licensePage} data-engine-visible-modules={engineVisibleModules.length} data-engine-marketplace-modules={engineMarketplaceModules.length} data-engine-locked-modules={engineLockedModules.length}>
       <div className={styles.licenseHeader}>
         <div>
           <h1>Lizenz & Abrechnung</h1>
-          <p>Verwalten Sie Plan, Marketplace, Feature Flags, Module und Abrechnung.</p>
+          <p>Plan, Erweiterungen, Marketplace und Abrechnung an einem Ort.</p>
         </div>
 
         <div className={styles.licenseHeaderActions}>
@@ -184,25 +218,27 @@ export function LicenseBillingControlCenter() {
           </button>
           <button className={`${styles.lbBtn} ${styles.primary}`} type="button">
             <ShoppingCart size={16} />
-            Marketplace oeffnen
+            Marketplace öffnen
           </button>
         </div>
       </div>
 
+      {activeTab === "overview" ? (
+        <>
       <div className={styles.statusStrip}>
         <StatusCard icon={BadgeCheck} label="Plan" value={plan} meta="Aktiv" />
         <StatusCard icon={Users} label="Benutzer" value="12 / 20" meta="8 frei" />
-        <StatusCard icon={PackageCheck} label="Module" value={String(activeModules.length)} meta="sichtbar" />
-        <StatusCard icon={Zap} label="API" value="45%" meta="45.223 Requests" />
-        <StatusCard icon={CalendarDays} label="Abrechnung" value="99,00 EUR" meta="monatlich" />
-        <StatusCard icon={ShieldCheck} label="Status" value="Online" meta="Lizenz gueltig" />
+        <StatusCard icon={PackageCheck} label="Gekaufte Erweiterungen" value={String(installedMarketplaceModules.length)} meta="installiert" />
+        <StatusCard icon={Zap} label="API Nutzung" value="45%" meta="45.223 Requests" />
+        <StatusCard icon={CalendarDays} label="Nächste Zahlung" value="26.07.2026" meta="99,00 EUR" />
+        <StatusCard icon={ShieldCheck} label="Lizenzstatus" value="Aktiv" meta="gültig" />
       </div>
 
       <section className={styles.modernSection}>
         <div className={styles.modernSectionHead}>
           <div>
-            <h2>1. Lizenz & Plan</h2>
-            <p>Aktueller Vertrag, Benutzerlimit, Laufzeit und Lizenzstatus.</p>
+            <h2>Plan</h2>
+            <p>Aktueller Vertrag, Laufzeit und Benutzerlimit.</p>
           </div>
         </div>
 
@@ -214,15 +250,15 @@ export function LicenseBillingControlCenter() {
             <div>
               <h3>DreamInvoice {plan}</h3>
               <span className={`${styles.modernBadge} ${styles.green}`}>Aktiv</span>
-              <p>Enterprise schaltet erweiterte Administration, Automatisierung, Multi-Banking und Audit-Funktionen frei.</p>
+              <p>Aktiver SaaS-Plan für Workspace Acme GmbH.</p>
             </div>
           </div>
 
           <div className={styles.planMeta}>
-            <div><span>Verlaengerung</span><strong>26.07.2026</strong></div>
+            <div><span>Verlängerung</span><strong>26.07.2026</strong></div>
             <div><span>Workspace</span><strong>Acme GmbH</strong></div>
-            <div><span>Datenquelle</span><strong>Plan + Marketplace</strong></div>
-            <div><span>Integritaet</span><strong className={styles.success}>Gueltig</strong></div>
+            <div><span>Preis</span><strong>99,00 EUR / Monat</strong></div>
+            <div><span>Benutzerlimit</span><strong>20 Benutzer</strong></div>
           </div>
         </div>
       </section>
@@ -230,36 +266,43 @@ export function LicenseBillingControlCenter() {
       <section className={styles.modernSection}>
         <div className={styles.modernSectionHead}>
           <div>
-            <h2>2. Kernmodule</h2>
-            <p>Module, die direkt durch den aktuellen Plan sichtbar sind.</p>
+            <h2>Gekaufte Erweiterungen</h2>
+            <p>Zusätzlich installierte Marketplace-Erweiterungen.</p>
           </div>
         </div>
 
-        <div className={styles.coreGrid}>
-          {visiblePlanModules.map((module) => {
-            const Icon = moduleIcons[module] ?? CheckCircle2
-            return (
-              <div className={styles.coreCard} key={module}>
-                <div className={styles.smallIcon}><Icon size={19} /></div>
-                <strong>{module}</strong>
-                <span>Im Plan</span>
-              </div>
-            )
-          })}
-        </div>
+        {installedMarketplaceModules.length ? (
+          <div className={styles.extensionListCompact}>
+            {installedMarketplaceModules.map((item) => {
+              const Icon = item.icon
+              return (
+                <div className={styles.extensionCompactCard} key={item.key}>
+                  <div className={styles.smallIcon}><Icon size={18} /></div>
+                  <div>
+                    <strong>{item.name}</strong>
+                    <span>{item.categoryLabel} · Version 1.0.0</span>
+                  </div>
+                  <em>Installiert</em>
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          <p className={styles.emptyState}>Noch keine Erweiterungen gekauft.</p>
+        )}
       </section>
 
       <section className={styles.modernSection}>
         <div className={`${styles.modernSectionHead} ${styles.marketplaceHead}`}>
           <div>
-            <h2>3. Marketplace</h2>
-            <p>Optionale Erweiterungen, die zusaetzlich installiert werden koennen.</p>
+            <h2>Marketplace</h2>
+            <p>Verfügbare Erweiterungen für Ihr Workspace.</p>
           </div>
 
           <div className={styles.marketTools}>
             <label className={styles.marketSearch}>
               <Search size={16} />
-              <input value={marketSearch} onChange={(event) => setMarketSearch(event.target.value)} placeholder="Modul suchen..." />
+              <input value={marketSearch} onChange={(event) => setMarketSearch(event.target.value)} placeholder="Erweiterung suchen..." />
             </label>
             <button className={styles.lbBtn} type="button">
               <SlidersHorizontal size={16} />
@@ -276,25 +319,25 @@ export function LicenseBillingControlCenter() {
           ))}
         </div>
 
-        <div className={styles.modernMarketplaceGrid}>
+        <div className={`${styles.modernMarketplaceGrid} ${styles.compactMarketplaceGrid}`}>
           {filteredMarketplaceApps.map((app) => {
             const Icon = app.icon
             return (
               <div className={styles.modernMarketplaceCard} key={app.name}>
                 <div className={styles.marketCardTop}>
                   <div className={styles.appIcon}><Icon size={24} /></div>
-                  <span className={`${styles.modernBadge} ${marketplaceStatusClass(app.status)}`}>{app.status}</span>
+                  <span className={`${styles.modernBadge} ${marketplaceStatusClass(app.statusLabel)}`}>{app.statusLabel}</span>
                 </div>
                 <h3>{app.name}</h3>
-                <p>{app.category}</p>
+                <p>{app.categoryLabel}</p>
                 <ul>
                   {app.features.map((feature) => (
                     <li key={feature}><CheckCircle2 size={14} />{feature}</li>
                   ))}
                 </ul>
                 <strong className={styles.price}>{app.price}</strong>
-                <button className={app.status === "Installiert" ? styles.installedBtn : styles.installBtn} type="button">
-                  {app.status === "Installiert" ? "Installiert" : "Installieren"}
+                <button className={app.statusLabel === "Installiert" ? styles.installedBtn : styles.installBtn} type="button" onClick={() => app.statusLabel === "Verfuegbar" || app.statusLabel === "Beta" ? installModule(app.key) : undefined}>
+                  {app.statusLabel === "Installiert" ? "Installiert" : app.statusLabel === "Upgrade" ? "Upgrade" : app.statusLabel === "Fehler" ? "Fehler prüfen" : "Verfügbar"}
                 </button>
               </div>
             )
@@ -302,21 +345,47 @@ export function LicenseBillingControlCenter() {
         </div>
       </section>
 
+      <section className={styles.modernSection}>
+        <div className={styles.modernSectionHead}>
+          <div>
+            <h2>Abrechnung</h2>
+            <p>Rechnungen, Zahlungsmethode und nächste Zahlung.</p>
+          </div>
+        </div>
+
+        <div className={styles.billingOverviewGrid}>
+          <div className={styles.billingOverviewCard}>
+            <h3>Letzte Rechnungen</h3>
+            {invoices.slice(0, 2).map((invoice) => (
+              <div className={styles.billingMiniRow} key={invoice.no}>
+                <span>{invoice.no}</span>
+                <strong>{invoice.amount}</strong>
+                <em>{invoice.status}</em>
+              </div>
+            ))}
+          </div>
+          <SystemBox icon={CreditCard} title="Zahlungsmethode" value="Mastercard •••• 4242" meta="Standard" />
+          <SystemBox icon={CalendarDays} title="Nächste Zahlung" value="26.07.2026" meta="99,00 EUR / Monat" />
+        </div>
+      </section>
+
       <section className={`${styles.modernSection} ${styles.systemSection}`}>
         <div className={styles.modernSectionHead}>
           <div>
-            <h2>4. System</h2>
-            <p>API-Nutzung, Lizenzhistorie und technische Informationen.</p>
+            <h2>Systemstatus</h2>
+            <p>Kompakter Status für Lizenz, API und Integrität.</p>
           </div>
         </div>
 
         <div className={styles.systemInnerGrid}>
-          <SystemBox icon={Zap} title="API Nutzung" value="45.223 / 100.000" meta="Reset: 01.07.2026" />
-          <SystemBox icon={CreditCard} title="Zahlungsmethode" value="Mastercard •••• 4242" meta="Standard" />
-          <SystemBox icon={History} title="Lizenzhistorie" value="Business Plan verlaengert" meta="26.06.2026" />
-          <SystemBox icon={Server} title="Lizenzserver" value="Online" meta="Sync: 08:45" />
+          <SystemBox icon={ShieldCheck} title="Lizenzserver" value="Online" meta="Erreichbar" />
+          <SystemBox icon={Zap} title="API" value="45%" meta="45.223 Requests" />
+          <SystemBox icon={Server} title="Letzter Sync" value="08:45" meta="26.06.2026" />
+          <SystemBox icon={BadgeCheck} title="Integrität" value="Gültig" meta="Signatur geprüft" />
         </div>
       </section>
+        </>
+      ) : null}
 
       <div className={styles.licenseTabs}>
         {tabs.map((tab) => {
@@ -331,7 +400,8 @@ export function LicenseBillingControlCenter() {
         })}
       </div>
 
-      <div className={`${styles.licenseGrid} ${activeTab !== "overview" ? styles.singleMode : ""}`}>
+      {activeTab !== "overview" ? (
+      <div className={`${styles.licenseGrid} ${styles.singleMode}`}>
         {shouldShow("plan") ? (
           <section className={`${styles.lbCard} ${styles.planCard}`}>
             <div className={styles.cardTitle}>
@@ -352,7 +422,7 @@ export function LicenseBillingControlCenter() {
             </div>
 
             <div className={styles.planSwitch}>
-              {Object.keys(plans).map((item) => (
+              {planLabels.map((item) => (
                 <button key={item} className={plan === item ? styles.active : ""} onClick={() => setPlan(item)} type="button">
                   {item}
                 </button>
@@ -362,24 +432,8 @@ export function LicenseBillingControlCenter() {
             <div className={styles.planStats}>
               <div><span>Verlaengerung</span><strong>26.07.2026</strong></div>
               <div><span>Benutzer</span><strong>12 / 20</strong></div>
-              <div><span>Aktive Module</span><strong>{activeModules.length}</strong></div>
+              <div><span>Aktive Module</span><strong>{engineVisibleModules.length}</strong></div>
               <div><span>Workspace</span><strong>Acme GmbH</strong></div>
-            </div>
-          </section>
-        ) : null}
-
-        {shouldShow("features") ? (
-          <section className={`${styles.lbCard} ${styles.featureCard}`}>
-            <div className={styles.cardTitle}>
-              <ToggleRight size={22} />
-              <h2>Feature Flags</h2>
-            </div>
-
-            <div className={styles.featureGroups}>
-              <FeatureColumn title="Plan Module" items={visiblePlanModules} />
-              <FeatureColumn title="Aktiviert" items={featureFlags} />
-              <FeatureColumn title="Installiert" items={marketplace.filter((item) => item.installed).map((item) => item.module)} />
-              <FeatureColumn title="Marketplace" items={marketplace.map((item) => item.module)} />
             </div>
           </section>
         ) : null}
@@ -395,20 +449,20 @@ export function LicenseBillingControlCenter() {
             </div>
 
             <div className={styles.marketGrid}>
-              {marketplace.map((item) => (
+              {engineMarketplaceModules.map((item) => (
                 <div className={styles.marketItem} key={item.name}>
                   <div className={styles.marketIcon}>
                     <Box size={22} />
                   </div>
                   <h3>{item.name}</h3>
-                  <p>{item.name === "Open Banking" ? "PSD2 Bankverbindungen, Kontosynchronisation und Zahlungsabgleich." : `${item.name} Erweiterung fuer DreamInvoice.`}</p>
+                  <p>{item.description}</p>
                   <ul>
                     {item.features.map((feature) => <li key={feature}>{feature}</li>)}
                   </ul>
                   <strong>{item.price}</strong>
-                  <small>{item.category}</small>
-                  <button className={item.installed ? styles.installed : ""} type="button">
-                    {item.installed ? "Installiert" : "Entdecken"}
+                  <small>{item.categoryLabel}</small>
+                  <button className={item.statusLabel === "Installiert" ? styles.installed : ""} type="button" onClick={() => item.statusLabel === "Verfuegbar" || item.statusLabel === "Beta" ? installModule(item.key) : undefined}>
+                    {item.statusLabel === "Installiert" ? "Installiert" : item.statusLabel === "Upgrade" ? "Upgrade" : item.statusLabel === "Fehler" ? "Fehler prüfen" : "Installieren"}
                   </button>
                 </div>
               ))}
@@ -423,15 +477,17 @@ export function LicenseBillingControlCenter() {
               <h2>Installierte Erweiterungen</h2>
             </div>
 
-            {marketplace.filter((item) => item.installed).map((item) => (
+            {installedMarketplaceModules.length ? installedMarketplaceModules.map((item) => (
               <div className={styles.installedRow} key={item.name}>
                 <div>
                   <strong>{item.name}</strong>
-                  <span>{item.category}</span>
+                  <span>{item.categoryLabel} · Version 1.0.0</span>
                 </div>
-                <em>Aktiv</em>
+                <em>{item.statusLabel === "Fehler" ? "Fehler" : "Installiert"}</em>
+                <button type="button" onClick={() => installModule(item.key)}>Konfigurieren</button>
+                <button type="button" onClick={() => uninstallModule(item.key)}>Deinstallieren</button>
               </div>
-            ))}
+            )) : <p>Noch keine Erweiterungen installiert.</p>}
           </section>
         ) : null}
 
@@ -580,6 +636,7 @@ export function LicenseBillingControlCenter() {
           </section>
         ) : null}
       </div>
+      ) : null}
     </div>
   )
 }
@@ -618,19 +675,6 @@ function marketplaceStatusClass(status: string) {
   if (status === "Installiert") return styles.green
   if (status === "Update") return styles.orange
   if (status === "Beta") return styles.blue
+  if (status === "Upgrade") return styles.orange
   return styles.gray
-}
-
-function FeatureColumn({ title, items }: { title: string; items: string[] }) {
-  return (
-    <div>
-      <h4>{title}</h4>
-      {items.map((item) => (
-        <div className={`${styles.featureRow} ${styles.featureActive}`} key={item}>
-          <Database size={14} />
-          {item}
-        </div>
-      ))}
-    </div>
-  )
 }

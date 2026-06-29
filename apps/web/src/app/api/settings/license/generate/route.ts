@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
 import { writeAuditLog } from "@/lib/audit/log"
+import { auditActor, requestContext, safeJson } from "@/lib/audit/audit-event-helpers"
+import { logBackendAuditEvent } from "@/lib/audit/backendAuditEventWriter"
 import { mapAuthError, requireCurrentUserRole } from "@/lib/auth/service"
 import { RequestBodyError, readJsonBodyWithLimit } from "@/lib/http/request-body"
 import { assertLicenseAdminAccess } from "@/lib/license/admin"
@@ -93,11 +95,43 @@ export async function POST(req: Request) {
         validUntil: result.license.validUntil
       }
     })
+    await logBackendAuditEvent({
+      type: "subscription_created",
+      source: "billing",
+      severity: "success",
+      title: "Lizenz erstellt",
+      description: "Neue Lizenz wurde erstellt.",
+      actor: auditActor(actor),
+      requestContext: requestContext(req, actor),
+      entityType: "license_issue",
+      entityId: result.license.licenseId,
+      metadata: safeJson({
+        keyPreview: result.license.keyPreview,
+        plan: result.license.plan,
+        billingCycle: result.license.billingCycle,
+        maxUsers: result.license.maxUsers,
+        customerId: result.license.customerId,
+        customerName: result.license.customerName,
+        validUntil: result.license.validUntil
+      }),
+      after: safeJson({ plan: result.license.plan, status: "issued" })
+    })
 
     return NextResponse.json({ ok: true, ...result })
   } catch (error) {
     const message = error instanceof Error ? error.message : "Lizenzschluessel konnte nicht erzeugt werden."
     const status = message.includes("LICENSE_PRIVATE_KEY") ? 503 : 400
+    await logBackendAuditEvent({
+      type: "license_sync_failed",
+      source: "billing",
+      severity: "error",
+      title: "Lizenz-Erstellung fehlgeschlagen",
+      description: "Lizenz konnte nicht erstellt werden.",
+      actor: auditActor(actor),
+      requestContext: requestContext(req, actor),
+      entityType: "license_issue",
+      metadata: safeJson({ reason: message })
+    })
 
     return NextResponse.json(
       { ok: false, error: message },

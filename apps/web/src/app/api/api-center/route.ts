@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
+import { auditActor, requestContext, safeJson } from "@/lib/audit/audit-event-helpers"
+import { logBackendAuditEvent } from "@/lib/audit/backendAuditEventWriter"
 import { requireCurrentUser } from "@/lib/auth/service"
 import { apiKeyHash, apiKeyPreview, createPlainApiKey, ensureDefaultTenantContext, integrationProviders, requireTenantAdmin, webhookEvents } from "@/lib/tenant/context"
 
@@ -34,12 +36,37 @@ export async function POST(request: Request) {
     if (action === "apiKey.create") {
       const plainKey = createPlainApiKey()
       const rows = await prisma.$queryRawUnsafe(`INSERT INTO "ApiKey" ("tenantId", "companyId", "label", "keyHash", "keyPreview", "scopes", "createdByUserId") VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7) RETURNING "id", "companyId", "label", "keyPreview", "status", "scopes", "createdAt"`, tenantId, String(body.companyId ?? companyId) || companyId, String(body.label ?? "Production API Key").trim(), apiKeyHash(plainKey), apiKeyPreview(plainKey), JSON.stringify(body.scopes ?? ["customers:read", "invoices:read", "projects:read"]), user.id)
+      const apiKey = Array.isArray(rows) ? rows[0] as { id: string; keyPreview: string; status: string } : rows as { id: string; keyPreview: string; status: string }
+      await logBackendAuditEvent({
+        type: "api_request",
+        source: "api",
+        severity: "success",
+        title: "API-Key erstellt",
+        description: "REST API-Key wurde erstellt.",
+        actor: auditActor(user),
+        requestContext: requestContext(request, user),
+        entityType: "api_key",
+        entityId: apiKey.id,
+        metadata: safeJson({ keyPreview: apiKey.keyPreview, status: apiKey.status })
+      })
       return NextResponse.json({ ok: true, apiKey: Array.isArray(rows) ? rows[0] : rows, plainKey }, { status: 201 })
     }
     if (action === "apiKey.disable" || action === "apiKey.delete") {
       const id = String(body.id ?? "")
       if (action === "apiKey.delete") await prisma.$executeRawUnsafe(`DELETE FROM "ApiKey" WHERE "tenantId" = $1 AND "id" = $2`, tenantId, id)
       else await prisma.$executeRawUnsafe(`UPDATE "ApiKey" SET "status" = 'inactive', "updatedAt" = CURRENT_TIMESTAMP WHERE "tenantId" = $1 AND "id" = $2`, tenantId, id)
+      await logBackendAuditEvent({
+        type: "api_request",
+        source: "api",
+        severity: action === "apiKey.delete" ? "warning" : "info",
+        title: action === "apiKey.delete" ? "API-Key geloescht" : "API-Key deaktiviert",
+        description: "API-Key Status wurde geaendert.",
+        actor: auditActor(user),
+        requestContext: requestContext(request, user),
+        entityType: "api_key",
+        entityId: id,
+        metadata: safeJson({ action })
+      })
       return NextResponse.json({ ok: true })
     }
     if (action === "webhook.create") {
@@ -47,12 +74,41 @@ export async function POST(request: Request) {
       if (!webhookEvents.includes(event as typeof webhookEvents[number])) throw new Error("Webhook Event ist nicht erlaubt.")
       const secret = "whsec_" + createPlainApiKey().slice(3)
       const rows = await prisma.$queryRawUnsafe(`INSERT INTO "WebhookEndpoint" ("tenantId", "companyId", "event", "url", "secretPreview") VALUES ($1,$2,$3,$4,$5) RETURNING *`, tenantId, String(body.companyId ?? companyId) || companyId, event, String(body.url ?? body.endpoint ?? "").trim(), apiKeyPreview(secret))
+      const webhook = Array.isArray(rows) ? rows[0] as { id: string; event: string; secretPreview: string } : rows as { id: string; event: string; secretPreview: string }
+      await logBackendAuditEvent({
+        type: "integration_configured",
+        source: "integration",
+        severity: "success",
+        title: "Webhook konfiguriert",
+        description: "Webhook-Endpunkt wurde vorbereitet.",
+        actor: auditActor(user),
+        requestContext: requestContext(request, user),
+        integrationKey: "webhook",
+        entityType: "webhook",
+        entityId: webhook.id,
+        metadata: safeJson({ event: webhook.event, secretPreview: webhook.secretPreview })
+      })
       return NextResponse.json({ ok: true, webhook: Array.isArray(rows) ? rows[0] : rows, secret }, { status: 201 })
     }
     if (action === "integration.prepare") {
       const provider = String(body.provider ?? "").trim()
       if (!integrationProviders.includes(provider as typeof integrationProviders[number])) throw new Error("Integration ist nicht vorgesehen.")
       const rows = await prisma.$queryRawUnsafe(`INSERT INTO "IntegrationConnection" ("tenantId", "companyId", "provider", "category", "status", "config") VALUES ($1,$2,$3,'automation','prepared',$4::jsonb) ON CONFLICT ("tenantId", "provider", "companyId") DO UPDATE SET "status" = 'prepared', "updatedAt" = CURRENT_TIMESTAMP RETURNING *`, tenantId, String(body.companyId ?? companyId) || companyId, provider, JSON.stringify({ mode: "prepared" }))
+      const integration = Array.isArray(rows) ? rows[0] as { id: string; provider: string; status: string } : rows as { id: string; provider: string; status: string }
+      await logBackendAuditEvent({
+        type: "integration_configured",
+        source: "integration",
+        severity: "success",
+        title: "Integration vorbereitet",
+        description: `${provider} wurde als Integration vorbereitet.`,
+        actor: auditActor(user),
+        requestContext: requestContext(request, user),
+        integrationKey: provider,
+        moduleKey: provider,
+        entityType: "integration",
+        entityId: integration.id,
+        metadata: safeJson({ provider: integration.provider, status: integration.status })
+      })
       return NextResponse.json({ ok: true, integration: Array.isArray(rows) ? rows[0] : rows }, { status: 201 })
     }
     throw new Error("Unbekannte API-Center Aktion.")

@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { z } from "zod"
 import { writeAuditLog } from "@/lib/audit/log"
+import { auditActor, requestContext, safeJson } from "@/lib/audit/audit-event-helpers"
+import { logBackendAuditEvent } from "@/lib/audit/backendAuditEventWriter"
 import { getAuditRequestMetadata } from "@/lib/audit/request-metadata"
 import { authenticateAppUser, mapAuthError } from "@/lib/auth/service"
 import { SESSION_COOKIE_NAME, createSessionToken, getSessionCookieOptions } from "@/lib/auth/session"
@@ -75,6 +77,18 @@ export async function POST(request: Request) {
 
     if (result.requiresTwoFactor) {
       clearRateLimit(rateLimitKey)
+      await logBackendAuditEvent({
+        type: "login_success",
+        source: "auth",
+        severity: "info",
+        title: "2FA erforderlich",
+        description: "Login erfolgreich, Zwei-Faktor-Authentifizierung erforderlich.",
+        actor: auditActor(result.user),
+        requestContext: requestContext(request, result.user),
+        entityType: "user",
+        entityId: result.user.id,
+        metadata: safeJson({ email: result.user.email, reason: "2fa_required" })
+      })
       return NextResponse.json({
         ok: true,
         requiresTwoFactor: true,
@@ -96,6 +110,18 @@ export async function POST(request: Request) {
       data: { email: user.email, role: user.role },
       requestMetadata
     })
+    await logBackendAuditEvent({
+      type: "login_success",
+      source: "auth",
+      severity: "success",
+      title: "Login erfolgreich",
+      description: "Benutzer wurde erfolgreich angemeldet.",
+      actor: auditActor(user),
+      requestContext: requestContext(request, user),
+      entityType: "user",
+      entityId: user.id,
+      metadata: safeJson({ email: user.email, role: user.role })
+    })
     await appendNotification({
       category: "security",
       tone: "info",
@@ -114,6 +140,17 @@ export async function POST(request: Request) {
         reason: error.code,
         requestMetadata
       })
+      await logBackendAuditEvent({
+        type: "login_failed",
+        source: "auth",
+        severity: "error",
+        title: "Login fehlgeschlagen",
+        description: "Login-Anfrage konnte nicht gelesen werden.",
+        actor: auditActor(null, loginEmail),
+        requestContext: requestContext(request),
+        entityType: "user",
+        metadata: safeJson({ email: loginEmail, reason: error.code })
+      })
       return NextResponse.json(
         { ok: false, error: error.message, code: error.code },
         { status: error.status }
@@ -127,6 +164,17 @@ export async function POST(request: Request) {
         reason: "invalid_credentials",
         data: loginEmail ? { email: loginEmail } : undefined,
         requestMetadata
+      })
+      await logBackendAuditEvent({
+        type: "login_failed",
+        source: "auth",
+        severity: "warning",
+        title: "Login fehlgeschlagen",
+        description: "Ungueltige Login-Daten.",
+        actor: auditActor(null, loginEmail),
+        requestContext: requestContext(request),
+        entityType: "user",
+        metadata: safeJson({ email: loginEmail, reason: "invalid_credentials" })
       })
       return NextResponse.json(
         { ok: false, error: "E-Mail oder Passwort ist ungueltig.", code: "invalid_credentials" },
@@ -142,6 +190,17 @@ export async function POST(request: Request) {
         data: loginEmail ? { email: loginEmail } : undefined,
         requestMetadata
       })
+      await logBackendAuditEvent({
+        type: "login_failed",
+        source: "auth",
+        severity: "warning",
+        title: "Login limitiert",
+        description: "Zu viele Login-Versuche.",
+        actor: auditActor(null, loginEmail),
+        requestContext: requestContext(request),
+        entityType: "user",
+        metadata: safeJson({ email: loginEmail, reason: "rate_limited", retryAfterSeconds: error.retryAfterSeconds })
+      })
       return NextResponse.json(
         { ok: false, error: "Zu viele Login-Versuche. Bitte spaeter erneut versuchen.", code: "rate_limited" },
         { status: 429, headers: { "Retry-After": String(error.retryAfterSeconds) } }
@@ -155,6 +214,17 @@ export async function POST(request: Request) {
       reason: mapped.code,
       data: loginEmail ? { email: loginEmail } : undefined,
       requestMetadata
+    })
+    await logBackendAuditEvent({
+      type: mapped.code === "2fa_required" ? "login_success" : "login_failed",
+      source: "auth",
+      severity: mapped.code === "2fa_required" ? "info" : "error",
+      title: mapped.code === "2fa_required" ? "2FA erforderlich" : "Login fehlgeschlagen",
+      description: mapped.code === "2fa_required" ? "Login erfordert Zwei-Faktor-Authentifizierung." : "Login wurde abgelehnt.",
+      actor: auditActor(null, loginEmail),
+      requestContext: requestContext(request),
+      entityType: "user",
+      metadata: safeJson({ email: loginEmail, reason: mapped.code })
     })
     return NextResponse.json(
       { ok: false, error: mapped.error, code: mapped.code },

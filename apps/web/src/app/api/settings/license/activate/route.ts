@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
 import { writeAuditLog } from "@/lib/audit/log"
+import { auditActor, requestContext, safeJson } from "@/lib/audit/audit-event-helpers"
+import { logBackendAuditEvent } from "@/lib/audit/backendAuditEventWriter"
 import { mapAuthError, requireCurrentUserRole } from "@/lib/auth/service"
 import { activateLicenseKey } from "@/lib/license/activate"
 import { RequestBodyError, readJsonBodyWithLimit } from "@/lib/http/request-body"
@@ -52,6 +54,17 @@ export async function POST(req: Request) {
   const result = await activateLicenseKey(body.licenseKey)
 
   if (!result.ok) {
+    await logBackendAuditEvent({
+      type: "license_sync_failed",
+      source: "billing",
+      severity: "error",
+      title: "Lizenz-Aktivierung fehlgeschlagen",
+      description: "Lizenz konnte nicht aktiviert werden.",
+      actor: auditActor(actor),
+      requestContext: requestContext(req, actor),
+      entityType: "license",
+      metadata: safeJson({ reason: result.error })
+    })
     return NextResponse.json(
       { ok: false, error: result.error },
       { status: 400 }
@@ -71,6 +84,25 @@ export async function POST(req: Request) {
       status: result.license.status,
       validUntil: result.license.validUntil?.toISOString() ?? null
     }
+  })
+  await logBackendAuditEvent({
+    type: "license_synced",
+    source: "billing",
+    severity: "success",
+    title: "Lizenz aktiviert",
+    description: "Lizenz wurde aktiviert und synchronisiert.",
+    actor: auditActor(actor),
+    requestContext: requestContext(req, actor),
+    entityType: "license",
+    entityId: result.license.id,
+    metadata: safeJson({
+      plan: result.license.plan,
+      billingCycle: result.license.billingCycle,
+      maxUsers: result.license.maxUsers,
+      status: result.license.status,
+      validUntil: result.license.validUntil?.toISOString() ?? null
+    }),
+    after: safeJson({ plan: result.license.plan, status: result.license.status })
   })
 
   return NextResponse.json({
