@@ -1,680 +1,526 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
-  BadgeCheck,
-  BarChart3,
-  Box,
-  Brain,
-  CalendarDays,
+  AlertCircle,
   CheckCircle2,
-  Clock,
-  Cloud,
-  Code2,
   CreditCard,
+  Crown,
   Download,
-  FileClock,
   FileText,
-  FolderOpen,
-  History,
-  KeyRound,
-  Layers3,
-  Landmark,
-  Mail,
-  PackageCheck,
+  Leaf,
   Package,
-  RefreshCw,
-  Receipt,
+  RefreshCcw,
   Search,
-  Server,
-  ShieldCheck,
-  ShoppingCart,
-  Sparkles,
+  Settings,
+  Star,
   SlidersHorizontal,
-  Store,
-  Upload,
-  Users,
-  Webhook,
-  Zap,
   type LucideIcon
 } from "lucide-react"
-import { defaultFeatureFlags } from "@/lib/modules/featureFlags"
-import { getLockedModules, getMarketplaceModules, getVisibleModules, type ModuleEngineContext } from "@/lib/modules/moduleEngine"
-import { businessDatevModuleContext } from "@/lib/modules/mockLicenseContext"
-import type { AppModule, ModulePlan, ModuleStatus } from "@/lib/modules/appRegistry"
-import { getMarketplaceStateSnapshot, installMarketplaceModule, uninstallMarketplaceModule, type MarketplaceState } from "@/lib/marketplace/marketplaceState"
+import type { ModuleEngineContext, LicenseStatus } from "@/lib/modules/moduleEngine"
+import type { ModulePlan } from "@/lib/modules/appRegistry"
 import styles from "./LicenseBillingControlCenter.module.css"
 
-const planLabels = ["Free", "Business", "Enterprise"] as const
-
-type PlanLabel = (typeof planLabels)[number]
-
-const planToModulePlan: Record<PlanLabel, ModulePlan> = {
-  Free: "free",
-  Business: "business",
-  Enterprise: "enterprise"
+type LicenseBillingMeta = {
+  nextPaymentDate?: string | null
 }
 
-const marketplaceUiMeta: Record<string, { category: string; price: string; features: string[]; icon: LucideIcon }> = {
-  open_banking: { category: "Finanzen", price: "19,90 EUR / Monat", features: ["PSD2", "Live Sync", "Zahlungsabgleich", "Bankregeln"], icon: Landmark },
-  datev: { category: "Finanzen", price: "19,90 EUR / Monat", features: ["DATEV Export", "Buchungsdaten", "Steuerberater"], icon: FileText },
-  ocr: { category: "KI", price: "14,90 EUR / Monat", features: ["Belegerkennung", "Dokumenten-OCR", "Automatische Felder"], icon: Brain },
-  warehouse: { category: "ERP", price: "24,90 EUR / Monat", features: ["Bestand", "Lagerorte", "Artikelbewegung"], icon: Package },
-  shopify: { category: "Commerce", price: "19,90 EUR / Monat", features: ["Bestellungen", "Produkte", "Kunden Sync"], icon: Store },
-  woocommerce: { category: "Commerce", price: "19,90 EUR / Monat", features: ["Bestellungen", "Produkte", "Rechnungen"], icon: Store },
-  nextcloud: { category: "Cloud", price: "9,90 EUR / Monat", features: ["Dateien", "Dokumente", "Sync"], icon: Cloud },
-  paperless_ngx: { category: "Cloud", price: "12,90 EUR / Monat", features: ["Archiv", "Dokumente", "Tags"], icon: FolderOpen },
-  google_drive: { category: "Cloud", price: "9,90 EUR / Monat", features: ["Dateien", "Dokumente", "Export"], icon: Cloud },
-  openai: { category: "KI", price: "29,90 EUR / Monat", features: ["KI-Assistent", "Textanalyse", "Automationen"], icon: Brain },
-  whatsapp: { category: "Kommunikation", price: "9,90 EUR / Monat", features: ["Nachrichten", "Kundenkommunikation"], icon: Mail },
-  slack: { category: "Kommunikation", price: "9,90 EUR / Monat", features: ["Benachrichtigungen", "Workflows"], icon: Webhook },
-  microsoft_teams: { category: "Kommunikation", price: "9,90 EUR / Monat", features: ["Freigaben", "Benachrichtigungen"], icon: Webhook },
-  amazon: { category: "Commerce", price: "24,90 EUR / Monat", features: ["Bestellungen", "Produkte", "Rechnungen"], icon: Store },
-  ebay: { category: "Commerce", price: "19,90 EUR / Monat", features: ["Bestellungen", "Artikel", "Kunden Sync"], icon: Store }
+type PlanOption = {
+  plan: string
+  name: string
+  billingCycle: string
+  billingLabel: string
+  note: string
+  subtitle: string
+  priceLabel: string
+  priceSuffix: string
+  features: string[]
+  maxUsers: number
+  status: string
+  validUntil: string | null
 }
 
-const overviewMarketplaceKeys = ["open_banking", "datev", "ocr", "warehouse", "shopify", "woocommerce", "nextcloud", "paperless_ngx", "openai", "whatsapp", "slack", "amazon", "ebay"]
-
-const invoices = [
-  { no: "RE-2026-0008", date: "26.06.2026", amount: "99,00 EUR", status: "Bezahlt" },
-  { no: "RE-2026-0007", date: "26.05.2026", amount: "99,00 EUR", status: "Bezahlt" },
-  { no: "RE-2026-0006", date: "26.04.2026", amount: "99,00 EUR", status: "Bezahlt" }
-]
-
-const history = [
-  { date: "26.06.2026", title: "Business Plan verlaengert", meta: "Automatische Verlangerung aktiv" },
-  { date: "18.06.2026", title: "DATEV installiert", meta: "Marketplace Erweiterung aktiviert" },
-  { date: "01.06.2026", title: "API Limit aktualisiert", meta: "100.000 Requests pro Monat" }
-]
-
-const tabs: Array<{ id: string; label: string; icon: LucideIcon }> = [
-  { id: "overview", label: "Übersicht", icon: BarChart3 },
-  { id: "plan", label: "Plan", icon: BadgeCheck },
-  { id: "marketplace", label: "Marketplace", icon: ShoppingCart },
-  { id: "modules", label: "Erweiterungen", icon: PackageCheck },
-  { id: "invoices", label: "Rechnungen", icon: FileText },
-  { id: "payments", label: "Zahlungen", icon: CreditCard },
-  { id: "api", label: "API", icon: Zap },
-  { id: "history", label: "Historie", icon: FileClock },
-  { id: "activation", label: "Aktivierung", icon: KeyRound },
-  { id: "settings", label: "Einstellungen", icon: Server }
-]
-
-type MarketplaceModuleCard = AppModule & { status: ModuleStatus }
-type MarketplaceDisplayCard = ReturnType<typeof marketplaceCard>
-
-function marketplaceStatusLabel(status: ModuleStatus, moduleKey: string, marketplaceState: MarketplaceState) {
-  if (marketplaceState.integrationErrors.includes(moduleKey)) return "Fehler"
-  if (status === "installed") return "Installiert"
-  if (status === "available") return "Verfuegbar"
-  if (status === "beta") return "Beta"
-  if (status === "locked") return "Upgrade"
-  return "Verfuegbar"
+type MarketplaceModule = {
+  key: string
+  name: string
+  category: string
+  description: string
+  provider: string
+  priceCents: number | null
+  currency: string
+  billingCycle: string
+  installed: boolean
+  active: boolean
+  licenseRequired: boolean
+  licenseStatus: string
+  available: boolean
 }
 
-function marketplaceCard(module: MarketplaceModuleCard, marketplaceState: MarketplaceState) {
-  const meta = marketplaceUiMeta[module.key] ?? { category: "Marketplace", price: "Auf Anfrage", features: [module.description], icon: Package }
+type BillingInvoice = {
+  id: string
+  number: string
+  status: string
+  amount: number
+  currency: string
+  issueDate: string | null
+  dueDate: string | null
+  paidAt: string | null
+  downloadUrl: string
+}
 
+type PaymentMethod = {
+  id: string
+  key: string
+  label: string
+  enabled: boolean
+  prepared: boolean
+}
+
+type PaymentHistoryItem = {
+  id: string
+  amount: number
+  currency: string
+  method: string | null
+  provider: string | null
+  status: string
+  paidAt: string | null
+  invoiceNumber: string | null
+}
+
+type CurrentLicense = {
+  id: string | null
+  plan: string
+  billingCycle: string
+  maxUsers: number
+  activeUsers: number
+  remainingUsers: number
+  status: string
+  validUntil: string | null
+  updatedAt: string | null
+}
+
+type LicenseBillingData = {
+  ok: boolean
+  license: CurrentLicense
+  plans: PlanOption[]
+  marketplace: MarketplaceModule[]
+  billing: {
+    invoices: BillingInvoice[]
+    paymentMethods: PaymentMethod[]
+    paymentHistory: PaymentHistoryItem[]
+    nextPayment: string | null
+  }
+}
+
+const tabs = ["Plan", "Marketplace", "Abrechnung", "Historie"] as const
+const categoryOrder = ["Alle", "Finanzen", "KI", "KI & Automation", "Integration", "Dokumente", "E-Commerce", "Kommunikation", "Projektmanagement", "Produktion", "Business", "Weitere"]
+const filterOptions = ["Alle", "Installiert", "Verfügbar", "Aktiv", "Lizenzpflichtig"] as const
+const iconByCategory: Record<string, LucideIcon> = {
+  Finanzen: CreditCard,
+  Dokumente: FileText,
+  KI: Settings,
+  "KI & Automation": Settings,
+  Kommunikation: Package,
+  "E-Commerce": Package,
+  Integration: Package,
+  Weitere: Package
+}
+
+function modulePlanFromLicensePlan(plan?: string | null): ModulePlan {
+  const normalized = String(plan || "").toLowerCase()
+  if (normalized.includes("enterprise") || normalized.includes("unlimited")) return "enterprise"
+  if (normalized.includes("business") || normalized.includes("team") || normalized.includes("pro")) return "business"
+  return "free"
+}
+
+function planLabel(plan?: string | null) {
+  const normalized = String(plan || "free").trim()
+  if (!normalized) return "Free"
+  if (normalized.toLowerCase() === "business") return "Pro"
+  return normalized.slice(0, 1).toUpperCase() + normalized.slice(1)
+}
+
+function planTone(plan?: string | null) {
+  const normalized = modulePlanFromLicensePlan(plan)
+  if (normalized === "enterprise") return "enterprise"
+  if (normalized === "business") return "pro"
+  return "free"
+}
+
+function planIcon(plan?: string | null): LucideIcon {
+  const tone = planTone(plan)
+  if (tone === "enterprise") return Crown
+  if (tone === "pro") return Star
+  return Leaf
+}
+
+function formatUserLimit(maxUsers: number) {
+  return maxUsers >= 100000 ? "Unbegrenzte Benutzer" : `${maxUsers} Benutzer`
+}
+
+function categoryLabel(category: string) {
+  return category === "KI" ? "KI & Automation" : category
+}
+
+function fallbackPlanFeatures(plan: PlanOption) {
+  const normalized = String(plan.plan).toLowerCase()
+  if (normalized === "enterprise") {
+    return [
+      "Alle Pro Funktionen",
+      "Alle Marketplace-Module inklusive",
+      "Unbegrenzte Benutzer",
+      "Unbegrenzter Speicher",
+      "Prioritäts-Support",
+      "Früher Zugriff auf neue Funktionen",
+      "Alle zukünftigen Module inklusive"
+    ]
+  }
+  if (normalized === "pro" || normalized === "business") {
+    return [
+      "Alle Free Funktionen",
+      "API & Webhooks",
+      "Banking",
+      "25 Benutzer",
+      "100 GB Speicher",
+      "Marketplace Module einzeln buchbar",
+      "Standard-Support"
+    ]
+  }
+  return ["Rechnungen, Angebote, Kunden", "Projekte & Zeiterfassung", "Dokumente", "5 Benutzer", "2 GB Speicher"]
+}
+
+function planActionLabel(currentPlan: string, targetPlan: PlanOption) {
+  const currentRank = ["free", "pro", "business", "enterprise", "unlimited"].indexOf(String(currentPlan).toLowerCase())
+  const targetRank = ["free", "pro", "business", "enterprise", "unlimited"].indexOf(String(targetPlan.plan).toLowerCase())
+  const target = targetPlan.name || planLabel(targetPlan.plan)
+  if (targetRank > currentRank) return `Upgrade auf ${target}`
+  if (targetRank < currentRank) return `Downgrade auf ${target}`
+  return `${target} übernehmen`
+}
+
+function statusLabel(status?: string | null) {
+  const normalized = String(status || "").toLowerCase()
+  if (normalized === "active") return "Aktiv"
+  if (normalized === "trial") return "Testphase"
+  if (normalized === "expired") return "Abgelaufen"
+  if (normalized === "canceled" || normalized === "cancelled") return "Gekündigt"
+  return status || "Unbekannt"
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return "Kein Ablaufdatum"
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return value.slice(0, 10)
+  return new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" }).format(date)
+}
+
+function formatMoney(cents?: number | null, currency = "EUR") {
+  if (cents === null || cents === undefined) return "Nicht hinterlegt"
+  return new Intl.NumberFormat("de-DE", { style: "currency", currency }).format(cents / 100)
+}
+
+function formatAmount(amount: number, currency = "EUR") {
+  return new Intl.NumberFormat("de-DE", { style: "currency", currency }).format(amount)
+}
+
+function emptyLicense(): CurrentLicense {
   return {
-    ...module,
-    categoryLabel: meta.category,
-    price: meta.price,
-    features: meta.features,
-    icon: meta.icon,
-    statusLabel: marketplaceStatusLabel(module.status, module.key, marketplaceState)
+    id: null,
+    plan: "free",
+    billingCycle: "free",
+    maxUsers: 0,
+    activeUsers: 0,
+    remainingUsers: 0,
+    status: "unconfigured",
+    validUntil: null,
+    updatedAt: null
   }
 }
 
-export function LicenseBillingControlCenter({ moduleContext }: { moduleContext?: ModuleEngineContext }) {
-  const [plan, setPlan] = useState<PlanLabel>("Enterprise")
-  const [activeTab, setActiveTab] = useState("overview")
-  const [advancedOpen, setAdvancedOpen] = useState(false)
+function moduleContextFromLicense(license: CurrentLicense, base?: ModuleEngineContext): ModuleEngineContext {
+  return {
+    plan: modulePlanFromLicensePlan(license.plan),
+    installedExtensions: base?.installedExtensions ?? [],
+    featureFlags: base?.featureFlags ?? {},
+    licenseStatus: (license.status === "expired" ? "expired" : license.status === "trial" ? "trial" : "active") as LicenseStatus,
+    userPermissions: base?.userPermissions ?? ["settings.read"]
+  }
+}
+
+export function LicenseBillingControlCenter({ moduleContext, billingMeta }: { moduleContext?: ModuleEngineContext; billingMeta?: LicenseBillingMeta }) {
+  const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>("Plan")
   const [activeCategory, setActiveCategory] = useState("Alle")
+  const [activeFilter, setActiveFilter] = useState<(typeof filterOptions)[number]>("Alle")
   const [marketSearch, setMarketSearch] = useState("")
-  const [marketplaceState, setMarketplaceState] = useState<MarketplaceState>(() => getMarketplaceStateSnapshot())
+  const [data, setData] = useState<LicenseBillingData | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
 
-  const moduleEngineContext = useMemo<ModuleEngineContext>(() => {
-    const baseContext = moduleContext ?? businessDatevModuleContext
-
-    return {
-      ...baseContext,
-      plan: planToModulePlan[plan],
-      installedExtensions: Array.from(new Set([...baseContext.installedExtensions, ...marketplaceState.installedExtensions])),
-      featureFlags: {
-        ...defaultFeatureFlags,
-        ...baseContext.featureFlags
-      }
+  async function loadLicenseBilling() {
+    setIsLoading(true)
+    setError(null)
+    try {
+      const response = await fetch("/api/license-billing", { credentials: "same-origin" })
+      const payload = await response.json()
+      if (!response.ok || payload?.ok === false) throw new Error(payload?.error || "Lizenzdaten konnten nicht geladen werden.")
+      setData(payload)
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "Lizenzdaten konnten nicht geladen werden.")
+    } finally {
+      setIsLoading(false)
     }
-  }, [marketplaceState.installedExtensions, moduleContext, plan])
+  }
 
-  const engineVisibleModules = useMemo(() => getVisibleModules(moduleEngineContext), [moduleEngineContext])
-  const engineLockedModules = useMemo(() => getLockedModules(moduleEngineContext), [moduleEngineContext])
-  const engineMarketplaceModules = useMemo(() => getMarketplaceModules(moduleEngineContext).map((module) => marketplaceCard(module, marketplaceState)), [marketplaceState, moduleEngineContext])
-  const installedMarketplaceModules = useMemo(() => engineMarketplaceModules.filter((module) => module.status === "installed"), [engineMarketplaceModules])
-  const overviewMarketplaceModules = useMemo<MarketplaceDisplayCard[]>(() => {
-    return overviewMarketplaceKeys.map((key) => {
-      const existing = engineMarketplaceModules.find((module) => module.key === key)
-      if (existing) return existing
-      const meta = marketplaceUiMeta[key]
+  useEffect(() => {
+    void loadLicenseBilling()
+  }, [])
 
-      return {
-        key,
-        name: key === "paperless_ngx" ? "Paperless-ngx" : key === "open_banking" ? "Open Banking" : key.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()),
-        description: meta.features.join(", "),
-        category: meta.category,
-        iconKey: key,
-        route: `/dashboard-v2/integrations/${key}`,
-        requiredPlan: "business",
-        marketplace: true,
-        featureFlag: undefined,
-        installedByDefault: false,
-        visibleInSidebar: false,
-        visibleInDashboard: false,
-        visibleInSearch: true,
-        status: "available",
-        categoryLabel: meta.category,
-        price: meta.price,
-        features: meta.features,
-        icon: meta.icon,
-        statusLabel: "Verfuegbar"
-      } as MarketplaceDisplayCard
-    })
-  }, [engineMarketplaceModules])
-  const marketplaceCategories = useMemo(() => ["Alle", ...Array.from(new Set(overviewMarketplaceModules.map((module) => module.categoryLabel)))], [overviewMarketplaceModules])
+  const license = data?.license ?? emptyLicense()
+  const currentContext = moduleContextFromLicense(license, moduleContext)
+  const activePlanLabel = planLabel(license.plan || currentContext.plan)
+  const nextPaymentDate = formatDate(data?.billing.nextPayment ?? billingMeta?.nextPaymentDate ?? license.validUntil)
 
-  const filteredMarketplaceApps = useMemo(() => {
+  const categories = useMemo(() => {
+    const present = new Set((data?.marketplace ?? []).map((module) => module.category || "Weitere"))
+    const ordered = categoryOrder.filter((category) => category === "Alle" || present.has(category))
+    const custom = Array.from(present).filter((category) => !ordered.includes(category)).sort((a, b) => a.localeCompare(b, "de"))
+    return [...ordered, ...custom]
+  }, [data?.marketplace])
+
+  const filteredMarketplace = useMemo(() => {
     const query = marketSearch.trim().toLowerCase()
-    return overviewMarketplaceModules.filter((app) => {
-      const matchesCategory = activeCategory === "Alle" || app.categoryLabel === activeCategory
-      const matchesSearch = !query || [app.name, app.categoryLabel, app.description, ...app.features].join(" ").toLowerCase().includes(query)
-      return matchesCategory && matchesSearch
+    return (data?.marketplace ?? []).filter((module) => {
+      const matchesSearch = !query || [module.name, module.category, module.description, module.provider].join(" ").toLowerCase().includes(query)
+      const matchesCategory = activeCategory === "Alle" || module.category === activeCategory
+      const matchesFilter =
+        activeFilter === "Alle" ||
+        (activeFilter === "Installiert" && module.installed) ||
+        (activeFilter === "Verfügbar" && module.available) ||
+        (activeFilter === "Aktiv" && module.active) ||
+        (activeFilter === "Lizenzpflichtig" && module.licenseRequired)
+      return matchesSearch && matchesCategory && matchesFilter
     })
-  }, [activeCategory, overviewMarketplaceModules, marketSearch])
+  }, [activeCategory, activeFilter, data?.marketplace, marketSearch])
 
-  function shouldShow(...names: string[]) {
-    return activeTab !== "overview" && names.includes(activeTab)
+  const marketplacePreview = useMemo(() => filteredMarketplace.slice(0, 8), [filteredMarketplace])
+
+  async function updatePlan(plan: PlanOption) {
+    setIsSaving(true)
+    setError(null)
+    try {
+      const response = await fetch("/api/license-billing", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ action: "update-plan", plan: plan.plan, billingCycle: plan.billingCycle, maxUsers: plan.maxUsers })
+      })
+      const payload = await response.json()
+      if (!response.ok || payload?.ok === false) throw new Error(payload?.error || "Plan konnte nicht gespeichert werden.")
+      setData(payload)
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Plan konnte nicht gespeichert werden.")
+    } finally {
+      setIsSaving(false)
+    }
   }
 
-  function installModule(moduleKey: string) {
-    setMarketplaceState(installMarketplaceModule(moduleKey))
+  async function updateMarketplace(module: MarketplaceModule, action: "install" | "uninstall" | "activate" | "deactivate") {
+    setIsSaving(true)
+    setError(null)
+    try {
+      const response = await fetch("/api/license-billing", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ action, moduleKey: module.key })
+      })
+      const payload = await response.json()
+      if (!response.ok || payload?.ok === false) throw new Error(payload?.error || "Marketplace-Aktion konnte nicht gespeichert werden.")
+      setData(payload)
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Marketplace-Aktion konnte nicht gespeichert werden.")
+    } finally {
+      setIsSaving(false)
+    }
   }
 
-  function uninstallModule(moduleKey: string) {
-    setMarketplaceState(uninstallMarketplaceModule(moduleKey))
-  }
-
-  return (
-    <div className={styles.licensePage} data-engine-visible-modules={engineVisibleModules.length} data-engine-marketplace-modules={engineMarketplaceModules.length} data-engine-locked-modules={engineLockedModules.length}>
-      <div className={styles.licenseHeader}>
-        <div>
-          <h1>Lizenz & Abrechnung</h1>
-          <p>Plan, Erweiterungen, Marketplace und Abrechnung an einem Ort.</p>
-        </div>
-
-        <div className={styles.licenseHeaderActions}>
-          <button className={`${styles.lbBtn} ${styles.secondary}`} type="button">
-            <RefreshCw size={16} />
-            Lizenz synchronisieren
-          </button>
-          <button className={`${styles.lbBtn} ${styles.primary}`} type="button">
-            <ShoppingCart size={16} />
-            Marketplace öffnen
-          </button>
-        </div>
-      </div>
-
-      {activeTab === "overview" ? (
-        <>
-      <div className={styles.statusStrip}>
-        <StatusCard icon={BadgeCheck} label="Plan" value={plan} meta="Aktiv" />
-        <StatusCard icon={Users} label="Benutzer" value="12 / 20" meta="8 frei" />
-        <StatusCard icon={PackageCheck} label="Gekaufte Erweiterungen" value={String(installedMarketplaceModules.length)} meta="installiert" />
-        <StatusCard icon={Zap} label="API Nutzung" value="45%" meta="45.223 Requests" />
-        <StatusCard icon={CalendarDays} label="Nächste Zahlung" value="26.07.2026" meta="99,00 EUR" />
-        <StatusCard icon={ShieldCheck} label="Lizenzstatus" value="Aktiv" meta="gültig" />
-      </div>
-
-      <section className={styles.modernSection}>
-        <div className={styles.modernSectionHead}>
-          <div>
-            <h2>Plan</h2>
-            <p>Aktueller Vertrag, Laufzeit und Benutzerlimit.</p>
-          </div>
-        </div>
-
-        <div className={styles.planControl}>
-          <div className={styles.planCardMain}>
-            <div className={styles.planIconLarge}>
-              <BadgeCheck size={34} />
-            </div>
-            <div>
-              <h3>DreamInvoice {plan}</h3>
-              <span className={`${styles.modernBadge} ${styles.green}`}>Aktiv</span>
-              <p>Aktiver SaaS-Plan für Workspace Acme GmbH.</p>
-            </div>
-          </div>
-
-          <div className={styles.planMeta}>
-            <div><span>Verlängerung</span><strong>26.07.2026</strong></div>
-            <div><span>Workspace</span><strong>Acme GmbH</strong></div>
-            <div><span>Preis</span><strong>99,00 EUR / Monat</strong></div>
-            <div><span>Benutzerlimit</span><strong>20 Benutzer</strong></div>
-          </div>
-        </div>
-      </section>
-
-      <section className={styles.modernSection}>
-        <div className={styles.modernSectionHead}>
-          <div>
-            <h2>Gekaufte Erweiterungen</h2>
-            <p>Zusätzlich installierte Marketplace-Erweiterungen.</p>
-          </div>
-        </div>
-
-        {installedMarketplaceModules.length ? (
-          <div className={styles.extensionListCompact}>
-            {installedMarketplaceModules.map((item) => {
-              const Icon = item.icon
-              return (
-                <div className={styles.extensionCompactCard} key={item.key}>
-                  <div className={styles.smallIcon}><Icon size={18} /></div>
-                  <div>
-                    <strong>{item.name}</strong>
-                    <span>{item.categoryLabel} · Version 1.0.0</span>
-                  </div>
-                  <em>Installiert</em>
-                </div>
-              )
-            })}
-          </div>
-        ) : (
-          <p className={styles.emptyState}>Noch keine Erweiterungen gekauft.</p>
-        )}
-      </section>
-
-      <section className={styles.modernSection}>
-        <div className={`${styles.modernSectionHead} ${styles.marketplaceHead}`}>
+  function renderMarketplaceSection(modules: MarketplaceModule[], preview = false) {
+    return (
+      <section className={styles.marketplaceSection}>
+        <div className={styles.marketplaceHead}>
           <div>
             <h2>Marketplace</h2>
-            <p>Verfügbare Erweiterungen für Ihr Workspace.</p>
+            <p>Erweiterungen und Integrationen für DreamInvoice.</p>
           </div>
 
           <div className={styles.marketTools}>
             <label className={styles.marketSearch}>
               <Search size={16} />
-              <input value={marketSearch} onChange={(event) => setMarketSearch(event.target.value)} placeholder="Erweiterung suchen..." />
+              <input value={marketSearch} onChange={(event) => setMarketSearch(event.target.value)} placeholder="Erweiterungen suchen..." />
             </label>
-            <button className={styles.lbBtn} type="button">
-              <SlidersHorizontal size={16} />
-              Filter
-            </button>
+            <label className={styles.filterSelect}>
+              <SlidersHorizontal size={15} />
+              <select value={activeFilter} onChange={(event) => setActiveFilter(event.target.value as (typeof filterOptions)[number])}>
+                {filterOptions.map((filter) => <option key={filter} value={filter}>{filter}</option>)}
+              </select>
+            </label>
           </div>
         </div>
 
         <div className={styles.categoryTabs}>
-          {marketplaceCategories.map((category) => (
+          {categories.map((category) => (
             <button key={category} className={activeCategory === category ? styles.active : ""} onClick={() => setActiveCategory(category)} type="button">
-              {category}
+              {categoryLabel(category)}
             </button>
           ))}
         </div>
 
-        <div className={`${styles.modernMarketplaceGrid} ${styles.compactMarketplaceGrid}`}>
-          {filteredMarketplaceApps.map((app) => {
-            const Icon = app.icon
-            return (
-              <div className={styles.modernMarketplaceCard} key={app.name}>
-                <div className={styles.marketCardTop}>
-                  <div className={styles.appIcon}><Icon size={24} /></div>
-                  <span className={`${styles.modernBadge} ${marketplaceStatusClass(app.statusLabel)}`}>{app.statusLabel}</span>
-                </div>
-                <h3>{app.name}</h3>
-                <p>{app.categoryLabel}</p>
-                <ul>
-                  {app.features.map((feature) => (
-                    <li key={feature}><CheckCircle2 size={14} />{feature}</li>
-                  ))}
-                </ul>
-                <strong className={styles.price}>{app.price}</strong>
-                <button className={app.statusLabel === "Installiert" ? styles.installedBtn : styles.installBtn} type="button" onClick={() => app.statusLabel === "Verfuegbar" || app.statusLabel === "Beta" ? installModule(app.key) : undefined}>
-                  {app.statusLabel === "Installiert" ? "Installiert" : app.statusLabel === "Upgrade" ? "Upgrade" : app.statusLabel === "Fehler" ? "Fehler prüfen" : "Verfügbar"}
-                </button>
-              </div>
-            )
-          })}
-        </div>
-      </section>
-
-      <section className={styles.modernSection}>
-        <div className={styles.modernSectionHead}>
-          <div>
-            <h2>Abrechnung</h2>
-            <p>Rechnungen, Zahlungsmethode und nächste Zahlung.</p>
-          </div>
-        </div>
-
-        <div className={styles.billingOverviewGrid}>
-          <div className={styles.billingOverviewCard}>
-            <h3>Letzte Rechnungen</h3>
-            {invoices.slice(0, 2).map((invoice) => (
-              <div className={styles.billingMiniRow} key={invoice.no}>
-                <span>{invoice.no}</span>
-                <strong>{invoice.amount}</strong>
-                <em>{invoice.status}</em>
-              </div>
-            ))}
-          </div>
-          <SystemBox icon={CreditCard} title="Zahlungsmethode" value="Mastercard •••• 4242" meta="Standard" />
-          <SystemBox icon={CalendarDays} title="Nächste Zahlung" value="26.07.2026" meta="99,00 EUR / Monat" />
-        </div>
-      </section>
-
-      <section className={`${styles.modernSection} ${styles.systemSection}`}>
-        <div className={styles.modernSectionHead}>
-          <div>
-            <h2>Systemstatus</h2>
-            <p>Kompakter Status für Lizenz, API und Integrität.</p>
-          </div>
-        </div>
-
-        <div className={styles.systemInnerGrid}>
-          <SystemBox icon={ShieldCheck} title="Lizenzserver" value="Online" meta="Erreichbar" />
-          <SystemBox icon={Zap} title="API" value="45%" meta="45.223 Requests" />
-          <SystemBox icon={Server} title="Letzter Sync" value="08:45" meta="26.06.2026" />
-          <SystemBox icon={BadgeCheck} title="Integrität" value="Gültig" meta="Signatur geprüft" />
-        </div>
-      </section>
-        </>
-      ) : null}
-
-      <div className={styles.licenseTabs}>
-        {tabs.map((tab) => {
-          const Icon = tab.icon
-
-          return (
-            <button key={tab.id} className={activeTab === tab.id ? styles.active : ""} onClick={() => setActiveTab(tab.id)} type="button">
-              <Icon size={15} />
-              {tab.label}
-            </button>
-          )
-        })}
-      </div>
-
-      {activeTab !== "overview" ? (
-      <div className={`${styles.licenseGrid} ${styles.singleMode}`}>
-        {shouldShow("plan") ? (
-          <section className={`${styles.lbCard} ${styles.planCard}`}>
-            <div className={styles.cardTitle}>
-              <BadgeCheck size={22} />
-              <h2>Aktueller Plan</h2>
-            </div>
-
-            <div className={styles.planBox}>
-              <div className={styles.planIcon}>
-                <Sparkles size={28} />
-              </div>
-
-              <div>
-                <h3>DreamInvoice {plan}</h3>
-                <span className={styles.greenBadge}>Aktiv</span>
-                <p>Ihr aktueller Plan steuert die sichtbaren Basismodule der Oberflaeche.</p>
-              </div>
-            </div>
-
-            <div className={styles.planSwitch}>
-              {planLabels.map((item) => (
-                <button key={item} className={plan === item ? styles.active : ""} onClick={() => setPlan(item)} type="button">
-                  {item}
-                </button>
-              ))}
-            </div>
-
-            <div className={styles.planStats}>
-              <div><span>Verlaengerung</span><strong>26.07.2026</strong></div>
-              <div><span>Benutzer</span><strong>12 / 20</strong></div>
-              <div><span>Aktive Module</span><strong>{engineVisibleModules.length}</strong></div>
-              <div><span>Workspace</span><strong>Acme GmbH</strong></div>
-            </div>
-          </section>
-        ) : null}
-
-        {shouldShow("marketplace") ? (
-          <section className={`${styles.lbCard} ${styles.marketplaceCard}`}>
-            <div className={`${styles.cardTitle} ${styles.between}`}>
-              <div>
-                <ShoppingCart size={22} />
-                <h2>Marketplace</h2>
-              </div>
-              <button className={styles.textBtn} type="button">Alle Module entdecken</button>
-            </div>
-
-            <div className={styles.marketGrid}>
-              {engineMarketplaceModules.map((item) => (
-                <div className={styles.marketItem} key={item.name}>
-                  <div className={styles.marketIcon}>
-                    <Box size={22} />
+        {modules.length ? (
+          <div className={`${styles.marketplaceGrid} ${preview ? styles.marketplacePreviewGrid : ""}`}>
+            {modules.map((module) => {
+              const Icon = iconByCategory[module.category] ?? Package
+              return (
+                <article className={styles.marketplaceCard} key={module.key}>
+                  <div className={styles.marketTop}>
+                    <div className={styles.marketIcon}><Icon size={21} /></div>
+                    {module.installed ? <span>{module.active ? "Aktiv" : "Installiert"}</span> : null}
                   </div>
-                  <h3>{item.name}</h3>
-                  <p>{item.description}</p>
-                  <ul>
-                    {item.features.map((feature) => <li key={feature}>{feature}</li>)}
-                  </ul>
-                  <strong>{item.price}</strong>
-                  <small>{item.categoryLabel}</small>
-                  <button className={item.statusLabel === "Installiert" ? styles.installed : ""} type="button" onClick={() => item.statusLabel === "Verfuegbar" || item.statusLabel === "Beta" ? installModule(item.key) : undefined}>
-                    {item.statusLabel === "Installiert" ? "Installiert" : item.statusLabel === "Upgrade" ? "Upgrade" : item.statusLabel === "Fehler" ? "Fehler prüfen" : "Installieren"}
-                  </button>
-                </div>
-              ))}
-            </div>
-          </section>
-        ) : null}
+                  <h3>{module.name}</h3>
+                  <p>{categoryLabel(module.category)}</p>
+                  {!preview ? <small>{module.description}</small> : null}
+                  <strong>{formatMoney(module.priceCents, module.currency)}{module.billingCycle ? ` / ${module.billingCycle}` : ""}</strong>
+                  {preview ? (
+                    <div className={`${styles.marketActions} ${styles.singleAction}`}>
+                      <button className={module.installed ? styles.installedButton : styles.installButton} type="button" disabled={isSaving || module.installed} onClick={() => updateMarketplace(module, "install")}>
+                        {module.installed ? "Installiert" : "Installieren"}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className={styles.marketActions}>
+                      <button className={module.installed ? styles.installedButton : styles.installButton} type="button" disabled={isSaving} onClick={() => updateMarketplace(module, module.installed ? "uninstall" : "install")}>
+                        {module.installed ? "Deinstallieren" : "Installieren"}
+                      </button>
+                      <button className={module.active ? styles.installedButton : styles.installButton} type="button" disabled={isSaving || !module.installed} onClick={() => updateMarketplace(module, module.active ? "deactivate" : "activate")}>
+                        {module.active ? "Deaktivieren" : "Aktivieren"}
+                      </button>
+                    </div>
+                  )}
+                </article>
+              )
+            })}
+          </div>
+        ) : (
+          <div className={styles.emptyState}>Keine Marketplace-Erweiterungen in der Datenbank gefunden.</div>
+        )}
+      </section>
+    )
+  }
 
-        {shouldShow("modules") ? (
-          <section className={`${styles.lbCard} ${styles.installedCard}`}>
-            <div className={styles.cardTitle}>
-              <PackageCheck size={22} />
-              <h2>Installierte Erweiterungen</h2>
-            </div>
+  return (
+    <div className={styles.licensePage}>
+      <div className={styles.licenseHero}>
+        <div>
+          <h1>Lizenz & Abrechnung</h1>
+          <p>Verwalten Sie Ihren Plan, Marketplace und Abrechnung.</p>
+        </div>
 
-            {installedMarketplaceModules.length ? installedMarketplaceModules.map((item) => (
-              <div className={styles.installedRow} key={item.name}>
-                <div>
-                  <strong>{item.name}</strong>
-                  <span>{item.categoryLabel} · Version 1.0.0</span>
-                </div>
-                <em>{item.statusLabel === "Fehler" ? "Fehler" : "Installiert"}</em>
-                <button type="button" onClick={() => installModule(item.key)}>Konfigurieren</button>
-                <button type="button" onClick={() => uninstallModule(item.key)}>Deinstallieren</button>
-              </div>
-            )) : <p>Noch keine Erweiterungen installiert.</p>}
-          </section>
-        ) : null}
-
-        {shouldShow("invoices") ? (
-          <section className={`${styles.lbCard} ${styles.invoicesCard}`}>
-            <div className={styles.cardTitle}>
-              <FileText size={22} />
-              <h2>Letzte Rechnungen</h2>
-            </div>
-
-            {invoices.map((invoice) => (
-              <div className={styles.invoiceRow} key={invoice.no}>
-                <div>
-                  <strong>{invoice.no}</strong>
-                  <span>{invoice.date}</span>
-                </div>
-                <b>{invoice.amount}</b>
-                <em>{invoice.status}</em>
-                <button type="button" aria-label={`${invoice.no} herunterladen`}>
-                  <Download size={16} />
-                </button>
-              </div>
-            ))}
-          </section>
-        ) : null}
-
-        {shouldShow("api") ? (
-          <section className={`${styles.lbCard} ${styles.apiCard}`}>
-            <div className={styles.cardTitle}>
-              <Zap size={22} />
-              <h2>API Nutzung</h2>
-            </div>
-
-            <div className={styles.apiGauge}>
-              <strong>45.223</strong>
-              <span>von 100.000 Requests</span>
-            </div>
-
-            <div className={styles.usageBar}>
-              <span style={{ width: "45%" }} />
-            </div>
-
-            <div className={styles.usageMeta}>
-              <span>Verbraucht: 45%</span>
-              <span>Reset: 01.07.2026</span>
-            </div>
-          </section>
-        ) : null}
-
-        {shouldShow("payments") ? (
-          <section className={`${styles.lbCard} ${styles.paymentCard}`}>
-            <div className={styles.cardTitle}>
-              <CreditCard size={22} />
-              <h2>Zahlungsmethoden</h2>
-            </div>
-
-            <div className={styles.paymentRow}>
-              <strong>Mastercard **** 4242</strong>
-              <span>Standard</span>
-              <b>Naechste Zahlung: 26.07.2026</b>
-              <em>99,00 EUR / Monat</em>
-            </div>
-          </section>
-        ) : null}
-
-        {shouldShow("team") ? (
-          <section className={`${styles.lbCard} ${styles.teamCard}`}>
-            <div className={styles.cardTitle}>
-              <Users size={22} />
-              <h2>Team-Lizenzen</h2>
-            </div>
-
-            <div className={styles.teamStats}>
-              <div><strong>12</strong><span>Aktive Benutzer</span></div>
-              <div><strong>20</strong><span>Lizenzlimit</span></div>
-              <div><strong>8</strong><span>Einladungen offen</span></div>
-            </div>
-          </section>
-        ) : null}
-
-        {shouldShow("history") ? (
-          <section className={`${styles.lbCard} ${styles.historyCard}`}>
-            <div className={styles.cardTitle}>
-              <FileClock size={22} />
-              <h2>Lizenzhistorie</h2>
-            </div>
-
-            {history.map((entry) => (
-              <div className={styles.historyRow} key={`${entry.date}-${entry.title}`}>
-                <span>{entry.date}</span>
-                <div>
-                  <strong>{entry.title}</strong>
-                  <p>{entry.meta}</p>
-                </div>
-              </div>
-            ))}
-          </section>
-        ) : null}
-
-        {shouldShow("settings") ? (
-          <section className={`${styles.lbCard} ${styles.systemCard}`}>
-            <div className={styles.cardTitle}>
-              <Server size={22} />
-              <h2>Systeminfos</h2>
-            </div>
-
-            <div className={styles.systemGrid}>
-              <span>Lizenzstatus</span><strong className={styles.online}>Online</strong>
-              <span>Mandant</span><strong>Acme GmbH</strong>
-              <span>Region</span><strong>DE</strong>
-              <span>Sync</span><strong>26.06.2026 08:45</strong>
-              <span>Datenquelle</span><strong>Plan + Marketplace</strong>
-              <span>Integritaet</span><strong className={styles.online}>Gueltig</strong>
-            </div>
-          </section>
-        ) : null}
-
-        {shouldShow("activation") ? (
-          <section className={`${styles.lbCard} ${styles.advancedCard}`}>
-            <button className={styles.advancedToggle} onClick={() => setAdvancedOpen((current) => !current)} type="button">
-              <KeyRound size={20} />
-              Erweiterte Aktivierung
-              <span>{advancedOpen ? "-" : "+"}</span>
-            </button>
-
-            {advancedOpen || activeTab === "activation" ? (
-              <div className={styles.advancedContent}>
-                <button className={`${styles.lbBtn} ${styles.secondary}`} type="button">
-                  <RefreshCw size={16} />
-                  Lizenz synchronisieren
-                </button>
-                <button className={`${styles.lbBtn} ${styles.secondary}`} type="button">
-                  <Upload size={16} />
-                  Lizenzdatei importieren
-                </button>
-                <label>
-                  Lizenzschluessel optional
-                  <input placeholder="XXXX-XXXX-XXXX-XXXX" />
-                </label>
-                <button className={`${styles.lbBtn} ${styles.primary}`} type="button">
-                  <Layers3 size={16} />
-                  Offline-Aktivierung Enterprise
-                </button>
-              </div>
-            ) : null}
-          </section>
-        ) : null}
+        <aside className={styles.currentPlanCard}>
+          <span>Aktueller Plan</span>
+          <div>
+            <strong>{activePlanLabel}</strong>
+            <em>{statusLabel(license.status)}</em>
+          </div>
+          <small>Nächste Zahlung: {nextPaymentDate}</small>
+          <button type="button" onClick={() => setActiveTab("Plan")}><Settings size={15} />Plan verwalten</button>
+        </aside>
       </div>
+
+      <nav className={styles.planTabs} aria-label="Lizenzbereiche">
+        {tabs.map((tab) => (
+          <button key={tab} className={activeTab === tab ? styles.active : ""} type="button" onClick={() => setActiveTab(tab)}>
+            {tab}
+          </button>
+        ))}
+      </nav>
+
+      {error ? <div className={styles.stateBanner} data-state="error"><AlertCircle size={16} />{error}</div> : null}
+      {isLoading ? <div className={styles.stateBanner}><RefreshCcw size={16} />Lizenz- und Abrechnungsdaten werden aus der Datenbank geladen.</div> : null}
+
+      {activeTab === "Plan" ? (
+        <section className={styles.planManagement} aria-label="Planverwaltung">
+          <div className={styles.pricingGrid}>
+            {(data?.plans.length ? data.plans : [{ plan: license.plan, name: activePlanLabel, billingCycle: license.billingCycle, billingLabel: license.billingCycle, note: "", subtitle: "", priceLabel: license.billingCycle, priceSuffix: "", features: [], maxUsers: license.maxUsers, status: license.status, validUntil: license.validUntil }]).map((plan) => {
+              const isCurrent = plan.plan === license.plan && plan.billingCycle === license.billingCycle && plan.maxUsers === license.maxUsers
+              const tone = planTone(plan.plan)
+              const PlanIcon = planIcon(plan.plan)
+              const features = plan.features?.length ? plan.features : fallbackPlanFeatures(plan)
+              return (
+                <article className={`${styles.pricingCard} ${styles[tone]}`} key={`${plan.plan}-${plan.billingCycle}-${plan.maxUsers}`}>
+                  <div className={styles.planTitleRow}>
+                    <div className={styles.planIcon}><PlanIcon size={24} /></div>
+                    <div>
+                      <h2>{plan.name || planLabel(plan.plan)}</h2>
+                      <p>{plan.subtitle || plan.note || "Plan und Marketplace"}</p>
+                    </div>
+                  </div>
+                  <div className={styles.planPrice}>
+                    <strong>{plan.priceLabel || plan.billingLabel}</strong>
+                    <span>{plan.priceSuffix || "/Monat"}</span>
+                  </div>
+                  <ul className={styles.planFeatureList}>
+                    {features.map((feature) => <li key={feature}><CheckCircle2 size={14} />{feature}</li>)}
+                  </ul>
+                  <button className={isCurrent ? styles.currentPlanButton : styles.upgradeButton} type="button" disabled={isCurrent || isSaving} onClick={() => updatePlan(plan)}>
+                    {isCurrent ? "Aktueller Plan" : planActionLabel(license.plan, plan)}
+                  </button>
+                </article>
+              )
+            })}
+          </div>
+          {renderMarketplaceSection(marketplacePreview, true)}
+        </section>
+      ) : null}
+
+      {activeTab === "Marketplace" ? renderMarketplaceSection(filteredMarketplace) : null}
+
+      {activeTab === "Abrechnung" ? (
+        <section className={styles.billingGrid}>
+          <article className={styles.billingPanel}>
+            <h2>Rechnungen</h2>
+            {data?.billing.invoices.length ? data.billing.invoices.map((invoice) => (
+              <a className={styles.billingRow} href={invoice.downloadUrl} key={invoice.id}>
+                <span><strong>{invoice.number}</strong><small>{formatDate(invoice.issueDate)} · {invoice.status}</small></span>
+                <b>{formatAmount(invoice.amount, invoice.currency)}</b>
+                <Download size={16} />
+              </a>
+            )) : <div className={styles.emptyState}>Keine Rechnungen in PostgreSQL gefunden.</div>}
+          </article>
+
+          <article className={styles.billingPanel}>
+            <h2>Zahlungsmethode</h2>
+            {data?.billing.paymentMethods.length ? data.billing.paymentMethods.map((method) => (
+              <div className={styles.billingRow} key={method.id}>
+                <span><strong>{method.label}</strong><small>{method.key}</small></span>
+                <b>{method.enabled ? "Aktiv" : method.prepared ? "Vorbereitet" : "Inaktiv"}</b>
+              </div>
+            )) : <div className={styles.emptyState}>Keine Zahlungsmethode gespeichert.</div>}
+            <p className={styles.nextPayment}>Nächste Zahlung: {nextPaymentDate}</p>
+          </article>
+        </section>
+      ) : null}
+
+      {activeTab === "Historie" ? (
+        <section className={styles.billingPanel}>
+          <h2>Zahlungshistorie</h2>
+          {data?.billing.paymentHistory.length ? data.billing.paymentHistory.map((payment) => (
+            <div className={styles.billingRow} key={payment.id}>
+              <span><strong>{payment.invoiceNumber ?? payment.provider ?? payment.method ?? "Zahlung"}</strong><small>{formatDate(payment.paidAt)} · {payment.status}</small></span>
+              <b>{formatAmount(payment.amount, payment.currency)}</b>
+            </div>
+          )) : <div className={styles.emptyState}>Keine Zahlungshistorie in PostgreSQL gefunden.</div>}
+        </section>
       ) : null}
     </div>
   )
-}
-
-function StatusCard({ icon: Icon, label, value, meta }: { icon: LucideIcon; label: string; value: string; meta: string }) {
-  return (
-    <div className={styles.statusCard}>
-      <div className={styles.statusIcon}>
-        <Icon size={20} />
-      </div>
-      <div>
-        <span>{label}</span>
-        <strong>{value}</strong>
-        <small>{meta}</small>
-      </div>
-    </div>
-  )
-}
-
-function SystemBox({ icon: Icon, title, value, meta }: { icon: LucideIcon; title: string; value: string; meta: string }) {
-  return (
-    <div className={styles.systemBox}>
-      <div className={styles.smallIcon}>
-        <Icon size={18} />
-      </div>
-      <div>
-        <span>{title}</span>
-        <strong>{value}</strong>
-        <small>{meta}</small>
-      </div>
-    </div>
-  )
-}
-
-function marketplaceStatusClass(status: string) {
-  if (status === "Installiert") return styles.green
-  if (status === "Update") return styles.orange
-  if (status === "Beta") return styles.blue
-  if (status === "Upgrade") return styles.orange
-  return styles.gray
 }

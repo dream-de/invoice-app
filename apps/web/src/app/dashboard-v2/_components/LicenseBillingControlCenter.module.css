@@ -4,1476 +4,805 @@
   color: #0f172a;
 }
 
-.licenseHeader {
-  display: flex;
-  justify-content: space-between;
-  gap: 20px;
-  align-items: flex-start;
-  margin-bottom: 20px;
-}
-
-.licenseHeader h1 {
-  margin: 0;
-  font-size: 28px;
-  font-weight: 850;
-  letter-spacing: 0;
-}
-
-.licenseHeader p {
-  margin: 8px 0 0;
-  color: #64748b;
-  font-size: 14px;
-}
-
-.licenseHeaderActions {
-  display: flex;
-  gap: 12px;
-}
-
-.architectureOverview {
+.licenseHero {
   display: grid;
-  gap: 18px;
-  margin-bottom: 20px;
-}
-
-.architectureHeader {
-  margin-bottom: 6px;
-}
-
-.architectureHeader span {
-  color: #7c3aed;
-  font-weight: 900;
-  font-size: 13px;
-  text-transform: uppercase;
-}
-
-.architectureHeader h2 {
-  margin: 10px 0 8px;
-  font-size: 32px;
-  line-height: 1.12;
-  font-weight: 850;
-  letter-spacing: 0;
-}
-
-.architectureHeader p {
-  margin: 0;
-  color: #64748b;
-  max-width: 720px;
-  line-height: 1.6;
-}
-
-.architecturePlanSwitch {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.architecturePlanSwitch button {
-  border: 1px solid #e5e7eb;
-  background: white;
-  border-radius: 12px;
-  padding: 11px 18px;
-  font-weight: 850;
-  cursor: pointer;
-  color: #0f172a;
-}
-
-.architecturePlanSwitch button.active {
-  background: #7c3aed;
-  color: white;
-  border-color: #7c3aed;
-}
-
-.architectureGrid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.4fr) minmax(320px, 0.6fr);
-  gap: 18px;
-}
-
-.architectureCard {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 20px;
-  padding: 24px;
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.04);
-}
-
-.architectureCard h3 {
-  margin: 0 0 18px;
-  color: #0f172a;
-  font-size: 20px;
-  line-height: 1.2;
-}
-
-.architectureCard p {
-  margin: 0;
-  color: #64748b;
-  line-height: 1.6;
-}
-
-.architectureModuleGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-  gap: 14px;
-}
-
-.architectureModuleItem {
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  padding: 16px;
-  background: #fff;
-}
-
-.architectureModuleIcon {
-  width: 42px;
-  height: 42px;
-  border-radius: 13px;
-  background: #f3e8ff;
-  color: #7c3aed;
-  display: grid;
-  place-items: center;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+  gap: 24px;
+  align-items: start;
   margin-bottom: 12px;
 }
 
-.architectureModuleItem strong,
-.architectureModuleItem span {
-  display: block;
-}
-
-.architectureModuleItem strong {
-  color: #0f172a;
-}
-
-.architectureModuleItem span {
-  margin-top: 6px;
-  color: #16a34a;
-  font-size: 13px;
-  font-weight: 850;
-}
-
-.ruleBox {
-  background: #0f172a;
-  color: #dbeafe;
-  border-radius: 16px;
-  padding: 18px;
-  margin-bottom: 16px;
-}
-
-.ruleBox code {
-  line-height: 1.8;
-  font-size: 13px;
-}
-
-.marketArchitectureHeader {
-  display: flex;
-  justify-content: space-between;
-  gap: 18px;
-  align-items: flex-start;
-  margin-bottom: 20px;
-}
-
-.marketArchitectureHeader h3 {
-  margin-bottom: 6px;
-}
-
-.marketArchitectureHeader p {
+.licenseHero h1 {
   margin: 0;
-}
-
-.marketArchitectureButton {
-  height: 42px;
-  border: 0;
-  border-radius: 12px;
-  padding: 0 16px;
-  background: linear-gradient(135deg, #7c3aed, #6d28d9);
-  color: white;
+  font-size: 28px;
+  line-height: 1.16;
   font-weight: 850;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  white-space: nowrap;
+  letter-spacing: 0;
 }
 
-.marketArchitectureGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 16px;
-}
-
-.marketArchitectureGroup {
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  padding: 16px;
-}
-
-.marketArchitectureTitle {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #7c3aed;
-  margin-bottom: 14px;
-}
-
-.marketArchitectureTitle h4 {
-  margin: 0;
-  color: #0f172a;
-}
-
-.marketArchitectureRow {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 0;
-  border-top: 1px solid #eef2f7;
-  color: #475569;
-  font-weight: 750;
-}
-
-.marketArchitectureRow svg {
-  flex: none;
-  color: #94a3b8;
-}
-
-.statusStrip {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.statusCard {
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.04);
-  min-height: 86px;
-  padding: 14px;
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  min-width: 0;
-}
-
-.statusIcon {
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
-  display: grid;
-  place-items: center;
-  background: #f3e8ff;
-  color: #7c3aed;
-  flex: none;
-}
-
-.statusCard span,
-.statusCard small {
-  display: block;
-  color: #64748b;
-  font-size: 12px;
-}
-
-.statusCard strong {
-  display: block;
-  margin: 3px 0;
-  font-size: 16px;
-  line-height: 1.25;
-  overflow-wrap: anywhere;
-  word-break: break-word;
-}
-
-.modernSection {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 18px;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
-  padding: 22px;
-  margin-bottom: 18px;
-}
-
-.modernSectionHead {
-  margin-bottom: 18px;
-}
-
-.modernSectionHead h2 {
-  margin: 0;
-  color: #0f172a;
-  font-size: 21px;
-  font-weight: 850;
-}
-
-.modernSectionHead p {
+.licenseHero p {
   margin: 8px 0 0;
-  color: #64748b;
-}
-
-.planControl {
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) minmax(420px, 0.8fr);
-  gap: 18px;
-}
-
-.planCardMain {
-  display: flex;
-  gap: 18px;
-  align-items: flex-start;
-}
-
-.planCardMain h3 {
-  margin: 0 0 8px;
-  color: #0f172a;
-  font-size: 23px;
-}
-
-.planCardMain p {
-  color: #64748b;
-  line-height: 1.6;
-  margin: 10px 0 0;
-}
-
-.planIconLarge,
-.smallIcon,
-.appIcon {
-  background: #f3e8ff;
-  color: #7c3aed;
-  display: grid;
-  place-items: center;
-  flex: none;
-}
-
-.planIconLarge,
-.appIcon {
-  width: 58px;
-  height: 58px;
-  border-radius: 18px;
-}
-
-.smallIcon {
-  width: 40px;
-  height: 40px;
-  border-radius: 13px;
-}
-
-.planMeta {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 14px;
-}
-
-.planMeta div {
-  border: 1px solid #eef2f7;
-  border-radius: 14px;
-  padding: 14px;
-}
-
-.planMeta span {
-  color: #64748b;
-  display: block;
-  margin-bottom: 6px;
-}
-
-.success {
-  color: #16a34a;
-}
-
-.modernBadge {
-  display: inline-flex;
-  width: max-content;
-  padding: 6px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 850;
-}
-
-.green {
-  background: #dcfce7;
-  color: #15803d;
-}
-
-.orange {
-  background: #ffedd5;
-  color: #ea580c;
-}
-
-.blue {
-  background: #dbeafe;
-  color: #2563eb;
-}
-
-.gray {
-  background: #f1f5f9;
   color: #475569;
+  font-size: 14px;
 }
 
-.coreGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
-  gap: 12px;
+.currentPlanCard {
+  position: relative;
+  min-height: 108px;
+  padding: 18px 22px;
+  border: 1px solid #e8e8f2;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 12px 34px rgba(15, 23, 42, 0.05);
 }
 
-.coreCard {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 18px;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
-  padding: 15px;
-}
-
-.coreCard strong,
-.coreCard span {
+.currentPlanCard > span,
+.currentPlanCard small {
   display: block;
-}
-
-.coreCard strong {
-  margin-top: 12px;
-  color: #0f172a;
-}
-
-.coreCard span {
-  margin-top: 6px;
-  color: #16a34a;
+  color: #475569;
   font-size: 13px;
-  font-weight: 850;
 }
 
-.extensionListCompact {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 10px;
-}
-
-.extensionCompactCard {
-  min-height: 68px;
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
-  padding: 12px;
+.currentPlanCard > div {
   display: flex;
   align-items: center;
   gap: 12px;
+  margin: 8px 0;
 }
 
-.extensionCompactCard div:nth-child(2) {
-  flex: 1;
-  min-width: 0;
+.currentPlanCard strong {
+  font-size: 25px;
+  line-height: 1;
 }
 
-.extensionCompactCard strong,
-.extensionCompactCard span {
-  display: block;
-}
-
-.extensionCompactCard span {
-  color: #64748b;
-  font-size: 13px;
-  margin-top: 3px;
-}
-
-.extensionCompactCard em {
+.currentPlanCard em {
+  padding: 6px 12px;
   border-radius: 999px;
-  background: #dcfce7;
-  color: #15803d;
-  padding: 5px 9px;
-  font-size: 12px;
+  background: #dfe7ff;
+  color: #4f46e5;
+  font-size: 13px;
   font-style: normal;
   font-weight: 850;
 }
 
-.emptyState {
+.currentPlanCard button {
+  position: absolute;
+  top: 42px;
+  right: 20px;
+  height: 38px;
+  padding: 0 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #334155;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.planTabs {
+  display: flex;
+  gap: 34px;
+  padding: 0 16px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #e7e9f3;
+}
+
+.planTabs button {
+  position: relative;
+  height: 44px;
+  border: 0;
+  background: transparent;
+  color: #334155;
+  font-size: 14px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.planTabs button.active {
+  color: #6d28d9;
+}
+
+.planTabs button.active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  border-radius: 999px;
+  background: #6d28d9;
+}
+
+.pricingGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  padding: 0 16px 20px;
+}
+
+.pricingCard {
+  min-height: 470px;
+  display: flex;
+  flex-direction: column;
+  padding: 22px;
+  border: 1px solid #dbe4ff;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.04);
+}
+
+.pricingCard.free {
+  border-color: #bdebd0;
+  background: linear-gradient(135deg, #f3fff8 0%, #fff 70%);
+}
+
+.pricingCard.pro {
+  border-color: #cbdcff;
+}
+
+.pricingCard.enterprise {
+  border-color: #dcc8ff;
+}
+
+.planTitleRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.planIcon {
+  width: 46px;
+  height: 46px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  flex: none;
+}
+
+.pro .planIcon {
+  background: linear-gradient(135deg, #2563eb, #4f46e5);
+}
+
+.enterprise .planIcon {
+  background: linear-gradient(135deg, #7c3aed, #5b21b6);
+}
+
+.planTitleRow h2 {
+  margin: 4px 0 4px;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.planTitleRow p {
   margin: 0;
-  border: 1px dashed #cbd5e1;
-  border-radius: 14px;
-  padding: 16px;
-  color: #64748b;
-  font-weight: 750;
+  color: #475569;
+  font-size: 13px;
+}
+
+.planPrice {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 28px 0 18px;
+}
+
+.planPrice strong {
+  font-size: 34px;
+  line-height: 1.08;
+  letter-spacing: 0;
+}
+
+.planPrice span {
+  color: #475569;
+  font-size: 13px;
+}
+
+.planFeatureList {
+  display: grid;
+  gap: 14px;
+  padding: 0;
+  margin: 0 0 24px;
+  list-style: none;
+}
+
+.planFeatureList li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #0f172a;
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.planFeatureList svg {
+  color: #22c55e;
+  flex: none;
+}
+
+.pro .planFeatureList svg {
+  color: #2563eb;
+}
+
+.enterprise .planFeatureList svg {
+  color: #6d28d9;
+}
+
+.upgradeButton,
+.currentPlanButton {
+  width: 100%;
+  height: 44px;
+  margin-top: auto;
+  border-radius: 7px;
+  font-size: 14px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.upgradeButton {
+  border: 0;
+  color: #fff;
+  background: linear-gradient(135deg, #7c3aed, #5b21d6);
+  box-shadow: 0 12px 22px rgba(109, 40, 217, 0.18);
+}
+
+.currentPlanButton {
+  border: 1px solid #a7f3d0;
+  color: #16a34a;
+  background: #f0fdf4;
+}
+
+.marketplaceSection {
+  margin: 0 16px;
+  padding: 18px;
+  border: 1px solid #e8e8f2;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.04);
 }
 
 .marketplaceHead {
   display: flex;
   justify-content: space-between;
-  gap: 18px;
+  gap: 20px;
   align-items: flex-start;
+  margin-bottom: 14px;
+}
+
+.marketplaceHead h2 {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.marketplaceHead p {
+  margin: 7px 0 0;
+  color: #475569;
+  font-size: 13px;
 }
 
 .marketTools {
   display: flex;
   gap: 10px;
+  align-items: center;
 }
 
 .marketSearch {
+  width: 300px;
   height: 42px;
-  width: 260px;
-  border: 1px solid #e5e7eb;
-  background: white;
-  border-radius: 12px;
-  padding: 0 12px;
   display: flex;
   align-items: center;
   gap: 8px;
+  padding: 0 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
   color: #64748b;
+  background: #fff;
 }
 
 .marketSearch input {
-  border: 0;
-  outline: 0;
   width: 100%;
   min-width: 0;
+  border: 0;
+  outline: 0;
   background: transparent;
   color: #0f172a;
-  font-weight: 750;
+  font-size: 13px;
+}
+
+.filterButton {
+  height: 42px;
+  padding: 0 15px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #334155;
+  font-weight: 850;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
 }
 
 .categoryTabs {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 
 .categoryTabs button {
+  height: 34px;
+  padding: 0 15px;
   border: 1px solid #e5e7eb;
-  background: white;
   border-radius: 999px;
-  padding: 9px 13px;
-  font-weight: 800;
+  background: #fff;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 850;
   cursor: pointer;
-  color: #0f172a;
 }
 
 .categoryTabs button.active {
-  background: #7c3aed;
-  color: white;
-  border-color: #7c3aed;
-}
-
-.modernMarketplaceGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: 14px;
-}
-
-.compactMarketplaceGrid {
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-}
-
-.modernMarketplaceCard {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 18px;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
-  padding: 18px;
-}
-
-.compactMarketplaceGrid .modernMarketplaceCard {
-  padding: 14px;
-}
-
-.compactMarketplaceGrid .appIcon {
-  width: 44px;
-  height: 44px;
-  border-radius: 14px;
-}
-
-.compactMarketplaceGrid .modernMarketplaceCard h3 {
-  margin-top: 12px;
-  font-size: 16px;
-}
-
-.compactMarketplaceGrid .modernMarketplaceCard p {
-  margin-bottom: 8px;
-}
-
-.compactMarketplaceGrid .modernMarketplaceCard ul {
-  display: none;
-}
-
-.compactMarketplaceGrid .modernMarketplaceCard li {
-  padding: 3px 0;
-}
-
-.compactMarketplaceGrid .price {
-  margin-bottom: 10px;
-  font-size: 13px;
-}
-
-.compactMarketplaceGrid .installBtn,
-.compactMarketplaceGrid .installedBtn {
-  width: 100%;
-  height: 36px;
-}
-
-.marketCardTop {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.modernMarketplaceCard h3 {
-  margin: 16px 0 5px;
-  color: #0f172a;
-  font-size: 18px;
-}
-
-.modernMarketplaceCard p {
-  color: #64748b;
-  margin: 0 0 12px;
-}
-
-.modernMarketplaceCard ul {
-  padding: 0;
-  margin: 0 0 14px;
-  list-style: none;
-}
-
-.modernMarketplaceCard li {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: #475569;
-  font-weight: 750;
-  font-size: 13px;
-  padding: 5px 0;
-}
-
-.modernMarketplaceCard li svg {
-  color: #16a34a;
-  flex: none;
-}
-
-.price {
-  color: #16a34a;
-  display: block;
-  margin-bottom: 12px;
-}
-
-.installBtn,
-.installedBtn {
-  height: 42px;
-  border-radius: 12px;
-  padding: 0 16px;
-  font-weight: 850;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  cursor: pointer;
-}
-
-.installBtn {
-  border: 0;
-  color: white;
-  background: linear-gradient(135deg, #7c3aed, #6d28d9);
-}
-
-.installedBtn {
-  border: 0;
-  background: #dcfce7;
-  color: #15803d;
-}
-
-.systemSection {
-  margin-bottom: 20px;
-}
-
-.billingOverviewGrid {
-  display: grid;
-  grid-template-columns: minmax(0, 1.2fr) repeat(2, minmax(220px, 0.7fr));
-  gap: 14px;
-}
-
-.billingOverviewCard {
-  border: 1px solid #e5e7eb;
-  border-radius: 18px;
-  padding: 16px;
-  background: white;
-}
-
-.billingOverviewCard h3 {
-  margin: 0 0 12px;
-  font-size: 16px;
-}
-
-.billingMiniRow {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
-  gap: 12px;
-  align-items: center;
-  padding: 9px 0;
-  border-top: 1px solid #eef2f7;
-}
-
-.billingMiniRow:first-of-type {
-  border-top: 0;
-}
-
-.billingMiniRow span {
-  color: #475569;
-  font-weight: 750;
-}
-
-.billingMiniRow em {
-  border-radius: 999px;
-  background: #dcfce7;
-  color: #15803d;
-  padding: 5px 9px;
-  font-size: 12px;
-  font-style: normal;
-  font-weight: 850;
-}
-
-.systemInnerGrid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-}
-
-.systemBox {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 18px;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
-  padding: 16px;
-  display: flex;
-  gap: 12px;
-}
-
-.systemBox span,
-.systemBox small {
-  color: #64748b;
-  display: block;
-}
-
-.systemBox strong {
-  display: block;
-  margin: 3px 0;
-  color: #0f172a;
-  font-size: 16px;
-}
-
-.lbBtn {
-  min-height: 40px;
-  border-radius: 12px;
-  padding: 0 14px;
-  border: 1px solid #e5e7eb;
-  background: #fff;
-  font-weight: 800;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  cursor: pointer;
-  color: #0f172a;
-  font-size: 13px;
-}
-
-.primary {
+  border-color: #6d28d9;
   color: #fff;
-  border-color: transparent;
-  background: linear-gradient(135deg, #7c3aed, #6d28d9);
-  box-shadow: 0 12px 24px rgba(124, 58, 237, 0.22);
+  background: #6d28d9;
 }
 
-.secondary {
-  background: #fff;
-}
-
-.licenseTabs {
-  display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  padding: 8px;
-  margin-bottom: 18px;
-  scrollbar-width: thin;
-  scroll-padding-inline: 8px;
-}
-
-.licenseTabs::-webkit-scrollbar {
-  height: 7px;
-}
-
-.licenseTabs::-webkit-scrollbar-thumb {
-  background: #ddd6fe;
-  border-radius: 999px;
-}
-
-.licenseTabs button {
-  border: 0;
-  background: transparent;
-  padding: 10px 12px;
-  border-radius: 12px;
-  font-weight: 800;
-  font-size: 13px;
-  color: #475569;
-  white-space: nowrap;
-  cursor: pointer;
-  min-width: max-content;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-}
-
-.licenseTabs button svg {
-  flex: none;
-}
-
-.licenseTabs button.active {
-  color: #6d28d9;
-  background: #f3e8ff;
-}
-
-.licenseGrid {
+.marketplaceGrid {
   display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  grid-template-areas:
-    "plan plan plan plan feature feature feature feature feature installed installed installed"
-    "marketplace marketplace marketplace marketplace marketplace marketplace marketplace invoices invoices invoices invoices invoices"
-    "api api api api payment payment payment payment team team team team"
-    "history history history history history history history system system system system system"
-    "advanced advanced advanced advanced advanced advanced advanced advanced advanced advanced advanced advanced";
-  gap: 14px;
-  align-items: stretch;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 8px;
 }
 
-.singleMode {
-  grid-template-columns: 1fr;
-  grid-template-areas: none;
-}
-
-.lbCard {
-  background: #fff;
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  padding: 18px;
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.04);
-  min-width: 0;
-  min-height: auto;
-}
-
-.planCard {
-  grid-area: plan;
-}
-
-.featureCard {
-  grid-area: feature;
-}
-
-.installedCard {
-  grid-area: installed;
+.marketplacePreviewGrid {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
 
 .marketplaceCard {
-  grid-area: marketplace;
-}
-
-.invoicesCard {
-  grid-area: invoices;
-}
-
-.apiCard {
-  grid-area: api;
-}
-
-.paymentCard {
-  grid-area: payment;
-}
-
-.teamCard {
-  grid-area: team;
-}
-
-.historyCard {
-  grid-area: history;
-}
-
-.systemCard {
-  grid-area: system;
-}
-
-.advancedCard {
-  grid-area: advanced;
-}
-
-.cardTitle {
+  min-height: 176px;
   display: flex;
-  align-items: center;
-  gap: 9px;
-  margin-bottom: 14px;
-  color: #7c3aed;
+  flex-direction: column;
+  padding: 13px;
+  border: 1px solid #e5e7eb;
+  border-radius: 7px;
+  background: #fff;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.035);
 }
 
-.cardTitle h2 {
-  margin: 0;
-  color: #0f172a;
-  font-size: 16px;
-}
-
-.between {
-  justify-content: space-between;
-}
-
-.between > div {
+.marketTop {
   display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.textBtn {
-  border: 0;
-  background: transparent;
-  color: #7c3aed;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.planBox {
-  display: flex;
-  gap: 14px;
   align-items: flex-start;
-  margin-bottom: 16px;
+  justify-content: space-between;
+  gap: 8px;
 }
 
-.planIcon {
-  width: 54px;
-  height: 54px;
-  border-radius: 16px;
-  background: linear-gradient(135deg, #8b5cf6, #6d28d9);
-  color: #fff;
-  display: grid;
-  place-items: center;
-  flex: none;
-}
-
-.planBox h3 {
-  margin: 0 0 8px;
-  font-size: 18px;
-}
-
-.planBox p {
-  color: #64748b;
-  line-height: 1.5;
-  font-size: 13px;
-}
-
-.greenBadge {
-  display: inline-flex;
-  padding: 6px 10px;
+.marketTop span {
+  padding: 3px 7px;
   border-radius: 999px;
   background: #dcfce7;
-  color: #15803d;
+  color: #16a34a;
+  font-size: 10px;
   font-weight: 850;
-  font-size: 12px;
-}
-
-.planSwitch {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-
-.planSwitch button {
-  border: 1px solid #e5e7eb;
-  background: #fff;
-  border-radius: 10px;
-  padding: 8px 12px;
-  font-weight: 800;
-  font-size: 13px;
-  cursor: pointer;
-}
-
-.planSwitch button.active {
-  border-color: #7c3aed;
-  background: #f3e8ff;
-  color: #6d28d9;
-}
-
-.planStats {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  border-top: 1px solid #eef2f7;
-  padding-top: 14px;
-  gap: 10px;
-}
-
-.planStats span,
-.usageMeta,
-.muted {
-  color: #64748b;
-}
-
-.planStats span {
-  font-size: 12px;
-}
-
-.planStats strong {
-  display: block;
-  margin-top: 5px;
-  font-size: 13px;
-  overflow-wrap: anywhere;
-}
-
-.featureColumns {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 22px;
-}
-
-.featureGroups {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.featureColumns h4 {
-  margin: 0 0 14px;
-}
-
-.featureGroups h4 {
-  margin: 0 0 12px;
-  font-size: 13px;
-}
-
-.featureRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 0;
-  font-weight: 750;
-  font-size: 12px;
-  overflow-wrap: anywhere;
-}
-
-.featureActive span {
-  color: #22c55e;
-}
-
-
-.marketGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
-  gap: 12px;
-}
-
-.marketItem {
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
-  padding: 13px;
-  min-height: 190px;
-  min-width: 0;
 }
 
 .marketIcon {
-  width: 38px;
-  height: 38px;
-  border-radius: 13px;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
   display: grid;
   place-items: center;
+  color: #16a34a;
+  background: #dcfce7;
+  flex: none;
+}
+
+.marketplaceCard:nth-child(3n + 2) .marketIcon {
+  color: #2563eb;
+  background: #dbeafe;
+}
+
+.marketplaceCard:nth-child(3n) .marketIcon {
   color: #7c3aed;
   background: #f3e8ff;
 }
 
-.marketItem h3 {
-  margin: 12px 0 6px;
+.marketplaceCard h3 {
+  margin: 13px 0 5px;
   font-size: 14px;
+  line-height: 1.22;
 }
 
-.marketItem p {
-  margin: 0 0 12px;
-  color: #64748b;
-  font-size: 12px;
-  line-height: 1.4;
-}
-
-.marketItem ul {
-  display: grid;
-  gap: 4px;
-  margin: 0 0 12px;
-  padding: 0;
-  list-style: none;
-}
-
-.marketItem li {
+.marketplaceCard p {
+  min-height: 17px;
+  margin: 0 0 14px;
   color: #475569;
   font-size: 11px;
-  font-weight: 750;
-  line-height: 1.3;
+  line-height: 1.25;
 }
 
-.marketItem li::before {
-  content: "";
-  display: inline-block;
-  width: 5px;
-  height: 5px;
-  margin-right: 7px;
-  border-radius: 999px;
-  background: #7c3aed;
-  vertical-align: 2px;
-}
-
-.marketItem strong {
+.marketplaceCard strong {
   display: block;
-  color: #16a34a;
-  margin-bottom: 6px;
-  font-size: 13px;
-}
-
-.marketItem small {
-  display: block;
-  color: #64748b;
+  margin-top: auto;
   margin-bottom: 12px;
+  color: #475569;
   font-size: 12px;
+  line-height: 1.25;
 }
 
-.marketItem button {
+.installButton,
+.installedButton {
   width: 100%;
-  min-height: 34px;
-  border-radius: 10px;
-  border: 1px solid #7c3aed;
-  background: #fff;
-  color: #7c3aed;
+  height: 34px;
+  border-radius: 6px;
+  font-size: 12px;
   font-weight: 850;
-  font-size: 13px;
+  cursor: pointer;
 }
 
-.marketItem button.installed {
-  background: #dcfce7;
-  border-color: transparent;
-  color: #15803d;
+.installButton {
+  border: 0;
+  color: #fff;
+  background: linear-gradient(135deg, #7c3aed, #5b21d6);
 }
 
-.installedRow,
-.invoiceRow,
-.paymentRow {
+.installedButton {
+  border: 1px solid #a7f3d0;
+  color: #16a34a;
+  background: #f0fdf4;
+}
+
+.stateBanner {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 10px;
-  border-bottom: 1px solid #eef2f7;
-  padding: 11px 0;
+  margin: 0 16px 18px;
+  padding: 12px 14px;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1e3a8a;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.stateBanner[data-state="error"] {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.planManagement {
+  display: grid;
+  gap: 18px;
+}
+
+.planSummary,
+.billingPanel {
+  margin: 0 16px 20px;
+  padding: 20px 22px;
+  border: 1px solid #e8e8f2;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.04);
+}
+
+.planSummary h2,
+.billingPanel h2 {
+  margin: 0 0 16px;
+  font-size: 18px;
+  line-height: 1.2;
+}
+
+.planSummary dl {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.planSummary dl div {
+  min-height: 74px;
+  padding: 12px;
+  border: 1px solid #eef2ff;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.planSummary dt {
+  margin-bottom: 8px;
+  color: #64748b;
   font-size: 12px;
+  font-weight: 800;
+}
+
+.planSummary dd {
+  margin: 0;
+  color: #0f172a;
+  font-size: 15px;
+  font-weight: 850;
+}
+
+.filterSelect {
+  height: 42px;
+  min-width: 168px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #334155;
+}
+
+.filterSelect select {
+  width: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #334155;
+  font-weight: 800;
+}
+
+.marketplaceCard small {
+  display: block;
+  min-height: 40px;
+  margin-bottom: 12px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.marketActions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 6px;
+  margin-top: 14px;
+}
+
+.marketActions.singleAction {
+  grid-template-columns: 1fr;
+}
+
+.marketActions button {
+  height: 36px;
+  min-width: 0;
+  margin-top: 0;
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.emptyState {
+  padding: 18px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.billingGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.8fr);
+  gap: 18px;
+}
+
+.billingRow {
+  min-height: 54px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid #eef2ff;
+  color: #0f172a;
+  text-decoration: none;
+}
+
+.billingRow:last-child {
+  border-bottom: 0;
+}
+
+.billingRow span {
   min-width: 0;
 }
 
-.installedRow div strong,
-.installedRow div span,
-.invoiceRow div strong,
-.invoiceRow div span {
+.billingRow strong,
+.billingRow small {
   display: block;
 }
 
-.installedRow div span {
-  color: #64748b;
+.billingRow strong {
+  font-size: 14px;
+}
+
+.billingRow small {
   margin-top: 4px;
-}
-
-.invoiceRow em,
-.paymentRow span {
-  color: #15803d;
-  background: #dcfce7;
-  border-radius: 999px;
-  padding: 5px 9px;
-  font-style: normal;
-  font-weight: 850;
-  font-size: 12px;
-}
-
-.installedRow em {
-  color: #15803d;
-  background: #dcfce7;
-  border-radius: 999px;
-  padding: 5px 9px;
-  font-style: normal;
-  font-weight: 850;
-  font-size: 12px;
-}
-
-.invoiceRow div span {
-  display: block;
-  color: #64748b;
-  margin-top: 4px;
-}
-
-.invoiceRow button {
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
-  border: 1px solid #e5e7eb;
-  background: #fff;
-}
-
-.apiGauge {
-  height: 135px;
-  border-radius: 18px;
-  background: radial-gradient(circle at center, #fff 45%, transparent 46%), conic-gradient(#7c3aed 0 45%, #e5e7eb 45%);
-  display: grid;
-  place-items: center;
-  text-align: center;
-  margin-bottom: 14px;
-}
-
-.apiGauge strong {
-  font-size: 26px;
-}
-
-.apiGauge span {
-  display: block;
   color: #64748b;
   font-size: 12px;
 }
 
-.usageBar {
-  height: 9px;
-  border-radius: 999px;
-  background: #e5e7eb;
-  overflow: hidden;
-}
-
-.usageBar span {
-  display: block;
-  height: 100%;
-  background: #7c3aed;
-}
-
-.usageMeta {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 10px;
-  font-size: 12px;
-}
-
-.paymentRow {
-  border: 0;
-}
-
-.paymentRow b,
-.paymentRow em {
+.billingRow b {
   color: #0f172a;
-  font-style: normal;
+  font-size: 13px;
+  white-space: nowrap;
 }
 
-.teamStats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+.nextPayment {
+  margin: 14px 0 0;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 800;
 }
 
-.teamStats div {
-  text-align: center;
-  border-right: 1px solid #eef2f7;
+
+
+:global([data-theme="dark"]) .licensePage {
+  background: #070b1a;
+  color: #f8fafc;
 }
 
-.teamStats div:last-child {
-  border-right: 0;
+:global([data-theme="dark"]) .licenseHero p,
+:global([data-theme="dark"]) .currentPlanCard > span,
+:global([data-theme="dark"]) .currentPlanCard small,
+:global([data-theme="dark"]) .planTitleRow p,
+:global([data-theme="dark"]) .planPrice span,
+:global([data-theme="dark"]) .marketplaceHead p,
+:global([data-theme="dark"]) .marketplaceCard p,
+:global([data-theme="dark"]) .marketplaceCard small,
+:global([data-theme="dark"]) .marketplaceCard strong,
+:global([data-theme="dark"]) .planSummary dt,
+:global([data-theme="dark"]) .billingRow small,
+:global([data-theme="dark"]) .nextPayment {
+  color: #9aa4b8;
 }
 
-.teamStats strong {
-  display: block;
-  font-size: 20px;
+:global([data-theme="dark"]) .currentPlanCard,
+:global([data-theme="dark"]) .pricingCard,
+:global([data-theme="dark"]) .marketplaceSection,
+:global([data-theme="dark"]) .planSummary,
+:global([data-theme="dark"]) .billingPanel {
+  border-color: rgba(148, 163, 184, 0.18);
+  background: #0d1326;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.28);
 }
 
-.teamStats span {
-  color: #64748b;
-  font-size: 12px;
+:global([data-theme="dark"]) .pricingCard.free {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.12), #0d1326 68%);
+  border-color: rgba(74, 222, 128, 0.34);
 }
 
-.historyRow {
-  display: grid;
-  grid-template-columns: 90px minmax(0, 1fr);
-  gap: 12px;
-  padding: 10px 0;
-  border-bottom: 1px solid #eef2f7;
-  font-size: 12px;
+:global([data-theme="dark"]) .pricingCard.pro {
+  border-color: rgba(96, 165, 250, 0.34);
 }
 
-.historyRow span {
-  color: #64748b;
+:global([data-theme="dark"]) .pricingCard.enterprise {
+  border-color: rgba(167, 139, 250, 0.4);
 }
 
-.historyRow p {
-  margin: 4px 0 0;
-  color: #64748b;
+:global([data-theme="dark"]) .currentPlanCard button,
+:global([data-theme="dark"]) .categoryTabs button,
+:global([data-theme="dark"]) .filterSelect,
+:global([data-theme="dark"]) .marketSearch,
+:global([data-theme="dark"]) .filterButton {
+  border-color: rgba(148, 163, 184, 0.22);
+  background: #111a31;
+  color: #f8fafc;
 }
 
-.systemGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  font-size: 12px;
+:global([data-theme="dark"]) .marketSearch input,
+:global([data-theme="dark"]) .filterSelect select {
+  color: #f8fafc;
 }
 
-.systemGrid span {
-  color: #64748b;
+:global([data-theme="dark"]) .planTabs {
+  border-bottom-color: rgba(148, 163, 184, 0.16);
 }
 
-.online {
-  color: #16a34a;
+:global([data-theme="dark"]) .planTabs button {
+  color: #cbd5e1;
 }
 
-.advancedToggle {
-  width: 100%;
-  border: 0;
-  background: transparent;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 16px;
-  font-weight: 850;
-  cursor: pointer;
-  color: #0f172a;
+:global([data-theme="dark"]) .planTabs button.active,
+:global([data-theme="dark"]) .categoryTabs button.active {
+  color: #a78bfa;
 }
 
-.advancedToggle span {
-  margin-left: auto;
-  font-size: 22px;
-  color: #7c3aed;
+:global([data-theme="dark"]) .categoryTabs button.active {
+  background: rgba(124, 58, 237, 0.22);
+  border-color: rgba(167, 139, 250, 0.55);
 }
 
-.advancedContent {
-  margin-top: 16px;
-  display: grid;
-  grid-template-columns: repeat(4, minmax(180px, 1fr));
-  gap: 12px;
+:global([data-theme="dark"]) .planFeatureList li,
+:global([data-theme="dark"]) .planSummary dd,
+:global([data-theme="dark"]) .billingRow,
+:global([data-theme="dark"]) .billingRow b {
+  color: #e2e8f0;
 }
 
-.advancedContent label {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  font-weight: 750;
+:global([data-theme="dark"]) .planSummary dl div,
+:global([data-theme="dark"]) .emptyState {
+  border-color: rgba(148, 163, 184, 0.18);
+  background: #10172a;
+  color: #9aa4b8;
 }
 
-.advancedContent input {
-  min-height: 40px;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 0 14px;
+:global([data-theme="dark"]) .marketplaceCard {
+  border-color: rgba(148, 163, 184, 0.18);
+  background: #10172a;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.22);
 }
 
-@media (max-width: 1500px) {
-  .statusStrip {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
-  .planControl,
-  .systemInnerGrid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .licenseGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-areas:
-      "plan feature"
-      "installed marketplace"
-      "invoices api"
-      "payment team"
-      "history system"
-      "advanced advanced";
-  }
-
-  .singleMode {
-    grid-template-columns: 1fr;
-    grid-template-areas: none;
-  }
+:global([data-theme="dark"]) .billingRow {
+  border-bottom-color: rgba(148, 163, 184, 0.14);
 }
 
-@media (max-width: 900px) {
-  .architectureGrid {
+:global([data-theme="dark"]) .stateBanner {
+  border-color: rgba(96, 165, 250, 0.32);
+  background: rgba(37, 99, 235, 0.12);
+  color: #bfdbfe;
+}
+
+:global([data-theme="dark"]) .stateBanner[data-state="error"] {
+  border-color: rgba(248, 113, 113, 0.32);
+  background: rgba(127, 29, 29, 0.28);
+  color: #fecaca;
+}
+
+@media (max-width: 1200px) {
+  .pricingGrid {
     grid-template-columns: 1fr;
   }
 
-  .marketplaceHead {
-    flex-direction: column;
-  }
-
-  .licenseGrid {
-    grid-template-columns: 1fr;
-    grid-template-areas:
-      "plan"
-      "feature"
-      "installed"
-      "marketplace"
-      "invoices"
-      "api"
-      "payment"
-      "team"
-      "history"
-      "system"
-      "advanced";
-  }
-
-  .featureGroups,
-  .advancedContent,
-  .planStats,
-  .teamStats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .pricingCard {
+    min-height: 0;
   }
 }
 
-@media (max-width: 700px) {
+@media (max-width: 860px) {
   .licensePage {
     padding: 16px;
   }
 
-  .licenseHeader,
-  .marketArchitectureHeader,
-  .architecturePlanSwitch,
-  .marketTools,
-  .licenseHeaderActions {
-    flex-direction: column;
-  }
-
-  .licenseHeader h1 {
-    font-size: 24px;
-  }
-
-  .architectureHeader h2 {
-    font-size: 25px;
-  }
-
-  .architectureCard {
-    padding: 18px;
-  }
-
-  .modernSection {
-    padding: 18px;
-  }
-
-  .marketSearch {
-    width: 100%;
-  }
-
-  .lbCard {
-    padding: 16px;
-  }
-
-  .statusCard {
-    min-height: auto;
-  }
-
-  .licenseGrid,
-  .featureColumns,
-  .featureGroups,
-  .marketGrid,
-  .marketArchitectureGrid,
-  .planControl,
-  .planMeta,
-  .systemInnerGrid,
-  .advancedContent,
-  .planStats,
-  .teamStats,
-  .statusStrip,
-  .systemGrid,
-  .historyRow {
+  .licenseHero {
     grid-template-columns: 1fr;
   }
 
-  .installedRow,
-  .invoiceRow,
-  .paymentRow {
-    align-items: flex-start;
+  .currentPlanCard button {
+    position: static;
+    margin-top: 14px;
+  }
+
+  .planTabs {
+    gap: 22px;
+    overflow-x: auto;
+    padding: 0;
+  }
+
+  .pricingGrid {
+    padding: 0 0 18px;
+  }
+
+  .marketplaceHead,
+  .marketTools {
     flex-direction: column;
+    align-items: stretch;
+  }
+
+  .marketSearch {
+    width: auto;
+  }
+
+  .planSummary dl,
+  .billingGrid {
+    grid-template-columns: 1fr;
   }
 }
