@@ -162,29 +162,40 @@ function planOptionsFromCatalog(existingPlans: Array<{ plan: string; billingCycl
 }
 
 function marketplaceCatalogFromLicense(features: Prisma.JsonValue | null | undefined, plan: string): MarketplaceModuleRecord[] {
-  const storedByKey = new Map(marketplaceModulesFromFeatures(features).map((module) => [module.key, module]))
+  const storedModules = marketplaceModulesFromFeatures(features)
+  const storedByKey = new Map(storedModules.map((module) => [module.key, module]))
+  const catalogByKey = new Map<string, (typeof marketplaceModules)[number]>(marketplaceModules.map((module) => [module.key, module]))
   const enterpriseIncludesAll = plan === "enterprise" || plan === "unlimited"
 
-  return marketplaceModules.map((module) => {
-    const stored = storedByKey.get(module.key)
+  const resolveModule = (key: string) => {
+    const module = catalogByKey.get(key)
+    const stored = storedByKey.get(key)
+    if (!module && !stored) return null
     const installed = stored?.installed ?? enterpriseIncludesAll
     const active = stored?.active ?? enterpriseIncludesAll
     return {
-      key: module.key,
-      name: stored?.name ?? module.name,
-      category: stored?.category ?? module.category,
-      description: stored?.description ?? module.description,
+      key,
+      name: stored?.name ?? module?.name ?? key,
+      category: stored?.category ?? module?.category ?? "Weitere",
+      description: stored?.description ?? module?.description ?? "",
       provider: stored?.provider ?? "DreamInvoice",
       priceCents: stored?.priceCents ?? null,
       currency: stored?.currency ?? "EUR",
       billingCycle: stored?.billingCycle ?? "Monat",
       installed,
       active,
-      licenseRequired: stored?.licenseRequired ?? module.recommendedPlan !== "free",
+      licenseRequired: stored?.licenseRequired ?? module?.recommendedPlan !== "free",
       licenseStatus: active ? "active" : installed ? "installed" : "available",
-      available: module.status === "Verfuegbar"
+      available: stored?.available ?? module?.status === "Verfuegbar"
     }
-  })
+  }
+
+  const moduleKeys = storedModules.length
+    ? storedModules.map((module) => module.key)
+    : marketplaceModules.map((module) => module.key)
+  return moduleKeys
+    .map(resolveModule)
+    .filter((module): module is MarketplaceModuleRecord => module !== null)
 }
 
 async function loadLicenseBillingPayload() {
@@ -250,7 +261,7 @@ async function loadLicenseBillingPayload() {
   const planOptions = planOptionsFromCatalog(Array.from(planMap.values()))
   const currentPlanOption = planOptions.find((plan) => plan.plan === (license?.plan ?? "free")) ?? planOptions[0]
 
-  const nextPayment = invoices.find((invoice) => invoice.status !== "paid" && invoice.dueDate)?.dueDate?.toISOString() ?? license?.validUntil?.toISOString() ?? null
+  const nextPayment = license?.validUntil?.toISOString() ?? invoices.find((invoice) => invoice.status !== "paid" && invoice.dueDate)?.dueDate?.toISOString() ?? null
 
   return {
     ok: true,

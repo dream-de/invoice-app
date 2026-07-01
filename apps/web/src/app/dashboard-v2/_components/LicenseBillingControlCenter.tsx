@@ -3,18 +3,29 @@
 import { useEffect, useMemo, useState } from "react"
 import {
   AlertCircle,
+  Archive,
+  Bot,
+  Boxes,
   CheckCircle2,
+  ChevronDown,
   CreditCard,
   Crown,
   Download,
   FileText,
+  Landmark,
   Leaf,
+  MessageCircle,
   Package,
   RefreshCcw,
+  ReceiptText,
   Search,
   Settings,
+  ShoppingBag,
+  Store,
   Star,
   SlidersHorizontal,
+  Sparkles,
+  ScanText,
   type LucideIcon
 } from "lucide-react"
 import type { ModuleEngineContext, LicenseStatus } from "@/lib/modules/moduleEngine"
@@ -113,17 +124,31 @@ type LicenseBillingData = {
 }
 
 const tabs = ["Plan", "Marketplace", "Abrechnung", "Historie"] as const
-const categoryOrder = ["Alle", "Finanzen", "KI", "KI & Automation", "Integration", "Dokumente", "E-Commerce", "Kommunikation", "Projektmanagement", "Produktion", "Business", "Weitere"]
+const categoryOrder = ["Alle", "Finanzen", "KI & Automation", "Integration", "Dokumente", "E-Commerce", "Kommunikation", "Weitere"]
 const filterOptions = ["Alle", "Installiert", "Verfügbar", "Aktiv", "Lizenzpflichtig"] as const
 const iconByCategory: Record<string, LucideIcon> = {
   Finanzen: CreditCard,
   Dokumente: FileText,
-  KI: Settings,
-  "KI & Automation": Settings,
+  "KI & Automation": Sparkles,
   Kommunikation: Package,
   "E-Commerce": Package,
   Integration: Package,
   Weitere: Package
+}
+const iconByModuleKey: Record<string, LucideIcon> = {
+  datev: ReceiptText,
+  "ocr-ki": ScanText,
+  ocr: ScanText,
+  shopify: ShoppingBag,
+  woocommerce: Store,
+  warehouse: Boxes,
+  lager: Boxes,
+  whatsapp: MessageCircle,
+  "ai-assistant": Bot,
+  "paperless-ngx": Archive,
+  open_banking: Landmark,
+  "microsoft-teams": MessageCircle,
+  "portal-pro": FileText
 }
 
 function modulePlanFromLicensePlan(plan?: string | null): ModulePlan {
@@ -159,7 +184,29 @@ function formatUserLimit(maxUsers: number) {
 }
 
 function categoryLabel(category: string) {
-  return category === "KI" ? "KI & Automation" : category
+  const normalized = String(category || "Weitere").trim()
+  if (!normalized) return "Weitere"
+  if (normalized === "KI") return "KI & Automation"
+  if (["Projektmanagement", "Produktion", "Business"].includes(normalized)) return "Weitere"
+  return normalized
+}
+
+function categoryKey(category: string) {
+  return categoryLabel(category)
+}
+
+function marketIconFor(module: MarketplaceModule): LucideIcon {
+  return iconByModuleKey[module.key] ?? iconByCategory[categoryKey(module.category)] ?? Package
+}
+
+function marketIconTone(module: MarketplaceModule) {
+  const key = module.key.replace(/_/g, "-")
+  if (["datev", "shopify", "whatsapp", "open-banking"].includes(key)) return styles.greenIcon
+  if (["ocr-ki", "ocr"].includes(key)) return styles.blueIcon
+  if (["paperless-ngx"].includes(key)) return styles.orangeIcon
+  if (["woocommerce", "ai-assistant"].includes(key)) return styles.purpleIcon
+  if (["warehouse", "lager"].includes(key)) return styles.violetIcon
+  return styles.greenIcon
 }
 
 function fallbackPlanFeatures(plan: PlanOption) {
@@ -251,6 +298,7 @@ export function LicenseBillingControlCenter({ moduleContext, billingMeta }: { mo
   const [activeTab, setActiveTab] = useState<(typeof tabs)[number]>("Plan")
   const [activeCategory, setActiveCategory] = useState("Alle")
   const [activeFilter, setActiveFilter] = useState<(typeof filterOptions)[number]>("Alle")
+  const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [marketSearch, setMarketSearch] = useState("")
   const [data, setData] = useState<LicenseBillingData | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -282,7 +330,7 @@ export function LicenseBillingControlCenter({ moduleContext, billingMeta }: { mo
   const nextPaymentDate = formatDate(data?.billing.nextPayment ?? billingMeta?.nextPaymentDate ?? license.validUntil)
 
   const categories = useMemo(() => {
-    const present = new Set((data?.marketplace ?? []).map((module) => module.category || "Weitere"))
+    const present = new Set((data?.marketplace ?? []).map((module) => categoryKey(module.category)))
     const ordered = categoryOrder.filter((category) => category === "Alle" || present.has(category))
     const custom = Array.from(present).filter((category) => !ordered.includes(category)).sort((a, b) => a.localeCompare(b, "de"))
     return [...ordered, ...custom]
@@ -292,7 +340,7 @@ export function LicenseBillingControlCenter({ moduleContext, billingMeta }: { mo
     const query = marketSearch.trim().toLowerCase()
     return (data?.marketplace ?? []).filter((module) => {
       const matchesSearch = !query || [module.name, module.category, module.description, module.provider].join(" ").toLowerCase().includes(query)
-      const matchesCategory = activeCategory === "Alle" || module.category === activeCategory
+      const matchesCategory = activeCategory === "Alle" || categoryKey(module.category) === activeCategory
       const matchesFilter =
         activeFilter === "Alle" ||
         (activeFilter === "Installiert" && module.installed) ||
@@ -359,12 +407,32 @@ export function LicenseBillingControlCenter({ moduleContext, billingMeta }: { mo
               <Search size={16} />
               <input value={marketSearch} onChange={(event) => setMarketSearch(event.target.value)} placeholder="Erweiterungen suchen..." />
             </label>
-            <label className={styles.filterSelect}>
-              <SlidersHorizontal size={15} />
-              <select value={activeFilter} onChange={(event) => setActiveFilter(event.target.value as (typeof filterOptions)[number])}>
-                {filterOptions.map((filter) => <option key={filter} value={filter}>{filter}</option>)}
-              </select>
-            </label>
+            <div className={styles.filterMenu}>
+              <button className={styles.filterTrigger} type="button" aria-haspopup="menu" aria-expanded={isFilterOpen} onClick={() => setIsFilterOpen((open) => !open)}>
+                <SlidersHorizontal size={15} />
+                <span>{activeFilter === "Alle" ? "Filter" : activeFilter}</span>
+                <ChevronDown size={15} />
+              </button>
+              {isFilterOpen ? (
+                <div className={styles.filterDropdown} role="menu">
+                  {filterOptions.map((filter) => (
+                    <button
+                      key={filter}
+                      className={activeFilter === filter ? styles.activeFilterOption : ""}
+                      type="button"
+                      role="menuitemradio"
+                      aria-checked={activeFilter === filter}
+                      onClick={() => {
+                        setActiveFilter(filter)
+                        setIsFilterOpen(false)
+                      }}
+                    >
+                      {filter}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
+            </div>
           </div>
         </div>
 
@@ -379,11 +447,11 @@ export function LicenseBillingControlCenter({ moduleContext, billingMeta }: { mo
         {modules.length ? (
           <div className={`${styles.marketplaceGrid} ${preview ? styles.marketplacePreviewGrid : ""}`}>
             {modules.map((module) => {
-              const Icon = iconByCategory[module.category] ?? Package
+              const Icon = marketIconFor(module)
               return (
                 <article className={styles.marketplaceCard} key={module.key}>
                   <div className={styles.marketTop}>
-                    <div className={styles.marketIcon}><Icon size={21} /></div>
+                    <div className={`${styles.marketIcon} ${marketIconTone(module)}`}><Icon size={21} /></div>
                     {module.installed ? <span>{module.active ? "Aktiv" : "Installiert"}</span> : null}
                   </div>
                   <h3>{module.name}</h3>

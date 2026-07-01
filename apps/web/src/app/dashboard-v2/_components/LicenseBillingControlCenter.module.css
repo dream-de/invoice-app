@@ -120,14 +120,14 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
-  padding: 0 16px 20px;
+  padding: 0 16px 14px;
 }
 
 .pricingCard {
-  min-height: 470px;
+  min-height: 390px;
   display: flex;
   flex-direction: column;
-  padding: 22px;
+  padding: 20px;
   border: 1px solid #dbe4ff;
   border-radius: 10px;
   background: #fff;
@@ -188,7 +188,7 @@
   display: flex;
   align-items: baseline;
   gap: 8px;
-  margin: 28px 0 18px;
+  margin: 22px 0 14px;
 }
 
 .planPrice strong {
@@ -204,9 +204,9 @@
 
 .planFeatureList {
   display: grid;
-  gap: 14px;
+  gap: 10px;
   padding: 0;
-  margin: 0 0 24px;
+  margin: 0 0 18px;
   list-style: none;
 }
 
@@ -304,17 +304,31 @@
   background: #fff;
 }
 
+.marketSearch:focus-within {
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+}
+
 .marketSearch input {
   width: 100%;
   min-width: 0;
   border: 0;
-  outline: 0;
+  outline: none;
+  appearance: none;
   background: transparent;
   color: #0f172a;
   font-size: 13px;
 }
 
-.filterButton {
+.marketSearch input:focus,
+.marketSearch input:focus-visible {
+  border: 0;
+  outline: none;
+  box-shadow: none;
+}
+
+.filterButton,
+.filterTrigger {
   height: 42px;
   padding: 0 15px;
   border: 1px solid #e5e7eb;
@@ -326,6 +340,57 @@
   align-items: center;
   gap: 8px;
   cursor: pointer;
+}
+
+.filterMenu {
+  position: relative;
+}
+
+.filterTrigger {
+  min-width: 96px;
+  justify-content: center;
+}
+
+.filterTrigger:focus,
+.filterTrigger:focus-visible {
+  outline: none;
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+}
+
+.filterDropdown {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 170px;
+  padding: 6px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.16);
+}
+
+.filterDropdown button {
+  width: 100%;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #334155;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.filterDropdown button:hover,
+.filterDropdown button:focus-visible,
+.filterDropdown button.activeFilterOption {
+  outline: none;
+  color: #6d28d9;
+  background: #f3e8ff;
 }
 
 .categoryTabs {
@@ -360,14 +425,14 @@
 }
 
 .marketplacePreviewGrid {
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  grid-template-columns: repeat(8, minmax(0, 1fr));
 }
 
 .marketplaceCard {
   min-height: 176px;
   display: flex;
   flex-direction: column;
-  padding: 13px;
+  padding: 12px;
   border: 1px solid #e5e7eb;
   border-radius: 7px;
   background: #fff;
@@ -401,14 +466,29 @@
   flex: none;
 }
 
-.marketplaceCard:nth-child(3n + 2) .marketIcon {
+.marketIcon.blueIcon {
   color: #2563eb;
   background: #dbeafe;
 }
 
-.marketplaceCard:nth-child(3n) .marketIcon {
+.marketIcon.purpleIcon {
   color: #7c3aed;
   background: #f3e8ff;
+}
+
+.marketIcon.violetIcon {
+  color: #6d28d9;
+  background: #ede9fe;
+}
+
+.marketIcon.greenIcon {
+  color: #16a34a;
+  background: #dcfce7;
+}
+
+.marketIcon.orangeIcon {
+  color: #f97316;
+  background: #ffedd5;
 }
 
 .marketplaceCard h3 {
@@ -691,11 +771,29 @@
 :global([data-theme="dark"]) .currentPlanCard button,
 :global([data-theme="dark"]) .categoryTabs button,
 :global([data-theme="dark"]) .filterSelect,
+:global([data-theme="dark"]) .filterTrigger,
 :global([data-theme="dark"]) .marketSearch,
 :global([data-theme="dark"]) .filterButton {
   border-color: rgba(148, 163, 184, 0.22);
   background: #111a31;
   color: #f8fafc;
+}
+
+:global([data-theme="dark"]) .filterDropdown {
+  border-color: rgba(148, 163, 184, 0.22);
+  background: #111a31;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.34);
+}
+
+:global([data-theme="dark"]) .filterDropdown button {
+  color: #e2e8f0;
+}
+
+:global([data-theme="dark"]) .filterDropdown button:hover,
+:global([data-theme="dark"]) .filterDropdown button:focus-visible,
+:global([data-theme="dark"]) .filterDropdown button.activeFilterOption {
+  color: #c4b5fd;
+  background: rgba(124, 58, 237, 0.22);
 }
 
 :global([data-theme="dark"]) .marketSearch input,
