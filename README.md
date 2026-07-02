@@ -17,7 +17,7 @@ The application can be used as a self-hosted web app and includes an isolated pu
 
 ## Live Demo
 
-Demo: [http://demo.dream-invoice.com:3001](http://demo.dream-invoice.com:3001)
+Live Demo: [demo.dream-invoice.com](http://demo.dream-invoice.com)
 
 Demo access:
 
