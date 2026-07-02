@@ -618,65 +618,99 @@ model NumberRange {
 }
 
 model AuditLog {
-  id              String   @id @default(uuid())
-  action          String
-  entity          String
-  entityId        String?
-  reason          String?
-  data            Json?
-  tenantId        String?
-  workspaceId     String?
-  actorId         String?
-  actorName       String   @default("System")
-  actorRole       String?
-  actorEmail      String?
-  type            String   @default("legacy")
-  source          String   @default("system")
-  severity        String   @default("info")
-  title           String   @default("Audit Event")
-  description     String?
-  moduleKey       String?
-  integrationKey  String?
-  marketplaceModuleKey String?
-  entityType      String?
-  ipAddress       String?
-  publicIp        String?
-  privateIp       String?
-  accessHost      String?
-  accessProtocol  String?
-  accessOrigin    String?
-  userAgent       String?
-  browser         String?
-  device          String?
-  operatingSystem String?
-  deviceType      String?
-  location        String?
-  requestId       String?
-  country         String?
-  region          String?
-  city            String?
-  timezone        String?
-  geoProvider     String?
-  metadata        Json?
-  before          Json?
-  after           Json?
-  createdAt       DateTime @default(now())
+  id                   String   @id @default(cuid())
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  title                String   @default("Audit Event")
+  description          String?
+  module               String   @default("system")
+  level                String   @default("info")
+  status               String   @default("active")
+  actorId              String?
+  actorName            String?
+  actorEmail           String?
+  actorRole            String?
+  ipAddress            String?
+  browserName          String?
+  browserVersion       String?
+  osName               String?
+  osVersion            String?
+  country              String?
+  city                 String?
+  timezone             String?
+  requestId            String?
+  sessionId            String?
+  traceId              String?
+  userAgent            String?
+  referer              String?
+  method               String?
+  endpoint             String?
+  duration             Int?
+  tags                 String[] @default([])
+  metadata             Json?
+  archived             Boolean  @default(false)
+  archivedAt           DateTime?
+  searchableText       String?
 
-  // TODO: immutable append-only storage pruefen.
-  // TODO: retention policy pro Plan definieren.
-  // TODO: PII minimization / DSGVO Loeschkonzept.
-  // TODO: Export-Funktion CSV/PDF.
+  action               String?
+  entity               String?
+  entityId             String?
+  reason               String?
+  data                 Json?
+  tenantId             String?
+  workspaceId          String?
+  type                 String   @default("legacy")
+  source               String   @default("system")
+  severity             String   @default("info")
+  moduleKey            String?
+  integrationKey       String?
+  marketplaceModuleKey String?
+  entityType           String?
+  publicIp             String?
+  privateIp            String?
+  accessHost           String?
+  accessProtocol       String?
+  accessOrigin         String?
+  browser              String?
+  device               String?
+  operatingSystem      String?
+  deviceType           String?
+  location             String?
+  region               String?
+  geoProvider          String?
+  before               Json?
+  after                Json?
+
   @@index([createdAt])
+  @@index([module])
+  @@index([level])
+  @@index([status])
+  @@index([actorId])
+  @@index([actorEmail])
+  @@index([ipAddress])
+  @@index([requestId])
+  @@index([archived])
+  @@index([createdAt, archived])
+  @@index([module, level])
+  @@index([actorId, createdAt])
   @@index([tenantId])
   @@index([workspaceId])
-  @@index([actorId])
   @@index([type])
   @@index([source])
   @@index([severity])
   @@index([moduleKey])
   @@index([integrationKey])
   @@index([marketplaceModuleKey])
-  @@index([requestId])
+}
+
+
+model LogSettings {
+  id               String   @id @default(cuid())
+  retention        String   @default("30")
+  autoArchive      Boolean  @default(true)
+  archiveDayOfWeek Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 }
 
 

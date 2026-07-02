@@ -3,7 +3,6 @@
 import Link from "next/link"
 import { Check, LockKeyhole, ShieldCheck, Trash2 } from "lucide-react"
 import { useMemo, useState } from "react"
-import { getPlanByKey, type LicensePlanKey } from "@/lib/license/plans"
 import {
   allPermissionDefinitions,
   canEditRolePermissions,
@@ -154,53 +153,13 @@ export function UsersAndPermissionsClient({
   const [selectedUserId, setSelectedUserId] = useState(initialUsers[0]?.id ?? "")
   const [activePermissionGroupKey, setActivePermissionGroupKey] = useState(permissionGroups[0]?.titleKey ?? "")
 
-  const planMeta: Record<LicensePlanKey, { billing: string; note: string }> = {
-    free: {
-      billing: t("settings.users.plans.free.billing"),
-      note: t("settings.users.plans.free.note")
-    },
-    starter: {
-      billing: t("settings.users.plans.starter.billing"),
-      note: t("settings.users.plans.starter.note")
-    },
-    pro: {
-      billing: t("settings.users.plans.pro.billing"),
-      note: t("settings.users.plans.pro.note")
-    },
-    team: {
-      billing: t("settings.users.plans.team.billing"),
-      note: t("settings.users.plans.team.note")
-    },
-    business: {
-      billing: t("settings.users.plans.business.billing"),
-      note: t("settings.users.plans.business.note")
-    },
-    enterprise: {
-      billing: t("settings.users.plans.enterprise.billing"),
-      note: t("settings.users.plans.enterprise.note")
-    },
-    unlimited: {
-      billing: t("settings.users.plans.unlimited.billing"),
-      note: t("settings.users.plans.unlimited.note")
-    }
-  }
-
   const activeUsers = useMemo(() => users.filter((user) => user.status === "active"), [users])
   const selectedUser = users.find((user) => user.id === selectedUserId) ?? users[0] ?? null
   const selectedPermissionKeys = selectedUser
     ? getEffectivePermissionKeys(selectedUser.role, selectedUser.permissions)
     : new Set<string>()
   const selectedPermissionsEditable = selectedUser ? canEditRolePermissions(selectedUser.role) : false
-  const activePlan = getPlanByKey(limit.plan)
   const activePermissionGroup = permissionGroups.find((group) => group.titleKey === activePermissionGroupKey) ?? permissionGroups[0]
-  const licenseStatusLabels: Record<string, string> = {
-    active: t("settings.users.license.status.active"),
-    unconfigured: t("settings.users.license.status.unconfigured"),
-    inactive: t("settings.users.license.status.inactive"),
-    expired: t("settings.users.license.status.expired"),
-    invalid: t("settings.users.license.status.invalid")
-  }
-  const licenseStatusLabel = licenseStatusLabels[limit.status] ?? limit.status
 
   function formatUsers(maxUsers: number | null) {
     return maxUsers === null ? t("settings.users.planUsers.unlimited") : String(maxUsers)
@@ -341,41 +300,30 @@ export function UsersAndPermissionsClient({
       description={t("settings.users.description").replace("{maxUsers}", String(limit.maxUsers))}
     >
       <div className="space-y-5">
-        <section className={compactCardClass("overflow-hidden p-0")}>
-          <div className="flex flex-col gap-4 p-5 xl:flex-row xl:items-center xl:justify-between">
+        <section className={compactCardClass("p-5")}>
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-xs font-black uppercase text-[var(--settings-muted)]">Lizenzstatus</p>
-              <h2 className="mt-2 text-xl font-black text-[var(--settings-title)]">{activePlan.name}</h2>
-              <p className="mt-1 text-sm font-semibold text-[var(--settings-muted)]">{planMeta[activePlan.key].billing}</p>
+              <p className="text-xs font-black uppercase tracking-[0.2em] text-[#94a3b8]">Benutzerlimits</p>
+              <h2 className="mt-2 text-lg font-black text-[#111827]">Benutzerlimits</h2>
+              <p className="mt-2 text-sm font-semibold text-[#64748b]">Benutzerlimits und Abrechnung werden zentral unter Lizenz & Abrechnung verwaltet.</p>
             </div>
-
-            <div className="grid flex-1 gap-0 overflow-hidden rounded-lg border border-[var(--settings-line)] bg-[var(--settings-subtle)] sm:grid-cols-4">
-              <div className="border-b border-[var(--settings-line)] p-4 sm:border-b-0 sm:border-r">
-                <p className="text-[11px] font-black uppercase text-[var(--settings-muted)]">{t("settings.users.license.status.users")}</p>
-                <p className="mt-2 text-xl font-black leading-none text-[var(--settings-title)]">{limit.activeUsers} / {formatUsers(limit.maxUsers)}</p>
-                <p className="mt-1 text-xs font-bold text-[var(--settings-muted)]">{t("settings.users.users")}</p>
+            <div className="grid gap-3 sm:grid-cols-3 lg:min-w-[420px]">
+              <div className="rounded-lg border border-[#e5eaf0] bg-[#f8fafc] p-3">
+                <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[#94a3b8]">Aktive Benutzer</p>
+                <p className="mt-1 text-sm font-black text-[#111827]">{activeUsers.length}</p>
               </div>
-              <div className="border-b border-[var(--settings-line)] p-4 sm:border-b-0 sm:border-r">
-                <p className="text-[11px] font-black uppercase text-[var(--settings-muted)]">{t("settings.users.license.status.remaining")}</p>
-                <p className={`mt-2 text-xl font-black leading-none ${limit.limitReached ? "text-red-600" : "text-[var(--settings-title)]"}`}>{limit.remainingUsers}</p>
-                <p className={`mt-1 text-xs font-bold ${limit.limitReached ? "text-red-600" : "text-emerald-700"}`}>{limit.limitReached ? "Limit erreicht" : "Plaetze frei"}</p>
+              <div className="rounded-lg border border-[#e5eaf0] bg-[#f8fafc] p-3">
+                <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[#94a3b8]">Benutzerlimit</p>
+                <p className="mt-1 text-sm font-black text-[#111827]">{formatUsers(limit.maxUsers)}</p>
               </div>
-              <div className="border-b border-[var(--settings-line)] p-4 sm:border-b-0 sm:border-r">
-                <p className="text-[11px] font-black uppercase text-[var(--settings-muted)]">Status</p>
-                <p className="mt-2 inline-flex items-center gap-2 text-xl font-black leading-none text-[var(--settings-title)]">
-                  <span className={`h-2.5 w-2.5 rounded-lg shadow-[0_0_0_4px_rgba(16,185,129,0.12)] ${limit.status === "active" ? "bg-emerald-500" : "bg-slate-300"}`} />
-                  {licenseStatusLabel}
-                </p>
-                <p className="mt-1 text-xs font-bold text-[var(--settings-muted)]">{limit.validUntil ? formatDate(limit.validUntil) : t("settings.users.license.status.noExpiry")}</p>
-              </div>
-              <div className="p-4">
-                <p className="text-[11px] font-black uppercase text-[var(--settings-muted)]">Plan</p>
-                <p className="mt-2 text-sm font-black leading-none text-[var(--settings-title)]">{activePlan.name} · {limit.remainingUsers} frei</p>
-                <a href="#license-manage" className="mt-3 inline-flex h-8 items-center rounded-lg bg-[var(--settings-accent-strong)] px-3 text-xs font-black text-white no-underline shadow-[var(--settings-card-shadow)]">
-                  Plan verwalten
-                </a>
+              <div className="rounded-lg border border-[#e5eaf0] bg-[#f8fafc] p-3">
+                <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[#94a3b8]">Verbleibend</p>
+                <p className="mt-1 text-sm font-black text-[#111827]">{formatUsers(limit.remainingUsers)}</p>
               </div>
             </div>
+            <Link href="/dashboard-v2/license-billing" className="inline-flex h-10 w-fit items-center rounded-lg bg-[#111827] px-4 text-sm font-black text-white no-underline shadow-[var(--settings-card-shadow)]">
+              Lizenz & Abrechnung öffnen
+            </Link>
           </div>
         </section>
 
@@ -617,60 +565,6 @@ export function UsersAndPermissionsClient({
           </section>
         ) : null}
 
-        <section id="license-manage" className={compactCardClass("p-5")}>
-          <div className="mb-4 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.2em] text-[#94a3b8]">{t("settings.users.license.eyebrow")}</p>
-              <h2 className="mt-2 text-lg font-black text-[#111827]">Plan verwalten</h2>
-            </div>
-            <span className={`inline-flex w-fit rounded-lg px-3 py-1 text-xs font-black ${limit.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
-              {licenseStatusLabel}
-            </span>
-          </div>
-          <div className="grid gap-4 lg:grid-cols-[0.85fr_1.15fr]">
-            <div className="rounded-lg border border-[#e5eaf0] bg-[#f8fafc] p-4">
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-[#94a3b8]">{t("settings.users.license.status.currentPlan")}</p>
-              <div className="mt-3 flex items-end justify-between gap-3">
-                <div>
-                  <p className="text-3xl font-semibold leading-none text-[#111827]">{activePlan.name}</p>
-                  <p className="mt-2 text-sm font-semibold text-[#64748b]">{planMeta[activePlan.key].billing}</p>
-                </div>
-                <div className="rounded-lg bg-white px-4 py-3 text-right">
-                  <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#94a3b8]">{t("settings.users.license.status.users")}</p>
-                  <p className="mt-1 text-xl font-semibold text-[#111827]">{limit.activeUsers} / {formatUsers(limit.maxUsers)}</p>
-                </div>
-              </div>
-              <div className="mt-4 grid gap-2 sm:grid-cols-3">
-                <div className="rounded-lg bg-white p-3">
-                  <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[#94a3b8]">{t("settings.users.license.status.remaining")}</p>
-                  <p className="mt-1 text-sm font-black text-[#111827]">{limit.remainingUsers}</p>
-                </div>
-                <div className="rounded-lg bg-white p-3">
-                  <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[#94a3b8]">{t("settings.users.license.status.validUntil")}</p>
-                  <p className="mt-1 text-sm font-black text-[#111827]">{limit.validUntil ? formatDate(limit.validUntil) : t("settings.users.license.status.noExpiry")}</p>
-                </div>
-                <div className="rounded-lg bg-white p-3">
-                  <p className="text-[11px] font-black uppercase tracking-[0.14em] text-[#94a3b8]">{t("settings.users.license.status.billing")}</p>
-                  <p className="mt-1 text-sm font-black text-[#111827]">{limit.billingCycle}</p>
-                </div>
-              </div>
-            </div>
-            <div className="rounded-lg border border-[var(--settings-line)] bg-white p-5 shadow-sm">
-              <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#94a3b8]">Plan & Marketplace</p>
-                  <h3 className="mt-1 text-lg font-black text-[#111827]">Freischaltung ueber Feature Flags</h3>
-                  <p className="mt-1 max-w-2xl text-sm font-semibold text-[#64748b]">Benutzerplaetze bleiben hier sichtbar. Lizenzschluessel, Dateiimport und Synchronisierung liegen nur noch unter Erweiterte Aktivierung.</p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Link href="/dashboard-v2/license-billing" className="rounded-md bg-[#111827] px-3 py-2 text-sm font-black text-white no-underline">Upgrade Plan</Link>
-                  <Link href="/dashboard-v2/license-billing?q=Marketplace" className="rounded-md border border-[#cbd5e1] px-3 py-2 text-sm font-black text-[#111827] no-underline">Marketplace oeffnen</Link>
-                  <Link href="/dashboard-v2/license-billing?q=Erweiterte%20Aktivierung" className="rounded-md border border-[#cbd5e1] px-3 py-2 text-sm font-black text-[#111827] no-underline">Erweiterte Aktivierung</Link>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
       </div>
     </SettingsLayout>
   )

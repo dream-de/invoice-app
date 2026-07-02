@@ -10,6 +10,7 @@ import { RateLimitError, assertRateLimit, clearRateLimit, clientAddress } from "
 import { appendNotification } from "@/lib/notifications/store"
 import { demoSessionUser, isDemoMode, isValidDemoLogin } from "@/lib/demo-mode"
 import { RequestBodyError, readJsonBodyWithLimit } from "@/lib/http/request-body"
+import { writeAuthLog, writeSecurityLog } from "@/lib/logs/auditWriter.server"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -64,6 +65,19 @@ export async function POST(request: Request) {
 
       const response = NextResponse.json({ ok: true, requiresTwoFactor: false, user: demoSessionUser, mode: "demo" })
       response.cookies.set(SESSION_COOKIE_NAME, createSessionToken(demoSessionUser.id), getSessionCookieOptions())
+      await writeAuthLog({
+        request,
+        title: "Login erfolgreich",
+        description: "Demo-Benutzer wurde erfolgreich angemeldet.",
+        level: "success",
+        actorId: demoSessionUser.id,
+        actorName: demoSessionUser.name,
+        actorEmail: demoSessionUser.email,
+        actorRole: demoSessionUser.role,
+        action: "auth.login",
+        metadata: { email: demoSessionUser.email, mode: "demo" },
+        tags: ["auth", "login"]
+      })
       return response
     }
 
@@ -88,6 +102,20 @@ export async function POST(request: Request) {
         entityType: "user",
         entityId: result.user.id,
         metadata: safeJson({ email: result.user.email, reason: "2fa_required" })
+      })
+      await writeAuthLog({
+        request,
+        title: "2FA erforderlich",
+        description: "Login erfolgreich, Zwei-Faktor-Authentifizierung erforderlich.",
+        level: "info",
+        actorId: result.user.id,
+        actorName: result.user.name,
+        actorEmail: result.user.email,
+        actorRole: result.user.role,
+        action: "auth.login",
+        entityId: result.user.id,
+        metadata: { email: result.user.email, reason: "2fa_required" },
+        tags: ["auth", "login", "2fa"]
       })
       return NextResponse.json({
         ok: true,
@@ -130,6 +158,20 @@ export async function POST(request: Request) {
       href: "/dashboard-v2/account/security",
       source: "auth-login:" + user.id + ":" + Date.now()
     }).catch(() => null)
+    await writeAuthLog({
+      request,
+      title: "Login erfolgreich",
+      description: "Benutzer wurde erfolgreich angemeldet.",
+      level: "success",
+      actorId: user.id,
+      actorName: user.name,
+      actorEmail: user.email,
+      actorRole: user.role,
+      action: "auth.login",
+      entityId: user.id,
+      metadata: { email: user.email, role: user.role },
+      tags: ["auth", "login"]
+    })
 
     return response
   } catch (error) {
@@ -150,6 +192,15 @@ export async function POST(request: Request) {
         requestContext: requestContext(request),
         entityType: "user",
         metadata: safeJson({ email: loginEmail, reason: error.code })
+      })
+      await writeSecurityLog({
+        request,
+        title: "Login fehlgeschlagen",
+        description: "Login-Anfrage konnte nicht gelesen werden.",
+        level: "warning",
+        action: "auth.login_failed",
+        metadata: { email: loginEmail, reason: error.code },
+        tags: ["auth", "login", "failed"]
       })
       return NextResponse.json(
         { ok: false, error: error.message, code: error.code },
@@ -176,6 +227,15 @@ export async function POST(request: Request) {
         entityType: "user",
         metadata: safeJson({ email: loginEmail, reason: "invalid_credentials" })
       })
+      await writeSecurityLog({
+        request,
+        title: "Login fehlgeschlagen",
+        description: "Ungueltige Login-Daten.",
+        level: "warning",
+        action: "auth.login_failed",
+        metadata: { email: loginEmail, reason: "invalid_credentials" },
+        tags: ["auth", "login", "failed"]
+      })
       return NextResponse.json(
         { ok: false, error: "E-Mail oder Passwort ist ungueltig.", code: "invalid_credentials" },
         { status: 401 }
@@ -201,6 +261,15 @@ export async function POST(request: Request) {
         entityType: "user",
         metadata: safeJson({ email: loginEmail, reason: "rate_limited", retryAfterSeconds: error.retryAfterSeconds })
       })
+      await writeSecurityLog({
+        request,
+        title: "Login limitiert",
+        description: "Zu viele Login-Versuche.",
+        level: "warning",
+        action: "auth.login_failed",
+        metadata: { email: loginEmail, reason: "rate_limited", retryAfterSeconds: error.retryAfterSeconds },
+        tags: ["auth", "login", "rate-limit"]
+      })
       return NextResponse.json(
         { ok: false, error: "Zu viele Login-Versuche. Bitte spaeter erneut versuchen.", code: "rate_limited" },
         { status: 429, headers: { "Retry-After": String(error.retryAfterSeconds) } }
@@ -225,6 +294,15 @@ export async function POST(request: Request) {
       requestContext: requestContext(request),
       entityType: "user",
       metadata: safeJson({ email: loginEmail, reason: mapped.code })
+    })
+    await writeSecurityLog({
+      request,
+      title: mapped.code === "2fa_required" ? "2FA erforderlich" : "Login fehlgeschlagen",
+      description: mapped.code === "2fa_required" ? "Login erfordert Zwei-Faktor-Authentifizierung." : "Login wurde abgelehnt.",
+      level: mapped.code === "2fa_required" ? "info" : "warning",
+      action: "auth.login_failed",
+      metadata: { email: loginEmail, reason: mapped.code },
+      tags: ["auth", "login", mapped.code === "2fa_required" ? "2fa" : "failed"]
     })
     return NextResponse.json(
       { ok: false, error: mapped.error, code: mapped.code },

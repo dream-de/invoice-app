@@ -4,7 +4,6 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
-  Activity,
   ArrowLeft,
   CheckCircle2,
   Clock3,
@@ -21,8 +20,7 @@ import {
   Monitor,
   QrCode,
   ShieldCheck,
-  UserRound,
-  XCircle
+  UserRound
 } from "lucide-react"
 import styles from "./PremiumAccountSecurityClient.module.css"
 
@@ -141,97 +139,6 @@ function deviceLabelFromUserAgent(userAgent: string) {
   return /Mobi|Android|iPhone|iPad|iPod/i.test(userAgent) ? "Mobil" : "Desktop"
 }
 
-function auditTitle(action: string) {
-  switch (action) {
-    case "auth.login_success":
-    case "auth.login": return "Anmeldung erfolgreich"
-    case "auth.login_failed": return "Anmeldung fehlgeschlagen"
-    case "auth.logout": return "Abmeldung"
-    case "account.password_changed":
-    case "account.password_update": return "Passwort geändert"
-    case "account.profile_updated":
-    case "account.profile_update": return "Profil aktualisiert"
-    case "account.2fa_setup": return "2FA vorbereitet"
-    case "account.2fa_enabled":
-    case "account.2fa_enable": return "2FA aktiviert"
-    case "account.2fa_disabled":
-    case "account.2fa_disable": return "2FA deaktiviert"
-    case "invoice.sent": return "Rechnung versendet"
-    case "invoice.finalize": return "Rechnung freigegeben"
-    case "invoice.payment": return "Zahlung erfasst"
-    case "expense.create": return "Ausgabe erfasst"
-    default: return "Unbekannte Aktivität"
-  }
-}
-
-function auditReason(reason: string | null) {
-  if (!reason) return null
-  switch (reason) {
-    case "invalid_credentials":
-      return "Falsche Anmeldedaten"
-    case "missing_credentials":
-      return "E-Mail oder Passwort fehlt"
-    case "rate_limited":
-      return "Zu viele Anmeldeversuche"
-    case "session_expired":
-      return "Sitzung abgelaufen"
-    case "unknown_error":
-      return "Unbekannter Fehler"
-    default:
-      return "Weitere Informationen verfügbar"
-  }
-}
-
-function auditTone(action: string) {
-  switch (action) {
-    case "auth.login_success":
-    case "auth.login": return "green"
-    case "auth.login_failed": return "rose"
-    case "auth.logout": return "gray"
-    case "account.password_changed":
-    case "account.password_update": return "amber"
-    case "account.profile_updated":
-    case "account.profile_update": return "blue"
-    case "account.2fa_setup": return "violet"
-    case "account.2fa_enabled":
-    case "account.2fa_enable": return "green"
-    case "account.2fa_disabled":
-    case "account.2fa_disable": return "gray"
-    case "invoice.sent": return "violet"
-    case "invoice.finalize": return "violet"
-    case "invoice.payment": return "green"
-    case "expense.create": return "amber"
-    default: return "blue"
-  }
-}
-
-function auditIcon(action: string) {
-  switch (action) {
-    case "auth.login_success":
-    case "auth.login": return CheckCircle2
-    case "auth.login_failed": return XCircle
-    case "auth.logout": return LogOut
-    case "account.password_changed":
-    case "account.password_update": return KeyRound
-    case "account.profile_updated":
-    case "account.profile_update": return UserRound
-    case "account.2fa_setup": return ShieldCheck
-    case "account.2fa_enabled":
-    case "account.2fa_enable": return ShieldCheck
-    case "account.2fa_disabled":
-    case "account.2fa_disable": return ShieldCheck
-    case "invoice.sent": return Mail
-    case "invoice.finalize": return Activity
-    case "invoice.payment": return CheckCircle2
-    case "expense.create": return Activity
-    default: return Activity
-  }
-}
-
-function auditText(entry: AuditEntry) {
-  return auditReason(entry.reason)
-}
-
 function cleanAuditValue(value: string | null | undefined) {
   const trimmed = value?.trim()
   if (!trimmed || trimmed === "Nicht verfügbar" || trimmed === "Unknown") return null
@@ -256,29 +163,6 @@ function auditMetadata(entry: AuditEntry) {
   }
 }
 
-function auditMetaText(entry: AuditEntry) {
-  const meta = auditMetadata(entry)
-  const parts = [
-    meta.accessHost ? `🌐 Zugriff: ${meta.accessHost}` : null,
-    meta.clientIp ? `🏠 Client-IP: ${meta.clientIp}` : null,
-    meta.publicIp ? `🌍 Öffentliche IP: ${meta.publicIp}` : null,
-    meta.browser || meta.os || meta.device
-      ? `🖥 ${[meta.browser, meta.os, meta.device].filter((value): value is string => Boolean(value)).join(" · ")}`
-      : null
-  ].filter((value): value is string => Boolean(value))
-
-  return parts.length ? parts.join(" · ") : "Weitere Informationen verfügbar"
-}
-
-function auditDetailText(entry: AuditEntry) {
-  const mappedReason = auditText(entry)
-  if (mappedReason) return mappedReason
-  if (entry.entity || entry.entityId) {
-    return [entry.entity, entry.entityId].filter(Boolean).join(" · ")
-  }
-  return "Weitere Informationen verfügbar"
-}
-
 export function PremiumAccountSecurityClient({ initialProfile }: { initialProfile: InitialProfile }) {
   const router = useRouter()
   const [profile, setProfile] = useState(initialProfile)
@@ -292,7 +176,6 @@ export function PremiumAccountSecurityClient({ initialProfile }: { initialProfil
   const [disablePassword, setDisablePassword] = useState("")
   const [twoFactorSetup, setTwoFactorSetup] = useState<TwoFactorSetup | null>(null)
   const [auditEntries, setAuditEntries] = useState<AuditEntry[]>([])
-  const [auditLoading, setAuditLoading] = useState(true)
   const [browserLabel, setBrowserLabel] = useState("Nicht verfügbar")
   const [osLabel, setOsLabel] = useState("Nicht verfügbar")
   const [deviceLabel, setDeviceLabel] = useState("Nicht verfügbar")
@@ -310,7 +193,6 @@ export function PremiumAccountSecurityClient({ initialProfile }: { initialProfil
     let cancelled = false
 
     async function loadAudit() {
-      setAuditLoading(true)
       try {
         const response = await fetch("/api/logs/events?limit=6", { cache: "no-store" })
         const result = await response.json().catch(() => null)
@@ -321,8 +203,6 @@ export function PremiumAccountSecurityClient({ initialProfile }: { initialProfil
         }
       } catch {
         if (!cancelled) setAuditEntries([])
-      } finally {
-        if (!cancelled) setAuditLoading(false)
       }
     }
 
@@ -474,7 +354,6 @@ export function PremiumAccountSecurityClient({ initialProfile }: { initialProfil
 
   const profileStatus = statusLabel(profile.status)
   const profileRole = roleLabel(profile.role)
-  const hasAuditEntries = auditEntries.length > 0
   const displayName = [firstName, lastName].filter(Boolean).join(" ").trim() || profile.name || profile.email
   const twoFactorState = profile.twoFactorEnabled ? "Aktiv" : "Vorbereitet"
   const latestLoginMetadata = auditEntries.find((entry) => (entry.action === "auth.login" || entry.action === "auth.login_success") && (entry.accessHost || entry.accessOrigin || entry.publicIp || entry.privateIp || entry.ipAddress || entry.browser || entry.operatingSystem || entry.deviceType))
@@ -744,50 +623,6 @@ export function PremiumAccountSecurityClient({ initialProfile }: { initialProfil
         </section>
 
       </div>
-
-      <section className={`${styles.card} ${styles.activityCard}`}>
-        <div className={styles.compactHeader}>
-          <div className={styles.cardHeader}>
-            <div className={styles.cardIcon}>
-              <Clock3 size={23} />
-            </div>
-              <div>
-                <h2>Aktivitätsprotokoll</h2>
-                <p>Letzte Aktivitäten in Ihrem Konto.</p>
-              </div>
-            </div>
-            <span className={styles.activityCounter}>{auditLoading ? "Lädt" : hasAuditEntries ? "Alle Aktivitäten" : "Leer"}</span>
-          </div>
-
-          {auditLoading ? (
-            <div className={styles.emptyState}>Aktivitätsprotokoll wird geladen ...</div>
-          ) : hasAuditEntries ? (
-            <div className={styles.activityList}>
-              {auditEntries.slice(0, 6).map((entry) => {
-                const Icon = auditIcon(entry.action)
-                const meta = auditMetaText(entry)
-                const tone = auditTone(entry.action)
-                return (
-                  <article key={entry.id} className={styles.activityItem}>
-                    <div className={styles.activityIcon} data-tone={tone} aria-hidden="true">
-                      <Icon size={15} />
-                    </div>
-                    <div className={styles.activityBody}>
-                      <div className={styles.activityTop}>
-                        <strong>{auditTitle(entry.action)}</strong>
-                        <time>{formatDateTime(entry.createdAt)}</time>
-                      </div>
-                      <p>{auditDetailText(entry)}</p>
-                      <span>{meta}</span>
-                    </div>
-                  </article>
-                )
-              })}
-            </div>
-          ) : (
-            <div className={styles.emptyState}>Noch keine protokollierten Aktivitäten vorhanden.</div>
-          )}
-      </section>
 
       <footer className={styles.securityFootnote}>
         <ShieldCheck size={18} />

@@ -11,6 +11,7 @@ import {
   updateAppUser,
   UserServiceError
 } from "@/lib/users/service"
+import { writeSecurityLog } from "@/lib/logs/auditWriter.server"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -85,6 +86,20 @@ export async function POST(request: Request) {
           permissions: user.permissions
         }
       })
+      await writeSecurityLog({
+        request,
+        title: "Benutzer erstellt",
+        description: "Admin hat einen Benutzer angelegt.",
+        level: "success",
+        actorId: actor.id,
+        actorName: actor.name,
+        actorEmail: actor.email,
+        actorRole: actor.role,
+        action: "user.create",
+        entityId: user.id,
+        metadata: { email: user.email, role: user.role, status: user.status, permissions: user.permissions },
+        tags: ["settings", "users"]
+      })
     }
 
     return NextResponse.json(isDemoMode()
@@ -113,6 +128,20 @@ export async function PATCH(request: Request) {
           permissions: user.permissions
         }
       })
+      await writeSecurityLog({
+        request,
+        title: "Benutzer aktualisiert",
+        description: "Admin hat Rolle, Status oder Berechtigungen eines Benutzers geaendert.",
+        level: "info",
+        actorId: actor.id,
+        actorName: actor.name,
+        actorEmail: actor.email,
+        actorRole: actor.role,
+        action: "user.update",
+        entityId: user.id,
+        metadata: { email: user.email, role: user.role, status: user.status, permissions: user.permissions },
+        tags: ["settings", "users", "permissions"]
+      })
     }
 
     return NextResponse.json(isDemoMode()
@@ -139,6 +168,20 @@ export async function DELETE(request: Request) {
           status: user.status,
           email: user.email
         }
+      })
+      await writeSecurityLog({
+        request,
+        title: "Benutzer geloescht",
+        description: "Admin hat einen Benutzer entfernt.",
+        level: "warning",
+        actorId: actor.id,
+        actorName: actor.name,
+        actorEmail: actor.email,
+        actorRole: actor.role,
+        action: "user.delete",
+        entityId: user.id,
+        metadata: { email: user.email, role: user.role, status: user.status },
+        tags: ["settings", "users"]
       })
     }
 

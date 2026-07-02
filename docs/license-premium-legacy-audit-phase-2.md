@@ -65,7 +65,6 @@ Direkte Felder oder Implementierungen fuer `premiumLicense`, `premium_license`, 
 - `apps/server-api/src/license/routes.ts`: Server-API-Preview-Routen `/license/activate`, `/license/verify`.
 - `apps/desktop/src/license-profile.ts`: Desktop-Profil auf Plan `free`.
 - `apps/pro-desktop/src/license-profile.ts`: Pro-Desktop-Profil auf Plan `pro`.
-- `apps/web-pro/src/index.ts`: Web-Pro-Profil auf Plan `pro`.
 
 ### Rollen, Berechtigungen und Premium-Zugriff
 
@@ -127,7 +126,7 @@ Direkte Premium-Rollen als Feld oder Enum wurden nicht gefunden. Es gibt aber fo
 - `owner` und `accountant` existieren als Legacy-Rollen in Migration/Normalisierung und werden auf `admin` bzw. `user` abgebildet.
 - `canAccessAccounting` erlaubt Accounting nur fuer `admin`.
 - `requireCurrentUserRole(["admin"])` schuetzt License APIs und Settings Users API.
-- Premium-Funktionen sind heute teilweise ueber Plan-Entitlements modelliert, teilweise nur UI-/Produktprofile: `pro-desktop`, `web-pro`, Dashboard-V2-Premium-Module.
+- Premium-Funktionen sind heute teilweise ueber Plan-Entitlements modelliert, teilweise nur UI-/Produktprofile: `pro-desktop`, Dashboard-V2-Premium-Module.
 - User-Seats sind keine Rolle, aber ein Lizenzlimit und blockieren aktive Useranlage/-aktivierung in App-Service und DB-Trigger.
 
 Phase-3-Regel: Rollen duerfen nur Berechtigungen steuern. Premium-Freischaltungen muessen aus Rollenchecks heraus und in Plan + Marketplace + Feature Flags wandern. Admin darf weiter administrative Aktionen ausfuehren, aber nicht automatisch Premium-Features besitzen.

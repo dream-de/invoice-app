@@ -72,7 +72,7 @@ import { BankConnectPage } from "./finance/bank-connect/BankConnectPage"
 import { IntegrationCenter } from "./integrations/IntegrationCenter"
 import { PremiumSettingsSectionContent } from "./settings/PremiumSettingsSectionContent"
 import { type PremiumSettingsSection } from "./settings/sectionMap"
-import { LogsPageClient } from "./_components/LogsPageClient"
+import LogsPage from "@/components/logs/LogsPage"
 import { ReportsPageClient } from "./_components/ReportsPageClient"
 import { visiblePremiumSettingsNav } from "@/lib/settings-nav"
 import { defaultFeatureFlags } from "@/lib/modules/featureFlags"
@@ -542,7 +542,7 @@ const premiumViewMeta: Record<Exclude<PremiumView, "account-security">, { title:
   settings: {
     title: "Einstellungen",
     eyebrow: "Settings",
-    description: "Zentrale Settings-Struktur mit eindeutigen Modulen, SaaS-Lizenzarchitektur und stabilen Routen.",
+    description: "Zentrale Settings-Struktur mit klaren Bereichen, SaaS-Lizenzarchitektur und stabilen Routen.",
     primary: "Einstellungen"
   },
   users: {
@@ -554,14 +554,14 @@ const premiumViewMeta: Record<Exclude<PremiumView, "account-security">, { title:
   license: {
     title: "Plan & Marketplace",
     eyebrow: "SaaS",
-    description: "Plan, Marketplace, Feature Flags und Benutzerplaetze ueberblicken.",
-    primary: "Upgrade Plan"
+    description: "Plan, Marketplace und Abrechnung verwalten.",
+    primary: "Lizenz & Abrechnung oeffnen"
   },
   "license-billing": {
     title: "Lizenz & Abrechnung",
     eyebrow: "Control Center",
-    description: "Plan, Marketplace, Feature Flags, Module, Abrechnung und Team-Lizenzen verwalten.",
-    primary: "Marketplace oeffnen"
+    description: "Gekaufte Erweiterungen und Rechnungen ueberblicken.",
+    primary: "Lizenz & Abrechnung oeffnen"
   },
   "license-admin": {
     title: "Lizenz Admin",
@@ -1301,7 +1301,7 @@ const moduleContent: Record<ModuleView, ModuleConfig> = {
     rows: [["Bankverbindungen", "PSD2 Consent", "0 verbunden", "Vorbereitet"], ["Konten", "BankAccounts Modell", "0 synchronisiert", "Inaktiv"], ["Zahlungsabgleich", "Rechnung -> Zahlung erkannt", "Automatik aus", "Vorbereitet"], ["Synchronisation", "Provider-Adapter und Sync-Status", "Nicht gestartet", "Vorbereitet"]],
     focus: [["Verbundene Banken", "0"], ["Offene Zahlungen", "0"], ["Letzte Bankbewegungen", "Keine Synchronisation"]],
     actions: [["Open Banking aktivieren", "/dashboard-v2/license-billing?q=Open%20Banking"], ["Manuelles Konto anlegen", "/dashboard-v2/finance?q=Bankkonto%20anlegen"], ["CSV Bankimport", "/dashboard-v2/finance?q=Bankimport"], ["Finanzbericht", "/dashboard-v2/finance?q=Finanzbericht"]],
-    timeline: [["Open Banking vorbereitet", "PSD2 Provider-Adapter, Feature Flags und Marketplace-Modul sind vorbereitet."], ["Zahlungsabgleich vorbereitet", "Rechnung, erkannte Zahlung und Statusupdate sind modelliert; keine Automatik aktiv."], ["Sicherheit vorbereitet", "Keine Bank-Logins, keine harten Secrets und keine echten Provider-Aufrufe."]],
+    timeline: [["Open Banking vorbereitet", "PSD2 Provider-Adapter und Marketplace-Erweiterung sind vorbereitet."], ["Zahlungsabgleich vorbereitet", "Rechnung, erkannte Zahlung und Statusupdate sind modelliert; keine Automatik aktiv."], ["Sicherheit vorbereitet", "Keine Bank-Logins, keine harten Secrets und keine echten Provider-Aufrufe."]],
     primaryHref: "/dashboard-v2/finance?q=Bankkonto%20anlegen"
   },
   "finance-bank-connect": {
@@ -1371,17 +1371,17 @@ const moduleContent: Record<ModuleView, ModuleConfig> = {
   license: {
     stats: [["Free", "Tarif"], ["100", "Rechnungen"], ["1 GB", "Speicher"]],
     rows: [["Benutzerlimit", "5 von 5 verwendet", "Voll", "Limit"], ["Dokumente im Workspace", "Geladene Dokumente", "Lokal", "Aktiv"], ["Speicher", "Nicht gemessen", "Lokal", "Info"]],
-    focus: [["Upgrade Plan", "Business"], ["Marketplace", "Erweiterungen"], ["Feature Flags", "Aktiv"]],
-    actions: [["Upgrade Plan", "/dashboard-v2/license-billing"], ["Marketplace oeffnen", "/dashboard-v2/license-billing"], ["Benutzerplaetze", "/dashboard-v2/license-billing"]],
-    timeline: [["Planmodell aktiv", "Plan, Marketplace und Feature Flags sind der bevorzugte Freischaltweg."], ["Marketplace vorbereitet", "Erweiterungen koennen installiert werden."], ["Compatibility Layer", "Legacy-Keys bleiben unter Erweiterte Aktivierung erreichbar."]],
+    focus: [["Plan", "Business"], ["Marketplace", "Erweiterungen"], ["Abrechnung", "Aktiv"]],
+    actions: [["Lizenz & Abrechnung oeffnen", "/dashboard-v2/license-billing"], ["Marketplace oeffnen", "/dashboard-v2/license-billing"], ["Rechnungen", "/dashboard-v2/license-billing?q=Rechnungen"]],
+    timeline: [["Planmodell aktiv", "Plan, Marketplace und Abrechnung sind der bevorzugte Freischaltweg."], ["Marketplace vorbereitet", "Erweiterungen koennen installiert werden."], ["Abrechnung vorbereitet", "Rechnungen und Zahlungen bleiben zentral sichtbar."]],
     primaryHref: "/dashboard-v2/license-billing"
   },
   "license-billing": {
-    stats: [["Business", "Plan"], ["12 / 20", "Benutzer"], ["10", "Aktive Module"]],
-    rows: [["Aktueller Plan", "DreamInvoice Business", "99,00 EUR / Monat", "Aktiv"], ["Marketplace", "DATEV installiert", "1 Erweiterung", "Aktiv"], ["API Nutzung", "45.223 von 100.000", "45%", "Aktiv"]],
-    focus: [["Verlaengerung", "26.07.2026"], ["Feature Flags", "Banking, API, Portal"], ["Rechnungen", "3 bezahlt"]],
-    actions: [["Marketplace oeffnen", "/dashboard-v2/license-billing"], ["Lizenz synchronisieren", "/dashboard-v2/license-billing?q=Lizenz%20synchronisiert"], ["Rechnungen", "/dashboard-v2/license-billing?q=Rechnungen"]],
-    timeline: [["Plan aktiv", "Business-Plan steuert die sichtbaren Basismodule."], ["DATEV installiert", "Marketplace-Erweiterung ist aktiv."], ["API Nutzung", "45% des Monatslimits sind verbraucht."]],
+    stats: [["Business", "Plan"], ["12 / 20", "Benutzer"], ["1", "Gekaufte Erweiterung"]],
+    rows: [["Aktueller Plan", "DreamInvoice Business", "99,00 EUR / Monat", "Aktiv"], ["Marketplace", "DATEV installiert", "1 Erweiterung", "Aktiv"], ["Rechnungen", "3 bezahlt", "Abrechnung", "Aktiv"]],
+    focus: [["Verlaengerung", "26.07.2026"], ["Marketplace", "Erweiterungen"], ["Rechnungen", "3 bezahlt"]],
+    actions: [["Marketplace oeffnen", "/dashboard-v2/license-billing"], ["Rechnungen", "/dashboard-v2/license-billing?q=Rechnungen"], ["Lizenz synchronisieren", "/dashboard-v2/license-billing?q=Lizenz%20synchronisiert"]],
+    timeline: [["Plan aktiv", "Plan, Marketplace und Abrechnung sind aktiv."], ["DATEV installiert", "Marketplace-Erweiterung ist aktiv."], ["Rechnungen bereit", "Abrechnung und Zahlungen sind zentral sichtbar."]],
     primaryHref: "/dashboard-v2/license-billing"
   },
   "license-admin": {
@@ -3088,8 +3088,8 @@ const settingsOverviewSubpoints: Record<string, string[]> = {
 
 const settingsOverviewFields: Record<string, Array<[string, string]>> = {
   company: [["Firmenname", "DreamInvoice GmbH"], ["Kontakt-E-Mail", "admin@dreaminvoice.local"], ["Adresse", "Musterstrasse 12, 10115 Berlin"], ["Steuer-ID", "DE-000000000"]],
-  locations: [["Filialname", "Hauptfiliale"], ["Filialcode", "BER-01"], ["Ansprechpartner", "Admin Team"], ["Standardfiliale", "Aktiv"]],
-  users: [["Name", "Neuer Benutzer"], ["E-Mail", "benutzer@dreaminvoice.local"], ["Rolle", "Benutzer"], ["Status", "Eingeladen"]],
+  locations: [["Filialname", "Hauptfiliale"], ["Filialcode", "BER-01"], ["Ansprechpartner", "Admin Team"]],
+  users: [["Name", "Neuer Benutzer"], ["E-Mail", "benutzer@dreaminvoice.local"], ["Rolle", "Benutzer"]],
   branding: [["Logo Datei", "dreaminvoice-logo.svg"], ["Primaerfarbe", "#6d28d9"], ["Akzentfarbe", "#2563eb"], ["Dokumentlayout", "Premium Standard"]],
   finance: [["IBAN", "DE00 0000 0000 0000 0000 00"], ["BIC", "DREAMDEB1XXX"], ["Steuersatz", "19%"], ["PayPal", "Sandbox"]],
   documents: [["Dokumenttyp", "Rechnung"], ["Vorlage", "Premium Standard"], ["Rechnungsprefix", "RE-"], ["Exportformat", "PDF"]],
@@ -3119,7 +3119,6 @@ function PremiumLicensePanel({ data, mode, searchQuery }: { data: PremiumData; m
   const shouldFocusUpgrade = normalizedQuery.includes("upgrade") || normalizedQuery.includes("benutzerlimit") || normalizedQuery.includes("marketplace")
   const planHref = withPremiumTheme("/dashboard-v2/license-billing?q=Aktueller%20Plan", mode)
   const marketplaceHref = withPremiumTheme("/dashboard-v2/license-billing?q=Marketplace", mode)
-  const seatsHref = withPremiumTheme("/dashboard-v2/license-billing?q=Team-Lizenzen", mode)
   const activationHref = withPremiumTheme("/dashboard-v2/license-billing?q=Erweiterte%20Aktivierung", mode)
 
   return (
@@ -3127,7 +3126,7 @@ function PremiumLicensePanel({ data, mode, searchQuery }: { data: PremiumData; m
       <div className={styles.panelHead}>
         <div>
           <h2>Plan & Erweiterungen</h2>
-          <span>Premium-Freischaltung laeuft ueber Plan, Marketplace und Feature Flags</span>
+          <span>Plan, Marketplace und Abrechnung verwalten</span>
         </div>
         <span className={styles.freeBadge}>{limit.plan}</span>
       </div>
@@ -3143,12 +3142,12 @@ function PremiumLicensePanel({ data, mode, searchQuery }: { data: PremiumData; m
         </div>
 
         <div className={styles.licenseUpgradeBox} data-active={shouldFocusUpgrade}>
-          <span>Plan & Benutzerplaetze</span>
+          <span>Plan & Abrechnung</span>
           <strong>{limit.currentUsers} / {limit.maxUsers} Benutzer</strong>
-          <p>{limit.maxUsers <= 5 ? "Free Plan: Upgrade Plan oder Erweiterung installieren, wenn weitere Kapazitaeten benoetigt werden." : limit.isFull ? "Limit erreicht. Upgrade Plan oder zusaetzliche Benutzerplaetze vorbereiten." : `${Math.max(limit.maxUsers - limit.currentUsers, 0)} Benutzerplaetze sind aktuell frei.`}</p>
+          <p>Gekaufte Erweiterungen und Rechnungen ueberblicken.</p>
           <div className={styles.licenseFormActions}>
-            <Link href={planHref}>Upgrade Plan</Link>
-            <Link href={seatsHref}>Benutzerplaetze</Link>
+            <Link href={planHref}>Lizenz & Abrechnung oeffnen</Link>
+            <Link href={marketplaceHref}>Marketplace oeffnen</Link>
           </div>
         </div>
       </div>
@@ -5003,7 +5002,7 @@ function PremiumWorkflowPanel({
               <div className={styles.settingsMenuFormHead}>
                 <div>
                   <strong>{activeSubpoints[0] ?? activeModule.title} bearbeiten</strong>
-                  <span>Nur Formularfelder fuer die ausgewaehlte Kategorie. Keine Statusberichte, keine Modulstatus-Karten.</span>
+                  <span>Nur Formularfelder fuer die ausgewaehlte Kategorie. Keine zusaetzlichen Berichtskarten.</span>
                 </div>
                 <button type="button">Speichern</button>
               </div>
@@ -9745,7 +9744,8 @@ function PremiumModulePage({
   }
 
   if (view === "license-billing") {
-    return <LicenseBillingControlCenter moduleContext={moduleContext} />
+    const limit = userLimitFromData(data)
+    return <LicenseBillingControlCenter moduleContext={moduleContext} billingMeta={{ nextPaymentDate: limit.validUntil }} />
   }
 
   if (view === "integrations") {
@@ -9753,7 +9753,7 @@ function PremiumModulePage({
   }
 
   if (view === "logs") {
-    return <LogsPageClient />
+    return <LogsPage />
   }
 
   return (

@@ -37,8 +37,8 @@ export default function ModuleDebugPage() {
     <main style={{ minHeight: "100vh", background: "#f6f8fb", color: "#172033", padding: 32 }}>
       <div style={{ margin: "0 auto", maxWidth: 1200 }}>
         <header style={{ marginBottom: 24 }}>
-          <p style={{ color: "#64748b", fontSize: 13, fontWeight: 700, letterSpacing: 0, margin: "0 0 6px", textTransform: "uppercase" }}>Dynamic Module Engine</p>
-          <h1 style={{ fontSize: 32, lineHeight: 1.2, margin: 0 }}>Module Debug</h1>
+          <p style={{ color: "#64748b", fontSize: 13, fontWeight: 700, letterSpacing: 0, margin: "0 0 6px", textTransform: "uppercase" }}>Dynamic App Engine</p>
+          <h1 style={{ fontSize: 32, lineHeight: 1.2, margin: 0 }}>App Debug</h1>
         </header>
 
         <section style={{ ...sectionStyle, marginBottom: 16 }}>
@@ -47,17 +47,17 @@ export default function ModuleDebugPage() {
             <div><strong>Plan:</strong> {context.plan}</div>
             <div><strong>Lizenz:</strong> {context.licenseStatus}</div>
             <div><strong>Installierte Erweiterungen:</strong> {context.installedExtensions.join(", ") || "keine"}</div>
-            <div><strong>Feature Flags:</strong> {Object.entries(context.featureFlags).filter(([, enabled]) => enabled).map(([key]) => key).join(", ") || "keine aktiv"}</div>
-            <div><strong>Registrierte Module:</strong> {appRegistry.length}</div>
+            <div><strong>Freischaltungen:</strong> {Object.entries(context.featureFlags).filter(([, enabled]) => enabled).map(([key]) => key).join(", ") || "keine aktiv"}</div>
+            <div><strong>Registrierte Apps:</strong> {appRegistry.length}</div>
             <div><strong>Open Banking usable:</strong> {openBankingUsable ? "true" : "false"}</div>
           </div>
         </section>
 
         <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
-          <ModuleList title="Sichtbare Module" items={visibleModules} />
-          <ModuleList title="Gesperrte Module" items={lockedModules} />
-          <ModuleList title="Marketplace Module" items={marketplaceModules} />
-          <ModuleList title="Sidebar Module" items={sidebarModules} />
+          <ModuleList title="Sichtbare Apps" items={visibleModules} />
+          <ModuleList title="Gesperrte Apps" items={lockedModules} />
+          <ModuleList title="Marketplace Apps" items={marketplaceModules} />
+          <ModuleList title="Sidebar Apps" items={sidebarModules} />
           <ModuleList title="Dashboard Module" items={dashboardModules} />
         </div>
       </div>

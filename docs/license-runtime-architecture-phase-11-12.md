@@ -5,8 +5,6 @@ Status: vorbereitet, nicht produktiv umgeschaltet.
 ## Runtime-Aufbau
 
 - `apps/web` bleibt aktive Runtime auf Port 3012.
-- `apps/web-pro` bleibt Preview-Runtime auf Port 3020.
-- `apps/web-pro` nutzt weiterhin die bestehende Dashboard-v2/PremiumWorkspace-Struktur aus `apps/web` und keine eigene Mini-App-Shell.
 - Zentrale Premium-Definitionen liegen in `packages/premium/src/license-billing.ts`.
 
 ## Lizenzarchitektur
@@ -58,11 +56,4 @@ Bereiche dort:
 
 ## Docker-Vorbereitung
 
-Vorbereitet, aber nicht aktiv umgestellt:
-
-- `docker/Dockerfile.web-pro`
-- `docker-compose.web-pro.example.yml`
-- `apps/web-pro/.env.example`
-- `apps/web-pro/src/app/api/health/route.ts`
-
-Port 3012 bleibt unveraendert bei `apps/web`; Web-Pro Preview verwendet 3020.
+Port 3012 bleibt unveraendert bei `apps/web`.

@@ -28,6 +28,14 @@ out/
 # Logs and reports
 # ---------------------------------------------------------
 logs/
+!apps/web/src/app/dashboard-v2/logs/
+!apps/web/src/app/dashboard-v2/logs/**
+!apps/web/src/app/api/logs/
+!apps/web/src/app/api/logs/**
+!apps/web/src/components/logs/
+!apps/web/src/components/logs/**
+!apps/web/src/lib/logs/
+!apps/web/src/lib/logs/**
 *.log
 *.log.*
 debug.log

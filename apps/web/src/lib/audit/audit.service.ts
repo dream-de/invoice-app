@@ -104,7 +104,7 @@ function serializeAuditLog(row: Prisma.AuditLogGetPayload<Record<string, never>>
     description: row.description ?? row.reason ?? "",
     actor: {
       actorId: row.actorId ?? undefined,
-      actorName: row.actorName,
+      actorName: row.actorName ?? "System",
       actorRole: row.actorRole ?? "System"
     },
     moduleKey: row.moduleKey ?? undefined,

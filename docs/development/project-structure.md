@@ -30,7 +30,6 @@ assets, and tests.
 | `apps/demo` | Demo app or demo-specific entry point. |
 | `apps/desktop` and `apps/pro-desktop` | Desktop app targets. |
 | `apps/server`, `apps/server-api`, `apps/server-worker` | Backend/server-oriented services. |
-| `apps/web-pro` | Pro web variant or future pro app surface. |
 
 ## Packages
 

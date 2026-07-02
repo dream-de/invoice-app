@@ -55,7 +55,7 @@ export function parseAuditLogInput(value: unknown): Partial<AuditLogInput> {
           : text(input.severity) === "success"
             ? "success"
             : "info",
-    title: text(input.title) ?? "Audit Event",
+    title: text(input.title) ?? "Audit Log",
     description: text(input.description) ?? null,
     moduleKey: text(input.moduleKey) ?? null,
     integrationKey: text(input.integrationKey) ?? null,

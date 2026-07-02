@@ -15,7 +15,6 @@ apps/
   server-api/     API companion workspace.
   desktop/        Desktop workspace.
   pro-desktop/    Pro desktop workspace.
-  web-pro/        Pro web workspace.
 ```
 
 ## Packages

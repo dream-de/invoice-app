@@ -2,46 +2,7 @@ import type { AuditEvent, AuditEventInput, AuditEventListener, AuditSource } fro
 import type { AuditEventType } from "./auditTypes"
 
 // TODO: Backend-backed immutable audit log storage implementieren.
-const auditEvents: AuditEvent[] = [
-  {
-    id: "seed-auth-login",
-    timestamp: new Date(Date.now() - 1000 * 60 * 8).toISOString(),
-    type: "license_synced",
-    source: "billing",
-    severity: "success",
-    title: "Lizenz synchronisiert",
-    description: "Mock-Lizenzdaten wurden fuer das Audit Center initialisiert.",
-    actor: { actorId: "mock-system", actorName: "System", actorRole: "Mock" },
-    licensePlan: "business",
-    ipAddress: "127.0.0.1",
-    requestId: "seed-license-sync"
-  },
-  {
-    id: "seed-open-banking-sync",
-    timestamp: new Date(Date.now() - 1000 * 60 * 18).toISOString(),
-    type: "open_banking_sync_success",
-    source: "open_banking",
-    severity: "success",
-    title: "Open-Banking-Sync erfolgreich",
-    description: "Demo-Transaktionen wurden fuer die Live-Ansicht synchronisiert.",
-    actor: { actorId: "mock-system", actorName: "System", actorRole: "Mock" },
-    moduleKey: "open_banking",
-    integrationKey: "open_banking",
-    metadata: { recordsProcessed: 12 }
-  },
-  {
-    id: "seed-marketplace-datev",
-    timestamp: new Date(Date.now() - 1000 * 60 * 35).toISOString(),
-    type: "marketplace_module_installed",
-    source: "marketplace",
-    severity: "success",
-    title: "Marketplace-Modul installiert",
-    description: "datev wurde als installierte Demo-Erweiterung registriert.",
-    actor: { actorId: "mock-system", actorName: "System", actorRole: "Mock" },
-    moduleKey: "datev",
-    integrationKey: "datev"
-  }
-]
+const auditEvents: AuditEvent[] = []
 
 const listeners = new Set<AuditEventListener>()
 

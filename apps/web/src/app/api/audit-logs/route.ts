@@ -62,7 +62,7 @@ export async function POST(request: Request) {
       type: parsed.type ?? "system_event",
       source: parsed.source ?? "system",
       severity: parsed.severity ?? "info",
-      title: parsed.title ?? "Audit Event",
+      title: parsed.title ?? "Audit Log",
       description: parsed.description ?? null,
       moduleKey: parsed.moduleKey ?? null,
       integrationKey: parsed.integrationKey ?? null,

@@ -5,6 +5,7 @@ import { logBackendAuditEvent } from "@/lib/audit/backendAuditEventWriter"
 import { getAuditRequestMetadata } from "@/lib/audit/request-metadata"
 import { getCurrentUser } from "@/lib/auth/service"
 import { SESSION_COOKIE_NAME, getSessionCookieOptions } from "@/lib/auth/session"
+import { writeAuthLog } from "@/lib/logs/auditWriter.server"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -30,6 +31,20 @@ export async function POST(request: Request) {
       entityType: "user",
       entityId: current.id,
       metadata: safeJson({ email: current.email })
+    })
+    await writeAuthLog({
+      request,
+      title: "Logout",
+      description: "Benutzer wurde abgemeldet.",
+      level: "info",
+      actorId: current.id,
+      actorName: current.name,
+      actorEmail: current.email,
+      actorRole: current.role,
+      action: "auth.logout",
+      entityId: current.id,
+      metadata: { email: current.email },
+      tags: ["auth", "logout"]
     })
   }
 

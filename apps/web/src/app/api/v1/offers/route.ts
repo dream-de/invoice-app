@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
 import { apiKeyHash } from "@/lib/tenant/context"
+import { withApiAuditLog } from "@/lib/logs/withAuditLog.server"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -10,7 +11,7 @@ function bearer(request: Request) {
   return header.toLowerCase().startsWith("bearer ") ? header.slice(7).trim() : ""
 }
 
-export async function GET(request: Request) {
+async function getOffers(request: Request) {
   const token = bearer(request)
   if (!token) return NextResponse.json({ ok: false, error: "API Key erforderlich." }, { status: 401 })
   const hash = apiKeyHash(token)
@@ -21,3 +22,9 @@ export async function GET(request: Request) {
   await prisma.$executeRawUnsafe('UPDATE "ApiKey" SET "lastUsedAt" = CURRENT_TIMESTAMP WHERE "keyHash" = $1', hash)
   return NextResponse.json({ ok: true, entity: "offers", data: rows })
 }
+
+export const GET = withApiAuditLog(getOffers, {
+  module: "quotes",
+  title: "API Angebote abgerufen",
+  description: "Externe API hat Angebote abgerufen."
+})

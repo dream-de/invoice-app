@@ -8,6 +8,7 @@ import { mapAuthError, requireCurrentUser } from "@/lib/auth/service"
 import { assertStrongPassword, hashPassword, PasswordError, verifyPassword } from "@/lib/auth/password"
 import { appendNotification } from "@/lib/notifications/store"
 import { demoModeResponse, isDemoMode } from "@/lib/demo-mode"
+import { writeAuthLog, writeSecurityLog } from "@/lib/logs/auditWriter.server"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -30,6 +31,20 @@ export async function PATCH(request: Request) {
 
     const user = await prisma.user.findUnique({ where: { id: current.id } })
     if (!user || !await verifyPassword(currentPassword, user.passwordHash)) {
+      await writeSecurityLog({
+        request,
+        title: "Passwortaenderung fehlgeschlagen",
+        description: "Aktuelles Passwort war ungueltig.",
+        level: "warning",
+        actorId: current.id,
+        actorName: current.name,
+        actorEmail: current.email,
+        actorRole: current.role,
+        action: "account.password_update_failed",
+        entityId: current.id,
+        metadata: { reason: "invalid_current_password" },
+        tags: ["auth", "password"]
+      })
       return NextResponse.json({ ok: false, error: "Das aktuelle Passwort ist ungueltig." }, { status: 401 })
     }
 
@@ -75,6 +90,20 @@ export async function PATCH(request: Request) {
       href: "/dashboard-v2/account/security",
       source: "password-update:" + current.id + ":" + Date.now()
     }).catch(() => null)
+    await writeAuthLog({
+      request,
+      title: "Passwort geaendert",
+      description: "Benutzer hat das Kontopasswort geaendert.",
+      level: "success",
+      actorId: current.id,
+      actorName: current.name,
+      actorEmail: current.email,
+      actorRole: current.role,
+      action: "account.password_update",
+      entityId: current.id,
+      metadata: { email: current.email },
+      tags: ["auth", "password"]
+    })
 
     return NextResponse.json({ ok: true })
   } catch (error) {
