@@ -1,0 +1,86 @@
+.darkLogs {
+  background: #0b1120 !important;
+  color: #e5edf8 !important;
+}
+
+.darkLogs :global(.bg-white),
+.darkLogs :global(.bg-white\/95),
+.darkLogs :global(.bg-slate-50),
+.darkLogs :global(.bg-slate-50\/50),
+.darkLogs :global(.bg-slate-50\/60) {
+  background: #111827 !important;
+}
+
+.darkLogs :global(.bg-slate-100),
+.darkLogs :global(.bg-blue-50\/70) {
+  background: rgba(30, 41, 59, 0.92) !important;
+}
+
+.darkLogs :global(.bg-emerald-50),
+.darkLogs :global(.bg-emerald-50\/45) {
+  background: rgba(6, 78, 59, 0.28) !important;
+}
+
+.darkLogs :global(.bg-red-50),
+.darkLogs :global(.bg-red-50\/55) {
+  background: rgba(127, 29, 29, 0.28) !important;
+}
+
+.darkLogs :global(.bg-amber-50),
+.darkLogs :global(.bg-amber-50\/60) {
+  background: rgba(120, 53, 15, 0.28) !important;
+}
+
+.darkLogs :global(.bg-blue-50),
+.darkLogs :global(.bg-blue-50\/45) {
+  background: rgba(30, 64, 175, 0.28) !important;
+}
+
+.darkLogs :global(.bg-violet-50),
+.darkLogs :global(.bg-violet-50\/45) {
+  background: rgba(76, 29, 149, 0.28) !important;
+}
+
+.darkLogs :global(.border-slate-100),
+.darkLogs :global(.border-slate-200),
+.darkLogs :global(.border-blue-200),
+.darkLogs :global(.border-blue-300),
+.darkLogs :global(.border-emerald-100),
+.darkLogs :global(.border-emerald-200),
+.darkLogs :global(.border-red-100),
+.darkLogs :global(.border-red-200),
+.darkLogs :global(.border-amber-100),
+.darkLogs :global(.border-violet-100) {
+  border-color: rgba(148, 163, 184, 0.24) !important;
+}
+
+.darkLogs :global(.text-slate-950),
+.darkLogs :global(.text-slate-900),
+.darkLogs :global(.text-slate-800) {
+  color: #f8fafc !important;
+}
+
+.darkLogs :global(.text-slate-700),
+.darkLogs :global(.text-slate-600) {
+  color: #cbd5e1 !important;
+}
+
+.darkLogs :global(.text-slate-500),
+.darkLogs :global(.text-slate-400) {
+  color: #94a3b8 !important;
+}
+
+.darkLogs :global(input::placeholder) {
+  color: #94a3b8 !important;
+}
+
+.darkLogs :global(.shadow-sm),
+.darkLogs :global(.shadow-lg) {
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.28) !important;
+}
+
+.darkLogs :global(input),
+.darkLogs :global(select),
+.darkLogs :global(button) {
+  color-scheme: dark;
+}

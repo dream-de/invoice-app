@@ -8,6 +8,7 @@ import { LogDetails } from "./LogDetails"
 import { LogStats } from "./LogStats"
 import { LogTimeline } from "./LogTimeline"
 import { LogToolbar } from "./LogToolbar"
+import styles from "./LogsPage.module.css"
 
 function liveStatus(liveSettings: ReturnType<typeof useLiveLogs>["liveSettings"]) {
   if (!liveSettings.autoRefresh) {
@@ -38,7 +39,7 @@ function exportLabel(format: ExportFormat) {
   return format.toUpperCase()
 }
 
-export function LogsPage() {
+export function LogsPage({ theme = "light" }: { theme?: "dark" | "light" }) {
   const logs = useLiveLogs()
   const status = liveStatus(logs.liveSettings)
   const initialLoading = logs.loading && logs.logs.length === 0
@@ -51,7 +52,7 @@ export function LogsPage() {
   ]
 
   return (
-    <main className="min-h-screen max-w-full overflow-x-hidden bg-slate-50 px-4 py-6 text-slate-950 sm:px-6 lg:px-8">
+    <main className={`min-h-screen max-w-full overflow-x-hidden bg-slate-50 px-4 py-6 text-slate-950 sm:px-6 lg:px-8 ${theme === "dark" ? styles.darkLogs : ""}`}>
       <div className="mx-auto flex w-full max-w-full flex-col gap-5 2xl:max-w-[1720px]">
         <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>

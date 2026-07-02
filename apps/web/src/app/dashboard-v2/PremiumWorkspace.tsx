@@ -9740,7 +9740,7 @@ function PremiumModulePage({
   }
 
   if (view === "reports") {
-    return <ReportsPageClient />
+    return <ReportsPageClient theme={mode} />
   }
 
   if (view === "license-billing") {
@@ -9753,7 +9753,7 @@ function PremiumModulePage({
   }
 
   if (view === "logs") {
-    return <LogsPage />
+    return <LogsPage theme={mode} />
   }
 
   return (

@@ -32,31 +32,24 @@ Live Demo: [demo.dream-invoice.com](http://demo.dream-invoice.com)
 
 All demo data is fictional. Changes are simulated and are not saved permanently.
 
-![DreamInvoice dashboard](docs/assets/screenshots/dashboard.jpg)
-
-![DreamInvoice documents](docs/assets/screenshots/documents.jpg)
-
-![DreamInvoice articles](docs/assets/screenshots/articles.jpg)
 
 ## Premium Edition Screenshots
 
-The Premium Edition extends the main DreamInvoice workspace with licensing, marketplace, security, audit, and administration views.
+| Dashboard | Lizenz & Abrechnung |
+|---|---|
+| ![Dashboard](docs/screenshots/premium/dashboard-v2.png) | ![License](docs/screenshots/premium/license-billing.png) |
 
-![DreamInvoice Premium dashboard](docs/screenshots/premium/dashboard-v2.png)
+| Marketplace | Audit Logs |
+|---|---|
+| ![Marketplace](docs/screenshots/premium/marketplace.png) | ![Audit Logs](docs/screenshots/premium/audit-logs.png) |
 
-![DreamInvoice License billing](docs/screenshots/premium/license-billing.png)
+| Benutzer & Rechte | Sicherheit |
+|---|---|
+| ![Users](docs/screenshots/premium/users-permissions.png) | ![Security](docs/screenshots/premium/security.png) |
 
-![DreamInvoice Marketplace](docs/screenshots/premium/marketplace.png)
-
-![DreamInvoice Audit logs](docs/screenshots/premium/audit-logs.png)
-
-![DreamInvoice Users and permissions](docs/screenshots/premium/users-permissions.png)
-
-![DreamInvoice Settings](docs/screenshots/premium/settings.png)
-
-![DreamInvoice Security](docs/screenshots/premium/security.png)
-
-![DreamInvoice Logs](docs/screenshots/premium/logs.png)
+| Einstellungen | Logs |
+|---|---|
+| ![Settings](docs/screenshots/premium/settings.png) | ![Logs](docs/screenshots/premium/logs.png) |
 
 ## Features
 

@@ -33,7 +33,7 @@ function toCsv(rows: Array<Record<string, string>>) {
   return [headers.join(";"), ...values].join("\n")
 }
 
-export function ReportsPageClient() {
+export function ReportsPageClient({ theme = "light" }: { theme?: "dark" | "light" }) {
   const [dateFrom, setDateFrom] = useState("2026-06-01")
   const [dateTo, setDateTo] = useState("2026-06-26")
   const [calendarOpen, setCalendarOpen] = useState(false)
@@ -69,7 +69,7 @@ export function ReportsPageClient() {
   }
 
   return (
-    <div className={styles.rlPage}>
+    <div className={`${styles.rlPage} ${theme === "dark" ? styles.darkReports : ""}`}>
       <div className={styles.rlHeader}>
         <div>
           <h1>Berichte</h1>
