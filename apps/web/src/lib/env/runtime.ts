@@ -110,6 +110,7 @@ export function validateRuntimeEnv(env: RuntimeEnv = process.env): RuntimeEnvVal
   validateIntegerEnv(env, "DREAM_INVOICE_LOGIN_WINDOW_MS", 60_000, 60 * 60 * 1000, issues)
   validateIntegerEnv(env, "DREAM_INVOICE_LOGIN_MAX_ATTEMPTS", 1, 100, issues)
 
+  // Showcase mode intentionally runs against DATABASE_URL. Only database-backed demo mode is forbidden.
   if (envFlag(env, "DREAM_INVOICE_DEMO_MODE") === true && envValue(env, "DATABASE_URL")) {
     issues.push({
       code: "demo_mode_with_database",

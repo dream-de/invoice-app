@@ -1,0 +1,52 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: dream_invoice_main
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: dream_invoice_demo
+    volumes:
+      - dream_invoice_demo_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dream_invoice_main -d dream_invoice_demo"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  demo-app:
+    env_file:
+      - .env.demo
+
+    image: ${DREAM_INVOICE_IMAGE:-dream-invoice-main:main}
+    restart: unless-stopped
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    environment:
+      NODE_ENV: production
+      PORT: 3011
+      NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-Dream Invoice}
+      AUTH_SECRET: ${AUTH_SECRET:?Set AUTH_SECRET in .env}
+      AUTH_COOKIE_SECURE: "false"
+      DREAM_INVOICE_SHOWCASE_MODE: "true"
+      DATABASE_URL: postgresql://dream_invoice_main:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/dream_invoice_demo
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3011}
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
+
+    entrypoint: ["sh", "-c"]
+    command: ["pnpm --filter @dream-invoice/web exec next start -H 0.0.0.0 -p 3011"]
+
+    ports:
+      - "3011:3011"
+
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3011/dashboard').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+volumes:
+  dream_invoice_demo_postgres:

@@ -4,6 +4,14 @@ export function isDemoMode() {
   return process.env.DREAM_INVOICE_DEMO_MODE === "true"
 }
 
+export function isShowcaseMode() {
+  return process.env.DREAM_INVOICE_SHOWCASE_MODE === "true"
+}
+
+export function isReadonlyShowcaseMode() {
+  return process.env.DREAM_INVOICE_SHOWCASE_READONLY_MODE === "true"
+}
+
 export const DEMO_LOGIN_EMAIL = "demo@example.com"
 export const DEMO_LOGIN_PASSWORD = "dreaminvoice"
 
