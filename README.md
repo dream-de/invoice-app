@@ -23,9 +23,9 @@ The application can be used as a self-hosted web app and includes an isolated pu
 
 ## Live Demo
 
-Demo: [http://demo.dream-invoice.com:3001](http://demo.dream-invoice.com:3001)
+Live Demo: [demo.dream-invoice.com](http://demo.dream-invoice.com)
 
-Demo access:
+### Demo Access
 
 - Email: `demo@example.com`
 - Password: `dreaminvoice`
@@ -37,6 +37,26 @@ All demo data is fictional. Changes are simulated and are not saved permanently.
 ![DreamInvoice documents](docs/assets/screenshots/documents.jpg)
 
 ![DreamInvoice articles](docs/assets/screenshots/articles.jpg)
+
+## Premium Edition Screenshots
+
+The Premium Edition extends the main DreamInvoice workspace with licensing, marketplace, security, audit, and administration views.
+
+![DreamInvoice Premium dashboard](docs/screenshots/premium/dashboard-v2.png)
+
+![DreamInvoice License billing](docs/screenshots/premium/license-billing.png)
+
+![DreamInvoice Marketplace](docs/screenshots/premium/marketplace.png)
+
+![DreamInvoice Audit logs](docs/screenshots/premium/audit-logs.png)
+
+![DreamInvoice Users and permissions](docs/screenshots/premium/users-permissions.png)
+
+![DreamInvoice Settings](docs/screenshots/premium/settings.png)
+
+![DreamInvoice Security](docs/screenshots/premium/security.png)
+
+![DreamInvoice Logs](docs/screenshots/premium/logs.png)
 
 ## Features
 
@@ -75,7 +95,7 @@ chmod +x scripts/install.sh scripts/status.sh
 The installer creates a private `.env`, pulls the published image `ghcr.io/dream-de/invoice-app:latest`, starts PostgreSQL, and starts the web app. Open the app at:
 
 ```text
-http://SERVER-IP:3010
+http://SERVER-IP:3012
 ```
 
 For the first local HTTP start, deployment Basic Auth is disabled so the setup screen opens directly. Create the first owner account in the browser, then enable deployment protection before exposing the installation:
