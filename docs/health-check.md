@@ -4,21 +4,21 @@
 
 `GET /api/health`
 
-## Antwort
+## Response
 
 ```json
 {
   "application": "ok",
   "database": "ok",
   "storage": "ok",
-  "timestamp": "2026-06-17T00:00:00.000Z"
+  "time": "ISO-8601 time"
 }
 ```
 
 ## Monitoring
 
-Der Endpoint eignet sich fuer externe Uptime-Checks und interne Smoke-Tests. HTTP 200 bedeutet, dass Anwendung, Datenbank und Speicher grundsaetzlich verfuegbar sind. HTTP 503 signalisiert eine kritische Stoerung.
+The endpoint is suitable for uptime checks. HTTP 200 means the application, database, and storage are available. HTTP 503 signals a critical service issue.
 
-## Wartungsmodus
+## Maintenance Mode
 
-Der Wartungsmodus ist ueber `DREAM_INVOICE_MAINTENANCE_MODE=true` vorbereitet. Die Wartungsseite ist unter `/maintenance` erreichbar. Administratorzugriff bleibt fachlich vorgesehen; produktive Aktivierung sollte zusammen mit der finalen Auth-/Proxy-Regel erfolgen.
+Maintenance mode can be enabled with `DREAM_INVOICE_MAINTENANCE_MODE=true`. The maintenance page is available at `/maintenance`.

@@ -1,13 +1,11 @@
 # Automatisierung & Workflows
 
-Status: aktiv vorbereitet
+## Scope
 
-Scope:
-- Persistente Workflow-Regeln ueber `/api/automation/workflows`.
-- Wiederkehrende Rechnungen fuer taeglich, woechentlich, monatlich, jaehrlich und benutzerdefiniert.
-- Zahlungserinnerungen vor Faelligkeit, am Faelligkeitstag und nach Faelligkeit.
-- Mahnwesen mit Mahnstufe 1 bis 3.
-- Dashboard-Karten fuer aktive Workflows, offene Erinnerungen und ueberfaellige Rechnungen.
+- Persistent workflow rules through `/api/automation/workflows`.
+- Recurring invoices for daily, weekly, monthly, yearly, and custom schedules.
+- Payment reminders before due date, on due date, and after due date.
+- Dunning levels from 1 to 3.
+- Dashboard cards for active workflows, open reminders, and overdue invoices.
 
-Hinweis:
-Die Phase stellt Konfiguration, Persistenz und Bedienoberflaeche bereit. Ein Hintergrund-Job-Scheduler fuer automatischen Versand bleibt bewusst getrennt.
+Background scheduling is intentionally handled separately from workflow configuration.

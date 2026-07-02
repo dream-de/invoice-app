@@ -22,15 +22,15 @@ Der private Key erstellt die Lizenz. Die App prueft mit dem oeffentlichen Key.
 Dadurch kann eine Lizenz nicht einfach im Browser oder in der Datenbank gefaelscht
 werden.
 
-## GitHub-Regel
+## Repository-Regel
 
-Vor einem oeffentlichen Repository pruefen wir:
+Vor einer Veroeffentlichung pruefen:
 
 - keine privaten Keys
 - keine echten Kundendaten
 - keine echten IBANs oder E-Mails
 - keine lokalen Server-Pfade mit Secrets
-- keine Backup-Dateien mit sensiblen Inhalten
+- keine Archive mit sensiblen Inhalten
 
 ## Empfehlung
 

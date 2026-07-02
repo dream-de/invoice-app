@@ -47,7 +47,7 @@ Use this checklist before handing over a Dream Invoice installation.
 
 ## 5. Data And Backups
 
-- [ ] Database migrations are applied
+- [ ] Database schema updates are applied
 - [ ] Backup schedule exists
 - [ ] Restore procedure was tested
 - [ ] Backups are stored outside the application directory

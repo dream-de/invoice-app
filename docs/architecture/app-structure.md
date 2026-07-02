@@ -21,7 +21,7 @@ apps/
 
 ```text
 packages/
-  database/          Prisma schema, migrations, and client exports.
+  database/          Prisma schema, schema history, and client exports.
   ui/                Shared UI building blocks and design tokens.
   auth/              Roles, request guards, and auth-related helpers.
   licensing/         Signed license verification and entitlement helpers.

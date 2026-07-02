@@ -6,7 +6,7 @@ This roadmap describes the current product direction for Dream Invoice.
 
 - Keep installation simple for self-hosted deployments
 - Keep demo and landing-page services separate from the product stack
-- Keep Docker, environment, and migration flows easy to verify
+- Keep Docker, environment, and database update flows easy to verify
 - Improve documentation where setup or operation is unclear
 
 ## App Workflows
@@ -26,7 +26,7 @@ This roadmap describes the current product direction for Dream Invoice.
 ## Operations
 
 - Improve backup and restore guidance
-- Improve deployment smoke tests
+- Improve deployment verification checks
 - Keep Docker health checks and status scripts useful
 - Improve release notes and update guidance
 

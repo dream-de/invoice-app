@@ -27,11 +27,9 @@ pnpm docker:dev:ps
 pnpm docker:dev:logs
 ```
 
-## Local URLs
+## Local Services
 
-- Mailpit inbox: http://localhost:8025
-- Adminer: http://localhost:8081
-- PostgreSQL host port: 55433
+The development stack exposes database, email, and admin helper services using values from `docker/development/.env.example`. Adjust those values when you need custom ports or credentials.
 
 ## Database Connection
 
@@ -43,24 +41,10 @@ Use these values in Adminer:
 - Password: dream_invoice_dev_password
 - Database: dream_invoice
 
-From the host machine, use:
-
-```text
-postgresql://dream_invoice:dream_invoice_dev_password@127.0.0.1:55433/dream_invoice
-```
-
 ## Email Testing
 
-Use Mailpit SMTP from the host machine:
-
-```text
-SMTP_HOST=127.0.0.1
-SMTP_PORT=1025
-SMTP_SECURE=false
-```
-
-Emails are captured by Mailpit and can be reviewed in the browser. No real customer emails are sent.
+Mailpit captures development emails so no real customer emails are sent.
 
 ## Notes
 
-Dream Invoice currently supports PostgreSQL for the official development database. MySQL, SQLite, and Gotenberg compose variants are intentionally not part of this setup until they are tested and supported.
+Dream Invoice currently supports PostgreSQL for the official development database. MySQL, SQLite, and Gotenberg compose variants are not part of the supported development stack.

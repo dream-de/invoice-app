@@ -15,7 +15,7 @@ Security-sensitive reports should not include credentials, license signing keys,
 
 ## Supported Versions
 
-Until a stable versioning policy is available, security fixes are handled on the main branch.
+Until a stable versioning policy is available, security fixes are handled through the default repository workflow.
 
 ## Secret Handling
 

@@ -1,25 +1,14 @@
 # Finance
 
-Status: geplant
+## Purpose
 
-Zweck:
-Vorbereitung fuer Zahlungs-, Banken- und Abstimmungsfunktionen ohne aktive Provider-Anbindung.
+Payment, banking, and reconciliation workflows.
 
-Aktueller Scope:
-- Nur Struktur und Dokumentation.
-- Keine API-Endpunkte.
-- Keine Datenbankmigration.
-- Keine Provider-Secrets.
-- Keine aktive UI-Integration.
+## Areas
 
-Spaetere Unterbereiche:
-- Bankkonten
-- Zahlungsarten
+- Bank accounts
+- Payment methods
 - PayPal
 - Stripe
 - Open Banking
-- Zahlungsabgleich
-
-Geplante Anbindung:
-- Das Premium-Settings-Dashboard kann spaeter dieses Modul ueber `config.ts` einlesen.
-- Die konkrete UI-Anbindung erfolgt in einer separaten Phase.
+- Reconciliation

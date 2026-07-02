@@ -24,7 +24,7 @@ Keep the package public when you want unauthenticated self-hosted installs from 
 Use the installer for a new LXC or server:
 
 ```bash
-git clone https://github.com/dream-de/invoice-app.git dream-invoice
+git clone <repository-url> dream-invoice
 cd dream-invoice
 chmod +x scripts/install.sh scripts/status.sh
 ./scripts/install.sh
@@ -32,11 +32,7 @@ chmod +x scripts/install.sh scripts/status.sh
 
 The installer creates a local `.env` with generated secrets, pulls the product image, starts PostgreSQL, and starts the web app.
 
-Open:
-
-```text
-http://SERVER-IP:3010
-```
+Open the configured application URL in a browser.
 
 Create the first owner account in the browser. After that, the initial setup route closes automatically.
 
@@ -84,7 +80,7 @@ The default stack starts:
 - PostgreSQL
 - Dream Invoice web app
 
-The included Nginx container is optional and only starts with the `proxy` profile:
+The included Nginx service is optional and only starts with the `proxy` profile:
 
 ```bash
 docker compose --profile proxy up -d
@@ -132,11 +128,11 @@ Set the public app URL in `.env` when the deployment uses a domain.
 
 ## 7. Network Binding
 
-For a single-server install, bind PostgreSQL to localhost or leave it reachable only inside Docker. If the database is hosted elsewhere, use firewall rules or a restricted network between the app and database.
+For a single-server install, keep PostgreSQL reachable only from the intended private network or Docker network. If the database is hosted elsewhere, use firewall rules or a restricted network between the app and database.
 
 ## 8. Database And Backups
 
-In Docker, migrations are applied through the app startup flow. Keep regular PostgreSQL backups and test restore steps before relying on them.
+In Docker, database schema updates are applied through the app startup flow. Keep regular PostgreSQL archives and test restore steps before relying on them.
 
 Example backup:
 
@@ -171,7 +167,7 @@ docker compose -f docker-compose.yml -f docker-compose.build.yml up -d --build w
 
 ## 10. System Time
 
-Keep the server clock synchronized with NTP. License expiry, audit timestamps, sessions, invoices, reminders, and email logs depend on correct time.
+Keep the server clock synchronized with NTP. License expiry, audit event times, sessions, invoices, reminders, and email logs depend on correct time.
 
 ## 11. Handover Checks
 

@@ -7,12 +7,10 @@ Support for Dream Invoice is currently best-effort.
 - Read the README for install and command overview
 - Use `docs/deployment/production.md` for deployment setup
 - Use `docs/operations/runbook.md` for operational checks
-- Use `docs/testing.md` for local verification
 
 ## Useful Diagnostics
 
 ```bash
-git status --short --branch
 docker compose ps
 docker compose logs --tail=200 web-app
 docker compose logs --tail=200 nginx
@@ -30,4 +28,4 @@ When reporting a bug, include:
 - Relevant logs without credentials
 - Browser and deployment type, if relevant
 
-For security-sensitive findings, use the process in `SECURITY.md`.
+For security-sensitive findings, use the process in [SECURITY.md](./SECURITY.md).

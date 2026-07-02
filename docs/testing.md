@@ -1,10 +1,10 @@
 # Testing
 
-This page lists the checks used for Dream Invoice development, release candidates, and deployment verification.
+This page lists public verification checks for Dream Invoice development, release candidates, and deployment reviews.
 
 ## Full Quality Gate
 
-Run the full local gate before important commits or release candidates:
+Run the full local gate before important changes or release candidates:
 
 ```bash
 pnpm release:quality
@@ -37,28 +37,29 @@ Database client generation:
 pnpm --filter @dream-invoice/database db:generate
 ```
 
-Database migrations:
+Database schema deployment:
 
 ```bash
 pnpm --filter @dream-invoice/database db:deploy
 ```
 
-## Smoke Tests
+## Smoke Checks
 
-Use HTTP smoke tests after starting the app:
+Use the configured application URL for deployment checks:
 
 ```bash
-curl -s -o /dev/null -w "%{http_code} /\n" http://127.0.0.1:3010/
-curl -s -o /dev/null -w "%{http_code} /dashboard\n" http://127.0.0.1:3010/dashboard
-curl -s -o /dev/null -w "%{http_code} /documents\n" http://127.0.0.1:3010/documents
-curl -s -o /dev/null -w "%{http_code} /settings\n" http://127.0.0.1:3010/settings
+APP_URL="https://your-domain.example"
+curl -s -o /dev/null -w "%{http_code} /\n" "$APP_URL/"
+curl -s -o /dev/null -w "%{http_code} /dashboard\n" "$APP_URL/dashboard"
+curl -s -o /dev/null -w "%{http_code} /documents\n" "$APP_URL/documents"
+curl -s -o /dev/null -w "%{http_code} /settings\n" "$APP_URL/settings"
 ```
 
-Expected protected routes may redirect to login when no session exists.
+Protected routes may redirect to login when no session exists.
 
-## Workflow Tests
+## Workflow Checks
 
-Use focused workflow tests for:
+Use focused workflow checks for:
 
 - Login and logout
 - First owner setup

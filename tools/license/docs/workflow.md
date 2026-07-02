@@ -42,11 +42,6 @@ Nach erfolgreicher Pruefung wird nur der sichere Lizenzstatus gespeichert:
 Die UI liest nur freigegebene Lizenzinformationen. Kritische Entscheidungen
 bleiben serverseitig.
 
-## 5. Spaetere Erweiterung
+## 5. Lizenz verwalten
 
-Moegliche naechste Schritte:
-
-- Lizenz-Status sichtbar in den Systemeinstellungen anzeigen
-- Lizenzlimits bei Nutzerverwaltung pruefen
-- Feature-Flags pro Plan definieren
-- Lizenz erneuern oder deaktivieren
+Die App zeigt den Lizenzstatus, Nutzerlimits und verfuegbare Funktionen in den dafuer vorgesehenen Einstellungen an.

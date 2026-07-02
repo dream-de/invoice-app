@@ -1,20 +1,11 @@
 # Customer Portal
 
-Status: geplant
+## Purpose
 
-Zweck:
-Vorbereitung fuer Kundenportal-, Self-Service- und Freigabeoberflaechen.
+Customer self-service and document sharing surfaces.
 
-Aktueller Scope:
-- Nur Struktur und Dokumentation.
-- Keine API-Endpunkte.
-- Keine Datenbankmigration.
-- Keine Provider-Secrets.
-- Keine aktive UI-Integration.
+## Areas
 
-Spaetere Unterbereiche:
-- Noch keine Unterbereiche definiert.
-
-Geplante Anbindung:
-- Das Premium-Settings-Dashboard kann spaeter dieses Modul ueber `config.ts` einlesen.
-- Die konkrete UI-Anbindung erfolgt in einer separaten Phase.
+- Customer dashboard
+- Shared documents
+- Portal account settings

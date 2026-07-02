@@ -26,4 +26,4 @@ pnpm --filter @dream-invoice/pdf test
 
 ## Optional Tools
 
-Additional PDF tooling can be added when it supports a product workflow, such as visual regression tests, PDF/A validation, or template migration checks. Keep extra tooling optional unless the workflow depends on it.
+Additional PDF tooling can be added when it supports a product workflow, such as visual regression tests, PDF/A validation, or template compatibility checks. Keep extra tooling optional unless the workflow depends on it.

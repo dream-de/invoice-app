@@ -19,7 +19,6 @@ tools/
     generate-license-key.mjs
     docs/
       license-model.md
-      reference-comparison.md
       security.md
       workflow.md
 ```
@@ -56,4 +55,3 @@ Unterstuetzte Plaene:
 - [Lizenzmodell](./docs/license-model.md)
 - [Sicherheit](./docs/security.md)
 - [Workflow](./docs/workflow.md)
-- [Referenz-Abgleich](./docs/reference-comparison.md)

@@ -2,7 +2,6 @@
 
 ## DreamInvoice
 
-[![CI](https://github.com/dream-de/invoice-app/actions/workflows/ci.yml/badge.svg)](https://github.com/dream-de/invoice-app/actions/workflows/ci.yml)
 ![TypeScript](https://img.shields.io/badge/TypeScript-ready-3178c6)
 ![License](https://img.shields.io/badge/license-source--available-111827)
 ![Status](https://img.shields.io/badge/status-active--development-72a4df)
@@ -11,7 +10,7 @@
 
 DreamInvoice is a modern invoicing and business management platform for self-hosted teams, freelancers, and small companies. It helps manage invoices, offers, customers, articles, projects, finance workflows, document templates, PDF generation, exports, user roles, and operational settings in one focused workspace.
 
-The application can be used as a self-hosted web app and includes an isolated public demo environment for evaluation.
+The application can be used as a self-hosted web app and includes fictional sample data for evaluation.
 
 > **Note:** DreamInvoice is currently in active development. Some features, workflows, and UI details may still change before the first stable release. Feedback and issue reports are welcome.
 
@@ -21,17 +20,9 @@ The application can be used as a self-hosted web app and includes an isolated pu
 - ☁ Digital: Belege, PDF, Export und Freigaben sind auf digitale Abläufe ausgelegt.
 - 🤝 Vertrauenswuerdig: klare Status, saubere Protokolle und nachvollziehbare Aktionen.
 
-## Live Demo
+## Demo Data
 
-Live Demo: [demo.dream-invoice.com](http://demo.dream-invoice.com)
-
-### Demo Access
-
-- Email: `demo@example.com`
-- Password: `dreaminvoice`
-
-All demo data is fictional. Changes are simulated and are not saved permanently.
-
+All demo data is fictional. Do not use real customer, billing, or contact data in examples, screenshots, fixtures, or public demos.
 
 ## Premium Edition Screenshots
 
@@ -84,7 +75,7 @@ GoBD readiness depends on the concrete deployment, operating procedures, retenti
 For a fresh self-hosted LXC or server, install Docker first, then use the installer so secrets are generated automatically:
 
 ```bash
-git clone https://github.com/dream-de/invoice-app.git dream-invoice
+git clone <repository-url> dream-invoice
 cd dream-invoice
 chmod +x scripts/install.sh scripts/status.sh
 ./scripts/install.sh
@@ -93,7 +84,7 @@ chmod +x scripts/install.sh scripts/status.sh
 The installer creates a private `.env`, pulls the published image `ghcr.io/dream-de/invoice-app:latest`, starts PostgreSQL, and starts the web app. Open the app at:
 
 ```text
-http://SERVER-IP:3012
+https://your-domain.example
 ```
 
 For the first local HTTP start, deployment Basic Auth is disabled so the setup screen opens directly. Create the first owner account in the browser, then enable deployment protection before exposing the installation:
@@ -114,7 +105,7 @@ docker compose pull
 docker compose up -d
 ```
 
-The optional Nginx container is not started by default. Use the `proxy` profile only when you want the included Docker Nginx in front of the app:
+The optional Nginx service is not started by default. Use the `proxy` profile only when you want the included Docker Nginx in front of the app:
 
 ```bash
 docker compose --profile proxy up -d
@@ -168,28 +159,23 @@ Start the main web app locally:
 pnpm dev:web
 ```
 
-The app will be available at:
-
-```text
-http://localhost:3010
-```
+The development server prints the local URL when it starts.
 
 ## Project Documentation
 
 - [Production Deployment](./docs/deployment/production.md)
 - [Production Checklist](./docs/deployment/production-checklist.md)
 - [Operations Runbook](./docs/operations/runbook.md)
-- [Testing](./docs/testing.md)
 - [Releasing](./docs/releasing.md)
-- [Security Policy](./SECURITY.md)
+- [Security Policy](./.github/SECURITY.md)
 - [Secrets Rotation](./docs/security/secrets-rotation.md)
 - [Audit Log](./docs/security/audit-log.md)
 - [Roadmap](./ROADMAP.md)
 - [App Structure](./docs/architecture/app-structure.md)
 - [PDF Tools](./docs/pdf-tools.md)
-- [Contributing](./CONTRIBUTING.md)
-- [Support](./SUPPORT.md)
-- [Code of Conduct](./CODE_OF_CONDUCT.md)
+- [Contributing](./.github/CONTRIBUTING.md)
+- [Support](./.github/SUPPORT.md)
+- [Code of Conduct](./.github/CODE_OF_CONDUCT.md)
 
 ## Developer Reference
 
@@ -209,8 +195,8 @@ pnpm lint                # Run linting for apps and packages
 pnpm typecheck           # Run TypeScript checks for apps and packages
 pnpm test                # Run tests for apps and packages
 pnpm db:generate         # Generate the Prisma client
-pnpm db:migrate          # Run local database migrations
-pnpm db:deploy           # Run deployment migrations
+pnpm db:migrate          # Run local database schema updates
+pnpm db:deploy           # Apply deployment database schema updates
 pnpm db:studio           # Open Prisma Studio
 pnpm release:check       # Run release checks
 pnpm release:quality     # Run full local release quality gates
@@ -229,7 +215,7 @@ docker compose pull
 docker compose up -d
 ```
 
-The web app is available on port `3010`. To also start the optional Nginx proxy on port `80`, run:
+The web app uses the port configured in `.env`. To also start the optional Nginx proxy, run:
 
 ```bash
 docker compose --profile proxy up -d
@@ -285,12 +271,7 @@ pnpm docker:dev:up
 
 This starts PostgreSQL, Mailpit, and Adminer for local development without sending real emails.
 
-- PostgreSQL: `127.0.0.1:55433`
-- Mailpit SMTP: `127.0.0.1:1025`
-- Mailpit inbox: `http://localhost:8025`
-- Adminer: `http://localhost:8081`
-
-Use `docker/development/.env.example` as the template for custom local ports or credentials. For deployment, adjust the environment values and follow [Production Deployment](./docs/deployment/production.md).
+Use `docker/development/.env.example` as the template for custom development ports or credentials. For deployment, adjust the environment values and follow [Production Deployment](./docs/deployment/production.md).
 
 ```bash
 pnpm docker:dev:ps

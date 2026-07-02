@@ -21,7 +21,7 @@ Audit records should include:
 - Action name
 - Entity type
 - Entity id when available
-- Timestamp
+- Event time
 - Result
 - Reason or context
 - Relevant metadata

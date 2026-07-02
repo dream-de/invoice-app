@@ -1,20 +1,11 @@
 # Compliance
 
-Status: geplant
+## Purpose
 
-Zweck:
-Vorbereitung fuer Compliance-, Richtlinien- und Pruefmodule.
+Compliance, policy, and review modules.
 
-Aktueller Scope:
-- Nur Struktur und Dokumentation.
-- Keine API-Endpunkte.
-- Keine Datenbankmigration.
-- Keine Provider-Secrets.
-- Keine aktive UI-Integration.
+## Areas
 
-Spaetere Unterbereiche:
-- Noch keine Unterbereiche definiert.
-
-Geplante Anbindung:
-- Das Premium-Settings-Dashboard kann spaeter dieses Modul ueber `config.ts` einlesen.
-- Die konkrete UI-Anbindung erfolgt in einer separaten Phase.
+- Policy checks
+- Review workflows
+- Compliance settings

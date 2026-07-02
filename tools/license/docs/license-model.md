@@ -2,9 +2,7 @@
 
 ## Ziel
 
-Die Lizenz prueft lokal, welche Funktionen und Limits fuer eine Installation
-aktiv sind. Die App soll auch dann kontrolliert reagieren, wenn keine Lizenz
-aktiviert wurde.
+Die Lizenz prueft lokal, welche Funktionen und Limits fuer eine Installation aktiv sind. Die App soll auch dann kontrolliert reagieren, wenn keine Lizenz aktiviert wurde.
 
 ## Plaene
 
@@ -24,13 +22,14 @@ aktiviert wurde.
 | `version` | Lizenzformat-Version |
 | `licenseId` | Eindeutige Lizenz-ID |
 | `plan` | Aktiver Plan |
-| `maxUsers` | Nutzerlimit fuer bestehende App-Kompatibilitaet |\n| `limits.users` | Signiertes Nutzerlimit fuer neue Lizenzlogik |
+| `maxUsers` | Nutzerlimit |
+| `limits.users` | Signiertes Nutzerlimit |
 | `billingCycle` | `monthly`, `yearly` oder `custom` |
 | `issuedAt` | Ausstellungsdatum |
 | `expiresAt` / `validUntil` | Ablaufdatum oder leer bei unbegrenzt |
-| `customer.name` / `customerName` | Anzeigename des Kunden |\n| `features` | Optionale Feature-Freigaben zusaetzlich zum Plan |
+| `customer.name` / `customerName` | Anzeigename des Kunden |
+| `features` | Optionale Feature-Freigaben zusaetzlich zum Plan |
 
 ## Grundregel
 
-Die App vertraut nicht auf editierbare Client-Daten. Eine Lizenz ist nur gueltig,
-wenn die Signatur serverseitig erfolgreich geprueft wurde.
+Die App vertraut nicht auf editierbare Client-Daten. Eine Lizenz ist nur gueltig, wenn die Signatur serverseitig erfolgreich geprueft wurde.

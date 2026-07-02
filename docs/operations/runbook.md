@@ -53,7 +53,7 @@ Example backup command:
 docker compose exec postgres pg_dump -U dream_invoice dream_invoice > dream-invoice-backup.sql
 ```
 
-Store backups outside the container volume and test restore steps regularly.
+Store database archives outside application volumes and test restore steps regularly.
 
 ## Database Restore
 
@@ -65,15 +65,15 @@ docker compose exec -T postgres psql -U dream_invoice dream_invoice < dream-invo
 docker compose up -d
 ```
 
-## Migrations
+## Database Schema Updates
 
-Apply migrations:
+Apply database schema updates:
 
 ```bash
 pnpm db:deploy
 ```
 
-Check migration status:
+Check database schema status:
 
 ```bash
 pnpm --filter @dream-invoice/database prisma migrate status --schema ./prisma/schema.prisma

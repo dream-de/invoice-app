@@ -1,9 +1,7 @@
 # Project Structure
 
 Dream Invoice is organized as a pnpm monorepo. The repository is not split into
-separate `dev`, `prod`, or `test` folders. Development state is handled through
-Git branches, while folders describe product areas, shared packages, deployment
-assets, and tests.
+separate `dev`, `prod`, or `test` folders. Folders describe product areas, shared packages, deployment assets, and tests.
 
 ## Top-Level Folders
 
@@ -11,12 +9,12 @@ assets, and tests.
 | --- | --- |
 | `apps/` | Runnable applications and services. |
 | `packages/` | Shared libraries used by one or more apps. |
-| `database/` | Prisma schema, migrations, and seed data. |
+| `database/` | Prisma schema, schema history, and seed data. |
 | `docker/` | Docker Compose files, images, nginx, postgres, redis, and helper scripts. |
 | `docs/` | Architecture, deployment, operations, security, and development documentation. |
 | `scripts/` | Repository automation scripts. |
 | `tests/` | Cross-app tests, e2e flows, and integration-style test assets. |
-| `tools/` | Internal tooling that is not part of runtime application code. |
+| `tools/` | Repository tooling that is not part of runtime application code. |
 | `assets/` and `logos/` | Static project assets and branding files. |
 
 ## Apps
@@ -59,12 +57,10 @@ The project should keep development-only material in focused folders:
 | Folder | Use For |
 | --- | --- |
 | `docs/development/` | How the repository is structured and how development is done. |
-| `tools/` | Internal utilities, generators, release helpers, and one-off tool code. |
+| `tools/` | Repository utilities, generators, release helpers, and one-off tool code. |
 | `scripts/` | Repeatable automation commands used by developers or CI. |
 | `tests/` | Tests that cover behavior across apps or larger flows. |
 
-Avoid creating a top-level `dev/` folder unless it contains real tooling with a
-clear purpose. A `develop` branch is a Git branch, not a folder.
 
 ## Recommended Future Shape
 
@@ -80,4 +76,4 @@ Recommended rules:
 - Keep Docker and deployment concerns in `docker/` and `docs/deployment/`.
 - Keep security decisions and production hardening notes in `docs/security/`.
 - Keep test fixtures and cross-app test flows in `tests/`.
-- Do not keep long-term backup folders or backup branches in the repository.
+- Keep generated archives and operational backups out of the repository.
