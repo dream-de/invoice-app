@@ -35,6 +35,9 @@ All demo data is fictional. Changes are simulated and are not saved permanently.
 
 ## Premium Edition Screenshots
 
+<details>
+<summary><strong>📷 Premium Screenshots (8)</strong></summary>
+
 | Dashboard | Lizenz & Abrechnung |
 |---|---|
 | ![Dashboard](docs/screenshots/premium/dashboard-v2.png) | ![License](docs/screenshots/premium/license-billing.png) |
@@ -50,6 +53,8 @@ All demo data is fictional. Changes are simulated and are not saved permanently.
 | Einstellungen | Logs |
 |---|---|
 | ![Settings](docs/screenshots/premium/settings.png) | ![Logs](docs/screenshots/premium/logs.png) |
+
+</details>
 
 ## Features
 
