@@ -1,9 +1,9 @@
 "use client"
 
-import type { PointerEvent as ReactPointerEvent } from "react"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { CalendarDays, ChevronLeft, ChevronRight, Copy, Mail, QrCode, Share2, X } from "lucide-react"
 import styles from "./ShareReleaseDialog.module.css"
+import { StandardModal } from "@/components/ui/StandardModal"
 
 type ShareReleaseDialogProps = {
   label?: string
@@ -90,8 +90,6 @@ export function ShareReleaseDialog({ label = "Freigabe", itemName, itemUrl, onCl
   const [shareLink, setShareLink] = useState("")
   const [status, setStatus] = useState("Nicht erstellt")
   const [qrVisible, setQrVisible] = useState(false)
-  const [dialogPosition, setDialogPosition] = useState({ x: 0, y: 0 })
-  const dragStartRef = useRef<{ pointerX: number; pointerY: number; x: number; y: number } | null>(null)
 
   const calendarDays = useMemo(() => buildCalendarDays(calendarMonth, selectedDate), [calendarMonth, selectedDate])
   const expiry = shareLink ? formatDate(selectedDate) + ", " + selectedTime + " Uhr" : "Noch nicht gespeichert"
@@ -101,41 +99,6 @@ export function ShareReleaseDialog({ label = "Freigabe", itemName, itemUrl, onCl
     setShareLink(link)
     setStatus("Erstellt")
   }, [])
-
-  useEffect(() => {
-    function moveDialog(event: PointerEvent) {
-      const dragStart = dragStartRef.current
-      if (!dragStart) return
-      setDialogPosition({
-        x: dragStart.x + event.clientX - dragStart.pointerX,
-        y: dragStart.y + event.clientY - dragStart.pointerY
-      })
-    }
-
-    function stopDrag() {
-      dragStartRef.current = null
-    }
-
-    window.addEventListener("pointermove", moveDialog)
-    window.addEventListener("pointerup", stopDrag)
-    window.addEventListener("pointercancel", stopDrag)
-    return () => {
-      window.removeEventListener("pointermove", moveDialog)
-      window.removeEventListener("pointerup", stopDrag)
-      window.removeEventListener("pointercancel", stopDrag)
-    }
-  }, [])
-
-  function startDrag(event: ReactPointerEvent<HTMLElement>) {
-    const target = event.target as HTMLElement
-    if (target.closest("button, input, a, label")) return
-    dragStartRef.current = {
-      pointerX: event.clientX,
-      pointerY: event.clientY,
-      x: dialogPosition.x,
-      y: dialogPosition.y
-    }
-  }
 
   function createShareLink() {
     const base = itemUrl || window.location.href
@@ -190,17 +153,16 @@ export function ShareReleaseDialog({ label = "Freigabe", itemName, itemUrl, onCl
   }
 
   return (
-    <div className={styles.backdrop} role="presentation" onMouseDown={onClose}>
-      <section className={styles.dialog} role="dialog" aria-modal="true" aria-labelledby="share-release-title" style={{ transform: `translate(${dialogPosition.x}px, ${dialogPosition.y}px)` }} onMouseDown={(event) => event.stopPropagation()}>
-        <div className={styles.head} onPointerDown={startDrag}>
-          <div>
-            <span>{label}</span>
-            <h2 id="share-release-title">Freigabe erstellen</h2>
-          </div>
-          <button type="button" aria-label="Dialog schließen" onClick={onClose}><X size={18} /></button>
-        </div>
-
-        <div className={styles.body}>
+    <StandardModal
+      title="Freigabe erstellen"
+      eyebrow={label}
+      onClose={onClose}
+      ariaLabelledBy="share-release-title"
+      width={720}
+      bodyClassName={styles.body}
+      padded={false}
+      closeLabel="Dialog schließen"
+    >
           <section className={styles.section}>
             <div className={styles.sectionTitle}>
               <h3>Link-Einstellungen</h3>
@@ -294,8 +256,6 @@ export function ShareReleaseDialog({ label = "Freigabe", itemName, itemUrl, onCl
               <button type="button" onClick={createShareLink}>Speichern</button>
             </div>
           </div>
-        </div>
-      </section>
-    </div>
+    </StandardModal>
   )
 }

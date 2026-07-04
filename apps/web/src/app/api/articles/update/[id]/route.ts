@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server"
+import { getAuditRequestMetadata } from "@/lib/audit/request-metadata"
+import { writeAuditLog } from "@/lib/audit/log"
 import { prisma } from "@dream-invoice/database"
 import { AuthServiceError, mapAuthError, requireCurrentUser } from "@/lib/auth/service"
 import { hasUserPermission } from "@/lib/auth/permissions"
@@ -56,6 +58,11 @@ export async function PUT(
 
     await requireArticleEditPermission()
 
+    const existing = await prisma.article.findUnique({ where: { id } })
+    if (!existing) {
+      return NextResponse.json({ ok: false, error: "Artikel nicht gefunden." }, { status: 404 })
+    }
+
     const article = await prisma.article.update({
       where: { id },
       data: {
@@ -67,6 +74,17 @@ export async function PUT(
         netPrice: toNumber(data.price ?? data.netPrice),
         vatRate: toNumber(data.tax ?? data.vatRate ?? 19)
       }
+    })
+
+    await writeAuditLog({
+      action: "article.update",
+      entity: "article",
+      entityId: id,
+      reason: "Artikel aktualisiert",
+      data: { entityLabel: article.name ?? article.number ?? id },
+      before: { number: existing.number, name: existing.name, category: existing.category, description: existing.description, unit: existing.unit, netPrice: existing.netPrice, vatRate: existing.vatRate, active: existing.active },
+      after: { number: article.number, name: article.name, category: article.category, description: article.description, unit: article.unit, netPrice: article.netPrice, vatRate: article.vatRate, active: article.active },
+      requestMetadata: getAuditRequestMetadata(request)
     })
 
     return NextResponse.json({ ok: true, article })

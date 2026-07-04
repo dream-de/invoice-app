@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server"
+import { getAuditRequestMetadata } from "@/lib/audit/request-metadata"
+import { writeAuditLog } from "@/lib/audit/log"
 import { prisma } from "@dream-invoice/database"
 import { z } from "zod"
 import { documents } from "@/data/invoice-data"
@@ -350,6 +352,15 @@ export async function POST(req: Request) {
           }
         }
       })
+    })
+
+    await writeAuditLog({
+      action: "invoice.create",
+      entity: "invoice",
+      entityId: invoice.id,
+      reason: "Rechnung erstellt",
+      data: { entityLabel: invoice.number, status: invoice.status, grossTotal: invoice.grossTotal },
+      requestMetadata: getAuditRequestMetadata(req)
     })
 
     await appendNotification({

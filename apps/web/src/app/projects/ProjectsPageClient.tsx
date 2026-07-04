@@ -1,6 +1,7 @@
 "use client"
 
 import { type FormEvent, useEffect, useMemo, useState } from "react"
+import { StandardModal } from "@/components/ui/StandardModal"
 
 type CustomerOption = { id: string; number?: string; name: string }
 type ProjectRow = {
@@ -205,12 +206,14 @@ export default function ProjectsPage() {
       </div>
 
       {editOpen && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/45 p-6">
-          <form onSubmit={handleSubmit} className="w-full max-w-[760px] overflow-hidden rounded-[34px] border border-[#dfe6ee] bg-[#f8f9fb] shadow-[0_20px_60px_rgba(0,0,0,0.28)]">
-            <div className="flex items-start justify-between border-b border-[#e6ebf1] px-6 py-5">
-              <div><h2 className="text-xl font-black text-[#1b2333]">Projekt anlegen</h2><p className="mt-1 text-sm text-[#7b8799]">Kunde, Budget und Zeitbezug speichern.</p></div>
-              <button type="button" onClick={() => setEditOpen(false)} className="flex h-10 w-10 items-center justify-center rounded-full bg-[#edf1f6] text-lg text-slate-700 hover:bg-[#e4eaf2]" aria-label="Schliessen">x</button>
-            </div>
+        <StandardModal
+          title="Projekt anlegen"
+          description="Kunde, Budget und Zeitbezug speichern."
+          onClose={() => setEditOpen(false)}
+          width={760}
+          padded={false}
+        >
+          <form onSubmit={handleSubmit}>
             <div className="grid gap-4 px-6 py-5 md:grid-cols-2">
               <label className="text-sm font-bold text-[#334155]">Projektname<input className="mt-2 w-full rounded-[18px] border border-[#dfe6ee] bg-white px-4 py-3 outline-none" value={form.name} onChange={(event) => updateForm("name", event.target.value)} required /></label>
               <label className="text-sm font-bold text-[#334155]">Kunde<select className="mt-2 w-full rounded-[18px] border border-[#dfe6ee] bg-white px-4 py-3 outline-none" value={form.customerId} onChange={(event) => updateForm("customerId", event.target.value)} required>{customers.map((customer) => <option key={customer.id} value={customer.id}>{customer.name}</option>)}</select></label>
@@ -226,7 +229,7 @@ export default function ProjectsPage() {
               <button type="submit" disabled={isSaving || !form.customerId} className="rounded-full bg-black px-5 py-2.5 font-extrabold text-white disabled:opacity-50">{isSaving ? "Speichern..." : "Speichern"}</button>
             </div>
           </form>
-        </div>
+        </StandardModal>
       )}
     </div>
   )

@@ -16,6 +16,7 @@ import {
 } from "lucide-react"
 import { Currency, PageShell } from "@dream-invoice/ui"
 import { useLanguage } from "@/lib/i18n"
+import { StandardModal } from "@/components/ui/StandardModal"
 
 type Account = {
   name: string
@@ -278,29 +279,13 @@ export default function FinanceAccountsPage() {
       </div>
 
       {showAccountModal && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/30 px-4">
-          <div className="w-full max-w-md rounded-[28px] bg-white p-6 shadow-2xl">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h3 className="text-2xl font-extrabold text-slate-950">
-                  {t("finance.accounts.modal.newAccount.title")}
-                </h3>
-                <p className="mt-1 text-sm text-slate-500">
-                  {t("finance.accounts.modal.newAccount.description")}
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setShowAccountModal(false)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200"
-                aria-label={t("finance.accounts.modal.close")}
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="mt-6 space-y-4">
+        <StandardModal
+          title={t("finance.accounts.modal.newAccount.title")}
+          description={t("finance.accounts.modal.newAccount.description")}
+          onClose={() => setShowAccountModal(false)}
+          width={520}
+          bodyClassName="space-y-4"
+        >
               <label className="block">
                 <span className="text-sm font-bold text-slate-700">{t("finance.accounts.modal.newAccount.nameRequired")}</span>
                 <input
@@ -331,51 +316,16 @@ export default function FinanceAccountsPage() {
                   className="mt-2 h-12 w-full rounded-full bg-[#f3f6fa] px-5 text-sm font-semibold text-slate-800 outline-none ring-1 ring-slate-200 focus:ring-2 focus:ring-slate-900"
                 />
               </label>
-            </div>
-
-            <div className="mt-7 flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setShowAccountModal(false)}
-                className="rounded-full bg-slate-100 px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-200"
-              >
-                {t("finance.accounts.modal.cancel")}
-              </button>
-
-              <button
-                type="button"
-                onClick={addAccount}
-                className="rounded-full bg-black px-5 py-2.5 text-sm font-bold text-[var(--brand-lime)]"
-              >
-                {t("finance.accounts.modal.save")}
-              </button>
-            </div>
-          </div>
-        </div>
+        </StandardModal>
       )}
 
       {showImportHistory && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/30 px-4">
-          <div className="w-full max-w-lg rounded-[28px] bg-white p-6 shadow-2xl">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h3 className="text-2xl font-extrabold text-slate-950">
-                  {t("finance.accounts.modal.history.title")}
-                </h3>
-                <p className="mt-1 text-sm text-slate-500">
-                  {t("finance.accounts.modal.history.rollbackDescription")}
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setShowImportHistory(false)}
-                className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200"
-                aria-label={t("finance.accounts.modal.close")}
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
+        <StandardModal
+          title={t("finance.accounts.modal.history.title")}
+          description={t("finance.accounts.modal.history.rollbackDescription")}
+          onClose={() => setShowImportHistory(false)}
+          width={560}
+        >
 
             <div className="mt-8 rounded-3xl border border-dashed border-slate-200 bg-[#f7f9fc] p-8 text-center">
               <Upload className="mx-auto h-9 w-9 text-slate-300" />
@@ -396,8 +346,7 @@ export default function FinanceAccountsPage() {
                 {t("finance.accounts.modal.close")}
               </button>
             </div>
-          </div>
-        </div>
+        </StandardModal>
       )}
     </PageShell>
   )

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
+import { getAuditRequestMetadata } from "@/lib/audit/request-metadata"
+import { writeAuditLog } from "@/lib/audit/log"
 import { auditActor, requestContext, safeJson } from "@/lib/audit/audit-event-helpers"
 import { logBackendAuditEvent } from "@/lib/audit/backendAuditEventWriter"
 import { requireCurrentUser } from "@/lib/auth/service"
@@ -38,7 +40,7 @@ export async function POST(request: Request) {
       const rows = await prisma.$queryRawUnsafe(`INSERT INTO "ApiKey" ("tenantId", "companyId", "label", "keyHash", "keyPreview", "scopes", "createdByUserId") VALUES ($1,$2,$3,$4,$5,$6::jsonb,$7) RETURNING "id", "companyId", "label", "keyPreview", "status", "scopes", "createdAt"`, tenantId, String(body.companyId ?? companyId) || companyId, String(body.label ?? "Production API Key").trim(), apiKeyHash(plainKey), apiKeyPreview(plainKey), JSON.stringify(body.scopes ?? ["customers:read", "invoices:read", "projects:read"]), user.id)
       const apiKey = Array.isArray(rows) ? rows[0] as { id: string; keyPreview: string; status: string } : rows as { id: string; keyPreview: string; status: string }
       await logBackendAuditEvent({
-        type: "api_request",
+        type: "api_key.created",
         source: "api",
         severity: "success",
         title: "API-Key erstellt",
@@ -49,6 +51,14 @@ export async function POST(request: Request) {
         entityId: apiKey.id,
         metadata: safeJson({ keyPreview: apiKey.keyPreview, status: apiKey.status })
       })
+      await writeAuditLog({
+        action: "api_key.create",
+        entity: "api_key",
+        entityId: apiKey.id,
+        reason: "API-Key erstellt",
+        data: { actorUserId: user.id, entityLabel: apiKey.keyPreview, keyPreview: apiKey.keyPreview, status: apiKey.status },
+        requestMetadata: getAuditRequestMetadata(request)
+      })
       return NextResponse.json({ ok: true, apiKey: Array.isArray(rows) ? rows[0] : rows, plainKey }, { status: 201 })
     }
     if (action === "apiKey.disable" || action === "apiKey.delete") {
@@ -56,7 +66,7 @@ export async function POST(request: Request) {
       if (action === "apiKey.delete") await prisma.$executeRawUnsafe(`DELETE FROM "ApiKey" WHERE "tenantId" = $1 AND "id" = $2`, tenantId, id)
       else await prisma.$executeRawUnsafe(`UPDATE "ApiKey" SET "status" = 'inactive', "updatedAt" = CURRENT_TIMESTAMP WHERE "tenantId" = $1 AND "id" = $2`, tenantId, id)
       await logBackendAuditEvent({
-        type: "api_request",
+        type: "api_key.deleted",
         source: "api",
         severity: action === "apiKey.delete" ? "warning" : "info",
         title: action === "apiKey.delete" ? "API-Key geloescht" : "API-Key deaktiviert",
@@ -66,6 +76,14 @@ export async function POST(request: Request) {
         entityType: "api_key",
         entityId: id,
         metadata: safeJson({ action })
+      })
+      await writeAuditLog({
+        action: "api_key.delete",
+        entity: "api_key",
+        entityId: id,
+        reason: action === "apiKey.delete" ? "API-Key gelöscht" : "API-Key deaktiviert",
+        data: { actorUserId: user.id, entityLabel: id, mode: action },
+        requestMetadata: getAuditRequestMetadata(request)
       })
       return NextResponse.json({ ok: true })
     }
@@ -87,6 +105,14 @@ export async function POST(request: Request) {
         entityType: "webhook",
         entityId: webhook.id,
         metadata: safeJson({ event: webhook.event, secretPreview: webhook.secretPreview })
+      })
+      await writeAuditLog({
+        action: "webhook.create",
+        entity: "webhook",
+        entityId: webhook.id,
+        reason: "Webhook erstellt",
+        data: { actorUserId: user.id, entityLabel: webhook.event, event: webhook.event, secretPreview: webhook.secretPreview },
+        requestMetadata: getAuditRequestMetadata(request)
       })
       return NextResponse.json({ ok: true, webhook: Array.isArray(rows) ? rows[0] : rows, secret }, { status: 201 })
     }

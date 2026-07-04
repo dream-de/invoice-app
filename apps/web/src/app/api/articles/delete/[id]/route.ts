@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server"
+import { getAuditRequestMetadata } from "@/lib/audit/request-metadata"
+import { writeAuditLog } from "@/lib/audit/log"
 import { prisma } from "@dream-invoice/database"
 import { AuthServiceError, mapAuthError, requireCurrentUser } from "@/lib/auth/service"
 import { hasUserPermission } from "@/lib/auth/permissions"
@@ -14,7 +16,7 @@ async function requireArticleEditPermission() {
 }
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
@@ -26,8 +28,18 @@ export async function DELETE(
 
     await requireArticleEditPermission()
 
-    await prisma.article.delete({
+    const article = await prisma.article.delete({
       where: { id }
+    })
+
+    await writeAuditLog({
+      action: "article.delete",
+      entity: "article",
+      entityId: id,
+      reason: "Artikel gelöscht",
+      data: { entityLabel: article.name ?? article.number ?? id },
+      before: { number: article.number, name: article.name, category: article.category, unit: article.unit, netPrice: article.netPrice, vatRate: article.vatRate, active: article.active },
+      requestMetadata: getAuditRequestMetadata(request)
     })
 
     return NextResponse.json({ ok: true })

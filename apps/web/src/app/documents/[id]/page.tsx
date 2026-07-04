@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react"
+import { useEffect, useMemo, useState } from "react"
 import {
   AlertTriangle,
   ArrowLeft,
@@ -15,10 +15,10 @@ import {
   Printer,
   Send,
   Share2,
-  Trash2,
-  X
+  Trash2
 } from "lucide-react"
 import { ContentCard, Currency } from "@dream-invoice/ui"
+import { StandardModal } from "@/components/ui/StandardModal"
 
 import { documents } from "@/data/invoice-data"
 import { translateStatus, useLanguage } from "@/lib/i18n"
@@ -388,14 +388,6 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
   const [paymentAmount, setPaymentAmount] = useState("")
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("Banküberweisung")
   const [paymentReason, setPaymentReason] = useState("")
-  const [modalOffset, setModalOffset] = useState({ x: 0, y: 0 })
-  const modalDragRef = useRef<{
-    pointerId: number
-    startX: number
-    startY: number
-    originX: number
-    originY: number
-  } | null>(null)
 
   async function reloadDocument(options: { resetFallback?: boolean } = {}) {
     if (options.resetFallback) {
@@ -444,12 +436,6 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
     }
   }, [documentId, fallbackDocument, locale, t])
 
-  useEffect(() => {
-    if (showSendModal || showPaymentModal) {
-      setModalOffset({ x: 0, y: 0 })
-      modalDragRef.current = null
-    }
-  }, [showPaymentModal, showSendModal])
 
   useEffect(() => {
     if (!showSendModal && !showPaymentModal) return
@@ -814,52 +800,6 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
     }
   }
 
-  function clampModalOffset(x: number, y: number) {
-    const maxX = Math.max(0, (window.innerWidth - 360) / 2)
-    const maxY = Math.max(0, (window.innerHeight - 220) / 2)
-
-    return {
-      x: Math.min(maxX, Math.max(-maxX, x)),
-      y: Math.min(maxY, Math.max(-maxY, y))
-    }
-  }
-
-  function startModalDrag(event: PointerEvent<HTMLDivElement>) {
-    if (event.button !== 0 || window.innerWidth < 768) return
-
-    const target = event.target as HTMLElement
-    if (target.closest("button, input, select, textarea, a")) return
-
-    modalDragRef.current = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      originX: modalOffset.x,
-      originY: modalOffset.y
-    }
-    event.currentTarget.setPointerCapture(event.pointerId)
-  }
-
-  function moveModalDrag(event: PointerEvent<HTMLDivElement>) {
-    const drag = modalDragRef.current
-    if (!drag || drag.pointerId !== event.pointerId) return
-
-    setModalOffset(clampModalOffset(
-      drag.originX + event.clientX - drag.startX,
-      drag.originY + event.clientY - drag.startY
-    ))
-  }
-
-  function stopModalDrag(event: PointerEvent<HTMLDivElement>) {
-    const drag = modalDragRef.current
-    if (!drag || drag.pointerId !== event.pointerId) return
-
-    modalDragRef.current = null
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId)
-    }
-  }
-
   const actionPillButton =
     "inline-flex min-h-11 items-center gap-2 rounded-full bg-[#eef2f7] px-4 py-2 text-sm font-extrabold text-[#1f2937] transition hover:bg-[#e5ebf2]"
   const actionIconButton =
@@ -1171,33 +1111,25 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
       </div>
 
       {showSendModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden bg-black/45 px-4 py-6 backdrop-blur-sm">
-          <div
-            className="max-h-[calc(100vh-3rem)] w-full max-w-md overflow-hidden rounded-[30px] bg-white shadow-[0_28px_80px_rgba(15,23,42,0.32)]"
-            style={{ transform: `translate(${modalOffset.x}px, ${modalOffset.y}px)` }}
-          >
-            <div
-              className="flex cursor-move touch-none select-none items-center justify-between gap-4 border-b border-slate-100 px-5 py-4"
-              onPointerDown={startModalDrag}
-              onPointerMove={moveModalDrag}
-              onPointerUp={stopModalDrag}
-              onPointerCancel={stopModalDrag}
-            >
-              <h3 className="inline-flex items-center gap-2 text-lg font-extrabold text-slate-900">
-                <Mail className="h-4 w-4" />
-                {isOffer ? "Angebot als PDF senden" : t("documents.detail.modal.send.title")}
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowSendModal(false)}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#f3f6fa] text-slate-600 transition hover:bg-slate-200"
-                aria-label={t("documents.detail.modal.send.close")}
-              >
-                <X className="h-4 w-4" />
+        <StandardModal
+          title={isOffer ? "Angebot als PDF senden" : t("documents.detail.modal.send.title")}
+          icon={<Mail className="h-4 w-4" />}
+          onClose={() => setShowSendModal(false)}
+          width={520}
+          bodyClassName="space-y-3"
+          footer={(
+            <>
+              <button type="button" onClick={() => setShowSendModal(false)}>
+                {t("documents.detail.modal.send.cancel")}
               </button>
-            </div>
-
-            <div className="max-h-[calc(100vh-16rem)] space-y-3 overflow-y-auto px-5 py-5">
+              <button type="button" onClick={handleSendEmail} disabled={sendingEmail}>
+                <Send className="h-4 w-4" />
+                {sendingEmail ? t("documents.detail.modal.send.sending") : t("documents.detail.modal.send.submit")}
+              </button>
+            </>
+          )}
+          closeLabel={t("documents.detail.modal.send.close")}
+        >
               <label className="block">
                 <span className="mb-2 block text-xs font-extrabold text-slate-500">{t("documents.detail.modal.send.toPlaceholder")}</span>
                 <input value={sendTo} onChange={(event) => setSendTo(event.target.value)} className="w-full rounded-full border border-slate-200 bg-[#f8fafc] px-4 py-2.5 text-sm font-semibold text-slate-800 outline-none focus:ring-2 focus:ring-slate-900" />
@@ -1214,58 +1146,26 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
                 <Paperclip className="h-4 w-4" />
                 <span className="truncate">Angehängt: {doc.number}.pdf</span>
               </div>
-            </div>
-
-            <div className="flex justify-end gap-3 bg-[#f8fafc] px-5 py-4">
-              <button type="button" onClick={() => setShowSendModal(false)} className="rounded-full bg-white px-5 py-2.5 text-sm font-extrabold text-slate-600 ring-1 ring-slate-200">
-                {t("documents.detail.modal.send.cancel")}
-              </button>
-              <button
-                type="button"
-                onClick={handleSendEmail}
-                disabled={sendingEmail}
-                className="inline-flex items-center gap-2 rounded-full bg-[var(--brand-lime)] px-6 py-2.5 text-sm font-extrabold text-black shadow-[0_10px_24px_rgba(211,255,49,0.26)] disabled:cursor-wait disabled:opacity-70"
-              >
-                <Send className="h-4 w-4" />
-                {sendingEmail ? t("documents.detail.modal.send.sending") : t("documents.detail.modal.send.submit")}
-              </button>
-            </div>
-          </div>
-        </div>
+        </StandardModal>
       )}
 
       {showPaymentModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden bg-black/45 px-4 py-6 backdrop-blur-sm">
-          <div
-            className="max-h-[calc(100vh-3rem)] w-full max-w-md overflow-hidden rounded-[30px] bg-white shadow-[0_28px_80px_rgba(15,23,42,0.32)]"
-            style={{ transform: `translate(${modalOffset.x}px, ${modalOffset.y}px)` }}
-          >
-            <div
-              className="flex cursor-move touch-none select-none items-center justify-between gap-4 border-b border-slate-100 px-5 py-4"
-              onPointerDown={startModalDrag}
-              onPointerMove={moveModalDrag}
-              onPointerUp={stopModalDrag}
-              onPointerCancel={stopModalDrag}
-            >
-              <div>
-                <h3 className="text-lg font-extrabold text-slate-900">
-                  {editingPaymentId ? "Zahlung bearbeiten" : "Zahlung erfassen"}
-                </h3>
-                <p className="mt-1 text-sm font-semibold text-slate-500">
-                  Wird im Audit-Log gespeichert (GoBD).
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={closePaymentModal}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#f3f6fa] text-slate-600 transition hover:bg-slate-200"
-                aria-label="Zahlungsfenster schliessen"
-              >
-                <X className="h-4 w-4" />
+        <StandardModal
+          title={editingPaymentId ? "Zahlung bearbeiten" : "Zahlung erfassen"}
+          description="Wird im Audit-Log gespeichert (GoBD)."
+          onClose={closePaymentModal}
+          width={520}
+          bodyClassName="space-y-4"
+          footer={(
+            <>
+              <button type="button" onClick={closePaymentModal}>Abbrechen</button>
+              <button type="button" onClick={savePayment} disabled={parseMoneyInput(paymentAmount) <= 0 || !paymentReason.trim()}>
+                Speichern
               </button>
-            </div>
-
-            <div className="max-h-[calc(100vh-16rem)] space-y-4 overflow-y-auto px-5 py-5">
+            </>
+          )}
+          closeLabel="Zahlungsfenster schliessen"
+        >
               <div className="grid gap-3 sm:grid-cols-2">
                 <label className="block">
                   <span className="mb-2 block text-xs font-extrabold text-slate-500">Datum</span>
@@ -1310,23 +1210,7 @@ export default function DocumentDetailPage({ params }: DocumentDetailPageProps) 
                   className="min-h-24 w-full resize-none rounded-[22px] border border-slate-200 bg-[#f8fafc] px-4 py-3 text-sm font-semibold leading-6 text-slate-800 outline-none focus:ring-2 focus:ring-slate-900"
                 />
               </label>
-            </div>
-
-            <div className="flex justify-end gap-3 bg-[#f8fafc] px-5 py-4">
-              <button type="button" onClick={closePaymentModal} className="rounded-full bg-white px-5 py-2.5 text-sm font-extrabold text-slate-600 ring-1 ring-slate-200">
-                Abbrechen
-              </button>
-              <button
-                type="button"
-                onClick={savePayment}
-                disabled={parseMoneyInput(paymentAmount) <= 0 || !paymentReason.trim()}
-                className="rounded-full bg-black px-6 py-2.5 text-sm font-extrabold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                Speichern
-              </button>
-            </div>
-          </div>
-        </div>
+        </StandardModal>
       )}
 
       {downloadNotice && (

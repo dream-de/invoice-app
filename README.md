@@ -81,10 +81,10 @@ chmod +x scripts/install.sh scripts/status.sh
 ./scripts/install.sh
 ```
 
-The installer creates a private `.env`, pulls the published image `ghcr.io/dream-de/invoice-app:latest`, starts PostgreSQL, and starts the web app. Open the app at:
+The installer creates a private `.env`, pulls the published image `ghcr.io/dream-de/invoice-app:latest`, starts PostgreSQL, and starts the web app. Premium runs on port `3012` by default. Open the app at:
 
 ```text
-https://your-domain.example
+http://SERVER-IP:3012
 ```
 
 For the first local HTTP start, deployment Basic Auth is disabled so the setup screen opens directly. Create the first owner account in the browser, then enable deployment protection before exposing the installation:
@@ -96,7 +96,7 @@ AUTH_COOKIE_SECURE=true
 
 Use `AUTH_COOKIE_SECURE=true` only when the public app URL uses HTTPS. Keep it `false` for local HTTP/LXC tests.
 
-For a fully manual install, copy `.env.example` to `.env`, replace every `CHANGE_ME_*` value, then start the stack:
+For a fully manual install, copy `.env.example` to `.env`, replace every `CHANGE_ME_*` value, then start the stack. The default Premium web port is `3012`, and PostgreSQL binds to local host port `55433`:
 
 ```bash
 cp .env.example .env
@@ -231,7 +231,7 @@ docker compose logs -f
 Check the database:
 
 ```bash
-docker compose exec postgres pg_isready -U dream_invoice -d dream_invoice
+docker compose exec postgres pg_isready -U dream_invoice -d invoice_platform
 ```
 
 Update the published app image:
@@ -287,13 +287,13 @@ pnpm docker:dev:down
 Create a database backup:
 
 ```bash
-docker compose exec postgres pg_dump -U dream_invoice dream_invoice > backup.sql
+docker compose exec postgres pg_dump -U dream_invoice invoice_platform > backup.sql
 ```
 
 Restore a database backup:
 
 ```bash
-cat backup.sql | docker compose exec -T postgres psql -U dream_invoice dream_invoice
+cat backup.sql | docker compose exec -T postgres psql -U dream_invoice invoice_platform
 ```
 
 </details>

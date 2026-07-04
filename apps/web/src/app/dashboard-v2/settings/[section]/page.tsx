@@ -3,6 +3,11 @@ import { PremiumWorkspacePage } from "../../PremiumWorkspace"
 import { type DashboardV2SearchPageProps, dashboardV2ParamsFromSearchParams } from "../../routeSearch"
 import { isPremiumSettingsSection, type PremiumSettingsSection } from "../sectionMap"
 
+function isDevSettingsEnabled() {
+  const flag = process.env.NEXT_PUBLIC_DREAM_INVOICE_DEV_TOOLS ?? process.env.DREAM_INVOICE_DEV_TOOLS
+  return process.env.NODE_ENV === "development" || flag === "true" || flag === "1"
+}
+
 export default async function PremiumSettingsSectionPage({
   params,
   searchParams
@@ -13,6 +18,7 @@ export default async function PremiumSettingsSectionPage({
   if (normalizedSection === "users-roles" || normalizedSection === "tenants") redirect("/dashboard-v2/settings/users")
   if (normalizedSection === "audit" || normalizedSection === "audit-logs") redirect("/dashboard-v2/settings/logs-monitoring")
   if (normalizedSection === "add-ons") redirect("/dashboard-v2/settings/api")
+  if (normalizedSection === "dev" && !isDevSettingsEnabled()) redirect("/dashboard-v2/settings/system")
   if (!isPremiumSettingsSection(normalizedSection)) notFound()
 
   const { query, theme } = await dashboardV2ParamsFromSearchParams(searchParams)

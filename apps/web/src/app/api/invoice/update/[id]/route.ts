@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server"
+import { getAuditRequestMetadata } from "@/lib/audit/request-metadata"
+import { writeAuditLog } from "@/lib/audit/log"
 import { prisma, type Prisma } from "@dream-invoice/database"
 import { documents } from "@/data/invoice-data"
 import { AuthServiceError, mapAuthError, requireCurrentUser } from "@/lib/auth/service"
@@ -269,6 +271,17 @@ export async function PUT(
           customer: true
         }
       })
+    })
+
+    await writeAuditLog({
+      action: existing.type === "offer" ? "offer.update" : "invoice.update",
+      entity: existing.type === "offer" ? "offer" : "invoice",
+      entityId: id,
+      reason: existing.type === "offer" ? "Angebot aktualisiert" : "Rechnung aktualisiert",
+      data: { entityLabel: updated.number, status: updated.status },
+      before: { number: existing.number, status: existing.status, customerId: existing.customerId, netTotal: existing.netTotal, vatTotal: existing.vatTotal, grossTotal: existing.grossTotal, positions: existing.positions.length },
+      after: { number: updated.number, status: updated.status, customerId: updated.customerId, netTotal: updated.netTotal, vatTotal: updated.vatTotal, grossTotal: updated.grossTotal, positions: updated.positions.length },
+      requestMetadata: getAuditRequestMetadata(req)
     })
 
     return NextResponse.json({ success: true, invoice: updated })

@@ -1,6 +1,6 @@
 "use client"
 
-import { type FormEvent, type PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react"
+import { type FormEvent, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import { createPortal } from "react-dom"
 import QRCode from "qrcode"
@@ -17,6 +17,7 @@ import {
   Trash2
 } from "lucide-react"
 import styles from "./PremiumInvoiceEditor.module.css"
+import { StandardModal } from "@/components/ui/StandardModal"
 
 type TaxRate = {
   id: string
@@ -36,7 +37,7 @@ type InvoiceItem = {
   customTaxRate?: string
 }
 
-type InvoiceTemplate = "classic" | "modern"
+type InvoiceTemplate = "classic" | "modern" | "minimal" | "elegant" | "business" | "premium"
 
 type CustomerRecord = {
   id: string
@@ -100,12 +101,32 @@ type CompanySettings = {
   defaultPaymentNote?: string | null
 }
 
+type FinanceBankAccount = {
+  id: string
+  bankName?: string | null
+  accountHolder?: string | null
+  iban?: string | null
+  bic?: string | null
+  isDefault?: boolean | null
+  qrEnabled?: boolean | null
+  active?: boolean | null
+}
+
 type EmailSettings = {
   provider?: "disabled" | "smtp" | "resend" | null
   fromEmail?: string | null
   smtpHost?: string | null
   resendApiKey?: string | null
 }
+
+const invoiceTemplateOptions: Array<{ id: InvoiceTemplate; label: string }> = [
+  { id: "classic", label: "Klassisch" },
+  { id: "modern", label: "Modern" },
+  { id: "minimal", label: "Minimal" },
+  { id: "elegant", label: "Elegant" },
+  { id: "business", label: "Business" },
+  { id: "premium", label: "Premium" }
+]
 
 const initialTaxRates: TaxRate[] = [
   { id: "tax-19", label: "19% MwSt", rate: 19, locked: true },
@@ -122,39 +143,6 @@ const fallbackCreditorIban = "DE97441523700000069757"
 const fallbackCreditorBic = "WELADED1LUN"
 const fallbackCreditorBankName = "Manuelle Bankdaten"
 const fallbackPaymentNote = "Bitte ueberweisen Sie den Betrag innerhalb von 14 Tagen."
-const noteTemplates = [
-  {
-    id: "standard",
-    label: "Standard",
-    text: "Vielen Dank fuer Ihren Auftrag. Bei Fragen kontaktieren Sie uns gerne."
-  },
-  {
-    id: "freundlich",
-    label: "Freundlich",
-    text: "Vielen Dank fuer Ihr Vertrauen. Bitte ueberweisen Sie den Rechnungsbetrag fristgerecht. Fuer Rueckfragen sind wir jederzeit gerne erreichbar."
-  },
-  {
-    id: "modern",
-    label: "Modern",
-    text: "Danke fuer die gute Zusammenarbeit. Bitte geben Sie bei der Ueberweisung die Rechnungsnummer an."
-  },
-  {
-    id: "vorkasse",
-    label: "Vorkasse",
-    text: "Diese Rechnung ist als Vorkasse gestellt. Bitte ueberweisen Sie den Betrag vor Leistungsbeginn unter Angabe der Rechnungsnummer."
-  },
-  {
-    id: "bankueberweisung",
-    label: "Bankueberweisung",
-    text: "Bitte ueberweisen Sie den offenen Betrag auf das angegebene Geschaeftskonto. Verwendungszweck: Rechnungsnummer."
-  },
-  {
-    id: "qr-code-zahlung",
-    label: "QR-Code Zahlung",
-    text: "Sie koennen den Betrag bequem per QR-Code oder klassisch per Bankueberweisung begleichen. Bitte nutzen Sie die Rechnungsnummer als Referenz."
-  }
-] as const
-
 function euro(value: number) {
   return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(
     Number.isFinite(value) ? value : 0
@@ -223,34 +211,44 @@ function lineId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.round(Math.random() * 10000)}`
 }
 
+function cleanQrLine(value: string, maxLength: number) {
+  return value.replace(/\r?\n/g, " ").replace(/\s+/g, " ").trim().slice(0, maxLength)
+}
+
+function cleanQrIban(value: string) {
+  return value.replace(/\s+/g, "").toUpperCase()
+}
+
 function formatEpcAmount(value: number) {
-  return `EUR${Math.max(value, 0).toFixed(2)}`
+  return `EUR${Math.max(0.01, Math.min(value, 99999999.99)).toFixed(2)}`
 }
 
 function buildEpcQrPayload(invoiceNumber: string, amount: number, creditorName: string, creditorIban: string, creditorBic: string) {
+  const iban = cleanQrIban(creditorIban)
+  if (!iban) return ""
+
   return [
     "BCD",
     "002",
     "1",
     "SCT",
-    creditorBic,
-    creditorName,
-    creditorIban,
+    cleanQrLine(creditorBic, 11),
+    cleanQrLine(creditorName, 70),
+    iban,
     formatEpcAmount(amount),
     "",
     "",
-    invoiceNumber,
-    `Rechnung ${invoiceNumber}`
+    cleanQrLine(`Rechnung ${invoiceNumber}`, 140),
+    ""
   ].join("\n")
 }
 
 export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?: "light" | "dark" }) {
   const noteFieldRef = useRef<HTMLTextAreaElement | null>(null)
   const profileMenuRef = useRef<HTMLDivElement | null>(null)
-  const emailPanelRef = useRef<HTMLFormElement | null>(null)
-  const emailDragOffsetRef = useRef<{ x: number; y: number } | null>(null)
   const [theme] = useState(initialTheme)
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null)
+  const [bankAccounts, setBankAccounts] = useState<FinanceBankAccount[]>([])
   const [emailSettings, setEmailSettings] = useState<EmailSettings | null>(null)
   const [emailSettingsLoaded, setEmailSettingsLoaded] = useState(false)
   const [companyDefaultsApplied, setCompanyDefaultsApplied] = useState(false)
@@ -292,11 +290,9 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
   const [isWorking, setIsWorking] = useState(false)
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const [emailOpen, setEmailOpen] = useState(false)
-  const [emailDialogPosition, setEmailDialogPosition] = useState<{ left: number; top: number } | null>(null)
   const [emailTo, setEmailTo] = useState(invoice.customerEmail)
   const [emailSubject, setEmailSubject] = useState(`Rechnung ${invoice.number}`)
   const [emailMessage, setEmailMessage] = useState(`Hallo,\n\nanbei erhalten Sie die Rechnung ${invoice.number} als PDF.\n\nViele Gruesse\nDreamInvoice`)
-  const [selectedNoteTemplate, setSelectedNoteTemplate] = useState("")
 
   const totals = useMemo(() => {
     const taxMap = new Map<string, TaxSummary>()
@@ -326,10 +322,12 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
   }, [items])
 
   const paymentTermsDays = Math.max(1, Number(companySettings?.defaultPaymentTermsDays ?? defaultPaymentTermsDays) || defaultPaymentTermsDays)
-  const creditorName = companySettings?.company?.trim() || fallbackCreditorName
-  const creditorIban = companySettings?.iban?.trim() || fallbackCreditorIban
-  const creditorBic = companySettings?.bic?.trim() || fallbackCreditorBic
-  const creditorBankName = companySettings?.bankName?.trim() || fallbackCreditorBankName
+  const defaultBankAccount = bankAccounts.find((account) => account.active !== false && account.isDefault) ?? bankAccounts.find((account) => account.active !== false) ?? null
+  const qrPaymentEnabled = defaultBankAccount?.qrEnabled !== false
+  const creditorName = defaultBankAccount?.accountHolder?.trim() || companySettings?.company?.trim() || fallbackCreditorName
+  const creditorIban = defaultBankAccount?.iban?.trim() || companySettings?.iban?.trim() || fallbackCreditorIban
+  const creditorBic = defaultBankAccount?.bic?.trim() || companySettings?.bic?.trim() || fallbackCreditorBic
+  const creditorBankName = defaultBankAccount?.bankName?.trim() || companySettings?.bankName?.trim() || fallbackCreditorBankName
   const companyPaymentNote = companySettings?.defaultPaymentNote?.trim() || fallbackPaymentNote
   const emailTransportReady = emailSettingsLoaded && Boolean(
     emailSettings && (
@@ -337,10 +335,17 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
         || emailSettings.provider === "resend" && emailSettings.resendApiKey?.trim() && emailSettings.fromEmail?.trim()
     )
   )
-  const qrPayload = useMemo(() => buildEpcQrPayload(invoice.number, totals.gross, creditorName, creditorIban, creditorBic), [invoice.number, totals.gross, creditorName, creditorIban, creditorBic])
+  const qrPayload = useMemo(() => qrPaymentEnabled ? buildEpcQrPayload(invoice.number, totals.gross, creditorName, creditorIban, creditorBic) : "", [invoice.number, totals.gross, creditorName, creditorIban, creditorBic, qrPaymentEnabled])
 
   useEffect(() => {
     let cancelled = false
+
+    if (!qrPayload) {
+      setQrCodeUrl("")
+      return () => {
+        cancelled = true
+      }
+    }
 
     QRCode.toDataURL(qrPayload, {
       errorCorrectionLevel: "M",
@@ -382,96 +387,6 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
     }
   }, [])
 
-  function clampEmailDialogPosition(left: number, top: number) {
-    if (typeof window === "undefined") return { left, top }
-    const panel = emailPanelRef.current
-    const width = panel?.offsetWidth ?? 520
-    const height = panel?.offsetHeight ?? 520
-    const padding = 24
-    const maxLeft = Math.max(padding, window.innerWidth - width - padding)
-    const maxTop = Math.max(padding, window.innerHeight - height - padding)
-
-    return {
-      left: Math.min(Math.max(padding, left), maxLeft),
-      top: Math.min(Math.max(padding, top), maxTop)
-    }
-  }
-
-  function centerEmailDialog() {
-    if (typeof window === "undefined") return
-    if (window.innerWidth <= 760) {
-      setEmailDialogPosition(null)
-      return
-    }
-
-    const panel = emailPanelRef.current
-    const width = panel?.offsetWidth ?? 520
-    const height = panel?.offsetHeight ?? 520
-    setEmailDialogPosition(
-      clampEmailDialogPosition(
-        (window.innerWidth - width) / 2,
-        (window.innerHeight - height) / 2
-      )
-    )
-  }
-
-  useEffect(() => {
-    if (!emailOpen) {
-      setEmailDialogPosition(null)
-      return
-    }
-
-    const frame = window.requestAnimationFrame(() => {
-      centerEmailDialog()
-    })
-
-    function handleResize() {
-      centerEmailDialog()
-    }
-
-    window.addEventListener("resize", handleResize)
-    return () => {
-      window.cancelAnimationFrame(frame)
-      window.removeEventListener("resize", handleResize)
-    }
-  }, [emailOpen])
-
-  function handleEmailDragStart(event: ReactPointerEvent<HTMLDivElement>) {
-    if (typeof window === "undefined" || window.innerWidth <= 760) return
-    const target = event.target as HTMLElement
-    if (target.closest("button")) return
-
-    const panel = emailPanelRef.current
-    if (!panel) return
-
-    const rect = panel.getBoundingClientRect()
-    emailDragOffsetRef.current = {
-      x: event.clientX - rect.left,
-      y: event.clientY - rect.top
-    }
-
-    const handleMove = (moveEvent: PointerEvent) => {
-      const offset = emailDragOffsetRef.current
-      if (!offset) return
-      setEmailDialogPosition(
-        clampEmailDialogPosition(
-          moveEvent.clientX - offset.x,
-          moveEvent.clientY - offset.y
-        )
-      )
-    }
-
-    const handleUp = () => {
-      emailDragOffsetRef.current = null
-      window.removeEventListener("pointermove", handleMove)
-      window.removeEventListener("pointerup", handleUp)
-      window.removeEventListener("pointercancel", handleUp)
-    }
-
-    window.addEventListener("pointermove", handleMove)
-    window.addEventListener("pointerup", handleUp)
-    window.addEventListener("pointercancel", handleUp)
-  }
 
   useEffect(() => {
     let cancelled = false
@@ -485,6 +400,16 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
 
         if (!cancelled && response.ok && result?.ok && result.settings) {
           setCompanySettings(result.settings as CompanySettings)
+        }
+
+        const financeResponse = await fetch("/api/finance/base", {
+          cache: "no-store",
+          credentials: "same-origin"
+        })
+        const financeResult = await financeResponse.json().catch(() => null)
+
+        if (!cancelled && financeResponse.ok && financeResult?.ok && Array.isArray(financeResult.bankAccounts)) {
+          setBankAccounts(financeResult.bankAccounts as FinanceBankAccount[])
         }
       } catch {
         // Keep local fallback values.
@@ -813,23 +738,7 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
 
   function clearNoteField() {
     updateInvoice("note", "")
-    setSelectedNoteTemplate("")
     setStatus("Notiztext geleert")
-  }
-
-  function applyNoteTemplate(templateId: string) {
-    setSelectedNoteTemplate(templateId)
-
-    if (!templateId) {
-      setStatus("Notizvorlage zurueckgesetzt")
-      return
-    }
-
-    const template = noteTemplates.find((entry) => entry.id === templateId)
-    if (!template) return
-
-    updateInvoice("note", template.text)
-    setStatus(`Notizvorlage ${template.label} uebernommen`)
   }
 
   function previewPdfPayload() {
@@ -1117,11 +1026,7 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
     <main className={styles.page} data-theme={theme}>
       <aside className={styles.sidebar}>
         <div className={styles.brand}>
-          <span>D</span>
-          <div>
-            <strong>DreamInvoice</strong>
-            <small>Premium Edition</small>
-          </div>
+          <img src="/brand/logo-sidebar.svg" alt="DreamInvoice" />
         </div>
         <nav>
           {[
@@ -1238,20 +1143,15 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
         ) : null}
         {emailOpen && typeof window !== "undefined"
           ? createPortal(
-            <div className={styles.emailOverlay} role="dialog" aria-modal="true" aria-labelledby="invoice-email-title">
-              <form
-                ref={emailPanelRef}
-                className={styles.emailPanel}
-                onSubmit={submitEmail}
-                style={emailDialogPosition ? { left: `${emailDialogPosition.left}px`, top: `${emailDialogPosition.top}px` } : undefined}
-              >
-                <div className={styles.emailHead} onPointerDown={handleEmailDragStart}>
-                  <div>
-                    <span>E-Mail Versand</span>
-                    <h2 id="invoice-email-title">Rechnung als PDF senden</h2>
-                  </div>
-                  <button type="button" disabled={isWorking} onClick={() => setEmailOpen(false)}>Schliessen</button>
-                </div>
+            <StandardModal
+              title="Rechnung als PDF senden"
+              eyebrow="E-Mail Versand"
+              onClose={() => { if (!isWorking) setEmailOpen(false) }}
+              ariaLabelledBy="invoice-email-title"
+              width={560}
+              padded={false}
+            >
+              <form className={styles.emailPanel} onSubmit={submitEmail}>
                 <label>
                   Empfaenger
                   <input type="email" value={emailTo} onChange={(event) => setEmailTo(event.target.value)} placeholder="kunde@example.de" required />
@@ -1274,7 +1174,7 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
                   <button type="submit" disabled={isWorking || !emailTransportReady} title={emailTransportReady ? "PDF senden" : "SMTP zuerst konfigurieren"}><Mail size={16} />PDF senden</button>
                 </div>
               </form>
-            </div>,
+            </StandardModal>,
             document.body
           )
           : null}
@@ -1436,9 +1336,18 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
                 <h2>Zahlungsbedingungen</h2>
                 <span aria-live="polite" data-testid="invoice-editor-status">{status}</span>
               </div>
-              <div className={styles.templateSwitch} aria-label="Rechnungsvorlage">
-                <button type="button" className={invoiceTemplate === "classic" ? styles.templateActive : ""} onClick={() => setInvoiceTemplate("classic")}>Klassisch</button>
-                <button type="button" className={invoiceTemplate === "modern" ? styles.templateActive : ""} onClick={() => setInvoiceTemplate("modern")}>Modern</button>
+              <div className={styles.invoiceTemplatePanel}>
+                <label htmlFor="invoice-template-select">Rechnungsdesign</label>
+                <select
+                  id="invoice-template-select"
+                  className={styles.templateSelect}
+                  value={invoiceTemplate}
+                  onChange={(event) => setInvoiceTemplate(event.target.value as InvoiceTemplate)}
+                >
+                  {invoiceTemplateOptions.map((template) => (
+                    <option key={template.id} value={template.id}>{template.label}</option>
+                  ))}
+                </select>
               </div>
               <div className={styles.paymentGrid}>
                 <label>Zahlungsziel (Tage)<input value={`${paymentTermsDays} Tage`} readOnly /></label>
@@ -1450,17 +1359,6 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
                 <div className={styles.notePanelHeader}>
                   <label htmlFor="invoice-note-field">Notizen / Anmerkungen</label>
                   <div className={styles.notePanelTools}>
-                    <select
-                      aria-label="Notizvorlage auswaehlen"
-                      className={styles.noteTemplateSelect}
-                      value={selectedNoteTemplate}
-                      onChange={(event) => applyNoteTemplate(event.target.value)}
-                    >
-                      <option value="">Vorlage auswaehlen</option>
-                      {noteTemplates.map((template) => (
-                        <option key={template.id} value={template.id}>{template.label}</option>
-                      ))}
-                    </select>
                     <button
                       type="button"
                       className={styles.noteIconButton}
@@ -1494,7 +1392,7 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
           </div>
 
           <aside className={styles.previewColumn} id="vorschau">
-            <article className={styles.invoicePreview}>
+            <article className={`${styles.invoicePreview} ${styles[`invoiceTemplate_${invoiceTemplate}`]}`}>
               <header>
                 <div className={styles.documentTitle}>
                   <h2>RECHNUNG</h2>
@@ -1554,7 +1452,7 @@ export function PremiumInvoiceEditor({ initialTheme = "light" }: { initialTheme?
                 </div>
                 <div className={styles.qrBox}>
                   {qrCodeUrl ? <img src={qrCodeUrl} alt={`GiroCode fuer ${invoice.number}`} /> : <span>QR</span>}
-                  <small>GiroCode scannen</small>
+                  <small>{qrCodeUrl ? "GiroCode scannen" : "Bankdaten pruefen"}</small>
                 </div>
               </section>
               <footer>

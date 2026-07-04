@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
+import { getAuditRequestMetadata } from "@/lib/audit/request-metadata"
+import { writeAuditLog } from "@/lib/audit/log"
 import { AuthServiceError, mapAuthError, requireCurrentUser } from "@/lib/auth/service"
 import { hasUserPermission } from "@/lib/auth/permissions"
 import { demoModeResponse, isDemoMode } from "@/lib/demo-mode"
@@ -103,7 +105,7 @@ export async function POST(req: Request) {
       }))
     }
 
-    await requireDocumentCreatePermission()
+    const actor = await requireDocumentCreatePermission()
 
     const document = await prisma.$transaction(async (tx) => {
       await tx.numberRange.upsert({
@@ -162,6 +164,16 @@ export async function POST(req: Request) {
           customer: true
         }
       })
+    })
+
+    await writeAuditLog({
+      action: type === "offer" ? "offer.create" : "invoice.create",
+      entity: type,
+      entityId: document.id,
+      reason: type === "offer" ? "Angebot erstellt" : "Rechnung erstellt",
+      data: { actorUserId: actor.id, entityLabel: document.number, status: document.status, grossTotal: document.grossTotal },
+      after: { number: document.number, type: document.type, status: document.status, customerId: document.customerId, projectId: document.projectId, netTotal: document.netTotal, vatTotal: document.vatTotal, grossTotal: document.grossTotal },
+      requestMetadata: getAuditRequestMetadata(req)
     })
 
     return NextResponse.json({ ok: true, document: formatDocumentResponse(document) })

@@ -119,21 +119,25 @@ export function OpenBankingClient() {
         return
       }
       setStatus(statusResult)
-      setMessage("Verbindung wird vorbereitet...")
+      if (!statusResult.configured) {
+        setMessage("Open Banking noch nicht konfiguriert. Für echte PSD2-Bankverbindungen muss ein Banking-Provider konfiguriert werden.")
+        return
+      }
+      setMessage("Echter PSD2-Consent-Flow wird angefordert...")
 
       const response = await fetch("/api/finance/open-banking/connections", { method: "POST" })
       const result = await response.json().catch(() => ({}))
       if (!response.ok || !result.ok) {
-        setMessage(result.error || "Bankverbindung konnte nicht vorbereitet werden.")
+        setMessage(result.error || "Bankverbindung konnte nicht gestartet werden.")
         return
       }
 
       setConnections(Array.isArray(result.connections) ? result.connections : [])
       setAccounts(Array.isArray(result.accounts) ? result.accounts : [])
       await load()
-      setMessage("Bankverbindung gespeichert. Callback ist vorbereitet; keine Bank-Zugangsdaten wurden gespeichert.")
+      setMessage("Bankverbindung gestartet. Es wurden keine Bank-Zugangsdaten gespeichert.")
     } catch {
-      setMessage("Bankverbindung konnte nicht vorbereitet werden.")
+      setMessage("Bankverbindung konnte nicht gestartet werden.")
     } finally {
       setIsBusy(false)
     }
@@ -169,7 +173,7 @@ export function OpenBankingClient() {
   }
 
   return (
-    <PageShell title="Open Banking" description="Bankverbindung ueber finAPI vorbereiten und verbinden.">
+    <PageShell title="Open Banking" description="Bankverbindung ueber finAPI nur mit konfiguriertem Provider starten.">
       <div className="space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link href="/finance" className="inline-flex items-center gap-2 text-sm font-semibold text-slate-500 no-underline hover:text-slate-900">
@@ -178,7 +182,7 @@ export function OpenBankingClient() {
           </Link>
           <button type="button" onClick={connectBank} disabled={isBusy} className="inline-flex items-center gap-2 rounded-full bg-black px-5 py-3 text-sm font-extrabold text-[var(--brand-lime)] disabled:cursor-not-allowed disabled:opacity-60">
             <Link2 className="h-4 w-4" />
-            Bank verbinden
+            {status?.configured ? "Bank verbinden" : "Provider konfigurieren"}
           </button>
         </div>
 
@@ -186,8 +190,8 @@ export function OpenBankingClient() {
           <div className="flex items-start gap-3">
             <LockKeyhole className="mt-0.5 h-5 w-5" />
             <div>
-              <h2 className="font-extrabold">finAPI-Verbindungsflow vorbereitet</h2>
-              <p className="mt-1 text-sm font-semibold leading-6">Nur Admins koennen den Flow starten. Es werden keine Bank-Zugangsdaten gespeichert und keine Tokens im Frontend angezeigt.</p>
+              <h2 className="font-extrabold">Open Banking noch nicht konfiguriert</h2>
+              <p className="mt-1 text-sm font-semibold leading-6">Für echte PSD2-Bankverbindungen muss ein Banking-Provider konfiguriert werden. Ohne aktiven Provider wird keine Bankverbindung gespeichert.</p>
             </div>
           </div>
         </section>
@@ -196,9 +200,9 @@ export function OpenBankingClient() {
 
         <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
           {[
-            { title: "finAPI Status", value: status?.mode || "Pruefbar", icon: Plug },
-            { title: "Callback", value: status?.callbackUrl ? "Vorbereitet" : "Offen", icon: RefreshCw },
-            { title: "Verbindungen", value: String(connections.length), icon: Building2 },
+            { title: "finAPI Status", value: status?.configured ? "Aktiv" : "Nicht konfiguriert", icon: Plug },
+            { title: "Callback", value: status?.configured && status?.callbackUrl ? "Bereit" : "Offen", icon: RefreshCw },
+            { title: "Verbindungen", value: status?.configured ? String(connections.length) : "0", icon: Building2 },
             { title: "Standardkonto", value: defaultAccount?.accountName || "Nicht gesetzt", icon: Landmark }
           ].map((item) => {
             const Icon = item.icon
@@ -216,7 +220,7 @@ export function OpenBankingClient() {
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="text-xl font-extrabold text-slate-950">BankConnections</h2>
-              <p className="mt-1 text-sm font-medium text-slate-500">Gespeicherte finAPI-Verbindungen ohne Frontend-Tokens.</p>
+              <p className="mt-1 text-sm font-medium text-slate-500">Aktive finAPI-Verbindungen aus einem echten Provider-Flow.</p>
             </div>
             <CheckCircle2 className="h-5 w-5 text-emerald-600" />
           </div>
@@ -224,7 +228,7 @@ export function OpenBankingClient() {
             <div className="grid grid-cols-[1.2fr_0.7fr_0.7fr_1fr_1fr] gap-3 bg-gray-50 px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-400 max-lg:hidden">
               <span>Bankname</span><span>Provider</span><span>Status</span><span>Letzte Sync</span><span>Verbunden am</span>
             </div>
-            {connections.length ? connections.map((connection) => (
+            {status?.configured && connections.length ? connections.map((connection) => (
               <div key={connection.id} className="grid grid-cols-[1.2fr_0.7fr_0.7fr_1fr_1fr] gap-3 border-t border-gray-100 px-4 py-3 text-sm font-semibold text-slate-700 max-lg:grid-cols-1">
                 <span className="font-extrabold text-slate-950">{connection.bankName}</span>
                 <span>finAPI</span>
@@ -239,7 +243,7 @@ export function OpenBankingClient() {
         <section className="rounded-3xl border border-gray-200 bg-white p-6">
           <h2 className="text-xl font-extrabold text-slate-950">BankAccounts</h2>
           <div className="mt-5 grid gap-4 md:grid-cols-2">
-            {accounts.length ? accounts.map((account) => (
+            {status?.configured && accounts.length ? accounts.map((account) => (
               <article key={account.id} className="rounded-3xl border border-gray-200 bg-gray-50 p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -254,7 +258,7 @@ export function OpenBankingClient() {
                   <div><p className="text-xs font-black uppercase tracking-widest text-slate-400">Status</p><strong className="text-sm text-slate-950">{account.status}</strong></div>
                 </div>
               </article>
-            )) : <div className="rounded-3xl border border-dashed border-gray-200 bg-gray-50 p-8 text-center text-sm font-semibold text-slate-500 md:col-span-2">Nach einer vorbereiteten Verbindung werden Konten hier angezeigt.</div>}
+            )) : <div className="rounded-3xl border border-dashed border-gray-200 bg-gray-50 p-8 text-center text-sm font-semibold text-slate-500 md:col-span-2">Nach einer echten Provider-Verbindung werden Konten hier angezeigt.</div>}
           </div>
         </section>
 
@@ -301,7 +305,7 @@ export function OpenBankingClient() {
                   </button>
                 </div>
               </div>
-            )) : <div className="border-t border-gray-100 px-4 py-8 text-center text-sm font-semibold text-slate-500">Noch keine BankTransactions vorhanden. Nach einer vorbereiteten Verbindung erscheinen Bankbewegungen hier.</div>}
+            )) : <div className="border-t border-gray-100 px-4 py-8 text-center text-sm font-semibold text-slate-500">Noch keine BankTransactions vorhanden. Nach einer echten Provider-Verbindung erscheinen Bankbewegungen hier.</div>}
           </div>
         </section>
 

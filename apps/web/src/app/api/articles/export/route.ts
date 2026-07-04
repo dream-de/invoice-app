@@ -2,6 +2,8 @@ import { prisma } from "@dream-invoice/database"
 import { createCsvResponse } from "@/lib/export/csv-response"
 import { articles as fallbackArticles } from "@/data/invoice-data"
 import { isDemoMode } from "@/lib/demo-mode"
+import { getAuditRequestMetadata } from "@/lib/audit/request-metadata"
+import { writeAuditLog } from "@/lib/audit/log"
 
 export const dynamic = "force-dynamic"
 
@@ -37,7 +39,7 @@ function createArticleCsv(rows: string[][]) {
   )
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   if (isDemoMode() || !process.env.DATABASE_URL) {
     return createArticleCsv(rowsFromFallbackArticles())
   }
@@ -46,6 +48,8 @@ export async function GET() {
     const articles = await prisma.article.findMany({
       orderBy: { createdAt: "desc" }
     })
+
+    await writeAuditLog({ action: "export.create", entity: "article", reason: "Artikel exportiert", data: { entityLabel: "preisliste-export.csv", count: articles.length, format: "csv" }, requestMetadata: getAuditRequestMetadata(request) })
 
     return createArticleCsv((articles as ExportArticle[]).map((article) => [
       article.number,

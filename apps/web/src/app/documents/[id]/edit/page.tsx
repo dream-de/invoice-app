@@ -8,6 +8,7 @@ import { Check, FileUp, Mail, Sparkles, Trash2, UserRound, X } from "lucide-reac
 import { Currency, Input, Select, Textarea } from "@dream-invoice/ui"
 import { documents } from "@/data/invoice-data"
 import { useLanguage } from "@/lib/i18n"
+import { StandardModal } from "@/components/ui/StandardModal"
 
 type DocumentEditPageProps = {
   params: {
@@ -2236,24 +2237,12 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
         }
       `}</style>
       {positionImportOpen && (
-        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/35 px-4">
-          <div className="w-full max-w-4xl rounded-[30px] bg-white p-6 shadow-2xl">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 className="text-2xl font-extrabold text-[#111827]">{t("documents.edit.positionsImport.title")}</h2>
-                <p className="mt-1 text-sm font-medium text-[#64748b]">
-                  {t("documents.edit.positionsImport.description")}
-                </p>
-              </div>
-
-              <button
-                onClick={() => setPositionImportOpen(false)}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-[#edf1f6] text-slate-700 hover:bg-[#e4eaf2]"
-                aria-label={t("documents.edit.import.close")}
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+        <StandardModal
+          title={t("documents.edit.positionsImport.title")}
+          description={t("documents.edit.positionsImport.description")}
+          onClose={() => setPositionImportOpen(false)}
+          width={860}
+        >
 
             {positionImportStep === "upload" ? (
               <div className="mt-6 rounded-[24px] border border-dashed border-[#cfd8e5] bg-[#f8fafc] p-8 text-center">
@@ -2326,29 +2315,16 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
                 </div>
               </div>
             )}
-          </div>
-        </div>
+        </StandardModal>
       )}
 
       {recipientImportOpen && (
-        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/35 px-4">
-          <div className="w-full max-w-3xl rounded-[30px] bg-white p-6 shadow-2xl">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 className="text-2xl font-extrabold text-[#111827]">{t("documents.edit.import.title")}</h2>
-                <p className="mt-1 text-sm font-medium text-[#64748b]">
-                  {t("documents.edit.import.description")}
-                </p>
-              </div>
-
-              <button
-                onClick={() => setRecipientImportOpen(false)}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-[#edf1f6] text-slate-700 hover:bg-[#e4eaf2]"
-                aria-label={t("documents.edit.import.close")}
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+        <StandardModal
+          title={t("documents.edit.import.title")}
+          description={t("documents.edit.import.description")}
+          onClose={() => setRecipientImportOpen(false)}
+          width={760}
+        >
 
             {recipientImportStep === "upload" ? (
               <div className="mt-6 rounded-[24px] border border-dashed border-[#cfd8e5] bg-[#f8fafc] p-8 text-center">
@@ -2413,8 +2389,7 @@ export default function DocumentEditPage({ params }: DocumentEditPageProps) {
                 </div>
               </div>
             )}
-          </div>
-        </div>
+        </StandardModal>
       )}
     </div>
   )

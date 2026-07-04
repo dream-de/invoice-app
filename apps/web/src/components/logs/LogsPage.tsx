@@ -56,9 +56,9 @@ export function LogsPage({ theme = "light" }: { theme?: "dark" | "light" }) {
       <div className="mx-auto flex w-full max-w-full flex-col gap-5 2xl:max-w-[1720px]">
         <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <h1 className="text-3xl font-semibold tracking-normal text-slate-950">Logs</h1>
+            <h1 className="text-3xl font-semibold tracking-normal text-slate-950">Audit Center</h1>
             <p className="mt-1 text-sm font-medium text-slate-500">
-              Aktivitäten, Audit-Ereignisse und Systemprotokolle in Echtzeit
+              Wer was wann geändert hat, inklusive IP, Ergebnis, Objekt und Request-ID.
             </p>
           </div>
 
@@ -151,6 +151,7 @@ export function LogsPage({ theme = "light" }: { theme?: "dark" | "light" }) {
               setModule={logs.setModule}
               setLevel={logs.setLevel}
               setStatus={logs.setStatus}
+              setOutcome={logs.setOutcome}
               setActor={logs.setActor}
               setArchived={logs.setArchived}
               resetFilters={logs.resetFilters}

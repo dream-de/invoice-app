@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
+import { getAuditRequestMetadata } from "@/lib/audit/request-metadata"
+import { writeAuditLog } from "@/lib/audit/log"
 import { demoModeResponse, isDemoMode } from "@/lib/demo-mode"
 
 const allowedStatuses = new Set(["planned", "active", "paused", "completed"])
@@ -131,6 +133,16 @@ export async function POST(req: Request) {
         customerId
       },
       include: { customer: true }
+    })
+
+    await writeAuditLog({
+      action: "project.create",
+      entity: "project",
+      entityId: project.id,
+      reason: "Projekt erstellt",
+      data: { entityLabel: project.name, code: project.code, customerId: project.customerId, status: project.status },
+      after: { name: project.name, code: project.code, customerId: project.customerId, status: project.status, budget: project.budget, hourlyRate: project.hourlyRate },
+      requestMetadata: getAuditRequestMetadata(req)
     })
 
     return NextResponse.json({ ok: true, project: projectResponse(project) })

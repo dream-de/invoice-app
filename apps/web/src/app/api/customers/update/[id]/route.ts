@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server"
+import { getAuditRequestMetadata } from "@/lib/audit/request-metadata"
+import { writeAuditLog } from "@/lib/audit/log"
 import { prisma } from "@dream-invoice/database"
 import { AuthServiceError, mapAuthError, requireCurrentUser } from "@/lib/auth/service"
 import { hasUserPermission } from "@/lib/auth/permissions"
@@ -85,6 +87,17 @@ export async function PATCH(
         status: cleanText(data.status) || existing.status,
         notes: cleanText(data.notes)
       }
+    })
+
+    await writeAuditLog({
+      action: "customer.update",
+      entity: "customer",
+      entityId: id,
+      reason: "Kunde aktualisiert",
+      data: { entityLabel: customer.name ?? customer.number ?? id },
+      before: { name: existing.name, contact: existing.contact, email: existing.email, phone: existing.phone, street: existing.street, zip: existing.zip, city: existing.city, country: existing.country, status: existing.status, notes: existing.notes },
+      after: { name: customer.name, contact: customer.contact, email: customer.email, phone: customer.phone, street: customer.street, zip: customer.zip, city: customer.city, country: customer.country, status: customer.status, notes: customer.notes },
+      requestMetadata: getAuditRequestMetadata(req)
     })
 
     return NextResponse.json({ ok: true, customer })

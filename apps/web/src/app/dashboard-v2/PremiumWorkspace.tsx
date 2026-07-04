@@ -25,7 +25,6 @@ import {
   ChevronRight,
   Clock3,
   CreditCard,
-  Crown,
   Download,
   Eye,
   Mail,
@@ -67,6 +66,7 @@ import {
 import { PremiumAccountSecurityClient } from "./account/security/PremiumAccountSecurityClient"
 import { DocumentManagementClient } from "./documents/DocumentManagementClient"
 import { ShareReleaseDialog } from "@/components/share/ShareReleaseDialog"
+import { StandardModal } from "@/components/ui/StandardModal"
 import { LicenseBillingControlCenter } from "./_components/LicenseBillingControlCenter"
 import { BankConnectPage } from "./finance/bank-connect/BankConnectPage"
 import { IntegrationCenter } from "./integrations/IntegrationCenter"
@@ -372,13 +372,6 @@ type SearchResult = {
   icon: IconType
   category: Exclude<SearchCategory, "all">
 }
-type UpgradeSummary = {
-  title: string
-  text: string
-  action: string
-  href: string
-}
-
 const mainNav: NavItem[] = [
   { label: "Dashboard", href: "/dashboard-v2", icon: Home, moduleKey: "dashboard" },
   { label: "Kunden", href: "/dashboard-v2/customers", icon: Users, moduleKey: "customers" },
@@ -394,6 +387,11 @@ const mainNav: NavItem[] = [
   { label: "Berichte", href: "/dashboard-v2/reports", icon: BarChart3, moduleKey: "reports" },
   { label: "Einstellungen", href: "/dashboard-v2/settings", icon: Settings, moduleKey: "settings" }
 ]
+
+function isDevToolsEnabled() {
+  const flag = process.env.NEXT_PUBLIC_DREAM_INVOICE_DEV_TOOLS ?? process.env.DREAM_INVOICE_DEV_TOOLS
+  return process.env.NODE_ENV === "development" || flag === "true" || flag === "1"
+}
 
 const sideNav: Array<{ section: string; marker?: string; items: NavItem[] }> = [
   {
@@ -439,8 +437,7 @@ const sideNav: Array<{ section: string; marker?: string; items: NavItem[] }> = [
   {
     section: "System",
     items: [
-      { label: "Einstellungen", href: "/dashboard-v2/settings", icon: Settings, moduleKey: "settings" },
-      { label: "Lizenz & Abrechnung", href: "/dashboard-v2/license-billing", icon: KeyRound }
+      { label: "Einstellungen", href: "/dashboard-v2/settings", icon: Settings, moduleKey: "settings" }
     ]
   },
   {
@@ -506,7 +503,7 @@ const premiumViewMeta: Record<Exclude<PremiumView, "account-security">, { title:
   "finance-bank-connect": {
     title: "Bank verbinden",
     eyebrow: "Open Banking",
-    description: "PSD2 Bankverbindung als sicheren Mock-Flow vorbereiten.",
+    description: "PSD2 Bankverbindung nur mit konfiguriertem Provider starten.",
     primary: "Bank verbinden"
   },
   documents: {
@@ -1028,25 +1025,6 @@ function DataQualityNotice({ health }: { health: DataHealth }) {
   )
 }
 
-function upgradeSummaryFromData(data: PremiumData): UpgradeSummary {
-  const limit = userLimitFromData(data)
-  if (limit.isFull) {
-    return {
-      title: "Limit erreicht",
-      text: `${limit.currentUsers}/${limit.maxUsers} Benutzer aktiv. Upgrade fuer mehr Teammitglieder vorbereiten.`,
-      action: "Upgrade pruefen",
-      href: "/dashboard-v2/license?q=Upgrade"
-    }
-  }
-
-  return {
-    title: `${limit.plan} aktiv`,
-    text: `${limit.maxUsers - limit.currentUsers} Benutzerplaetze verfuegbar. Lizenzstatus und Limits pruefen.`,
-    action: "Lizenzstatus",
-    href: "/dashboard-v2/license?q=Benutzerlimit"
-  }
-}
-
 function matchesSearch(values: readonly string[], query: string) {
   const normalizedQuery = query.trim().toLowerCase()
   if (!normalizedQuery) return true
@@ -1305,11 +1283,11 @@ const moduleContent: Record<ModuleView, ModuleConfig> = {
     primaryHref: "/dashboard-v2/finance?q=Bankkonto%20anlegen"
   },
   "finance-bank-connect": {
-    stats: [["PSD2", "Mock Flow"], ["4", "Schritte"], ["0", "Secrets"]],
-    rows: [["Bank wählen", "Mock-Banken", "Bereit", "UI"], ["Authentifizierung", "Weiterleitung simuliert", "Bereit", "UI"], ["Konto auswählen", "Mock-Konten", "Bereit", "UI"], ["Verbindung bestätigen", "Audit-Stub", "Bereit", "UI"]],
-    focus: [["Provider", "Open Banking Mock"], ["Status", "Synchronisation läuft"], ["Rückkehr", "Finance"]],
-    actions: [["Bank verbinden", "/dashboard-v2/finance/bank-connect"], ["Open Banking aktivieren", "/dashboard-v2/license-billing?q=Open%20Banking"]],
-    timeline: [["Mock-Flow vorbereitet", "Keine echte Bank-API und keine Bank-Logins."], ["Audit-Stub vorbereitet", "bank_connected Event ist lokal modelliert."], ["Rückkehr vorbereitet", "Fertig führt zurück zu Finanzen."]],
+    stats: [["PSD2", "Nicht konfiguriert"], ["0", "Verbindungen"], ["0", "Secrets"]],
+    rows: [["Provider", "Nicht eingerichtet", "Blockiert", "Konfiguration"], ["Authentifizierung", "Nicht gestartet", "Inaktiv", "PSD2"], ["Konten", "Keine echten Bankkonten", "0 aktiv", "Sicher"], ["Verbindung", "Kein Erfolgsschritt", "Nicht abgeschlossen", "Ehrlich"]],
+    focus: [["Provider", "Nicht konfiguriert"], ["Status", "Keine echte Bankverbindung"], ["Modus", "Nur Beispieldaten"]],
+    actions: [["Provider konfigurieren", "/dashboard-v2/settings"], ["Zurück zu Finanzen", "/dashboard-v2/finance"]],
+    timeline: [["Mock-Flow deaktiviert", "Ohne echten Provider wird keine Bankverbindung gespeichert."], ["Status korrekt", "Open Banking zeigt Nicht konfiguriert statt Aktiv."], ["Sicherheit aktiv", "Keine Bank-Logins, keine harten Secrets und keine echten Provider-Aufrufe."]],
     primaryHref: "/dashboard-v2/finance/bank-connect"
   },
   documents: {
@@ -1522,14 +1500,13 @@ function visibleSideNav({ canSeeDevelopment, licenseAdminEnabled, context }: { c
   }).filter((group) => group.items.length)
 }
 
-function Sidebar({ mode, unreadCount, upgrade, canSeeDevelopment, licenseAdminEnabled, moduleContext }: { mode: ThemeMode; unreadCount: number; upgrade: UpgradeSummary; canSeeDevelopment: boolean; licenseAdminEnabled: boolean; moduleContext: ModuleEngineContext }) {
+function Sidebar({ mode, canSeeDevelopment, licenseAdminEnabled, moduleContext }: { mode: ThemeMode; canSeeDevelopment: boolean; licenseAdminEnabled: boolean; moduleContext: ModuleEngineContext }) {
   const pathname = usePathname()
 
   return (
     <aside className={styles.sidebar}>
       <div className={styles.logoWrap}><img className={styles.brandLogo} src="/brand/logo-sidebar.svg" alt="DreamInvoice" /></div>
       <nav className={styles.sideSections}>{visibleSideNav({ canSeeDevelopment, licenseAdminEnabled, context: moduleContext }).map((group) => <div key={group.section} className={styles.sideSection} data-dev-section={group.marker ? "true" : undefined}><p>{group.section}{group.marker ? <em>{group.marker}</em> : null}</p>{group.items.map((item) => { const Icon = item.icon; const isActive = pathname === item.href; const badge = item.badge ?? ""; if (item.disabled) return <span key={item.label} className={styles.disabledSideItem} aria-disabled="true"><Icon size={16} /><span>{item.label}</span>{badge ? <em>{badge}</em> : null}</span>; return <Link key={item.label} href={withPremiumTheme(item.href, mode)} aria-current={isActive ? "page" : undefined} className={isActive ? styles.activeSideItem : styles.sideItem}><Icon size={16} /><span>{item.label}</span>{badge ? <em>{badge}</em> : null}</Link> })}</div>)}</nav>
-      <div className={styles.upgradeCard}><Crown size={26} /><strong>{upgrade.title}</strong><span>{upgrade.text}</span><Link href={withPremiumTheme(upgrade.href, mode)}>{upgrade.action}</Link></div>
     </aside>
   )
 }
@@ -2267,7 +2244,7 @@ function DashboardOverview({ data, mode, profile, searchQuery, searchCategory, s
       <h1 className={styles.visuallyHidden}>Dashboard</h1>
       <DataQualityNotice health={health} />
       <KpiGrid data={data} mode={mode} />
-      <SearchResultsPanel data={data} mode={mode} searchQuery={effectiveSearchQuery} searchCategory={searchCategory} onSearchCategoryChange={onSearchCategoryChange} onSearchClear={onSearchClear} />
+      {!isPremiumActionQuery(searchQuery) ? <SearchResultsPanel data={data} mode={mode} searchQuery={effectiveSearchQuery} searchCategory={searchCategory} onSearchCategoryChange={onSearchCategoryChange} onSearchClear={onSearchClear} /> : null}
       <section className={styles.mainGrid}><RevenueChart data={data} mode={mode} /><StatusPanel data={data} mode={mode} /><QuickActions mode={mode} profile={profile} /></section>
       <section className={styles.lowerGrid}><InvoiceTable data={data} mode={mode} searchQuery="" /><BarPanel data={data} mode={mode} /><ActivityFeed data={data} mode={mode} /></section>
       <section className={styles.bottomGrid}>
@@ -2737,6 +2714,8 @@ const premiumActionQueryTerms = [
   "zahlung geprueft",
   "angebot vorbereitet",
   "angebot neu vorbereitet",
+  "angebot erstellen",
+  "angebot neu",
   "pipeline geprueft",
   "ausgabe erfasst",
   "beleg hochgeladen",
@@ -3083,7 +3062,8 @@ const settingsOverviewSubpoints: Record<string, string[]> = {
   webhooks: ["Endpunkte", "Events", "Signaturen", "Logs"],
   system: ["Backup erstellen", "Restore", "Export CSV"],
   dev: ["Berichte", "Logs"],
-  archive: ["Export", "Import", "Archivieren"]
+  archive: ["Export", "Import", "Archivieren"],
+  "license-billing": ["Plan", "Marketplace", "Abrechnung", "Aktivierung"]
 }
 
 const settingsOverviewFields: Record<string, Array<[string, string]>> = {
@@ -3099,7 +3079,8 @@ const settingsOverviewFields: Record<string, Array<[string, string]>> = {
   webhooks: [["Endpoint URL", "https://example.com/webhook"], ["Events", "invoice.created, invoice.paid"], ["Signing Secret", "whsec_demo_secret"], ["Retries", "3"]],
   system: [["Backup Name", "daily-backup"], ["Restore Quelle", "Letztes Backup"], ["CSV Trennzeichen", ";"], ["Encoding", "UTF-8"]],
   dev: [["Bericht", "Systemdiagnose"], ["Log Level", "Info"], ["Trace ID", "optional"], ["Format", "JSON"]],
-  archive: [["Archivpfad", "Archiv / 2026"], ["Exportformat", "ZIP"], ["Importquelle", "Upload"], ["Regel", "Aelter als 10 Jahre"]]
+  archive: [["Archivpfad", "Archiv / 2026"], ["Exportformat", "ZIP"], ["Importquelle", "Upload"], ["Regel", "Aelter als 10 Jahre"]],
+  "license-billing": [["Plan", "Business"], ["Marketplace", "Erweiterungen"], ["Abrechnung", "Aktiv"], ["Aktivierung", "Lizenz & Abrechnung"]]
 }
 
 const premiumSettingsFutureRegistry = [
@@ -5105,8 +5086,10 @@ const enterpriseOpenBankingFlags = [
 ] as const
 
 function financeCapabilities(context: ModuleEngineContext): FinanceCapability[] {
-  const openBankingActive = isModuleUsable("open_banking", context)
-  const enterpriseActive = context.plan === "enterprise"
+  const openBankingEntitled = isModuleUsable("open_banking", context)
+  const openBankingProviderConfigured = false
+  const openBankingActive = openBankingEntitled && openBankingProviderConfigured
+  const enterpriseActive = context.plan === "enterprise" && openBankingProviderConfigured
   return [
     { key: "manual_accounts", label: "Manuelle Konten", active: true, tier: "Free" },
     { key: "csv_import", label: "CSV Import", active: true, tier: "Free" },
@@ -5138,7 +5121,11 @@ function PremiumFinancePanel({ data, mode, searchQuery, moduleContext }: { data:
 
   const filteredTransactions = transactions.filter((transaction) => selectedAccount === "all" || transaction.accountId === selectedAccount)
   const balance = accounts.reduce((sum, account) => sum + account.balance, 0)
-  const openBankingActive = isModuleUsable("open_banking", moduleContext)
+  const openBankingEntitled = isModuleUsable("open_banking", moduleContext)
+  const openBankingProviderConfigured = false
+  const openBankingDemoMode = false
+  const openBankingActive = openBankingEntitled && openBankingProviderConfigured
+  const openBankingStatusLabel = openBankingProviderConfigured ? "Aktiv" : openBankingDemoMode ? "Demo" : "Nicht konfiguriert"
   const enterpriseActive = moduleContext.plan === "enterprise"
   const openBankingFlags = moduleContext.plan === "enterprise" ? enterpriseOpenBankingFlags : businessOpenBankingFlags
   const capabilities = financeCapabilities(moduleContext)
@@ -5146,7 +5133,7 @@ function PremiumFinancePanel({ data, mode, searchQuery, moduleContext }: { data:
   const businessCapabilities = capabilities.filter((capability) => capability.tier === "Business")
   const enterpriseCapabilities = capabilities.filter((capability) => capability.tier === "Enterprise")
   const openPayments = transactions.filter((transaction) => transaction.status === "open").length
-  const connectedBanksLabel = openBankingActive ? "2" : "0"
+  const connectedBanksLabel = openBankingActive ? "1" : "0"
   const lastSyncLabel = openBankingActive ? "Heute" : "Keine Sync"
   useEffect(() => {
     const query = searchQuery.toLowerCase()
@@ -5294,8 +5281,10 @@ function PremiumFinancePanel({ data, mode, searchQuery, moduleContext }: { data:
           <h1>Finanzen im Überblick</h1>
           <p>Bankkonten, Transaktionen, Kategorien, DATEV Export und Finanzberichte steuern.</p>
         </div>
-        {openBankingActive ? (
+        {openBankingProviderConfigured ? (
           <Link className={styles.financeHeroButton} href={withPremiumTheme("/dashboard-v2/finance/bank-connect", mode)}><Landmark size={17} />Bank verbinden</Link>
+        ) : openBankingEntitled ? (
+          <Link className={styles.financeHeroButton} href={withPremiumTheme("/dashboard-v2/finance/bank-connect", mode)}><Lock size={17} />Provider konfigurieren</Link>
         ) : (
           <Link className={styles.financeHeroButton} href={withPremiumTheme("/dashboard-v2/license-billing?q=Open%20Banking", mode)}><Lock size={17} />Open Banking aktivieren</Link>
         )}
@@ -5316,7 +5305,7 @@ function PremiumFinancePanel({ data, mode, searchQuery, moduleContext }: { data:
           </div>
           <Link href={withPremiumTheme("/dashboard-v2/reports?q=Finanzbericht", mode)}><FileText size={16} />Reports</Link>
         </div>
-        <p data-state="warning">{openBankingActive ? "Open Banking ist ueber die Module Engine nutzbar. Es werden keine Bank-Logins, PINs, TANs oder Provider-Secrets gespeichert." : "PSD2 Bankverbindung ist als Erweiterung verfügbar."}</p>
+        <p data-state="warning">{openBankingProviderConfigured ? "Open Banking ist aktiv: Provider-Konfiguration ist vorhanden. Es werden keine Bank-Logins oder PINs gespeichert." : openBankingEntitled ? "Open Banking ist im Plan enthalten, aber noch nicht konfiguriert. Ohne Provider wird keine Bankverbindung abgeschlossen." : "PSD2 Bankverbindung ist als Erweiterung verfügbar."}</p>
 
         <div className={styles.financeToolbar}>
           <button type="button" data-finance-add-account onClick={() => setShowAccountForm((current) => !current)}><Plus size={16} />Manuelles Konto</button>
@@ -5331,12 +5320,14 @@ function PremiumFinancePanel({ data, mode, searchQuery, moduleContext }: { data:
           <div className={styles.openBankingHeader}>
             <div>
               <i>{openBankingActive ? <CheckCircle2 size={22} /> : <Lock size={22} />}</i>
-              <span>{openBankingActive ? "PSD2 Bankverbindungen" : "Open Banking (PSD2)"}</span>
+              <span>Open Banking Status: {openBankingStatusLabel}</span>
               <h3>{openBankingActive ? "PSD2 Bankverbindungen" : "Open Banking (PSD2)"}</h3>
-              <p>{openBankingActive ? "Ihre Bankkonten sind verbunden. Kontostände und Umsätze werden automatisch synchronisiert." : "Verbinden Sie Ihr Bankkonto automatisch. PSD2 Bankverbindung, Synchronisation und Zahlungsabgleich sind als Marketplace-Erweiterung verfügbar."}</p>
+              <p>{openBankingActive ? "Echte Provider-Konfiguration aktiv. Bankverbindungen können gestartet werden." : openBankingDemoMode ? "Demo-Modus: Keine echte Bankverbindung, nur Beispieldaten." : "Open Banking noch nicht konfiguriert. Für echte PSD2-Bankverbindungen muss ein Banking-Provider konfiguriert werden."}</p>
             </div>
-            {openBankingActive ? (
+            {openBankingProviderConfigured ? (
               <Link href={withPremiumTheme("/dashboard-v2/finance/bank-connect", mode)}>Bank verbinden<ArrowRight size={16} /></Link>
+            ) : openBankingEntitled ? (
+              <Link href={withPremiumTheme("/dashboard-v2/finance/bank-connect", mode)}>Provider konfigurieren<ArrowRight size={16} /></Link>
             ) : (
               <Link href={withPremiumTheme("/dashboard-v2/license-billing?q=Open%20Banking", mode)}>Open Banking aktivieren<ArrowRight size={16} /></Link>
             )}
@@ -5345,7 +5336,7 @@ function PremiumFinancePanel({ data, mode, searchQuery, moduleContext }: { data:
           {openBankingActive ? (
             <>
               <div className={styles.openBankingGrid}>
-                <div><span>Sync Status</span><strong>Aktiv</strong></div>
+                <div><span>Open Banking Status</span><strong>Aktiv</strong></div>
                 <div><span>Letzte Synchronisation</span><strong>Heute, 08:45</strong></div>
                 <div><span>Zahlungsabgleich</span><strong>Vorbereitet</strong></div>
               </div>
@@ -5355,9 +5346,9 @@ function PremiumFinancePanel({ data, mode, searchQuery, moduleContext }: { data:
             </>
           ) : (
             <div className={styles.openBankingBenefits}>
-              <span><CheckCircle2 size={15} />Live Kontostand</span>
-              <span><CheckCircle2 size={15} />Automatische Synchronisation</span>
-              <span><CheckCircle2 size={15} />Zahlungsabgleich</span>
+              <span><CheckCircle2 size={15} />Nicht konfiguriert</span>
+              <span><CheckCircle2 size={15} />Keine echte Bankverbindung</span>
+              <span><CheckCircle2 size={15} />Nur Beispieldaten im Demo-Modus</span>
             </div>
           )}
         </section>
@@ -5716,16 +5707,15 @@ function PremiumCustomersModulePage({
       {state.message ? <p className={styles.customerStateMessage} data-state={state.type}>{state.message}</p> : null}
 
       {dialogOpen ? (
-        <div className={styles.customerDialogBackdrop} role="presentation">
-          <section className={styles.customerDialog} role="dialog" aria-modal="true" aria-labelledby="customer-dialog-title">
-            <div className={styles.customerDialogHead}>
-              <div>
-                <span>{editingCustomerId ? "Kunden bearbeiten" : "Neuer Kunde"}</span>
-                <h2 id="customer-dialog-title">Kunde anlegen</h2>
-              </div>
-              <button type="button" aria-label="Dialog schließen" onClick={() => setDialogOpen(false)}><X size={18} /></button>
-            </div>
-            <form className={styles.customerDialogForm} onSubmit={saveCustomer}>
+        <StandardModal
+          title="Kunde anlegen"
+          eyebrow={editingCustomerId ? "Kunden bearbeiten" : "Neuer Kunde"}
+          onClose={() => setDialogOpen(false)}
+          ariaLabelledBy="customer-dialog-title"
+          width={520}
+          padded={false}
+        >
+          <form className={styles.customerDialogForm} onSubmit={saveCustomer}>
               <label>Firmenname<input autoFocus required value={draft.name} onChange={(event) => updateDraft("name", event.target.value)} /></label>
               <label>Ansprechpartner<input value={draft.contact} onChange={(event) => updateDraft("contact", event.target.value)} /></label>
               <label>E-Mail<input type="email" value={draft.email} onChange={(event) => updateDraft("email", event.target.value)} /></label>
@@ -5740,9 +5730,8 @@ function PremiumCustomersModulePage({
                 <button type="button" onClick={() => setDialogOpen(false)}>Abbrechen</button>
                 <button type="submit" disabled={isSaving}>{isSaving ? "Speichert..." : editingCustomerId ? "Kunde speichern" : "Kunde anlegen"}</button>
               </div>
-            </form>
-          </section>
-        </div>
+          </form>
+        </StandardModal>
       ) : null}
     </section>
   )
@@ -6140,17 +6129,15 @@ function PremiumInvoicesModulePage({ data, mode }: { data: PremiumData; mode: Th
       </article>
 
       {exportDialogOpen ? (
-        <div className={styles.invoiceTemplateDialogBackdrop} role="presentation">
-          <section className={styles.invoiceTemplateDialog + " " + styles.invoiceExportDialog} role="dialog" aria-modal="true" aria-labelledby="invoice-export-title">
-            <div className={styles.invoiceTemplateDialogHead}>
-              <div>
-                <span>Export</span>
-                <h2 id="invoice-export-title">Rechnungen exportieren</h2>
-              </div>
-              <button type="button" aria-label="Dialog schließen" onClick={() => setExportDialogOpen(false)}><X size={18} /></button>
-            </div>
-
-            <div className={styles.invoiceExportDialogBody}>
+        <StandardModal
+          title="Rechnungen exportieren"
+          eyebrow="Export"
+          onClose={() => setExportDialogOpen(false)}
+          ariaLabelledBy="invoice-export-title"
+          width={640}
+          bodyClassName={styles.invoiceExportDialogBody}
+          padded={false}
+        >
               <section className={styles.invoiceExportPanel}>
                 <h3>Format</h3>
                 <div className={styles.invoiceExportFormats}>
@@ -6180,23 +6167,19 @@ function PremiumInvoicesModulePage({ data, mode }: { data: PremiumData; mode: Th
                 <button type="button" onClick={() => setExportStatus("Download vorbereitet")}>Export vorbereiten</button>
                 <button type="button" onClick={startInvoiceExportDownload}><Download size={16} />Download starten</button>
               </div>
-            </div>
-          </section>
-        </div>
+        </StandardModal>
       ) : null}
 
       {emailDialogOpen ? (
-        <div className={styles.invoiceTemplateDialogBackdrop} role="presentation">
-          <section className={styles.invoiceTemplateDialog + " " + styles.invoiceEmailDialog} role="dialog" aria-modal="true" aria-labelledby="invoice-email-title">
-            <div className={styles.invoiceTemplateDialogHead}>
-              <div>
-                <span>E-Mail</span>
-                <h2 id="invoice-email-title">Rechnung senden</h2>
-              </div>
-              <button type="button" aria-label="Dialog schließen" onClick={() => setEmailDialogOpen(false)}><X size={18} /></button>
-            </div>
-
-            <div className={styles.invoiceEmailDialogBody}>
+        <StandardModal
+          title="Rechnung senden"
+          eyebrow="E-Mail"
+          onClose={() => setEmailDialogOpen(false)}
+          ariaLabelledBy="invoice-email-title"
+          width={640}
+          bodyClassName={styles.invoiceEmailDialogBody}
+          padded={false}
+        >
               <div className={styles.invoiceEmailGrid}>
                 <label className={styles.invoiceEmailFull}>
                   <span>Empfänger E-Mail</span>
@@ -6241,23 +6224,19 @@ function PremiumInvoicesModulePage({ data, mode }: { data: PremiumData; mode: Th
                 <button type="button" onClick={previewInvoiceEmail}>Vorschau</button>
                 <button type="button" onClick={prepareInvoiceEmailSend}>Senden</button>
               </div>
-            </div>
-          </section>
-        </div>
+        </StandardModal>
       ) : null}
 
       {ocrDialogOpen ? (
-        <div className={styles.invoiceTemplateDialogBackdrop} role="presentation">
-          <section className={styles.invoiceTemplateDialog + " " + styles.invoiceOcrDialog} role="dialog" aria-modal="true" aria-labelledby="invoice-ocr-title">
-            <div className={styles.invoiceTemplateDialogHead}>
-              <div>
-                <span>OCR Import</span>
-                <h2 id="invoice-ocr-title">Dokument importieren</h2>
-              </div>
-              <button type="button" aria-label="Dialog schließen" onClick={() => setOcrDialogOpen(false)}><X size={18} /></button>
-            </div>
-
-            <div className={styles.invoiceOcrDialogBody}>
+        <StandardModal
+          title="Dokument importieren"
+          eyebrow="OCR Import"
+          onClose={() => setOcrDialogOpen(false)}
+          ariaLabelledBy="invoice-ocr-title"
+          width={940}
+          bodyClassName={styles.invoiceOcrDialogBody}
+          padded={false}
+        >
               <section className={styles.invoiceOcrUploadPanel}>
                 <h3>Upload</h3>
                 <div className={styles.invoiceOcrUploadActions}>
@@ -6331,9 +6310,7 @@ function PremiumInvoicesModulePage({ data, mode }: { data: PremiumData; mode: Th
                 <button type="button" onClick={analyzeInvoiceOcrDocument}>Dokument analysieren</button>
                 <button type="button" onClick={applyInvoiceOcrDocument}>Rechnung übernehmen</button>
               </div>
-            </div>
-          </section>
-        </div>
+        </StandardModal>
       ) : null}
 
       {shareDialogOpen ? (
@@ -6341,17 +6318,15 @@ function PremiumInvoicesModulePage({ data, mode }: { data: PremiumData; mode: Th
       ) : null}
 
       {templateDialogOpen ? (
-        <div className={styles.invoiceTemplateDialogBackdrop} role="presentation">
-          <section className={styles.invoiceTemplateDialog} role="dialog" aria-modal="true" aria-labelledby="invoice-template-title">
-            <div className={styles.invoiceTemplateDialogHead}>
-              <div>
-                <span>Rechnungsvorlagen</span>
-                <h2 id="invoice-template-title">Vorlagen verwalten</h2>
-              </div>
-              <button type="button" aria-label="Dialog schließen" onClick={() => setTemplateDialogOpen(false)}><X size={18} /></button>
-            </div>
-
-            <div className={styles.invoiceTemplateDialogBody}>
+        <StandardModal
+          title="Vorlagen verwalten"
+          eyebrow="Rechnungsvorlagen"
+          onClose={() => setTemplateDialogOpen(false)}
+          ariaLabelledBy="invoice-template-title"
+          width={820}
+          bodyClassName={styles.invoiceTemplateDialogBody}
+          padded={false}
+        >
               <div className={styles.invoiceTemplateLeft}>
                 <div className={styles.invoiceTemplateTabs} role="tablist" aria-label="Vorlagen Kategorien">
                   {invoiceTemplateTabs.map((tab) => (
@@ -6424,9 +6399,7 @@ function PremiumInvoicesModulePage({ data, mode }: { data: PremiumData; mode: Th
                   </footer>
                 </div>
               </aside>
-            </div>
-          </section>
-        </div>
+        </StandardModal>
       ) : null}
     </section>
   )
@@ -6497,11 +6470,33 @@ function offersFromData(data: PremiumData): PremiumOfferRow[] {
   })
 }
 
-function PremiumOffersModulePage({ data, mode }: { data: PremiumData; mode: ThemeMode }) {
-  const router = useRouter()
+function PremiumOffersModulePage({
+  data,
+  mode,
+  onDataChange
+}: {
+  data: PremiumData
+  mode: ThemeMode
+  onDataChange: (updater: (current: PremiumData) => PremiumData) => void
+}) {
+  const customersSource = data.customers.length ? data.customers : fallbackApiCustomers
+  const projectsSource = data.projects.length ? data.projects : fallbackProjects
+  const articlesSource = data.articles.length ? data.articles : fallbackApiArticles
   const [offerSearch, setOfferSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [page, setPage] = useState(1)
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const [isCreateSaving, setIsCreateSaving] = useState(false)
+  const [createStatus, setCreateStatus] = useState<WorkflowState>({ type: "idle", message: "" })
+  const [offerDraft, setOfferDraft] = useState<DocumentDraft>({
+    type: "offer",
+    customer: customersSource[0]?.name || "Demo Kunde",
+    project: projectsSource[0]?.name || "Allgemein",
+    title: articlesSource[0]?.name || projectsSource[0]?.name || "Premium Angebot",
+    amount: String(Number(articlesSource[0]?.price || 1320).toFixed(2)),
+    status: "draft",
+    note: "Premium-Angebot fuer Pipeline und Freigabe vorbereitet."
+  })
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false)
   const [activeTemplateTab, setActiveTemplateTab] = useState<InvoiceTemplateTab>("Standard")
   const [offerTemplates, setOfferTemplates] = useState<OfferTemplateRecord[]>(initialOfferTemplates)
@@ -6671,7 +6666,59 @@ function PremiumOffersModulePage({ data, mode }: { data: PremiumData; mode: Them
   }
 
   function openOfferCreate() {
-    router.push(withPremiumTheme("/dashboard-v2/offers?q=Angebot%20erstellen", mode))
+    setCreateStatus({ type: "idle", message: "" })
+    setCreateDialogOpen(true)
+  }
+
+  function updateOfferDraft(field: keyof DocumentDraft, value: string) {
+    setOfferDraft((draft) => ({ ...draft, [field]: value }))
+    setCreateStatus({ type: "idle", message: "" })
+  }
+
+  async function saveOfferDraft(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+
+    if (!offerDraft.customer.trim() || !offerDraft.title.trim()) {
+      setCreateStatus({ type: "error", message: "Kunde und Position sind erforderlich." })
+      return
+    }
+
+    setIsCreateSaving(true)
+    setCreateStatus({ type: "idle", message: "" })
+
+    try {
+      const response = await fetch("/api/documents/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify(offerDraft)
+      })
+      const result = await response.json().catch(() => ({}))
+      const document = response.ok && result?.ok && result?.document ? result.document as ApiInvoice : createLocalDocument(offerDraft, "offer")
+      const offerDocument = { ...document, type: document.type || "offer", project: document.project || offerDraft.project }
+
+      onDataChange((current) => ({
+        ...current,
+        invoices: [offerDocument, ...current.invoices.filter((item) => item.id !== offerDocument.id)]
+      }))
+      setOfferSearch("")
+      setStatusFilter("all")
+      setPage(1)
+      setCreateDialogOpen(false)
+    } catch {
+      const document = createLocalDocument(offerDraft, "offer")
+      const offerDocument = { ...document, project: offerDraft.project }
+      onDataChange((current) => ({
+        ...current,
+        invoices: [offerDocument, ...current.invoices.filter((item) => item.id !== offerDocument.id)]
+      }))
+      setOfferSearch("")
+      setStatusFilter("all")
+      setPage(1)
+      setCreateDialogOpen(false)
+    } finally {
+      setIsCreateSaving(false)
+    }
   }
 
   return (
@@ -6778,16 +6825,15 @@ function PremiumOffersModulePage({ data, mode }: { data: PremiumData; mode: Them
       </article>
 
       {exportDialogOpen ? (
-        <div className={styles.invoiceTemplateDialogBackdrop} role="presentation">
-          <section className={styles.invoiceTemplateDialog + " " + styles.invoiceExportDialog} role="dialog" aria-modal="true" aria-labelledby="offer-export-title">
-            <div className={styles.invoiceTemplateDialogHead}>
-              <div>
-                <span>Export</span>
-                <h2 id="offer-export-title">Angebote exportieren</h2>
-              </div>
-              <button type="button" aria-label="Dialog schließen" onClick={() => setExportDialogOpen(false)}><X size={18} /></button>
-            </div>
-            <div className={styles.invoiceExportDialogBody}>
+        <StandardModal
+          title="Angebote exportieren"
+          eyebrow="Export"
+          onClose={() => setExportDialogOpen(false)}
+          ariaLabelledBy="offer-export-title"
+          width={640}
+          bodyClassName={styles.invoiceExportDialogBody}
+          padded={false}
+        >
               <section className={styles.invoiceExportPanel}>
                 <h3>Format</h3>
                 <div className={styles.invoiceExportFormats}>
@@ -6814,22 +6860,19 @@ function PremiumOffersModulePage({ data, mode }: { data: PremiumData; mode: Them
                 <button type="button" onClick={() => setExportStatus("Download vorbereitet")}>Export vorbereiten</button>
                 <button type="button" onClick={startOfferExportDownload}><Download size={16} />Download starten</button>
               </div>
-            </div>
-          </section>
-        </div>
+        </StandardModal>
       ) : null}
 
       {emailDialogOpen ? (
-        <div className={styles.invoiceTemplateDialogBackdrop} role="presentation">
-          <section className={styles.invoiceTemplateDialog + " " + styles.invoiceEmailDialog} role="dialog" aria-modal="true" aria-labelledby="offer-email-title">
-            <div className={styles.invoiceTemplateDialogHead}>
-              <div>
-                <span>E-Mail</span>
-                <h2 id="offer-email-title">Angebot senden</h2>
-              </div>
-              <button type="button" aria-label="Dialog schließen" onClick={() => setEmailDialogOpen(false)}><X size={18} /></button>
-            </div>
-            <div className={styles.invoiceEmailDialogBody}>
+        <StandardModal
+          title="Angebot senden"
+          eyebrow="E-Mail"
+          onClose={() => setEmailDialogOpen(false)}
+          ariaLabelledBy="offer-email-title"
+          width={640}
+          bodyClassName={styles.invoiceEmailDialogBody}
+          padded={false}
+        >
               <div className={styles.invoiceEmailGrid}>
                 <label className={styles.invoiceEmailFull}><span>Empfänger</span><input type="email" value={emailDraft.to} onChange={(event) => updateOfferEmailDraft("to", event.target.value)} /></label>
                 <label><span>CC</span><input type="email" value={emailDraft.cc} onChange={(event) => updateOfferEmailDraft("cc", event.target.value)} /></label>
@@ -6849,26 +6892,86 @@ function PremiumOffersModulePage({ data, mode }: { data: PremiumData; mode: Them
                 <button type="button" onClick={previewOfferEmail}>Vorschau</button>
                 <button type="button" onClick={prepareOfferEmailSend}>Senden</button>
               </div>
-            </div>
-          </section>
-        </div>
+        </StandardModal>
       ) : null}
 
       {shareDialogOpen ? (
         <ShareReleaseDialog label="Angebotsfreigabe" itemName="Angebot" itemUrl="/dashboard-v2/offers" onClose={() => setShareDialogOpen(false)} />
       ) : null}
 
-      {templateDialogOpen ? (
-        <div className={styles.invoiceTemplateDialogBackdrop} role="presentation">
-          <section className={styles.invoiceTemplateDialog} role="dialog" aria-modal="true" aria-labelledby="offer-template-title">
-            <div className={styles.invoiceTemplateDialogHead}>
-              <div>
-                <span>Angebotsvorlagen</span>
-                <h2 id="offer-template-title">Vorlagen verwalten</h2>
+      {createDialogOpen ? (
+        <StandardModal
+          title="Angebot erstellen"
+          eyebrow="Angebot"
+          onClose={() => setCreateDialogOpen(false)}
+          ariaLabelledBy="offer-create-title"
+          width={640}
+          padded={false}
+        >
+          <form className={styles.invoiceEmailDialogBody} onSubmit={saveOfferDraft}>
+              <div className={styles.invoiceEmailGrid}>
+                <label className={styles.invoiceEmailFull}>
+                  <span>Kunde</span>
+                  <select value={offerDraft.customer} onChange={(event) => updateOfferDraft("customer", event.target.value)}>
+                    {customersSource.map((customer) => <option key={customer.id} value={customer.name}>{customer.name}</option>)}
+                  </select>
+                </label>
+                <label>
+                  <span>Projekt</span>
+                  <select value={offerDraft.project} onChange={(event) => updateOfferDraft("project", event.target.value)}>
+                    {projectsSource.map((project) => <option key={project.id} value={project.name}>{project.name}</option>)}
+                  </select>
+                </label>
+                <label>
+                  <span>Pipeline</span>
+                  <select value={offerDraft.status} onChange={(event) => updateOfferDraft("status", event.target.value)}>
+                    <option value="draft">Entwurf</option>
+                    <option value="open">Offen</option>
+                    <option value="sent">Versendet</option>
+                    <option value="accepted">Angenommen</option>
+                  </select>
+                </label>
+                <label className={styles.invoiceEmailFull}>
+                  <span>Position</span>
+                  <input value={offerDraft.title} onChange={(event) => updateOfferDraft("title", event.target.value)} />
+                </label>
+                <label>
+                  <span>Betrag netto</span>
+                  <input value={offerDraft.amount} inputMode="decimal" onChange={(event) => updateOfferDraft("amount", event.target.value)} />
+                </label>
+                <label>
+                  <span>Vorlage</span>
+                  <input value={appliedTemplate.name} readOnly />
+                </label>
+                <label className={styles.invoiceEmailFull}>
+                  <span>Notiz</span>
+                  <textarea rows={4} value={offerDraft.note} onChange={(event) => updateOfferDraft("note", event.target.value)} />
+                </label>
               </div>
-              <button type="button" aria-label="Dialog schließen" onClick={() => setTemplateDialogOpen(false)}><X size={18} /></button>
-            </div>
-            <div className={styles.invoiceTemplateDialogBody}>
+              {createStatus.message ? (
+                <div className={styles.invoiceEmailStatus} data-status={createStatus.type === "error" ? "Empfänger fehlt" : "Bereit"}>
+                  <span>Status</span>
+                  <strong>{createStatus.message}</strong>
+                </div>
+              ) : null}
+              <div className={styles.invoiceEmailActions}>
+                <button type="button" onClick={() => setCreateDialogOpen(false)}>Abbrechen</button>
+                <button type="submit" disabled={isCreateSaving}>{isCreateSaving ? "Speichert..." : "Angebot speichern"}</button>
+              </div>
+          </form>
+        </StandardModal>
+      ) : null}
+
+      {templateDialogOpen ? (
+        <StandardModal
+          title="Vorlagen verwalten"
+          eyebrow="Angebotsvorlagen"
+          onClose={() => setTemplateDialogOpen(false)}
+          ariaLabelledBy="offer-template-title"
+          width={820}
+          bodyClassName={styles.invoiceTemplateDialogBody}
+          padded={false}
+        >
               <div className={styles.invoiceTemplateLeft}>
                 <div className={styles.invoiceTemplateTabs} role="tablist" aria-label="Vorlagen Kategorien">
                   {invoiceTemplateTabs.map((tab) => (
@@ -6935,9 +7038,7 @@ function PremiumOffersModulePage({ data, mode }: { data: PremiumData; mode: Them
                   <strong>{selectedTemplate.previewNote}</strong>
                 </div>
               </aside>
-            </div>
-          </section>
-        </div>
+        </StandardModal>
       ) : null}
     </section>
   )
@@ -7160,6 +7261,7 @@ type TimeSectionKey =
   | "benutzerzeiten"
   | "arbeitsvertrag"
   | "auswertung"
+  | "verwaltung"
   | "berichte"
 
 function timeSectionFromQuery(searchQuery: string): TimeSectionKey {
@@ -7171,6 +7273,7 @@ function timeSectionFromQuery(searchQuery: string): TimeSectionKey {
   if (query.includes("projekte") || query.includes("projekt")) return "projekte"
   if (query.includes("taetigkeiten") || query.includes("tätigkeiten")) return "taetigkeiten"
   if (query.includes("benutzerzeiten") || query.includes("benutzer")) return "benutzerzeiten"
+  if (query.includes("verwaltung") || query.includes("admin")) return "verwaltung"
   if (query.includes("auswertung") || query.includes("analytics")) return "auswertung"
   if (query.includes("arbeitsvertrag") || query.includes("vertrag")) return "overview"
   if (query.includes("berichte") || query.includes("bericht")) return "berichte"
@@ -7283,7 +7386,7 @@ function PremiumTimeModulePage({
   const usersSource = data.appUsers.length ? data.appUsers : [{ id: "admin", name: "Admin Benutzer", email: "admin@dreaminvoice.local", role: "Administrator", status: "active" }]
   const routeSearchParams = useSearchParams()
   const rawSection = timeSectionFromQuery(routeSearchParams.get("timeView") ?? searchQuery)
-  const activeSection: TimeSectionKey = rawSection === "arbeitstag" || rawSection === "wochenzeiten" || rawSection === "monatsansicht" || rawSection === "berichte" ? rawSection : "wochenzeiten"
+  const activeSection: TimeSectionKey = rawSection === "arbeitstag" || rawSection === "wochenzeiten" || rawSection === "monatsansicht" || rawSection === "berichte" || rawSection === "verwaltung" ? rawSection : "wochenzeiten"
   const selectedDate = parseLocalDate(routeSearchParams.get("date")) ?? new Date(2026, 5, 22)
   const selectedMonth = Number(routeSearchParams.get("month"))
   const selectedYear = Number(routeSearchParams.get("year"))
@@ -7311,6 +7414,8 @@ function PremiumTimeModulePage({
     articleId?: string | null
     billable?: boolean
   }
+  type ClockEmployee = { name: string; initials: string; tone: string; role?: string; status?: string; project?: string; pin?: string }
+  type ClockShift = { start: string; project: string; activity: string; date: string }
   const defaultProject = projectsSource[0]?.name || "Portal Relaunch"
   const defaultActivity = "Design & UI/UX"
   const weekStart = startOfLocalWeek(selectedDate)
@@ -7351,14 +7456,31 @@ function PremiumTimeModulePage({
     tone: String(tone),
     source: "local" as const
   })), [weekStart])
+  const initialClockEmployees: ClockEmployee[] = [
+    { name: "Sarah Gerstmeier", initials: "SG", tone: "green", role: "Projekt", status: "Bereit", project: defaultProject, pin: "1111" },
+    { name: "Nicolas Grotsch", initials: "NG", tone: "blue", role: "Design", status: "Bereit", project: defaultProject, pin: "2222" },
+    { name: "Semir Aydin", initials: "SA", tone: "amber", role: "Office", status: "Bereit", project: defaultProject, pin: "3333" },
+    { name: "Thomas Koppmann", initials: "TK", tone: "violet", role: "Entwicklung", status: "Bereit", project: defaultProject, pin: "4444" },
+    { name: "Max Mustermann", initials: "MM", tone: "pink", role: "Admin", status: "Bereit", project: defaultProject, pin: "1234" }
+  ]
   const [entries, setEntries] = useState<TimeEntryDraft[]>(baseWeekEntries)
   const [timerState, setTimerState] = useState<"idle" | "active" | "paused">("idle")
   const [timerSeconds, setTimerSeconds] = useState(0)
   const [timerContext, setTimerContext] = useState({ project: defaultProject, activity: defaultActivity, note: "Live Timer" })
   const [timerNotice, setTimerNotice] = useState("")
+  const [clockAction, setClockAction] = useState<"kommen" | "gehen" | null>(null)
+  const [clockEmployee, setClockEmployee] = useState<ClockEmployee | null>(null)
+  const [clockPin, setClockPin] = useState("")
+  const [clockFeedback, setClockFeedback] = useState<{ action: "kommen" | "gehen"; name: string; start: string; end?: string; total?: string } | null>(null)
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null)
   const [editorDraft, setEditorDraft] = useState<TimeEntryDraft | null>(null)
   const [activeDayDetails, setActiveDayDetails] = useState(isoLocalDate(selectedPeriodDate))
+  const [clockEmployees, setClockEmployees] = useState<ClockEmployee[]>(initialClockEmployees)
+  const [activeClockShifts, setActiveClockShifts] = useState<Record<string, ClockShift>>({})
+  const [timeUserDraft, setTimeUserDraft] = useState({ name: "Max Mustermann", initials: "MM", pin: "1234", role: "employee", projectId: projectsSource[0]?.id || "", status: "active" })
+  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false)
+  const [invoiceStatus, setInvoiceStatus] = useState("")
+  const [invoiceRate, setInvoiceRate] = useState("85")
 
   useEffect(() => {
     if (timerState !== "active") return
@@ -7449,7 +7571,7 @@ function PremiumTimeModulePage({
   }
 
   function changePeriod(value: string) {
-    const section = value === "day" ? "arbeitstag" : value === "month" ? "monatsansicht" : value === "reports" ? "berichte" : "wochenzeiten"
+    const section = value === "day" ? "arbeitstag" : value === "month" ? "monatsansicht" : value === "reports" ? "berichte" : value === "admin" ? "verwaltung" : "wochenzeiten"
     navigateTime(section, selectedPeriodDate)
   }
 
@@ -7466,7 +7588,7 @@ function PremiumTimeModulePage({
   }
 
   function entryDurationMinutes(entry: TimeEntryDraft) {
-    return Math.max(0, minutesFromTime(entry.end) - minutesFromTime(entry.start) - minutesFromTime(entry.pause))
+    return Math.max(0, entrySafeEndMinutes(entry) - minutesFromTime(entry.start) - minutesFromTime(entry.pause))
   }
 
   function formatMinutes(minutes: number) {
@@ -7483,11 +7605,32 @@ function PremiumTimeModulePage({
     return `${padDatePart(Math.floor(next / 60))}:${padDatePart(next % 60)}`
   }
 
+  function timeFromMinutes(totalMinutes: number) {
+    const next = Math.max(0, Math.min(23 * 60 + 59, totalMinutes))
+    return `${padDatePart(Math.floor(next / 60))}:${padDatePart(next % 60)}`
+  }
+
+  function entrySafeEndMinutes(entry: TimeEntryDraft) {
+    const startMinutes = minutesFromTime(entry.start)
+    const endMinutes = minutesFromTime(entry.end)
+    return endMinutes > startMinutes ? endMinutes : Math.min(23 * 60 + 59, startMinutes + 30)
+  }
+
+  function displayEntryEnd(entry: TimeEntryDraft) {
+    return timeFromMinutes(entrySafeEndMinutes(entry))
+  }
+
+  function normalizeEntryTimes(entry: TimeEntryDraft) {
+    const end = displayEntryEnd(entry)
+    return end === entry.end ? entry : { ...entry, end }
+  }
+
   function timeBlockStyle(start: string, end: string): CSSProperties {
     const dayStart = 8 * 60
     const dayDuration = 10 * 60
     const startOffset = Math.max(0, minutesFromTime(start) - dayStart)
-    const endOffset = Math.min(dayDuration, Math.max(startOffset + 15, minutesFromTime(end) - dayStart))
+    const rawEndOffset = minutesFromTime(end) > minutesFromTime(start) ? minutesFromTime(end) - dayStart : startOffset + 30
+    const endOffset = Math.min(dayDuration, Math.max(startOffset + 45, rawEndOffset))
     return {
       top: `${(startOffset / dayDuration) * 100}%`,
       height: `${((endOffset - startOffset) / dayDuration) * 100}%`
@@ -7553,14 +7696,15 @@ function PremiumTimeModulePage({
   }
 
   async function saveEntry(entry: TimeEntryDraft) {
-    const exists = entries.some((item) => item.id === entry.id)
-    setEntries((current) => exists ? current.map((item) => item.id === entry.id ? entry : item) : [...current, entry])
+    const normalizedEntry = normalizeEntryTimes(entry)
+    const exists = entries.some((item) => item.id === normalizedEntry.id)
+    setEntries((current) => exists ? current.map((item) => item.id === normalizedEntry.id ? normalizedEntry : item) : [...current, normalizedEntry])
     setEditorDraft(null)
     setSelectedEntryId(null)
     try {
-      if (!exists || entry.source !== "api") {
-        const apiId = await createEntryViaApi(entry)
-        if (apiId) setEntries((current) => current.map((item) => item.id === entry.id ? { ...item, id: String(apiId), source: "api" } : item))
+      if (!exists || normalizedEntry.source !== "api") {
+        const apiId = await createEntryViaApi(normalizedEntry)
+        if (apiId) setEntries((current) => current.map((item) => item.id === normalizedEntry.id ? { ...item, id: String(apiId), source: "api" } : item))
       }
       setTimerNotice(exists ? "Zeiteintrag gespeichert." : "Zeiteintrag per API erstellt.")
     } catch {
@@ -7575,7 +7719,9 @@ function PremiumTimeModulePage({
   }
 
   function duplicateEntry(entry: TimeEntryDraft) {
-    const clone = { ...entry, id: `copy-${Date.now()}`, start: shiftTime(entry.start, 15), end: shiftTime(entry.end, 15), source: "local" as const }
+    const originalLength = Math.max(30, entrySafeEndMinutes(entry) - minutesFromTime(entry.start))
+    const nextStart = shiftTime(entry.start, 15)
+    const clone = { ...entry, id: `copy-${Date.now()}`, start: nextStart, end: timeFromMinutes(minutesFromTime(nextStart) + originalLength), source: "local" as const }
     setEntries((current) => [...current, clone])
     setSelectedEntryId(clone.id)
     void createEntryViaApi(clone).catch(() => setTimerNotice("Duplikat lokal erstellt. API-Speicherung ist nicht bestaetigt."))
@@ -7674,15 +7820,78 @@ function PremiumTimeModulePage({
     setEditorDraft((current) => current ? { ...current, [field]: value } : current)
   }
 
-  const periodLabel = activeSection === "arbeitstag"
+  function updateTimeUserDraft(field: keyof typeof timeUserDraft, value: string) {
+    setTimeUserDraft((current) => ({ ...current, [field]: value }))
+  }
+
+  function resetTimeUserDraft() {
+    setTimeUserDraft({ name: "", initials: "", pin: "", role: "employee", projectId: projectsSource[0]?.id || "", status: "active" })
+  }
+
+  async function saveTimeUser() {
+    const name = timeUserDraft.name.trim()
+    if (!name) {
+      setTimerNotice("Bitte einen Namen fuer den Zeiterfassungs-Benutzer eingeben.")
+      return
+    }
+    const initials = (timeUserDraft.initials.trim() || name.split(/\s+/).map((part) => part[0]).join("").slice(0, 2) || "MA").toUpperCase()
+    const tones = ["green", "blue", "amber", "violet", "pink"]
+    const project = projectsSource.find((item) => item.id === timeUserDraft.projectId)?.name || defaultProject
+    const nextEmployee: ClockEmployee = {
+      name,
+      initials,
+      tone: tones[clockEmployees.length % tones.length],
+      role: timeUserDraft.role === "admin" ? "Admin" : timeUserDraft.role === "lead" ? "Teamleitung" : "Mitarbeiter",
+      status: timeUserDraft.status === "active" ? "Bereit" : "Pausiert",
+      project,
+      pin: timeUserDraft.pin.trim() || "0000"
+    }
+    const emailSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, ".").replace(/^\.+|\.+$/g, "") || `zeit-${Date.now()}`
+    setClockEmployees((current) => current.some((employee) => employee.name.toLowerCase() === name.toLowerCase())
+      ? current.map((employee) => employee.name.toLowerCase() === name.toLowerCase() ? { ...employee, ...nextEmployee } : employee)
+      : [...current, nextEmployee])
+    try {
+      const response = await fetch("/api/settings/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          name,
+          email: `${emailSlug}@zeiterfassung.local`,
+          role: timeUserDraft.role === "admin" ? "admin" : "user",
+          status: timeUserDraft.status === "active" ? "active" : "disabled"
+        })
+      })
+      const result = await response.json().catch(() => ({}))
+      if (response.ok && result?.ok && result?.user) {
+        onDataChange((current) => ({
+          ...current,
+          appUsers: [result.user as AppUser, ...current.appUsers.filter((item) => item.id !== result.user.id)]
+        }))
+        setTimerNotice(`${name} wurde gespeichert und fuer die Stempeluhr aktiviert.`)
+        return
+      }
+      setTimerNotice(`${name} wurde fuer die Stempeluhr aktiviert. Persistente Speicherung: ${result?.error || "nicht bestaetigt"}.`)
+    } catch {
+      setTimerNotice(`${name} wurde fuer die Stempeluhr aktiviert. Persistente Speicherung ist offline.`)
+    }
+  }
+
+  const periodLabel = activeSection === "verwaltung"
+    ? "Verwaltung"
+    : activeSection === "arbeitstag"
     ? formatGermanDate(selectedDate)
     : activeSection === "monatsansicht" || activeSection === "berichte"
       ? formatMonthYear(selectedPeriodDate)
       : formatWeekRange(selectedDate)
-  const periodValue = activeSection === "arbeitstag" ? "day" : activeSection === "monatsansicht" ? "month" : activeSection === "berichte" ? "reports" : "week"
+  const periodValue = activeSection === "arbeitstag" ? "day" : activeSection === "monatsansicht" ? "month" : activeSection === "berichte" ? "reports" : activeSection === "verwaltung" ? "admin" : "week"
   const availableYears = Array.from({ length: 7 }).map((_, index) => selectedPeriodDate.getFullYear() - 3 + index)
   const visibleWeekEntries = entries.filter((entry) => weekDates.some((date) => entry.date === isoLocalDate(date)))
   const dayEntries = entries.filter((entry) => entry.date === isoLocalDate(selectedDate)).sort((a, b) => minutesFromTime(a.start) - minutesFromTime(b.start))
+  const monthEntries = entries.filter((entry) => {
+    const entryDate = parseLocalDate(entry.date)
+    return entryDate?.getFullYear() === selectedPeriodDate.getFullYear() && entryDate.getMonth() === selectedPeriodDate.getMonth()
+  })
   const weekRows = weekDates.map((date, index) => {
     const valueMinutes = entries.filter((entry) => entry.date === isoLocalDate(date)).reduce((sum, entry) => sum + entryDurationMinutes(entry), 0)
     return { day: `${shortGermanWeekdays[date.getDay()]}. ${formatShortDate(date)}`, minutes: valueMinutes, value: formatMinutes(valueMinutes), tone: date.getDay() === 0 || date.getDay() === 6 ? "neutral" : valueMinutes >= 8 * 60 ? "green" : "rose", index }
@@ -7693,6 +7902,10 @@ function PremiumTimeModulePage({
   const weekTargetMinutes = 40 * 60
   const weekProgress = Math.min(100, Math.round((sidebarWeekMinutes / weekTargetMinutes) * 100))
   const calendarHours = Array.from({ length: 11 }).map((_, index) => 8 + index)
+  const nowDate = new Date()
+  const nowMinutesOfDay = nowDate.getHours() * 60 + nowDate.getMinutes()
+  const nowLineTop = Math.max(0, Math.min(100, ((nowMinutesOfDay - 8 * 60) / (10 * 60)) * 100))
+  const nowLineLabel = timeFromMinutes(nowMinutesOfDay)
   const selectedEntry = entries.find((entry) => entry.id === selectedEntryId) ?? null
   const projectGroups = groupEntries(entries, "project")
   const activityGroups = groupEntries(entries, "activity")
@@ -7702,9 +7915,130 @@ function PremiumTimeModulePage({
     { label: "Nicht exportiert", value: formatMinutes(Math.round(entries.reduce((sum, entry) => sum + entryDurationMinutes(entry), 0) * 0.2)), tone: "amber", hint: `${entries.length} Eintraege` },
     { label: "Differenz", value: formatSignedMinutes(sidebarWeekMinutes - weekTargetMinutes), tone: sidebarWeekMinutes >= weekTargetMinutes ? "green" : "rose", hint: "Aktuelle Woche" }
   ]
+  const currentClockTime = new Intl.DateTimeFormat("de-DE", { hour: "2-digit", minute: "2-digit" }).format(new Date())
+  const clockStatusLabel = timerState === "active" ? "Schicht laeuft" : timerState === "paused" ? "Bereit zum Speichern" : "Bereit"
+
+  function openClockAction(action: "kommen" | "gehen") {
+    setClockAction(action)
+    setClockEmployee(null)
+    setClockPin("")
+    setClockFeedback(null)
+  }
+
+  function resetClockFlow() {
+    setClockAction(null)
+    setClockEmployee(null)
+    setClockPin("")
+  }
+
+  function chooseClockEmployee(employee: ClockEmployee) {
+    setClockEmployee(employee)
+    setClockPin("")
+  }
+
+  function findEmployeeByPin(pin: string) {
+    return clockEmployees.find((employee) => employee.pin === pin) ?? null
+  }
+
+  function clockActionForEmployee(employee: ClockEmployee) {
+    return activeClockShifts[employee.name] ? "gehen" : "kommen"
+  }
+
+  async function createInvoiceFromTimeEntries(timeEntryIds: string[]) {
+    if (!timeEntryIds.length) {
+      setInvoiceStatus("Keine API-Zeiten ausgewaehlt. Lokale Zeiten sind im Dialog vorbereitet, koennen aber erst nach dem Speichern fakturiert werden.")
+      return
+    }
+    setInvoiceStatus("Rechnung wird erstellt...")
+    try {
+      const response = await fetch("/api/time-tracking/create-invoice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({ timeEntryIds })
+      })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok || !result?.ok) throw new Error(result?.error || "create invoice failed")
+      setInvoiceStatus("Rechnung wurde erstellt und die Arbeitszeit wurde uebernommen.")
+      if (result?.href) router.push(withPremiumTheme(result.href, mode))
+    } catch {
+      setInvoiceStatus("Rechnung konnte nicht automatisch erstellt werden. Die Positionen bleiben im Dialog vorbereitet.")
+    }
+  }
+
+  async function confirmClockPin(code = clockPin) {
+    if (!clockAction || code.length < 4) return
+    const employee = clockEmployee ?? findEmployeeByPin(code)
+    if (!employee) {
+      setTimerNotice("PIN wurde keinem Zeiterfassungs-Benutzer zugeordnet.")
+      setClockPin("")
+      return
+    }
+    if (employee.pin && employee.pin !== code) {
+      setTimerNotice("PIN passt nicht zu diesem Mitarbeiter.")
+      setClockPin("")
+      return
+    }
+    const now = new Date()
+    const stamp = `${padDatePart(now.getHours())}:${padDatePart(now.getMinutes())}`
+    const activeShift = activeClockShifts[employee.name]
+    const resolvedAction = activeShift ? "gehen" : "kommen"
+    if (resolvedAction === "kommen") {
+      const project = employee.project || defaultProject
+      setTimerContext({ project, activity: defaultActivity, note: `Kommen: ${employee.name}` })
+      setTimerSeconds(0)
+      setTimerState("active")
+      setActiveClockShifts((current) => ({ ...current, [employee.name]: { start: stamp, project, activity: defaultActivity, date: isoLocalDate(selectedDate) } }))
+      setTimerNotice(`${employee.name} ist eingestempelt.`)
+      setClockFeedback({ action: "kommen", name: employee.name, start: stamp })
+    } else {
+      if (!activeShift) return
+      const startMinutes = minutesFromTime(activeShift.start)
+      const endMinutes = Math.max(startMinutes + 1, minutesFromTime(stamp))
+      const total = formatMinutes(endMinutes - startMinutes)
+      const timerEntry: TimeEntryDraft = {
+        id: `clock-${Date.now()}`,
+        date: activeShift.date,
+        day: (selectedDate.getDay() + 6) % 7,
+        start: activeShift.start,
+        end: timeFromMinutes(endMinutes),
+        pause: "00:00",
+        project: activeShift.project,
+        activity: activeShift.activity,
+        note: `Automatisch erfasst: ${employee.name}`,
+        tone: employee.tone === "pink" ? "violet" : employee.tone,
+        source: "local"
+      }
+      setEntries((current) => [...current, timerEntry])
+      setActiveClockShifts((current) => {
+        const next = { ...current }
+        delete next[employee.name]
+        return next
+      })
+      setTimerState("idle")
+      setTimerSeconds(0)
+      setTimerNotice(`${employee.name} wurde ausgestempelt. Arbeitszeit: ${total}.`)
+      void createEntryViaApi(timerEntry).catch(() => setTimerNotice(`${employee.name} wurde lokal ausgestempelt. API-Speicherung ist nicht bestaetigt.`))
+      setClockFeedback({ action: "gehen", name: employee.name, start: activeShift.start, end: stamp, total })
+    }
+    resetClockFlow()
+  }
+
+  function pressClockPin(value: string) {
+    if (value === "back") {
+      setClockPin((current) => current.slice(0, -1))
+      return
+    }
+    const next = `${clockPin}${value}`.slice(0, 4)
+    setClockPin(next)
+    if (next.length === 4) window.setTimeout(() => void confirmClockPin(next), 120)
+  }
 
   function renderEntryEditor() {
     if (!editorDraft) return null
+    const activityOptions = ["Design & UI/UX", "Operations Integration", "Client Portal Setup", "Kundengespraech", "Projektsteuerung", "Dokumentation"]
+    const selectedProjectValue = projectsSource.some((project) => project.name === editorDraft.project) ? editorDraft.project : "manual"
+    const selectedActivityValue = activityOptions.includes(editorDraft.activity) ? editorDraft.activity : "manual"
     return (
       <div className={styles.timeEditorOverlay} role="presentation" onMouseDown={(event) => {
         if (event.target === event.currentTarget) setEditorDraft(null)
@@ -7715,12 +8049,24 @@ function PremiumTimeModulePage({
             <button type="button" aria-label="Schliessen" onClick={() => setEditorDraft(null)}><X size={18} /></button>
           </header>
           <div className={styles.timeEditorFields}>
-            <label>Projekt<select value={editorDraft.project} onChange={(event) => updateEditor("project", event.target.value)}>{projectsSource.map((project) => <option key={project.id} value={project.name}>{project.name}</option>)}</select></label>
-            <label>Taetigkeit<select value={editorDraft.activity} onChange={(event) => updateEditor("activity", event.target.value)}><option>Design & UI/UX</option><option>Operations Integration</option><option>Client Portal Setup</option><option>Kundengespraech</option><option>Projektsteuerung</option><option>Dokumentation</option></select></label>
+            <label>Projekt
+              <select value={selectedProjectValue} onChange={(event) => updateEditor("project", event.target.value === "manual" ? editorDraft.project : event.target.value)}>
+                {projectsSource.map((project) => <option key={project.id} value={project.name}>{project.name}</option>)}
+                <option value="manual">Manuell bearbeiten</option>
+              </select>
+              <input type="text" value={editorDraft.project} onChange={(event) => updateEditor("project", event.target.value)} placeholder="Projekt waehlen oder manuell eingeben" />
+            </label>
+            <label>Taetigkeit
+              <select value={selectedActivityValue} onChange={(event) => updateEditor("activity", event.target.value === "manual" ? editorDraft.activity : event.target.value)}>
+                {activityOptions.map((activity) => <option key={activity}>{activity}</option>)}
+                <option value="manual">Manuell bearbeiten</option>
+              </select>
+              <input type="text" value={editorDraft.activity} onChange={(event) => updateEditor("activity", event.target.value)} placeholder="Taetigkeit waehlen oder manuell eingeben" />
+            </label>
             <label>Startzeit<input type="time" value={editorDraft.start} onChange={(event) => updateEditor("start", event.target.value)} /></label>
             <label>Endzeit<input type="time" value={editorDraft.end} onChange={(event) => updateEditor("end", event.target.value)} /></label>
             <label>Pause<input type="time" value={editorDraft.pause} onChange={(event) => updateEditor("pause", event.target.value)} /></label>
-            <label className={styles.timeEditorWide}>Notiz<textarea value={editorDraft.note} onChange={(event) => updateEditor("note", event.target.value)} rows={4} /></label>
+            <label className={styles.timeEditorWide}>Notiz<textarea value={editorDraft.note} onChange={(event) => updateEditor("note", event.target.value)} rows={5} placeholder="Notiz zum Eintrag bearbeiten" /></label>
           </div>
           <footer>
             <span><Clock3 size={16} />Dauer: <strong>{formatMinutes(entryDurationMinutes(editorDraft))}</strong></span>
@@ -7732,18 +8078,125 @@ function PremiumTimeModulePage({
     )
   }
 
+  function renderTimeInvoiceDialog(sourceEntries: TimeEntryDraft[], hourlyRate: number) {
+    if (!invoiceDialogOpen) return null
+    const billable = sourceEntries.length ? sourceEntries : visibleWeekEntries.slice(0, 4)
+    const totalMinutes = billable.reduce((sum, entry) => sum + entryDurationMinutes(entry), 0)
+    const netTotal = (totalMinutes / 60) * hourlyRate
+    const apiEntryIds = billable.filter((entry) => entry.source === "api").map((entry) => entry.id)
+    return (
+      <div className={styles.timeEditorOverlay} role="presentation" onMouseDown={(event) => {
+        if (event.target === event.currentTarget) setInvoiceDialogOpen(false)
+      }}>
+        <section className={styles.timeInvoiceDialog} role="dialog" aria-modal="true" aria-labelledby="time-invoice-title">
+          <header>
+            <div><span>Rechnung</span><h2 id="time-invoice-title">Arbeitszeit in Rechnung uebernehmen</h2></div>
+            <button type="button" aria-label="Schliessen" onClick={() => setInvoiceDialogOpen(false)}><X size={18} /></button>
+          </header>
+          <div className={styles.timeInvoiceDialogSummary}>
+            <p><span>Mitarbeiter</span><strong>Max Mustermann</strong></p>
+            <p><span>Projekt</span><strong>{billable[0]?.project || defaultProject}</strong></p>
+            <p><span>Arbeitszeit</span><strong>{formatMinutes(totalMinutes)}</strong></p>
+            <label>Lohn / Stundensatz<input value={invoiceRate} onChange={(event) => setInvoiceRate(event.target.value)} inputMode="decimal" /><em>EUR pro Stunde</em></label>
+            <p data-total="true"><span>Rechnungssumme netto</span><strong>{formatEuro(netTotal)}</strong></p>
+          </div>
+          <div className={styles.timeInvoiceDialogRows}>
+            {billable.map((entry) => (
+              <p key={entry.id}><span>{entry.start} - {displayEntryEnd(entry)}</span><strong>{entry.activity}</strong><small>{entry.project}</small><b>{formatMinutes(entryDurationMinutes(entry))}</b></p>
+            ))}
+          </div>
+          {invoiceStatus ? <small className={styles.timeInvoiceStatus}>{invoiceStatus}</small> : null}
+          <footer>
+            <button type="button" onClick={() => setInvoiceDialogOpen(false)}>Abbrechen</button>
+            <button type="button" onClick={() => void createInvoiceFromTimeEntries(apiEntryIds)}><Receipt size={16} />Rechnung jetzt erstellen</button>
+          </footer>
+        </section>
+      </div>
+    )
+  }
+
   function renderTimerCard() {
+    const activeEmployeeName = clockFeedback?.name || timerContext.note.replace(/^Kommen: /, "") || "Team"
     return (
       <article className={styles.timePlannerTimer} data-state={timerState}>
-        <span><TimerReset size={26} /></span>
-        <div><strong>{timerState === "active" || timerState === "paused" ? formatPremiumTimer(timerSeconds) : "00:00:00"}</strong><small>{timerState === "active" ? "Aktiv" : timerState === "paused" ? "Pausiert" : "Bereit"} <i /></small></div>
-        <div><b>{timerContext.project}</b><small>{timerContext.activity} · Start: 08:00</small></div>
-        <TimeSparkline tone="green" />
-        <button type="button" onClick={() => startEntryTimer()}><Play size={14} />Start</button>
-        <button type="button" onClick={pauseTimer}><Pause size={14} />Pause</button>
-        <button type="button" data-danger="true" onClick={stopTimer}><Square size={12} />Stopp</button>
-        <button type="button" data-save="true" onClick={() => void saveTimer()}><Save size={14} />Speichern</button>
-        <em>{timerNotice || "Automatisch minimieren in 5s"}</em>
+        <section className={styles.clockStationHero}>
+          <div>
+            <span><TimerReset size={20} /> Stempeluhr</span>
+            <strong>{currentClockTime}</strong>
+            <small>{formatGermanDate(selectedDate)}</small>
+          </div>
+          <div>
+            <b>{timerState === "active" || timerState === "paused" ? formatPremiumTimer(timerSeconds) : "00:00:00"}</b>
+            <small><i />{clockStatusLabel}</small>
+          </div>
+        </section>
+        <section className={styles.clockStationActions}>
+          <button type="button" data-action="kommen" onClick={() => openClockAction("kommen")}><Play size={22} />Arbeit starten<span>Startzeit automatisch erfassen</span></button>
+          <button type="button" data-action="gehen" onClick={() => openClockAction("gehen")}><Square size={22} />Feierabend<span>Endzeit automatisch berechnen</span></button>
+        </section>
+        <section className={styles.clockStationMeta}>
+          <div><small>Mitarbeiter</small><strong>{activeEmployeeName}</strong></div>
+          <div><small>Projekt</small><strong>{timerContext.project}</strong></div>
+          <div><small>Taetigkeit</small><strong>{timerContext.activity}</strong></div>
+          <div><small>Status</small><strong>{timerNotice || "Bereit fuer Kommen oder Gehen"}</strong></div>
+        </section>
+        <section className={styles.clockStationControls}>
+          <button type="button" onClick={() => startEntryTimer()}><Play size={14} />Direkt starten</button>
+          <button type="button" onClick={pauseTimer}><Pause size={14} />Pause</button>
+          <button type="button" data-danger="true" onClick={stopTimer}><Square size={12} />Stopp</button>
+          <button type="button" data-save="true" onClick={() => void saveTimer()}><Save size={14} />Speichern</button>
+        </section>
+        {clockAction ? (
+          <div className={styles.clockStationPanel}>
+            <header>
+              <span>{clockEmployee?.initials || (clockAction === "kommen" ? "IN" : "OUT")}</span>
+              <strong>Mitarbeiter identifizieren</strong>
+              <small>{clockEmployee ? `${clockEmployee.name} - ${clockActionForEmployee(clockEmployee) === "gehen" ? "Feierabend wird erfasst" : "Arbeitstag wird gestartet"}` : "PIN eingeben oder Namen waehlen"}</small>
+            </header>
+            <div className={styles.clockIdentifyLayout}>
+              <section className={styles.clockPinSection}>
+                <div className={styles.clockPinStatus}>
+                  <strong>{clockEmployee ? clockEmployee.name : "Direkt per PIN"}</strong>
+                  <small>{clockEmployee ? `${clockEmployee.project || defaultProject} · ${clockActionForEmployee(clockEmployee) === "gehen" ? "Eingestempelt" : "Bereit"}` : "Der PIN erkennt den Mitarbeiter automatisch."}</small>
+                </div>
+                <div className={styles.clockPinDots}>{[0, 1, 2, 3].map((index) => <i key={index} data-filled={index < clockPin.length} />)}</div>
+                <div className={styles.clockPinPad}>
+                  {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((digit) => <button key={digit} type="button" onClick={() => pressClockPin(digit)}>{digit}</button>)}
+                  <button type="button" onClick={() => { setClockEmployee(null); setClockPin("") }}>Zurueck</button>
+                  <button type="button" onClick={() => pressClockPin("0")}>0</button>
+                  <button type="button" onClick={() => pressClockPin("back")}><X size={18} /></button>
+                </div>
+              </section>
+              <section className={styles.clockEmployeeSection}>
+                <div className={styles.clockEmployeeSectionHeader}>
+                  <strong>Mitarbeiter</strong>
+                  <small>{Object.keys(activeClockShifts).length} eingestempelt</small>
+                </div>
+                <div className={styles.clockEmployeeGrid}>
+                  {clockEmployees.map((employee) => {
+                    const employeeAction = clockActionForEmployee(employee)
+                    return (
+                      <button key={employee.name} type="button" data-tone={employee.tone} data-active={employeeAction === "gehen"} data-selected={clockEmployee?.name === employee.name} onClick={() => chooseClockEmployee(employee)}>
+                        <i>{employee.initials}</i>
+                        <span><strong>{employee.name}</strong><small>{employeeAction === "gehen" ? "Eingestempelt · Feierabend" : "Bereit · Arbeit starten"}</small></span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </section>
+            </div>
+            <button type="button" data-ghost="true" onClick={resetClockFlow}>Abbrechen</button>
+          </div>
+        ) : null}
+        {clockFeedback ? (
+          <div className={styles.clockStationFeedback} data-action={clockFeedback.action}>
+            <span><CheckCircle2 size={28} /></span>
+            <strong>{clockFeedback.action === "kommen" ? "Willkommen!" : "Schoenen Feierabend!"}</strong>
+            <small>{clockFeedback.name} - {clockFeedback.action === "kommen" ? `Kommen erfasst um ${clockFeedback.start} Uhr` : `Gehen erfasst um ${clockFeedback.end} Uhr`}</small>
+            {clockFeedback.action === "gehen" ? <p><b>Arbeitszeit heute</b><strong>{clockFeedback.total}</strong></p> : null}
+            <button type="button" onClick={() => setClockFeedback(null)}>Fertig</button>
+          </div>
+        ) : null}
       </article>
     )
   }
@@ -7753,15 +8206,15 @@ function PremiumTimeModulePage({
       <aside className={styles.timeEntryPopover} data-day={dayMode} onClick={(event) => event.stopPropagation()}>
         <strong><i /> {entry.project}</strong>
         <small>{entry.activity}</small>
-        <p><Clock3 size={14} /> {entry.start} - {entry.end}</p>
+        <p><Clock3 size={14} /> {entry.start} - {displayEntryEnd(entry)}</p>
         <p><TimerReset size={14} /> Dauer: {formatMinutes(entryDurationMinutes(entry))}</p>
         <p><Folder size={14} /> Projekt: {entry.project}</p>
         <p><Tag size={14} /> Taetigkeit: {entry.activity}</p>
         <div>
-          <button type="button" aria-label="Bearbeiten" onClick={() => openEditor(entry)}><Pencil size={15} /></button>
-          <button type="button" aria-label="Timer fortsetzen" onClick={() => startEntryTimer(entry)}><Play size={15} /></button>
-          <button type="button" aria-label="Duplizieren" onClick={() => duplicateEntry(entry)}><Archive size={15} /></button>
-          <button type="button" aria-label="Loeschen" onClick={() => deleteEntry(entry.id)}><Trash2 size={15} /></button>
+          <button type="button" aria-label="Bearbeiten" onClick={() => openEditor(entry)}><Pencil size={15} /><span>Bearbeiten</span></button>
+          <button type="button" aria-label="Timer fortsetzen" onClick={() => startEntryTimer(entry)}><Play size={15} /><span>Starten</span></button>
+          <button type="button" aria-label="Duplizieren" onClick={() => duplicateEntry(entry)}><Archive size={15} /><span>Kopieren</span></button>
+          <button type="button" aria-label="Loeschen" onClick={() => deleteEntry(entry.id)}><Trash2 size={15} /><span>Loeschen</span></button>
         </div>
       </aside>
     )
@@ -7799,7 +8252,7 @@ function PremiumTimeModulePage({
   }
 
   function renderWeeklyDashboard() {
-    const compactEntry = (start: string, end: string) => minutesFromTime(end) - minutesFromTime(start) <= 60
+    const compactEntry = (entry: TimeEntryDraft) => entrySafeEndMinutes(entry) - minutesFromTime(entry.start) <= 60
     return (
       <section className={styles.timePlannerShell} onClick={() => setSelectedEntryId(null)}>
         {renderTimerCard()}
@@ -7815,8 +8268,8 @@ function PremiumTimeModulePage({
                 <div key={row.day} className={styles.timeDayColumn} data-weekend={dayIndex > 4} onDoubleClick={(event) => handleSlotDoubleClick(event, dayIndex)}>
                   {dayIndex > 4 ? <div className={styles.timeEmptyDay}>Kein Eintrag</div> : null}
                   {visibleWeekEntries.filter((entry) => entry.day === dayIndex).map((entry) => (
-                    <button key={entry.id} type="button" className={styles.timeCalendarBlock} data-tone={entry.tone} data-selected={selectedEntryId === entry.id} data-compact={compactEntry(entry.start, entry.end)} style={timeBlockStyle(entry.start, entry.end)} onClick={(event) => { event.stopPropagation(); setSelectedEntryId(entry.id) }} onDoubleClick={(event) => { event.stopPropagation(); openEditor(entry) }}>
-                      <span>{entry.start} - {entry.end}</span>
+                    <button key={entry.id} type="button" className={styles.timeCalendarBlock} data-tone={entry.tone} data-selected={selectedEntryId === entry.id} data-compact={compactEntry(entry)} style={timeBlockStyle(entry.start, displayEntryEnd(entry))} onClick={(event) => { event.stopPropagation(); setSelectedEntryId(entry.id) }} onDoubleClick={(event) => { event.stopPropagation(); openEditor(entry) }}>
+                      <span>{entry.start} - {displayEntryEnd(entry)}</span>
                       <strong>{entry.activity}</strong>
                       <small>{entry.project}</small>
                       <em>{formatMinutes(entryDurationMinutes(entry))}</em>
@@ -7824,7 +8277,7 @@ function PremiumTimeModulePage({
                   ))}
                 </div>
               ))}
-              <div className={styles.timeNowLine}><span>10:15</span></div>
+              <div className={styles.timeNowLine} style={{ top: `${nowLineTop}%` }}><span>{nowLineLabel}</span></div>
               {selectedEntry ? renderPopover(selectedEntry) : null}
             </div>
             <div className={styles.timeWeekFooter}>
@@ -7854,7 +8307,7 @@ function PremiumTimeModulePage({
             <button key={entry.id} type="button" data-tone={entry.tone} onClick={(event) => { event.stopPropagation(); setSelectedEntryId(entry.id) }} onDoubleClick={(event) => { event.stopPropagation(); openEditor(entry) }}>
               <span><Clock3 size={18} /></span>
               <div><strong>{entry.project}</strong><small>{entry.activity}</small></div>
-              <b>{entry.start} - {entry.end}</b>
+              <b>{entry.start} - {displayEntryEnd(entry)}</b>
               <em>{formatMinutes(entryDurationMinutes(entry))}</em>
             </button>
           ))}
@@ -7867,8 +8320,8 @@ function PremiumTimeModulePage({
           <p><span>Pause</span><strong>{formatMinutes(pauseTotal)}</strong></p>
           <p><span>Differenz</span><strong>{formatSignedMinutes(dayTotal - 8 * 60)}</strong></p>
           <button type="button" onClick={() => openNewEntry((selectedDate.getDay() + 6) % 7, "09:00")}><Plus size={16} />Zeit erfassen</button>
+          {selectedEntry ? renderPopover(selectedEntry, true) : null}
         </aside>
-        {selectedEntry ? renderPopover(selectedEntry, true) : null}
         {renderEntryEditor()}
       </section>
     )
@@ -7928,7 +8381,7 @@ function PremiumTimeModulePage({
         <aside className={styles.timeMonthEditor}>
           <header><div><span>Tag bearbeiten</span><h2>{formatGermanDate(selectedDay.date)}</h2></div><button type="button" onClick={() => openNewEntry((selectedDay.date.getDay() + 6) % 7, "09:00")}><Plus size={15} />Eintrag</button></header>
           <div><small>Status</small><strong>{selectedDay.status || "Arbeitstag"}</strong></div>
-          {selectedEntries.map((entry) => <button key={entry.id} type="button" onClick={() => setSelectedEntryId(entry.id)} onDoubleClick={() => openEditor(entry)}><span>{entry.start} - {entry.end}</span><strong>{entry.activity}</strong><small>{entry.project}</small></button>)}
+          {selectedEntries.map((entry) => <button key={entry.id} type="button" onClick={() => setSelectedEntryId(entry.id)} onDoubleClick={() => openEditor(entry)}><span>{entry.start} - {displayEntryEnd(entry)}</span><strong>{entry.activity}</strong><small>{entry.project}</small></button>)}
           {!selectedEntries.length ? <p>Keine Eintraege fuer diesen Tag.</p> : null}
           <button type="button" data-primary="true" onClick={() => startEntryTimer(selectedEntries[0])}><Play size={15} />Timer starten</button>
         </aside>
@@ -7978,10 +8431,95 @@ function PremiumTimeModulePage({
     )
   }
 
+  function renderTimeManagementView() {
+    const billableMinutes = dayEntries.reduce((sum, entry) => sum + entryDurationMinutes(entry), 0)
+    const rate = Number(invoiceRate.replace(",", ".")) || 85
+    const billableAmount = (billableMinutes / 60) * rate
+    const editRows = dayEntries.length ? dayEntries : visibleWeekEntries.slice(0, 4)
+    return (
+      <section className={styles.timeAdminDashboard}>
+        <div className={styles.timeAdminTopGrid}>
+          <article className={styles.timeUserCreatePanel}>
+            <header><span><UserPlus size={18} /></span><div><strong>Benutzer fuer Zeiterfassung erstellen</strong></div></header>
+            <div className={styles.timeUserCreateForm}>
+              <label>Name<input value={timeUserDraft.name} onChange={(event) => updateTimeUserDraft("name", event.target.value)} /></label>
+              <label>Initialen<input value={timeUserDraft.initials} onChange={(event) => updateTimeUserDraft("initials", event.target.value)} /></label>
+              <label>PIN<input value={timeUserDraft.pin} onChange={(event) => updateTimeUserDraft("pin", event.target.value)} type="password" /></label>
+              <label>Rolle<select value={timeUserDraft.role} onChange={(event) => updateTimeUserDraft("role", event.target.value)}><option value="employee">Mitarbeiter</option><option value="lead">Teamleitung</option><option value="admin">Admin</option></select></label>
+              <label>Projekt<select value={timeUserDraft.projectId} onChange={(event) => updateTimeUserDraft("projectId", event.target.value)}>{projectsSource.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
+              <label>Status<select value={timeUserDraft.status} onChange={(event) => updateTimeUserDraft("status", event.target.value)}><option value="active">Aktiv</option><option value="paused">Pausiert</option></select></label>
+            </div>
+            <button type="button" onClick={saveTimeUser}><Save size={15} />Benutzer speichern</button>
+          </article>
+          <article className={styles.timeInvoicePanel}>
+            <header><span><Receipt size={18} /></span><div><strong>Arbeitszeit in Rechnung umwandeln</strong><small>Abrechenbare Zeit direkt als Entwurf uebernehmen.</small></div></header>
+            <div>
+              <p><span>Mitarbeiter</span><strong>Max Mustermann</strong></p>
+              <p><span>Projekt</span><strong>{defaultProject}</strong></p>
+              <p><span>Abrechenbar</span><strong>{formatMinutes(billableMinutes)}</strong></p>
+              <p><span>Lohn / Stundensatz</span><strong>{formatEuro(rate)}</strong></p>
+              <p data-total="true"><span>Summe</span><strong>{formatEuro(billableAmount)}</strong></p>
+            </div>
+            <button type="button" onClick={() => { setInvoiceStatus(""); setInvoiceDialogOpen(true) }}><Receipt size={15} />Rechnung erstellen</button>
+          </article>
+        </div>
+        <div className={styles.timeAdminGrid}>
+          <article className={styles.timeTeamManagePanel}>
+            <header><div><span>Team</span><h2>Benutzer in der Stempeluhr</h2></div><button type="button" onClick={resetTimeUserDraft}><UserPlus size={15} />Neu</button></header>
+            <div>
+              {clockEmployees.map((employee, index) => (
+                <button key={employee.name} type="button" data-tone={employee.tone}>
+                  <i>{employee.initials}</i>
+                  <span><strong>{employee.name}</strong><small>{employee.role || "Mitarbeiter"} · PIN erforderlich</small></span>
+                  <em>{employee.status || "Bereit"}</em>
+                  <b>{index === 4 ? formatMinutes(dayEntries.reduce((sum, entry) => sum + entryDurationMinutes(entry), 0)) : index === 0 ? "7:30 h" : index === 1 ? "4:10 h" : index === 3 ? "8:05 h" : "0:00 h"}</b>
+                </button>
+              ))}
+            </div>
+          </article>
+          <article className={styles.timeAdminReportsPanel}>
+            <header><div><span>Berichte</span><h2>Zeiten auswerten</h2></div><div><button type="button" data-active="true">Tag</button><button type="button">Woche</button><button type="button">Monat</button><button type="button">Jahr</button></div></header>
+            <div className={styles.timeAdminReportCards}>
+              <span><small>Tageszeit</small><strong>{formatMinutes(dayEntries.reduce((sum, entry) => sum + entryDurationMinutes(entry), 0))}</strong></span>
+              <span><small>Wochenzeit</small><strong>{formatMinutes(sidebarWeekMinutes)}</strong></span>
+              <span><small>Monatszeit</small><strong>{formatMinutes(monthEntries.reduce((sum, entry) => sum + entryDurationMinutes(entry), 0))}</strong></span>
+              <span><small>Jahreszeit</small><strong>428:15 h</strong></span>
+            </div>
+            <div className={styles.timeAdminExportRow}>
+              <Link href="/api/time-tracking/export?format=pdf"><Download size={15} />PDF</Link>
+              <Link href="/api/time-tracking/export?format=csv"><Download size={15} />CSV</Link>
+              <Link href="/api/time-tracking/export?format=xls"><Download size={15} />Excel</Link>
+            </div>
+          </article>
+        </div>
+        <article className={styles.timeAdminEditPanel}>
+          <header><div><span>Bearbeitung</span><h2>Zeiten, Projekte und Taetigkeiten bearbeiten</h2></div><button type="button" onClick={() => openNewEntry((selectedDate.getDay() + 6) % 7, "09:00")}><Plus size={15} />Zeit hinzufuegen</button></header>
+          <div className={styles.timeAdminEditTable}>
+            <span>Mitarbeiter</span><span>Projekt</span><span>Taetigkeit</span><span>Start</span><span>Ende</span><span>Dauer</span><span />
+            {editRows.map((entry) => (
+              <Fragment key={entry.id}>
+                <strong>Max Mustermann</strong>
+                <p>{entry.project}</p>
+                <p>{entry.activity}</p>
+                <p>{entry.start}</p>
+                <p>{displayEntryEnd(entry)}</p>
+                <b>{formatMinutes(entryDurationMinutes(entry))}</b>
+                <button type="button" onClick={() => openEditor(entry)}><Pencil size={14} /></button>
+              </Fragment>
+            ))}
+          </div>
+        </article>
+        {renderTimeInvoiceDialog(dayEntries.length ? dayEntries : visibleWeekEntries.slice(0, 4), rate)}
+        {renderEntryEditor()}
+      </section>
+    )
+  }
+
   function renderCurrentView() {
     if (activeSection === "arbeitstag") return renderDayView()
     if (activeSection === "monatsansicht") return renderMonthView()
     if (activeSection === "berichte") return renderReportsView()
+    if (activeSection === "verwaltung") return renderTimeManagementView()
     return renderWeeklyDashboard()
   }
 
@@ -7989,9 +8527,9 @@ function PremiumTimeModulePage({
     <section className={styles.timePremiumPage}>
       <header className={styles.timePremiumHeader}>
         <Link href={withPremiumTheme("/dashboard-v2", mode)}><ChevronLeft size={16} />Zurueck</Link>
-        <div><h1>Zeiterfassung</h1><p>Arbeitszeiten erfassen</p></div>
+        <div><h1>Zeiterfassung</h1></div>
         <div className={styles.timeHeaderActions}>
-          <select value={periodValue} aria-label="Zeitraum" onChange={(event) => changePeriod(event.target.value)}><option value="day">Tag</option><option value="week">Woche</option><option value="month">Monat</option><option value="reports">Berichte</option></select>
+          <select value={periodValue} aria-label="Zeitraum" onChange={(event) => changePeriod(event.target.value)}><option value="day">Tag</option><option value="week">Woche</option><option value="month">Monat</option><option value="reports">Berichte</option><option value="admin">Verwaltung</option></select>
           <div className={styles.timeDateStepper}>
             <button type="button" aria-label="Vorheriger Zeitraum" onClick={() => moveDate(-1)}><ChevronLeft size={16} /></button>
             <strong>{periodLabel}</strong>
@@ -8005,7 +8543,7 @@ function PremiumTimeModulePage({
       </header>
       <nav className={styles.timeSubNav} aria-label="Zeiterfassung Ansichten">
         <div className={styles.timePrimaryTabs}>
-          {[{ key: "arbeitstag" as TimeSectionKey, title: "Tag" }, { key: "wochenzeiten" as TimeSectionKey, title: "Woche" }, { key: "monatsansicht" as TimeSectionKey, title: "Monat" }, { key: "berichte" as TimeSectionKey, title: "Berichte" }].map((item) => <Link key={item.key} href={timeHref(item.key)} data-active={activeSection === item.key || (item.key === "wochenzeiten" && rawSection === "overview")}>{item.title}</Link>)}
+          {[{ key: "wochenzeiten" as TimeSectionKey, title: "Stempeluhr" }, { key: "arbeitstag" as TimeSectionKey, title: "Zeiten" }, { key: "berichte" as TimeSectionKey, title: "Berichte" }, { key: "verwaltung" as TimeSectionKey, title: "Verwaltung" }].map((item) => <Link key={item.key} href={timeHref(item.key)} data-active={activeSection === item.key || (item.key === "wochenzeiten" && rawSection === "overview")}>{item.title}</Link>)}
         </div>
       </nav>
       {renderCurrentView()}
@@ -8578,7 +9116,7 @@ function PremiumModulePage({
   }
 
   if (view === "offers") {
-    return <PremiumOffersModulePage data={data} mode={mode} />
+    return <PremiumOffersModulePage data={data} mode={mode} onDataChange={onDataChange} />
   }
 
   if (view === "time") {
@@ -9669,20 +10207,15 @@ function PremiumModulePage({
         </article>
 
         {projectDrawerOpen ? (
-          <div className={styles.projectsDrawerBackdrop} role="presentation" onMouseDown={(event) => {
-            if (event.target === event.currentTarget) closeProjectDrawer()
-          }}>
-            <aside className={styles.projectsDrawer} aria-label={projectDrawerMode === "create" ? "Neues Projekt" : projectDrawerMode === "edit" ? "Projekt bearbeiten" : "Projekt öffnen"}>
-              <div className={styles.projectsDrawerHead}>
-                <span><Folder size={22} /></span>
-                <div>
-                  <strong>{projectDrawerMode === "create" ? "Neues Projekt" : projectDrawerMode === "edit" ? "Projekt bearbeiten" : "Projekt öffnen"}</strong>
-                  <small>{projectDrawerMode === "view" ? projectDraft.code : "Direkt auf der Projekte-Seite"}</small>
-                </div>
-                <button type="button" onClick={closeProjectDrawer} aria-label="Schließen"><X size={18} /></button>
-              </div>
-
-              <form className={styles.projectsDrawerForm} onSubmit={(event) => void saveProjectDrawer(event)}>
+          <StandardModal
+            title={projectDrawerMode === "create" ? "Neues Projekt" : projectDrawerMode === "edit" ? "Projekt bearbeiten" : "Projekt öffnen"}
+            description={projectDrawerMode === "view" ? projectDraft.code : "Direkt auf der Projekte-Seite"}
+            icon={<Folder size={22} />}
+            onClose={closeProjectDrawer}
+            width={640}
+            padded={false}
+          >
+            <form className={styles.projectsDrawerForm} onSubmit={(event) => void saveProjectDrawer(event)}>
                 <label>
                   <span>Projektname</span>
                   <input value={projectDraft.name} readOnly={projectDrawerMode === "view"} onChange={(event) => setProjectDraft((draft) => ({ ...draft, name: event.target.value }))} placeholder="Projektname" />
@@ -9731,9 +10264,8 @@ function PremiumModulePage({
                   )}
                   <button type="button" onClick={closeProjectDrawer}>Abbrechen</button>
                 </div>
-              </form>
-            </aside>
-          </div>
+            </form>
+          </StandardModal>
         ) : null}
       </section>
     )
@@ -10067,9 +10599,7 @@ export function PremiumWorkspacePage({
 
   const profile = profileFromData(data, sessionUser)
   const unreadCount = data.notifications.filter((item) => !isNotificationRead(item)).length
-  const upgrade = upgradeSummaryFromData(data)
-  const sessionRole = String(sessionUser?.role || "").toLowerCase()
-  const canSeeDevelopment = sessionRole === "admin" || sessionRole === "owner" || sessionRole === "dev"
+  const canSeeDevelopment = isDevToolsEnabled()
   const isDevelopmentView = view === "api" || view === "audit" || view === "license-admin"
   const showDevelopmentView = !isDevelopmentView || canSeeDevelopment
   const moduleContext = useMemo(() => moduleEngineContextFromData(data), [data])
@@ -10081,7 +10611,7 @@ export function PremiumWorkspacePage({
 
   return (
     <div className={styles.page} data-theme={mode} role="main">
-      <Sidebar mode={mode} unreadCount={unreadCount} upgrade={upgrade} canSeeDevelopment={canSeeDevelopment} licenseAdminEnabled={licenseAdminEnabled} moduleContext={moduleContext} />
+      <Sidebar mode={mode} canSeeDevelopment={canSeeDevelopment} licenseAdminEnabled={licenseAdminEnabled} moduleContext={moduleContext} />
       <section className={styles.contentShell}>
         <Topbar mode={mode} profile={profile} searchInputRef={searchInputRef} searchQuery={searchQuery} themeLinks={themeLinks} unreadCount={unreadCount} onModeChange={handleModeChange} onSearchChange={setSearchQuery} onSearchClear={handleSearchClear} profileMenuOpen={profileMenuOpen} onToggleProfileMenu={handleProfileMenuToggle} onCloseProfileMenu={handleProfileMenuClose} onLogout={handleLogout} />
         <CompactNav mode={mode} unreadCount={unreadCount} />
@@ -10091,7 +10621,7 @@ export function PremiumWorkspacePage({
           <PremiumAccountSecurityClient initialProfile={accountSecurityInitialProfile} />
         ) : (
           <>
-            {view !== "settings" ? <SearchResultsPanel data={data} mode={mode} searchQuery={premiumSearchQuery(searchQuery)} searchCategory={searchCategory} onSearchCategoryChange={setSearchCategory} onSearchClear={handleSearchClear} /> : null}
+            {view !== "settings" && !isPremiumActionQuery(searchQuery) ? <SearchResultsPanel data={data} mode={mode} searchQuery={searchQuery} searchCategory={searchCategory} onSearchCategoryChange={setSearchCategory} onSearchClear={handleSearchClear} /> : null}
             <PremiumModulePage view={view as ModuleView} settingsSection={settingsSection} data={data} language={language} mode={mode} searchQuery={searchQuery} licenseAdminEnabled={licenseAdminEnabled} moduleContext={moduleContext} onDataChange={setData} />
           </>
         )}

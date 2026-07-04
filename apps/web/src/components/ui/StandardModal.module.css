@@ -1,0 +1,164 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+  background: rgba(18, 23, 47, 0.16);
+  backdrop-filter: blur(2px);
+  animation: standard-modal-backdrop 140ms ease-out;
+}
+
+.dialog {
+  width: min(var(--standard-modal-width, 520px), calc(100vw - 32px));
+  max-height: calc(100vh - 60px);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #dfe3ed;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(18, 23, 47, 0.22);
+  overflow: visible;
+  animation: standard-modal-enter 160ms ease-out;
+}
+
+.header {
+  min-height: 62px;
+  cursor: move;
+  user-select: none;
+  touch-action: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #edf0f5;
+}
+
+.titleGroup {
+  min-width: 0;
+}
+
+.eyebrow {
+  display: block;
+  color: #59637d;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.titleLine {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.titleLine svg {
+  flex: 0 0 auto;
+  color: #4f2cff;
+}
+
+.header h2 {
+  margin: 0;
+  overflow: hidden;
+  color: #12172f;
+  font-size: 17px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.description {
+  margin: 4px 0 0;
+  color: #59637d;
+  font-size: 12px;
+}
+
+.closeButton {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #17213d;
+  cursor: pointer;
+}
+
+.closeButton:hover {
+  background: #f2efff;
+  color: #4f2cff;
+}
+
+.body {
+  min-height: 0;
+  overflow: auto;
+}
+
+.bodyPadded {
+  padding: 16px;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 16px 16px;
+  border-top: 1px solid #edf0f5;
+}
+
+.footer :where(button) {
+  min-height: 36px;
+  border: 1px solid #dfe3ed;
+  border-radius: 6px;
+  background: #fff;
+  color: #17213d;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 0 14px;
+  cursor: pointer;
+}
+
+.footer :where(button:last-child) {
+  border-color: #4f2cff;
+  background: #4f2cff;
+  color: #fff;
+}
+
+.footer :where(button:disabled) {
+  cursor: not-allowed;
+  opacity: .55;
+}
+
+@keyframes standard-modal-backdrop {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes standard-modal-enter {
+  from {
+    opacity: 0;
+    transform: translate(var(--standard-modal-x, 0px), calc(var(--standard-modal-y, 0px) + 10px)) scale(.98);
+  }
+  to {
+    opacity: 1;
+    transform: translate(var(--standard-modal-x, 0px), var(--standard-modal-y, 0px)) scale(1);
+  }
+}
+
+@media (max-width: 768px) {
+  .backdrop {
+    align-items: flex-start;
+    padding: 18px 10px;
+  }
+
+  .dialog {
+    max-height: calc(100vh - 36px);
+  }
+}

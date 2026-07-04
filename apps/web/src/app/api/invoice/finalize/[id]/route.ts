@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
 import { writeAuditLog } from "@/lib/audit/log"
+import { getAuditRequestMetadata } from "@/lib/audit/request-metadata"
 import { documents } from "@/data/invoice-data"
 import { demoModeResponse, isDemoMode } from "@/lib/demo-mode"
 
@@ -26,6 +27,7 @@ try {
       }))
     }
 
+    const existing = await prisma.invoice.findUnique({ where: { id } })
     const invoice = await prisma.invoice.update({
       where: { id: id },
       data: { status: "final" }
@@ -39,8 +41,12 @@ try {
       data: {
         number: invoice.number,
         status: invoice.status,
-        type: invoice.type
-      }
+        type: invoice.type,
+        entityLabel: invoice.number
+      },
+      before: existing ? { number: existing.number, status: existing.status, type: existing.type } : undefined,
+      after: { number: invoice.number, status: invoice.status, type: invoice.type },
+      requestMetadata: getAuditRequestMetadata(req)
     })
 
     return NextResponse.json({ success: true, invoice })

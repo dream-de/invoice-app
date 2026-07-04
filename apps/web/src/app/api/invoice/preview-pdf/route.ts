@@ -17,7 +17,7 @@ const invoiceItemSchema = z.object({
 })
 
 const previewPdfSchema = z.object({
-  template: z.enum(["classic", "modern"]).default("classic"),
+  template: z.enum(["classic", "modern", "minimal", "elegant", "business", "premium"]).default("classic"),
   customer: z.string().trim().max(180).default("Kunde"),
   customerAddress: z.string().trim().max(1_000).default(""),
   number: z.string().trim().max(64).default("RE-ENTWURF"),
@@ -619,10 +619,52 @@ function renderModernInvoiceHtml(data: PreviewPdfPayload, qrCodeUrl: string) {
     </html>`
 }
 
+function applyInvoiceTemplateStyle(html: string, template: PreviewPdfPayload["template"]) {
+  if (template === "minimal") {
+    return html
+      .replaceAll("linear-gradient(135deg, #7c3aed, #4f46e5)", "#111827")
+      .replaceAll("#6d4aff", "#111827")
+      .replaceAll("#5f3df5", "#111827")
+      .replaceAll("#efeaff", "#f3f4f6")
+  }
+
+  if (template === "elegant") {
+    return html
+      .replace("<style>", "<style>body { font-family: Georgia, 'Times New Roman', serif !important; }")
+      .replaceAll("linear-gradient(135deg, #7c3aed, #4f46e5)", "linear-gradient(135deg, #0f766e, #d4af37)")
+      .replaceAll("#6d4aff", "#0f766e")
+      .replaceAll("#5f3df5", "#0f766e")
+      .replaceAll("#efeaff", "#ecfdf5")
+  }
+
+  if (template === "business") {
+    return html
+      .replace(".page {", ".page { border-top: 6mm solid #1e3a8a;")
+      .replaceAll("linear-gradient(135deg, #7c3aed, #4f46e5)", "#1e3a8a")
+      .replaceAll("#6d4aff", "#1e3a8a")
+      .replaceAll("#5f3df5", "#1e3a8a")
+      .replaceAll("#efeaff", "#eff6ff")
+  }
+
+  if (template === "premium") {
+    return html
+      .replace(".page {", ".page { border-top: 7mm solid #111827;")
+      .replaceAll("linear-gradient(135deg, #7c3aed, #4f46e5)", "linear-gradient(135deg, #111827, #7c3aed)")
+      .replaceAll("#6d4aff", "#7c3aed")
+      .replaceAll("#5f3df5", "#111827")
+      .replaceAll("#efeaff", "#111827")
+      .replaceAll("color: #5f3df5;", "color: #fff;")
+  }
+
+  return html
+}
+
 function renderInvoiceHtml(data: PreviewPdfPayload, qrCodeUrl: string) {
-  return data.template === "modern"
-    ? renderModernInvoiceHtml(data, qrCodeUrl)
-    : renderClassicInvoiceHtml(data, qrCodeUrl)
+  const baseHtml = data.template === "classic"
+    ? renderClassicInvoiceHtml(data, qrCodeUrl)
+    : renderModernInvoiceHtml(data, qrCodeUrl)
+
+  return applyInvoiceTemplateStyle(baseHtml, data.template)
 }
 
 export async function POST(request: Request) {

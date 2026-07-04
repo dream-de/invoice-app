@@ -21,7 +21,13 @@ export interface AuditWriterInput {
   metadata?: AuditLogMetadata | null
   tags?: string[]
   action?: string | null
+  outcome?: "success" | "failed" | "blocked" | null
+  source?: "ui" | "api" | "system" | null
+  entityType?: string | null
   entityId?: string | null
+  entityLabel?: string | null
+  before?: Record<string, unknown> | null
+  after?: Record<string, unknown> | null
 }
 
 const SENSITIVE_KEY_PATTERN = /(password|token|secret|apiKey|api[_-]?key|authorization|cookie|set-cookie|refreshToken|accessToken)/i
@@ -63,14 +69,25 @@ async function writeSafely(input: AuditWriterInput, defaults: { module: LogModul
     const metadata = sanitizeValue({
       ...(input.metadata ?? {}),
       action: input.action ?? null,
-      entityId: input.entityId ?? null
+      outcome: input.outcome ?? null,
+      source: input.source ?? null,
+      entityType: input.entityType ?? null,
+      entityId: input.entityId ?? null,
+      entityLabel: input.entityLabel ?? null
     }) as AuditLogInput["metadata"]
 
     const payload: AuditLogInput = {
       title: fallbackTitle(input),
       description: input.description ?? null,
+      action: input.action ?? null,
       module: input.module ?? defaults.module,
       level: input.level ?? defaults.level,
+      severity: input.level ?? defaults.level,
+      outcome: input.outcome ?? (String(input.level ?? defaults.level) === "error" ? "failed" : "success"),
+      source: input.source ?? "ui",
+      entityType: input.entityType ?? null,
+      entityId: input.entityId ?? null,
+      entityLabel: input.entityLabel ?? null,
       status: input.status ?? "active",
       actorId: input.actorId ?? null,
       actorName: input.actorName ?? null,
@@ -89,7 +106,9 @@ async function writeSafely(input: AuditWriterInput, defaults: { module: LogModul
       method: context?.method ?? null,
       endpoint: context?.endpoint ?? null,
       tags: input.tags ?? [],
-      metadata
+      metadata,
+      before: sanitizeValue(input.before) as AuditLogInput["before"] ?? undefined,
+      after: sanitizeValue(input.after) as AuditLogInput["after"] ?? undefined
     }
 
     return await createAuditLog(payload)

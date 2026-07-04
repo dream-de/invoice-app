@@ -14,6 +14,7 @@ import type {
   LogFilters,
   LogLevel,
   LogModule,
+  LogOutcome,
   LogRetention,
   LogStatistics,
   LogStatus,
@@ -64,6 +65,7 @@ export interface UseLiveLogsResult {
   setModule: (module: LogModule | null) => void
   setLevel: (level: LogLevel | null) => void
   setStatus: (status: LogStatus | null) => void
+  setOutcome: (outcome: LogOutcome | null) => void
   setActor: (actorId: string | null) => void
   setArchived: (archived: boolean | null) => void
   resetFilters: () => void
@@ -98,7 +100,8 @@ const defaultFilters: UseLiveLogsFilters = {
   dateTo: null,
   archived: null,
   retention: null,
-  status: null
+  status: null,
+  outcome: null
 }
 
 const defaultPagination: Pagination = {
@@ -141,6 +144,7 @@ function filtersToQuery(filters: UseLiveLogsFilters, page: number, pageSize: num
   appendParam(params, "level", filters.level)
   appendParam(params, "module", filters.module)
   appendParam(params, "status", filters.status)
+  appendParam(params, "outcome", filters.outcome)
   appendParam(params, "actorId", filters.actorId)
   appendParam(params, "dateFrom", filters.dateFrom)
   appendParam(params, "dateTo", filters.dateTo)
@@ -324,6 +328,7 @@ export function useLiveLogs(initialFilters: Partial<UseLiveLogsFilters> = {}): U
   const setModule = useCallback((module: LogModule | null) => updateFilters({ module }), [updateFilters])
   const setLevel = useCallback((level: LogLevel | null) => updateFilters({ level }), [updateFilters])
   const setStatus = useCallback((status: LogStatus | null) => updateFilters({ status }), [updateFilters])
+  const setOutcome = useCallback((outcome: LogOutcome | null) => updateFilters({ outcome }), [updateFilters])
   const setActor = useCallback((actorId: string | null) => updateFilters({ actorId }), [updateFilters])
   const setArchived = useCallback((archived: boolean | null) => updateFilters({ archived }), [updateFilters])
 
@@ -529,6 +534,7 @@ export function useLiveLogs(initialFilters: Partial<UseLiveLogsFilters> = {}): U
     setModule,
     setLevel,
     setStatus,
+    setOutcome,
     setActor,
     setArchived,
     resetFilters,

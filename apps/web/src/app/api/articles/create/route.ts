@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server"
+import { getAuditRequestMetadata } from "@/lib/audit/request-metadata"
+import { writeAuditLog } from "@/lib/audit/log"
 import { prisma } from "@dream-invoice/database"
 import { z } from "zod"
 import { AuthServiceError, mapAuthError, requireCurrentUser } from "@/lib/auth/service"
@@ -110,6 +112,15 @@ export async function POST(request: Request) {
         netPrice,
         vatRate
       }
+    })
+
+    await writeAuditLog({
+      action: "article.create",
+      entity: "article",
+      entityId: article.id,
+      reason: "Artikel erstellt",
+      data: { entityLabel: article.name ?? article.number ?? article.id },
+      requestMetadata: getAuditRequestMetadata(request)
     })
 
     return NextResponse.json({ ok: true, article })

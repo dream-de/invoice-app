@@ -9,7 +9,8 @@ const levelLabels: Record<LogLevel, string> = {
   success: "Erfolg",
   info: "Info",
   warning: "Warnung",
-  error: "Fehler"
+  error: "Fehler",
+  critical: "Kritisch"
 }
 
 const moduleLabels: Record<LogModule, string> = {
@@ -17,6 +18,7 @@ const moduleLabels: Record<LogModule, string> = {
   users: "Benutzer",
   invoices: "Rechnungen",
   quotes: "Angebote",
+  offers: "Angebote",
   customers: "Kunden",
   projects: "Projekte",
   timeTracking: "Zeiterfassung",

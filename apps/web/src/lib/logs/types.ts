@@ -3,16 +3,28 @@ export type LogLevel =
   | "info"
   | "warning"
   | "error"
+  | "critical"
 
 export type LogStatus =
   | "active"
   | "archived"
+
+export type LogOutcome =
+  | "success"
+  | "failed"
+  | "blocked"
+
+export type LogSource =
+  | "ui"
+  | "api"
+  | "system"
 
 export type LogModule =
   | "authentication"
   | "users"
   | "invoices"
   | "quotes"
+  | "offers"
   | "customers"
   | "projects"
   | "timeTracking"
@@ -90,15 +102,24 @@ export interface LogEntry {
   updatedAt: string
   title: string
   description: string
+  action: string
   module: LogModule
   level: LogLevel
+  severity: LogLevel
+  outcome: LogOutcome
+  source: LogSource
   status: LogStatus
+  entityType: string
+  entityId: string
+  entityLabel: string
   actor: Actor
   ipAddress: string
   browser: BrowserInfo
   operatingSystem: OperatingSystemInfo
   location: GeoLocation
   metadata: LogMetadata
+  before: Record<string, unknown> | null
+  after: Record<string, unknown> | null
   archived: boolean
   archivedAt: string | null
   tags: string[]
@@ -115,6 +136,7 @@ export interface LogFilters {
   dateTo: string | null
   archived: boolean | null
   retention: LogRetention | null
+  outcome: LogOutcome | null
 }
 
 /** Aggregated counters and storage metrics for the Logs dashboard cards. */
@@ -126,6 +148,10 @@ export interface LogStatistics {
   info: number
   today: number
   lastHour: number
+  critical: number
+  failed: number
+  adminActions: number
+  exports: number
   storageSize: number
   archiveSize: number
 }

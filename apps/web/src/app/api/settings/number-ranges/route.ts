@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
 import { z } from "zod"
 import { writeAuditLog } from "@/lib/audit/log"
+import { getAuditRequestMetadata } from "@/lib/audit/request-metadata"
 import { AuthServiceError, mapAuthError, requireCurrentUserRole } from "@/lib/auth/service"
 import { demoModeResponse, isDemoMode } from "@/lib/demo-mode"
 
@@ -89,7 +90,8 @@ export async function PUT(request: Request) {
       }))
     }
 
-    await requireCurrentUserRole(["admin"])
+    const actor = await requireCurrentUserRole(["admin"])
+    const beforeRanges = await prisma.numberRange.findMany({ where: { type: { in: ranges.map((range) => range.type) } }, orderBy: { type: "asc" } })
 
     const saved = []
 
@@ -108,13 +110,17 @@ export async function PUT(request: Request) {
     }
 
     await writeAuditLog({
-      action: "settings.number_ranges.update",
+      action: "settings.update",
       entity: "numberRange",
       reason: "Number ranges updated",
       data: {
+        actorUserId: actor.id,
         count: saved.length,
         types: saved.map((range) => range.type)
-      }
+      },
+      before: beforeRanges.map((range) => ({ type: range.type, prefix: range.prefix, nextValue: range.nextValue, padding: range.padding })),
+      after: saved.map((range) => ({ type: range.type, prefix: range.prefix, nextValue: range.nextValue, padding: range.padding })),
+      requestMetadata: getAuditRequestMetadata(request)
     })
 
     return NextResponse.json({ ok: true, ranges: saved })

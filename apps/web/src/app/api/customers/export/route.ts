@@ -2,6 +2,8 @@ import { prisma, type Customer } from "@dream-invoice/database"
 import { createCsvResponse } from "@/lib/export/csv-response"
 import { customers as fallbackCustomers } from "@/data/invoice-data"
 import { isDemoMode } from "@/lib/demo-mode"
+import { getAuditRequestMetadata } from "@/lib/audit/request-metadata"
+import { writeAuditLog } from "@/lib/audit/log"
 
 export const dynamic = "force-dynamic"
 
@@ -30,7 +32,7 @@ function rowsFromFallbackCustomers() {
   ])
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   if (isDemoMode() || !process.env.DATABASE_URL) {
     return createCustomerCsv(rowsFromFallbackCustomers())
   }
@@ -39,6 +41,8 @@ export async function GET() {
     const customers = await prisma.customer.findMany({
       orderBy: { createdAt: "desc" }
     })
+
+    await writeAuditLog({ action: "export.create", entity: "customer", reason: "Kunden exportiert", data: { entityLabel: "kunden-export.csv", count: customers.length, format: "csv" }, requestMetadata: getAuditRequestMetadata(request) })
 
     return createCustomerCsv(customers.map((customer: Customer) => [
       customer.number,

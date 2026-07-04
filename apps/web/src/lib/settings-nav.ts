@@ -87,7 +87,17 @@ export const settingsNav = [
 
 const typedSettingsNav = settingsNav as readonly SettingsNavItem[]
 
+function isDevSettingsEnabled() {
+  const flag = process.env.NEXT_PUBLIC_DREAM_INVOICE_DEV_TOOLS ?? process.env.DREAM_INVOICE_DEV_TOOLS
+  return process.env.NODE_ENV === "development" || flag === "true" || flag === "1"
+}
+
+function hideProductionOnlyItems(item: SettingsNavItem) {
+  return isDevSettingsEnabled() || item.key !== "dev"
+}
+
 export const premiumSettingsNav = typedSettingsNav
+  .filter(hideProductionOnlyItems)
   .filter((item) => item.href.startsWith("/dashboard-v2/settings/"))
   .sort((a, b) => a.order - b.order)
 
@@ -96,10 +106,11 @@ export const premiumSettingsGroups = [
   { key: "finance", title: "Finanzen & Dokumente", href: "/dashboard-v2/settings/finance", itemKeys: ["finance", "documents"] },
   { key: "communication", title: "Kommunikation & Portal", href: "/dashboard-v2/settings/email", itemKeys: ["email", "portal"] },
   { key: "platform", title: "Technik", href: "/dashboard-v2/settings/api", itemKeys: ["api", "webhooks", "system", "dev"] },
-  { key: "compliance", title: "Archiv", href: "/dashboard-v2/settings/archive", itemKeys: ["archive"] }
+  { key: "compliance", title: "Archiv", href: "/dashboard-v2/settings/archive", itemKeys: ["archive", "license-billing"] }
 ] as const satisfies readonly SettingsNavGroup[]
 
 export const visiblePremiumSettingsNav = typedSettingsNav
+  .filter(hideProductionOnlyItems)
   .filter((item) => premiumSettingsGroups.some((group) => (group.itemKeys as readonly string[]).includes(item.key)))
   .sort((a, b) => a.order - b.order)
 

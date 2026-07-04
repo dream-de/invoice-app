@@ -4,6 +4,7 @@ import {
   CalendarDays,
   CheckCircle2,
   Clock3,
+  Download,
   Database,
   HardDrive,
   ShieldAlert
@@ -87,7 +88,7 @@ function retentionValue(retention: LogRetention | undefined) {
 }
 
 function skeletonCards() {
-  return Array.from({ length: 7 }).map((_, index) => (
+  return Array.from({ length: 6 }).map((_, index) => (
     <article
       aria-hidden="true"
       className="min-h-24 animate-pulse rounded-lg border border-slate-200 bg-white p-3 shadow-sm"
@@ -103,7 +104,7 @@ function skeletonCards() {
 export function LogStats({ statistics, archiveStatistics, loading = false }: LogStatsProps) {
   if (loading && !statistics && !archiveStatistics) {
     return (
-      <section className="grid min-w-0 max-w-full gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7" aria-label="Log Statistiken werden geladen">
+      <section className="grid min-w-0 max-w-full gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6" aria-label="Log Statistiken werden geladen">
         {skeletonCards()}
       </section>
     )
@@ -111,46 +112,39 @@ export function LogStats({ statistics, archiveStatistics, loading = false }: Log
 
   const cards: StatCard[] = [
     {
-      title: "Heute",
+      title: "Ereignisse heute",
       value: numberValue(statistics?.today),
-      description: "Ereignisse seit Tagesbeginn",
+      description: "Seit Tagesbeginn",
       tone: "green",
       icon: CalendarDays
     },
     {
-      title: "Letzte Stunde",
-      value: numberValue(statistics?.lastHour),
-      description: "Live-Aktivität",
-      tone: "green",
-      icon: Clock3
-    },
-    {
-      title: "Fehler",
-      value: numberValue(statistics?.error),
-      description: "Kritische Log-Level",
+      title: "Kritische Ereignisse",
+      value: numberValue(statistics?.critical),
+      description: "Severity critical",
       tone: "red",
       icon: ShieldAlert
     },
     {
-      title: "Warnungen",
-      value: numberValue(statistics?.warning),
-      description: "Zu prüfende Ereignisse",
+      title: "Fehlgeschlagen",
+      value: numberValue(statistics?.failed),
+      description: "Failed oder blocked",
       tone: "yellow",
       icon: AlertTriangle
     },
     {
-      title: "Aktive Logs",
-      value: byteValue(archiveStatistics?.activeSize ?? statistics?.storageSize),
-      description: `${numberValue(archiveStatistics?.activeLogs ?? statistics?.total)} aktive Einträge`,
+      title: "Admin-Aktionen",
+      value: numberValue(statistics?.adminActions),
+      description: "Benutzer, Rechte, Settings",
       tone: "blue",
-      icon: HardDrive
+      icon: Clock3
     },
     {
-      title: "Archivgröße",
-      value: byteValue(archiveStatistics?.archiveSize ?? statistics?.archiveSize),
-      description: `${numberValue(archiveStatistics?.archivedLogs)} archivierte Logs`,
+      title: "Exporte",
+      value: numberValue(statistics?.exports),
+      description: "CSV/JSON/Dokument-Exporte",
       tone: "violet",
-      icon: Archive
+      icon: Download
     },
     {
       title: "Aufbewahrung",
@@ -162,7 +156,7 @@ export function LogStats({ statistics, archiveStatistics, loading = false }: Log
   ]
 
   return (
-    <section className="grid min-w-0 max-w-full gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7" aria-label="Log Statistiken">
+    <section className="grid min-w-0 max-w-full gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6" aria-label="Log Statistiken">
       {cards.map((card) => {
         const Icon = card.icon
         const classes = toneClasses[card.tone]

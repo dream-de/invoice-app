@@ -7,13 +7,13 @@ services:
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-dream_invoice}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
-      POSTGRES_DB: ${POSTGRES_DB:-dream_invoice}
+      POSTGRES_DB: ${POSTGRES_DB:-invoice_platform}
     ports:
-      - "${POSTGRES_PORT:-127.0.0.1:5432}:5432"
+      - "${POSTGRES_PORT:-127.0.0.1:55433}:5432"
     volumes:
       - dream_invoice_postgres:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dream_invoice} -d ${POSTGRES_DB:-dream_invoice}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dream_invoice} -d ${POSTGRES_DB:-invoice_platform}"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -30,20 +30,20 @@ services:
       NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-Dream Invoice}
       AUTH_SECRET: ${AUTH_SECRET:?Set AUTH_SECRET in .env}
       AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
-      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3012}
       DREAM_INVOICE_AUTH_USER: ${DREAM_INVOICE_AUTH_USER:-admin}
       DREAM_INVOICE_AUTH_PASSWORD: ${DREAM_INVOICE_AUTH_PASSWORD:-}
       DREAM_INVOICE_AUTH_REQUIRED: ${DREAM_INVOICE_AUTH_REQUIRED:-false}
       LICENSE_PUBLIC_KEY: ${LICENSE_PUBLIC_KEY:-}
       DREAM_INVOICE_UPLOAD_DIR: ${DREAM_INVOICE_UPLOAD_DIR:-/app/data/uploads/receipts}
-      DATABASE_URL: postgresql://${POSTGRES_USER:-dream_invoice}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-dream_invoice}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-dream_invoice}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-invoice_platform}
       PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
     volumes:
       - ./data:/app/data
     expose:
       - "3010"
     ports:
-      - "${WEB_PORT:-3010}:3010"
+      - "${WEB_PORT:-3012}:3010"
     healthcheck:
       test: ["CMD", "node", "-e", "const p=process.env.DREAM_INVOICE_AUTH_PASSWORD; const u=process.env.DREAM_INVOICE_AUTH_USER || 'admin'; const h=p ? { authorization: 'Basic ' + Buffer.from(u + ':' + p).toString('base64') } : {}; fetch('http://127.0.0.1:3010/login', { headers: h }).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 10s

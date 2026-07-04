@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
 import { writeAuditLog } from "@/lib/audit/log"
+import { getAuditRequestMetadata } from "@/lib/audit/request-metadata"
 import { AuthServiceError, mapAuthError, requireCurrentUser } from "@/lib/auth/service"
 import { hasUserPermission } from "@/lib/auth/permissions"
 import { demoModeResponse, isDemoMode } from "@/lib/demo-mode"
@@ -37,16 +38,19 @@ export async function DELETE(
       })
 
       await writeAuditLog({
-        action: "invoice.delete",
-        entity: "invoice",
+        action: invoice.type === "offer" ? "offer.delete" : "invoice.delete",
+        entity: invoice.type === "offer" ? "offer" : "invoice",
         entityId: invoice.id,
-        reason: "Invoice deleted",
+        reason: invoice.type === "offer" ? "Offer deleted" : "Invoice deleted",
         data: {
           actorUserId: actor.id,
           number: invoice.number,
           status: invoice.status,
-          type: invoice.type
-        }
+          type: invoice.type,
+          entityLabel: invoice.number
+        },
+        before: { number: invoice.number, status: invoice.status, type: invoice.type, grossTotal: invoice.grossTotal },
+        requestMetadata: getAuditRequestMetadata(req)
       }, { client: tx, throwOnError: true })
     })
 

@@ -3,7 +3,7 @@
 import { CalendarDays, Pause, Play, RotateCcw, Search, Square } from "lucide-react"
 import { useMemo, useState } from "react"
 import type { UseLiveLogsResult } from "@/hooks/useLiveLogs"
-import type { LogLevel, LogModule } from "@/lib/logs/types"
+import type { LogLevel, LogModule, LogOutcome } from "@/lib/logs/types"
 
 export interface LogToolbarProps {
   filters: UseLiveLogsResult["filters"]
@@ -15,6 +15,7 @@ export interface LogToolbarProps {
   setModule: UseLiveLogsResult["setModule"]
   setLevel: UseLiveLogsResult["setLevel"]
   setStatus: UseLiveLogsResult["setStatus"]
+  setOutcome: UseLiveLogsResult["setOutcome"]
   setActor: UseLiveLogsResult["setActor"]
   setArchived: UseLiveLogsResult["setArchived"]
   resetFilters: UseLiveLogsResult["resetFilters"]
@@ -34,6 +35,7 @@ const moduleOptions: Array<{ value: "all" | LogModule; label: string }> = [
   { value: "users", label: "Benutzer" },
   { value: "invoices", label: "Rechnungen" },
   { value: "quotes", label: "Angebote" },
+  { value: "offers", label: "Angebote neu" },
   { value: "customers", label: "Kunden" },
   { value: "projects", label: "Projekte" },
   { value: "timeTracking", label: "Zeiterfassung" },
@@ -51,11 +53,29 @@ const moduleOptions: Array<{ value: "all" | LogModule; label: string }> = [
 ]
 
 const levelOptions: Array<{ value: "all" | LogLevel; label: string }> = [
-  { value: "all", label: "Alle Level" },
+  { value: "all", label: "Alle Severity" },
   { value: "success", label: "Erfolg" },
   { value: "info", label: "Info" },
   { value: "warning", label: "Warnung" },
-  { value: "error", label: "Fehler" }
+  { value: "error", label: "Fehler" },
+  { value: "critical", label: "Kritisch" }
+]
+
+const outcomeOptions: Array<{ value: "all" | LogOutcome; label: string }> = [
+  { value: "all", label: "Alle Ergebnisse" },
+  { value: "success", label: "Erfolgreich" },
+  { value: "failed", label: "Fehlgeschlagen" },
+  { value: "blocked", label: "Blockiert" }
+]
+
+const categoryChips: Array<{ label: string; modules: LogModule[] }> = [
+  { label: "Alle", modules: [] },
+  { label: "Sicherheit", modules: ["authentication"] },
+  { label: "Benutzer", modules: ["users"] },
+  { label: "Dokumente", modules: ["documents", "invoices", "offers", "quotes"] },
+  { label: "Finanzen", modules: ["banking", "datev"] },
+  { label: "API/Webhooks", modules: ["api", "integrations"] },
+  { label: "System", modules: ["settings", "system"] }
 ]
 
 function isoDate(date: Date) {
@@ -101,6 +121,7 @@ export function LogToolbar({
   setDateRange,
   setModule,
   setLevel,
+  setOutcome,
   resetFilters,
   refreshLogs,
   enableLive,
@@ -140,8 +161,23 @@ export function LogToolbar({
   }
 
   return (
-    <section className="max-w-full overflow-hidden rounded-lg border border-slate-200 bg-white p-4 shadow-sm" aria-label="Log Filter">
-      <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(220px,1.1fr)_150px_minmax(150px,0.8fr)_minmax(130px,0.7fr)_auto]">
+    <section className="max-w-full overflow-hidden rounded-lg border border-slate-200 bg-white p-4 shadow-sm" aria-label="Audit Filter">
+      <div className="mb-3 flex flex-wrap gap-2">
+        {categoryChips.map((chip) => {
+          const active = chip.modules.length === 0 ? !filters.module : chip.modules.includes(filters.module as LogModule)
+          return (
+            <button
+              key={chip.label}
+              type="button"
+              onClick={() => setModule(chip.modules[0] ?? null)}
+              className={buttonClasses(active)}
+            >
+              {chip.label}
+            </button>
+          )
+        })}
+      </div>
+      <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[minmax(220px,1.1fr)_150px_minmax(150px,0.8fr)_minmax(130px,0.7fr)_minmax(150px,0.7fr)_auto]">
         <label className="relative block">
           <span className="sr-only">Globale Suche</span>
           <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
@@ -179,6 +215,15 @@ export function LogToolbar({
           <span className="sr-only">Level</span>
           <select className={selectClasses("w-full")} value={filters.level ?? "all"} onChange={(event) => setLevel(event.target.value === "all" ? null : event.target.value as LogLevel)}>
             {levelOptions.map((option) => (
+              <option key={option.value} value={option.value}>{option.label}</option>
+            ))}
+          </select>
+        </label>
+
+        <label className="block">
+          <span className="sr-only">Ergebnis</span>
+          <select className={selectClasses("w-full")} value={filters.outcome ?? "all"} onChange={(event) => setOutcome(event.target.value === "all" ? null : event.target.value as LogOutcome)}>
+            {outcomeOptions.map((option) => (
               <option key={option.value} value={option.value}>{option.label}</option>
             ))}
           </select>

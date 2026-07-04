@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { writeAuditLog } from "@/lib/audit/log"
+import { getAuditRequestMetadata } from "@/lib/audit/request-metadata"
 import { AuthServiceError, requireCurrentUserRole } from "@/lib/auth/service"
 import { getUserLimitStatus } from "@/lib/license/limits"
 import { demoModeResponse, isDemoMode } from "@/lib/demo-mode"
@@ -80,11 +81,14 @@ export async function POST(request: Request) {
         entityId: user.id,
         data: {
           actorUserId: actor.id,
+          entityLabel: user.email,
           role: user.role,
           status: user.status,
           email: user.email,
           permissions: user.permissions
-        }
+        },
+        after: { name: user.name, email: user.email, role: user.role, status: user.status, permissions: user.permissions },
+        requestMetadata: getAuditRequestMetadata(request)
       })
       await writeSecurityLog({
         request,
@@ -113,7 +117,9 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   try {
     const actor = await requireCurrentUserRole(["admin"])
-    const user = await updateAppUser(await parseBody(request))
+    const body = await parseBody(request)
+    const beforeUser = (await listAppUsers()).find((item) => item.id === String(body.id ?? "")) ?? null
+    const user = await updateAppUser(body)
 
     if (!isDemoMode()) {
       await writeAuditLog({
@@ -122,11 +128,18 @@ export async function PATCH(request: Request) {
         entityId: user.id,
         data: {
           actorUserId: actor.id,
+          entityLabel: user.email,
           role: user.role,
           status: user.status,
           email: user.email,
+          roleChanged: beforeUser ? beforeUser.role !== user.role : false,
+          statusChangedTo: beforeUser?.status !== user.status ? user.status : null,
+          permissionsChanged: beforeUser ? JSON.stringify(beforeUser.permissions) !== JSON.stringify(user.permissions) : false,
           permissions: user.permissions
-        }
+        },
+        before: beforeUser ? { name: beforeUser.name, email: beforeUser.email, role: beforeUser.role, status: beforeUser.status, permissions: beforeUser.permissions } : undefined,
+        after: { name: user.name, email: user.email, role: user.role, status: user.status, permissions: user.permissions },
+        requestMetadata: getAuditRequestMetadata(request)
       })
       await writeSecurityLog({
         request,
@@ -155,7 +168,9 @@ export async function PATCH(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const actor = await requireCurrentUserRole(["admin"])
-    const user = await deleteAppUser(await parseBody(request))
+    const body = await parseBody(request)
+    const beforeUser = (await listAppUsers()).find((item) => item.id === String(body.id ?? "")) ?? null
+    const user = await deleteAppUser(body)
 
     if (!isDemoMode()) {
       await writeAuditLog({
@@ -164,10 +179,15 @@ export async function DELETE(request: Request) {
         entityId: user.id,
         data: {
           actorUserId: actor.id,
+          entityLabel: user.email,
           role: user.role,
           status: user.status,
-          email: user.email
-        }
+          email: user.email,
+          statusChangedTo: "disabled"
+        },
+        before: beforeUser ? { name: beforeUser.name, email: beforeUser.email, role: beforeUser.role, status: beforeUser.status, permissions: beforeUser.permissions } : undefined,
+        after: { name: user.name, email: user.email, role: user.role, status: user.status, permissions: user.permissions },
+        requestMetadata: getAuditRequestMetadata(request)
       })
       await writeSecurityLog({
         request,

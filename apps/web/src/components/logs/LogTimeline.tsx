@@ -49,6 +49,7 @@ const moduleIcons: Record<LogModule, ComponentType<{ size?: number; className?: 
   users: User,
   invoices: FileText,
   quotes: ClipboardList,
+  offers: ClipboardList,
   customers: Building2,
   projects: FolderKanban,
   timeTracking: Timer,
@@ -71,6 +72,7 @@ const moduleLabels: Record<LogModule, string> = {
   users: "Benutzer",
   invoices: "Rechnungen",
   quotes: "Angebote",
+  offers: "Angebote",
   customers: "Kunden",
   projects: "Projekte",
   timeTracking: "Zeiterfassung",
@@ -92,7 +94,8 @@ const levelLabels: Record<LogLevel, string> = {
   success: "Erfolg",
   info: "Info",
   warning: "Warnung",
-  error: "Fehler"
+  error: "Fehler",
+  critical: "Kritisch"
 }
 
 const levelClasses: Record<LogLevel, { dot: string; badge: string; icon: string }> = {
@@ -115,6 +118,11 @@ const levelClasses: Record<LogLevel, { dot: string; badge: string; icon: string 
     dot: "bg-red-500",
     badge: "bg-red-50 text-red-700 ring-red-200",
     icon: "bg-red-50 text-red-700 ring-red-100"
+  },
+  critical: {
+    dot: "bg-rose-600",
+    badge: "bg-rose-100 text-rose-800 ring-rose-200",
+    icon: "bg-rose-100 text-rose-800 ring-rose-200"
   }
 }
 
@@ -210,7 +218,7 @@ export function LogTimeline({
     <section className="min-w-0 max-w-full overflow-hidden rounded-lg border border-slate-200 bg-white shadow-sm" aria-label="Log Timeline">
       <div className="flex flex-col gap-3 border-b border-slate-100 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h2 className="text-base font-semibold tracking-normal text-slate-950">Live-Logs</h2>
+          <h2 className="text-base font-semibold tracking-normal text-slate-950">Audit-Ereignisse</h2>
           <p className="text-sm font-medium text-slate-500">
             {pagination.totalItems.toLocaleString("de-DE")} Einträge
           </p>
@@ -296,9 +304,11 @@ export function LogTimeline({
                           <p className="line-clamp-2 text-sm font-medium text-slate-500">{log.description}</p>
                         </div>
 
-                        <div className="mt-3 grid min-w-0 gap-2 text-xs font-semibold text-slate-500 sm:grid-cols-3">
-                          <span className="truncate">{log.actor.name || log.actor.email}</span>
-                          <span className="truncate">{log.ipAddress}</span>
+                        <div className="mt-3 grid min-w-0 gap-2 text-xs font-semibold text-slate-500 sm:grid-cols-5">
+                          <span className="truncate" title={log.actor.email}>{log.actor.name || log.actor.email || "System"}</span>
+                          <span className="truncate" title={log.entityLabel || log.entityId}>{log.entityLabel || log.entityId || "-"}</span>
+                          <span className="truncate" title={log.ipAddress}>{log.ipAddress || "-"}</span>
+                          <span className="truncate">{log.outcome}</span>
                           <span className="truncate">Req. {shortRequestId(log.metadata.requestId)}</span>
                         </div>
                       </div>

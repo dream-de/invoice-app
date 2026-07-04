@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
 import { writeAuditLog } from "@/lib/audit/log"
+import { getAuditRequestMetadata } from "@/lib/audit/request-metadata"
 import { AuthServiceError, mapAuthError, requireCurrentUserRole } from "@/lib/auth/service"
 import { demoModeResponse, isDemoMode } from "@/lib/demo-mode"
 
@@ -109,7 +110,7 @@ export async function PUT(request: Request) {
       }))
     }
 
-    await requireCurrentUserRole(["admin"])
+    const actor = await requireCurrentUserRole(["admin"])
 
     const existing = await prisma.companySettings.findFirst({
       orderBy: { createdAt: "desc" }
@@ -146,15 +147,20 @@ export async function PUT(request: Request) {
         })
 
     await writeAuditLog({
-      action: "settings.company.update",
+      action: "settings.update",
       entity: "companySettings",
       entityId: settings.id,
       reason: existing ? "Company settings updated" : "Company settings created",
       data: {
+        actorUserId: actor.id,
+        entityLabel: settings.company,
         mode: existing ? "update" : "create",
         changedFields: Object.keys(payload),
         hasLogo: Boolean(payload.logoUrl)
-      }
+      },
+      before: existing ? { company: existing.company, owner: existing.owner, street: existing.street, zip: existing.zip, city: existing.city, country: existing.country, email: existing.email, phone: existing.phone, website: existing.website, taxNumber: existing.taxNumber, vatId: existing.vatId, iban: existing.iban, bic: existing.bic, bankName: existing.bankName, defaultPaymentTermsDays: existing.defaultPaymentTermsDays, defaultPaymentNote: existing.defaultPaymentNote, registerCourt: existing.registerCourt, logoUrl: existing.logoUrl } : undefined,
+      after: payload,
+      requestMetadata: getAuditRequestMetadata(request)
     })
 
     return NextResponse.json({ ok: true, settings })

@@ -20,6 +20,7 @@ import { Input } from "@dream-invoice/ui"
 import { articles as fallbackArticles } from "@/data/invoice-data"
 import { useLanguage } from "@/lib/i18n"
 import { jsonFetcher, listCacheOptions } from "@/lib/swr/fetcher"
+import { StandardModal } from "@/components/ui/StandardModal"
 
 type ViewMode = "grid" | "list"
 
@@ -811,17 +812,12 @@ export default function ArticlesPage() {
       )}
 
       {importOpen && (
-        <div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/35 px-4">
-          <div className="w-full max-w-5xl rounded-[30px] bg-white p-6 shadow-2xl">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 className="text-2xl font-semibold text-[#111827]">{t("articles.import.title")}</h2>
-                <p className="mt-1 text-sm font-medium text-[#64748b]">{t("articles.import.description")}</p>
-              </div>
-              <button onClick={() => { setImportOpen(false); setImportError("") }} className="flex h-10 w-10 items-center justify-center rounded-full bg-[#edf1f6] text-slate-700 hover:bg-[#e4eaf2]" aria-label={t("articles.actions.close")}>
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+        <StandardModal
+          title={t("articles.import.title")}
+          description={t("articles.import.description")}
+          onClose={() => { setImportOpen(false); setImportError("") }}
+          width={960}
+        >
 
             {importError && (
               <div className="mt-5 flex items-center gap-3 rounded-2xl bg-red-50 px-4 py-3 text-sm font-black text-red-700">
@@ -897,24 +893,18 @@ export default function ArticlesPage() {
                 </div>
               </div>
             )}
-          </div>
-        </div>
+        </StandardModal>
       )}
 
       {panelOpen && (
-        <div className="fixed inset-0 z-[120] flex justify-end bg-black/35">
-          <div className="h-full w-full max-w-[430px] border-l border-[#dfe6ee] bg-[#f8f9fb] shadow-[-10px_0_35px_rgba(0,0,0,0.16)]">
-            <div className="flex items-start justify-between border-b border-[#e6ebf1] px-6 py-5">
-              <div>
-                <h2 className="text-xl font-semibold text-[#1b2333]">{t("articles.createPanel.title")}</h2>
-                <p className="mt-1 text-sm font-medium text-[#7b8799]">{t("articles.createPanel.description")}</p>
-              </div>
-              <button onClick={() => setPanelOpen(false)} className="flex h-10 w-10 items-center justify-center rounded-full bg-[#edf1f6] text-slate-700 hover:bg-[#e4eaf2]" aria-label={t("articles.actions.close")}>
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="h-[calc(100%-148px)] space-y-4 overflow-auto px-6 py-5">
+        <StandardModal
+          title={t("articles.createPanel.title")}
+          description={t("articles.createPanel.description")}
+          onClose={() => setPanelOpen(false)}
+          width={520}
+          bodyClassName="space-y-4"
+          footer={<button onClick={createArticle} className="w-full rounded-full bg-black px-5 py-3 font-semibold text-[var(--brand-lime)]">{t("articles.actions.save")}</button>}
+        >
               <Input placeholder={t("articles.fields.nameRequired")} value={form.name} onChange={(event) => updateForm("name", event.target.value)} />
               <Input placeholder={t("articles.fields.code")} value={form.code} onChange={(event) => updateForm("code", event.target.value)} />
               <Input placeholder={t("articles.fields.category")} value={form.category} onChange={(event) => updateForm("category", event.target.value)} />
@@ -924,15 +914,7 @@ export default function ArticlesPage() {
               </div>
               <TaxRateControl value={form.tax} onChange={(value) => updateForm("tax", value)} label={t("articles.fields.vat")} customLabel={t("articles.tax.custom")} />
               <textarea value={form.description} onChange={(event) => updateForm("description", event.target.value)} className="w-full rounded-[18px] border border-[#dfe6ee] bg-[#eef2f7] px-4 py-3 text-sm font-medium text-[#334155] outline-none focus:ring-2 focus:ring-slate-900" rows={5} placeholder={t("articles.fields.description")} />
-            </div>
-
-            <div className="h-[88px] border-t border-[#e6ebf1] px-6 py-4">
-              <button onClick={createArticle} className="w-full rounded-full bg-black px-5 py-3 font-semibold text-[var(--brand-lime)]">
-                {t("articles.actions.save")}
-              </button>
-            </div>
-          </div>
-        </div>
+        </StandardModal>
       )}
     </div>
   )

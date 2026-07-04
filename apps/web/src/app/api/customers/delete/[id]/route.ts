@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server"
+import { getAuditRequestMetadata } from "@/lib/audit/request-metadata"
+import { writeAuditLog } from "@/lib/audit/log"
 import { prisma } from "@dream-invoice/database"
 import { AuthServiceError, mapAuthError, requireCurrentUser } from "@/lib/auth/service"
 import { hasUserPermission } from "@/lib/auth/permissions"
@@ -54,12 +56,31 @@ export async function DELETE(
 
     if (mode === "delete") {
       await prisma.customer.delete({ where: { id } })
+      await writeAuditLog({
+        action: "customer.delete",
+        entity: "customer",
+        entityId: id,
+        reason: "Kunde gelöscht",
+        data: { entityLabel: existing.name ?? existing.number ?? id },
+        requestMetadata: getAuditRequestMetadata(req)
+      })
       return NextResponse.json({ ok: true, action: "delete" })
     }
 
     const customer = await prisma.customer.update({
       where: { id },
       data: { status: "inactive" }
+    })
+
+    await writeAuditLog({
+      action: "customer.delete",
+      entity: "customer",
+      entityId: id,
+      reason: "Kunde deaktiviert",
+      data: { entityLabel: customer.name ?? customer.number ?? id, mode: "archive" },
+      before: { name: existing.name, number: existing.number, status: existing.status },
+      after: { name: customer.name, number: customer.number, status: customer.status },
+      requestMetadata: getAuditRequestMetadata(req)
     })
 
     return NextResponse.json({ ok: true, action: "archive", customer })

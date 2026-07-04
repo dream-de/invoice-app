@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { type ChangeEvent, type MouseEvent as ReactMouseEvent, useEffect, useMemo, useRef, useState } from "react"
+import { type ChangeEvent, useEffect, useMemo, useRef, useState } from "react"
 import {
   Archive,
   ArrowLeft,
@@ -30,10 +30,10 @@ import {
   SlidersHorizontal,
   Square,
   Trash2,
-  UserRound,
-  X
+  UserRound
 } from "lucide-react"
 import { ShareReleaseDialog } from "../../../components/share/ShareReleaseDialog"
+import { StandardModal } from "@/components/ui/StandardModal"
 import styles from "./DocumentManagement.module.css"
 
 type Option = { id: string; name?: string; number?: string }
@@ -249,14 +249,10 @@ export function DocumentManagementClient() {
   const [deletedIds, setDeletedIds] = useState<string[]>([])
   const [documentEdits, setDocumentEdits] = useState<Record<string, Partial<DmsDocument>>>({})
   const [editDraft, setEditDraft] = useState<EditDraft | null>(null)
-  const [editOffset, setEditOffset] = useState({ x: 0, y: 0 })
-  const [editDragStart, setEditDragStart] = useState<{ x: number; y: number; offsetX: number; offsetY: number } | null>(null)
   const [folderDraft, setFolderDraft] = useState("")
   const [folders, setFolders] = useState<string[]>([])
   const [shareDocumentId, setShareDocumentId] = useState("")
   const [previewZoom, setPreviewZoom] = useState(94)
-  const [previewOffset, setPreviewOffset] = useState({ x: 0, y: 0 })
-  const [dragStart, setDragStart] = useState<{ x: number; y: number; offsetX: number; offsetY: number } | null>(null)
   const [previewStatus, setPreviewStatus] = useState("")
   const [filters, setFilters] = useState({ q: "", type: "", customer: "", project: "", date: "" })
   const [viewMode, setViewMode] = useState<"list" | "grid">("list")
@@ -343,8 +339,6 @@ export function DocumentManagementClient() {
     setSelectedId("")
     setPreviewStatus("")
     setPreviewZoom(94)
-    setPreviewOffset({ x: 0, y: 0 })
-    setDragStart(null)
   }
 
   function documentUrl(documentItem: DmsDocument) {
@@ -432,7 +426,6 @@ export function DocumentManagementClient() {
       status: documentItem.status,
       date: documentItem.createdAt.slice(0, 10)
     })
-    setEditOffset({ x: 0, y: 0 })
     setNotice("")
   }
 
@@ -456,7 +449,6 @@ export function DocumentManagementClient() {
     }
     setDocumentEdits((current) => ({ ...current, [editDraft.id]: { ...current[editDraft.id], ...nextDocument } }))
     setEditDraft(null)
-    setEditDragStart(null)
     setNotice(`Dokument aktualisiert: ${nextDocument.name}`)
   }
 
@@ -473,7 +465,6 @@ export function DocumentManagementClient() {
   }
 
   function toggleFullscreen() {
-    setPreviewOffset({ x: 0, y: 0 })
     setPreviewZoom(104)
     setPreviewStatus("DIN-A4 Ansicht angepasst.")
   }
@@ -513,32 +504,6 @@ export function DocumentManagementClient() {
     event.target.value = ""
   }
 
-
-  function startEditDrag(event: ReactMouseEvent<HTMLElement>) {
-    if (window.innerWidth < 769) return
-    setEditDragStart({ x: event.clientX, y: event.clientY, offsetX: editOffset.x, offsetY: editOffset.y })
-  }
-
-  function moveEditDialog(event: ReactMouseEvent<HTMLDivElement>) {
-    if (!editDragStart) return
-    setEditOffset({
-      x: editDragStart.offsetX + event.clientX - editDragStart.x,
-      y: editDragStart.offsetY + event.clientY - editDragStart.y
-    })
-  }
-
-  function startDrag(event: ReactMouseEvent<HTMLElement>) {
-    if (window.innerWidth < 769) return
-    setDragStart({ x: event.clientX, y: event.clientY, offsetX: previewOffset.x, offsetY: previewOffset.y })
-  }
-
-  function movePreview(event: ReactMouseEvent<HTMLDivElement>) {
-    if (!dragStart) return
-    setPreviewOffset({
-      x: dragStart.offsetX + event.clientX - dragStart.x,
-      y: dragStart.offsetY + event.clientY - dragStart.y
-    })
-  }
 
   return (
     <main className={styles.page}>
@@ -708,16 +673,20 @@ export function DocumentManagementClient() {
         <ShareReleaseDialog label="Dokumentenfreigabe" itemName={documentForShare.name} itemUrl={documentUrl(documentForShare)} onClose={() => setShareDocumentId("")} />
       ) : null}
       {folderDraft ? (
-        <div className={styles.modalOverlay} role="dialog" aria-modal="true" aria-labelledby="new-folder-title" onMouseDown={() => setFolderDraft("")}>
-          <div className={styles.editModal} onMouseDown={(event) => event.stopPropagation()}>
-            <header className={styles.editHead}>
-              <div>
-                <h2 id="new-folder-title">Neu Ordner</h2>
-                <p>Ordner wird als Unterkategorie in dieser Ansicht vorbereitet.</p>
-              </div>
-              <button type="button" aria-label="Dialog schliessen" onClick={() => setFolderDraft("")}><X size={18} /></button>
-            </header>
-            <div className={styles.editGrid}>
+        <StandardModal
+          title="Neu Ordner"
+          description="Ordner wird als Unterkategorie in dieser Ansicht vorbereitet."
+          onClose={() => setFolderDraft("")}
+          ariaLabelledBy="new-folder-title"
+          bodyClassName={styles.editGrid}
+          footerClassName={styles.editActions}
+          footer={(
+            <>
+              <button type="button" onClick={() => setFolderDraft("")}>Abbrechen</button>
+              <button type="button" onClick={createFolder}>Erstellen</button>
+            </>
+          )}
+        >
               <label>
                 <span>Ordnername</span>
                 <input value={folderDraft} onChange={(event) => setFolderDraft(event.target.value)} autoFocus />
@@ -727,38 +696,23 @@ export function DocumentManagementClient() {
                   {folders.map((folder) => <span key={folder}>{folder}</span>)}
                 </div>
               ) : null}
-            </div>
-            <footer className={styles.editActions}>
-              <button type="button" onClick={() => setFolderDraft("")}>Abbrechen</button>
-              <button type="button" onClick={createFolder}>Erstellen</button>
-            </footer>
-          </div>
-        </div>
+        </StandardModal>
       ) : null}
       {editDraft ? (
-        <div
-          className={styles.modalOverlay}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="edit-document-title"
-          onMouseDown={() => setEditDraft(null)}
-          onMouseMove={moveEditDialog}
-          onMouseUp={() => setEditDragStart(null)}
-          onMouseLeave={() => setEditDragStart(null)}
+        <StandardModal
+          title="Dokument bearbeiten"
+          description="Aenderungen werden direkt in dieser Dokumentliste uebernommen."
+          onClose={() => setEditDraft(null)}
+          ariaLabelledBy="edit-document-title"
+          bodyClassName={styles.editGrid}
+          footerClassName={styles.editActions}
+          footer={(
+            <>
+              <button type="button" onClick={() => setEditDraft(null)}>Abbrechen</button>
+              <button type="button" onClick={saveEditDraft}>Speichern</button>
+            </>
+          )}
         >
-          <div
-            className={styles.editModal}
-            style={{ transform: `translate(${editOffset.x}px, ${editOffset.y}px)` }}
-            onMouseDown={(event) => event.stopPropagation()}
-          >
-            <header className={styles.editHead} onMouseDown={startEditDrag}>
-              <div>
-                <h2 id="edit-document-title">Dokument bearbeiten</h2>
-                <p>Aenderungen werden direkt in dieser Dokumentliste uebernommen.</p>
-              </div>
-              <button type="button" aria-label="Dialog schliessen" onClick={() => setEditDraft(null)}><X size={18} /></button>
-            </header>
-            <div className={styles.editGrid}>
               <label>
                 <span>Dateiname</span>
                 <input value={editDraft.name} onChange={(event) => updateEditDraft("name", event.target.value)} />
@@ -787,38 +741,19 @@ export function DocumentManagementClient() {
                 <span>Datum</span>
                 <input type="date" value={editDraft.date} onChange={(event) => updateEditDraft("date", event.target.value)} />
               </label>
-            </div>
-            <footer className={styles.editActions}>
-              <button type="button" onClick={() => setEditDraft(null)}>Abbrechen</button>
-              <button type="button" onClick={saveEditDraft}>Speichern</button>
-            </footer>
-          </div>
-        </div>
+        </StandardModal>
       ) : null}
       {selectedDocument ? (
-        <div
-          className={styles.modalOverlay}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="document-preview-title"
-          onMouseDown={closePreview}
-          onMouseMove={movePreview}
-          onMouseUp={() => setDragStart(null)}
-          onMouseLeave={() => setDragStart(null)}
+        <StandardModal
+          title={selectedDocument.name}
+          icon={<FileText size={18} />}
+          onClose={closePreview}
+          ariaLabelledBy="document-preview-title"
+          width={560}
+          className={styles.previewModal}
+          padded={false}
+          closeLabel="Vorschau schliessen"
         >
-          <div
-            className={styles.previewModal}
-            data-preview-modal
-            style={{ transform: `translate(${previewOffset.x}px, ${previewOffset.y}px)` }}
-            onMouseDown={(event) => event.stopPropagation()}
-          >
-            <header className={styles.modalHead} onMouseDown={startDrag}>
-              <div className={styles.modalTitle}>
-                <FileText size={18} />
-                <strong id="document-preview-title">{selectedDocument.name}</strong>
-              </div>
-              <button type="button" aria-label="Vorschau schliessen" onClick={closePreview}><X size={18} /></button>
-            </header>
             <div className={styles.modalTools} aria-label="Vorschau-Werkzeuge">
               <span>1</span><small>/1</small>
               <button type="button" aria-label="Verkleinern" onClick={() => setPreviewZoom((current) => Math.max(70, current - 10))}>-</button>
@@ -849,8 +784,7 @@ export function DocumentManagementClient() {
                 )}
               </div>
             </div>
-          </div>
-        </div>
+        </StandardModal>
       ) : null}
     </main>
   )
