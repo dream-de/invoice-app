@@ -1,6 +1,8 @@
 import { prisma } from "@dream-invoice/database"
 import { isDemoMode } from "@/lib/demo-mode"
 import { createCsvContentDisposition, createCsvResponse } from "@/lib/export/csv-response"
+import { getAuditRequestMetadata } from "@/lib/audit/request-metadata"
+import { writeAuditLog } from "@/lib/audit/log"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -195,6 +197,16 @@ export async function GET(request: Request) {
   const url = new URL(request.url)
   const format = (url.searchParams.get("format") || "csv").toLowerCase() as ExportFormat
   const rows = await loadRows()
+
+  if (!isDemoMode() && process.env.DATABASE_URL) {
+    await writeAuditLog({
+      action: "export.create",
+      entity: "time_entry",
+      reason: "Zeiterfassung exportiert",
+      data: { entityLabel: "zeiterfassung-export." + format, count: rows.length, format },
+      requestMetadata: getAuditRequestMetadata(request)
+    })
+  }
 
   if (format === "csv") return createCsvResponse([header, ...rowsToTable(rows)], "zeiterfassung-export.csv")
   if (format === "xls") return excelResponse(rows)

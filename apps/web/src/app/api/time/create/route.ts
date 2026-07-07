@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { prisma } from "@dream-invoice/database"
 import { demoModeResponse, isDemoMode } from "@/lib/demo-mode"
 import { writeAuditLog } from "@/lib/audit/log"
+import { getAuditRequestMetadata } from "@/lib/audit/request-metadata"
 
 function parseNumber(value: unknown) {
   const amount = Number(String(value || "0").trim().replace(",", "."))
@@ -67,11 +68,13 @@ export async function POST(req: Request) {
     }
 
     await writeAuditLog({
-      action: "premium.time.create",
+      action: "time_entry.create",
       entity: "premium_time_entry",
       entityId: savedEntry.id,
       reason: "Premium Zeiteintrag erstellt",
-      data: responseEntry
+      data: { ...responseEntry, entityLabel: responseEntry.task },
+      after: responseEntry,
+      requestMetadata: getAuditRequestMetadata(req)
     })
 
     return NextResponse.json({ ok: true, entry: responseEntry })

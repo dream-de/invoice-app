@@ -7372,1183 +7372,1482 @@ function TimeSparkline({ tone = "violet" }: { tone?: "violet" | "green" | "rose"
 
 function PremiumTimeModulePage({
   data,
-  mode,
-  searchQuery,
-  onDataChange
+  mode
 }: {
   data: PremiumData
   mode: ThemeMode
   searchQuery: string
   onDataChange: (updater: (current: PremiumData) => PremiumData) => void
 }) {
-  const router = useRouter()
-  const projectsSource = data.projects.length ? data.projects : fallbackProjects
-  const usersSource = data.appUsers.length ? data.appUsers : [{ id: "admin", name: "Admin Benutzer", email: "admin@dreaminvoice.local", role: "Administrator", status: "active" }]
-  const routeSearchParams = useSearchParams()
-  const rawSection = timeSectionFromQuery(routeSearchParams.get("timeView") ?? searchQuery)
-  const activeSection: TimeSectionKey = rawSection === "arbeitstag" || rawSection === "wochenzeiten" || rawSection === "monatsansicht" || rawSection === "berichte" || rawSection === "verwaltung" ? rawSection : "wochenzeiten"
-  const selectedDate = parseLocalDate(routeSearchParams.get("date")) ?? new Date(2026, 5, 22)
-  const selectedMonth = Number(routeSearchParams.get("month"))
-  const selectedYear = Number(routeSearchParams.get("year"))
-  const selectedPeriodYear = Number.isFinite(selectedYear) && selectedYear > 2000 ? selectedYear : selectedDate.getFullYear()
-  const selectedPeriodMonth = Number.isFinite(selectedMonth) && selectedMonth >= 1 && selectedMonth <= 12 ? selectedMonth - 1 : selectedDate.getMonth()
-  const selectedPeriodDate = new Date(
-    selectedPeriodYear,
-    selectedPeriodMonth,
-    Math.min(selectedDate.getDate(), new Date(selectedPeriodYear, selectedPeriodMonth + 1, 0).getDate())
-  )
-  type TimeEntryDraft = {
+  type EmployeeRole = "admin" | "employee"
+  type Employee = {
     id: string
-    date: string
+    name: string
+    email?: string
+    role: EmployeeRole
+    pin: string
+    initials: string
+    hourlyRate: number
+    monthlySalary?: number
+    status: "active" | "inactive" | "running" | "paused" | "done"
+  }
+  type TimeProject = {
+    id: string
+    name: string
+    customer: string
+    hourlyRate: number
+  }
+  type TimeEntry = {
+    id: string
+    employeeId: string
+    projectId: string
+    startTime: Date
+    endTime?: Date
+    pauseSeconds: number
+    totalSeconds: number
+    status: "running" | "paused" | "finished"
+  }
+  type InvoiceLine = {
+    id: string
+    employeeId: string
+    projectId: string
+    description: string
+    minutes: number
+    hourlyRate: number
+    taxRate: number
+  }
+  type EditableMonthEntry = {
+    id: string
     day: number
+    employeeId: string
+    projectId: string
     start: string
     end: string
-    pause: string
-    project: string
-    activity: string
+    color: string
     note: string
-    tone: string
-    source: "api" | "local"
-    customerId?: string | null
-    projectId?: string | null
-    articleId?: string | null
-    billable?: boolean
   }
-  type ClockEmployee = { name: string; initials: string; tone: string; role?: string; status?: string; project?: string; pin?: string }
-  type ClockShift = { start: string; project: string; activity: string; date: string }
-  const defaultProject = projectsSource[0]?.name || "Portal Relaunch"
-  const defaultActivity = "Design & UI/UX"
-  const weekStart = startOfLocalWeek(selectedDate)
-  const weekDates = Array.from({ length: 7 }).map((_, index) => addLocalDays(weekStart, index))
-  const baseWeekEntries = useMemo<TimeEntryDraft[]>(() => [
-    ["0-0800", 0, "08:00", "10:00", "Design & UI/UX", "Portal Relaunch", "violet", "Dashboard Layout"],
-    ["0-1015", 0, "10:15", "12:00", "Operations Integration", "Portal Relaunch", "blue", "API Anbindung"],
-    ["0-1300", 0, "13:00", "15:30", "Client Portal Setup", "Portal Relaunch", "orange", "Sprint Planung"],
-    ["0-1545", 0, "15:45", "17:00", "Kundengespraech", "Portal Relaunch", "green", "Workshop"],
-    ["1-0800", 1, "08:00", "11:00", "Design & UI/UX", "Portal Relaunch", "violet", "Komponenten"],
-    ["1-1130", 1, "11:30", "13:15", "Kundengespraech", "Portal Relaunch", "green", "Abstimmung"],
-    ["1-1400", 1, "14:00", "16:00", "Projektsteuerung", "Intern", "amber", "Planung"],
-    ["1-1615", 1, "16:15", "17:00", "Dokumentation", "Intern", "gray", "Dokumentation"],
-    ["2-0800", 2, "08:00", "10:30", "Design & UI/UX", "Portal Relaunch", "violet", "Design Review"],
-    ["2-1100", 2, "11:00", "13:15", "Operations Integration", "Portal Relaunch", "blue", "Implementierung"],
-    ["2-1400", 2, "14:00", "16:00", "Client Portal Setup", "Portal Relaunch", "orange", "Testing"],
-    ["2-1615", 2, "16:15", "17:00", "Dokumentation", "Intern", "gray", "Dokumentation"],
-    ["3-0800", 3, "08:00", "10:00", "Design & UI/UX", "Portal Relaunch", "violet", "UI Check"],
-    ["3-1015", 3, "10:15", "12:00", "Operations Integration", "Portal Relaunch", "blue", "Review"],
-    ["3-1300", 3, "13:00", "14:30", "Projektsteuerung", "Intern", "amber", "Roadmap"],
-    ["3-1445", 3, "14:45", "16:00", "Kundengespraech", "Portal Relaunch", "green", "Rueckfragen"],
-    ["3-1615", 3, "16:15", "17:00", "Dokumentation", "Intern", "gray", "Dokumentation"],
-    ["4-0800", 4, "08:00", "09:30", "Design & UI/UX", "Portal Relaunch", "violet", "Feinschliff"],
-    ["4-0945", 4, "09:45", "11:15", "Operations Integration", "Portal Relaunch", "blue", "API Test"],
-    ["4-1130", 4, "11:30", "13:00", "Client Portal Setup", "Portal Relaunch", "orange", "Setup"],
-    ["4-1400", 4, "14:00", "15:00", "Projektsteuerung", "Intern", "amber", "Controlling"],
-    ["4-1515", 4, "15:15", "16:45", "Kundengespraech", "Portal Relaunch", "green", "Kunde"]
-  ].map(([id, day, startTime, endTime, activity, project, tone, note]) => ({
-    id: String(id),
-    day: Number(day),
-    date: isoLocalDate(addLocalDays(weekStart, Number(day))),
-    start: String(startTime),
-    end: String(endTime),
-    pause: "00:00",
-    project: String(project),
-    activity: String(activity),
-    note: String(note),
-    tone: String(tone),
-    source: "local" as const
-  })), [weekStart])
-  const initialClockEmployees: ClockEmployee[] = [
-    { name: "Sarah Gerstmeier", initials: "SG", tone: "green", role: "Projekt", status: "Bereit", project: defaultProject, pin: "1111" },
-    { name: "Nicolas Grotsch", initials: "NG", tone: "blue", role: "Design", status: "Bereit", project: defaultProject, pin: "2222" },
-    { name: "Semir Aydin", initials: "SA", tone: "amber", role: "Office", status: "Bereit", project: defaultProject, pin: "3333" },
-    { name: "Thomas Koppmann", initials: "TK", tone: "violet", role: "Entwicklung", status: "Bereit", project: defaultProject, pin: "4444" },
-    { name: "Max Mustermann", initials: "MM", tone: "pink", role: "Admin", status: "Bereit", project: defaultProject, pin: "1234" }
+  type CompletionNotice = {
+    employeeName: string
+    totalSeconds: number
+  }
+
+  const fallbackEmployees: Employee[] = [
+    { id: "u1", name: "Max Mustermann", email: "max@dreaminvoice.local", role: "employee", pin: "1234", initials: "MM", hourlyRate: 75, monthlySalary: 3200, status: "active" },
+    { id: "u2", name: "Anna Müller", email: "anna@dreaminvoice.local", role: "employee", pin: "2222", initials: "AM", hourlyRate: 65, monthlySalary: 2950, status: "active" },
+    { id: "u3", name: "Peter Schneider", email: "peter@dreaminvoice.local", role: "employee", pin: "3333", initials: "PS", hourlyRate: 80, monthlySalary: 3600, status: "active" },
+    { id: "admin", name: "Admin", email: "admin@example.com", role: "admin", pin: "9999", initials: "AD", hourlyRate: 0, status: "active" }
   ]
-  const [entries, setEntries] = useState<TimeEntryDraft[]>(baseWeekEntries)
-  const [timerState, setTimerState] = useState<"idle" | "active" | "paused">("idle")
-  const [timerSeconds, setTimerSeconds] = useState(0)
-  const [timerContext, setTimerContext] = useState({ project: defaultProject, activity: defaultActivity, note: "Live Timer" })
-  const [timerNotice, setTimerNotice] = useState("")
-  const [clockAction, setClockAction] = useState<"kommen" | "gehen" | null>(null)
-  const [clockEmployee, setClockEmployee] = useState<ClockEmployee | null>(null)
-  const [clockPin, setClockPin] = useState("")
-  const [clockFeedback, setClockFeedback] = useState<{ action: "kommen" | "gehen"; name: string; start: string; end?: string; total?: string } | null>(null)
-  const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null)
-  const [editorDraft, setEditorDraft] = useState<TimeEntryDraft | null>(null)
-  const [activeDayDetails, setActiveDayDetails] = useState(isoLocalDate(selectedPeriodDate))
-  const [clockEmployees, setClockEmployees] = useState<ClockEmployee[]>(initialClockEmployees)
-  const [activeClockShifts, setActiveClockShifts] = useState<Record<string, ClockShift>>({})
-  const [timeUserDraft, setTimeUserDraft] = useState({ name: "Max Mustermann", initials: "MM", pin: "1234", role: "employee", projectId: projectsSource[0]?.id || "", status: "active" })
-  const [invoiceDialogOpen, setInvoiceDialogOpen] = useState(false)
-  const [invoiceStatus, setInvoiceStatus] = useState("")
-  const [invoiceRate, setInvoiceRate] = useState("85")
-
-  useEffect(() => {
-    if (timerState !== "active") return
-    const interval = window.setInterval(() => setTimerSeconds((current) => current + 1), 1000)
-    return () => window.clearInterval(interval)
-  }, [timerState])
-
-  useEffect(() => {
-    let cancelled = false
-    async function loadEntries() {
-      try {
-        const response = await fetch("/api/time-tracking/list", { credentials: "same-origin" })
-        const result = await response.json().catch(() => ({}))
-        if (!response.ok || !Array.isArray(result?.entries) || !result.entries.length || cancelled) return
-        const startMap = new Map<string, number>()
-        const rawEntries = result.entries.slice(0, 32)
-        const sameDateCount = new Map<string, number>()
-        rawEntries.forEach((entry: { date?: string }) => {
-          const key = entry.date || "unknown"
-          sameDateCount.set(key, (sameDateCount.get(key) ?? 0) + 1)
-        })
-        const mappedEntries = rawEntries.map((entry: {
-          id?: string
-          date?: string
-          duration?: number
-          project?: string
-          article?: string
-          note?: string
-          customerId?: string | null
-          projectId?: string | null
-          articleId?: string | null
-          billable?: boolean
-        }, index: number) => {
-          const parsedDate = parseLocalDate(entry.date ?? null)
-          const shouldSpreadAcrossWeek = parsedDate && (sameDateCount.get(entry.date || "") ?? 0) > 5
-          const date = shouldSpreadAcrossWeek ? addLocalDays(weekStart, index % 5) : parsedDate ?? addLocalDays(weekStart, Math.min(index, 4))
-          const day = Math.max(0, Math.min(6, (date.getDay() + 6) % 7))
-          const key = isoLocalDate(date)
-          const slot = startMap.get(key) ?? 8 * 60
-          const durationMinutes = Math.max(30, Math.round(Number(entry.duration ?? 1) * 60))
-          startMap.set(key, slot + durationMinutes + 15)
-          const startValue = `${padDatePart(Math.floor(slot / 60))}:${padDatePart(slot % 60)}`
-          const endValue = slot + durationMinutes
-          return {
-            id: entry.id || `api-${index}`,
-            date: key,
-            day,
-            start: startValue,
-            end: `${padDatePart(Math.floor(endValue / 60))}:${padDatePart(endValue % 60)}`,
-            pause: "00:00",
-            project: entry.project || defaultProject,
-            activity: entry.article || defaultActivity,
-            note: entry.note || "Zeiteintrag",
-            tone: ["violet", "blue", "green", "orange", "amber"][index % 5],
-            source: "api" as const,
-            customerId: entry.customerId,
-            projectId: entry.projectId,
-            articleId: entry.articleId,
-            billable: entry.billable
-          }
-        })
-        setEntries(mappedEntries)
-      } catch {
-        setTimerNotice("API-Zeiten konnten nicht geladen werden. Lokale Ansicht bleibt aktiv.")
-      }
-    }
-    void loadEntries()
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  function timeHref(section: TimeSectionKey, date = selectedDate) {
-    const params = new URLSearchParams({ timeView: section, date: isoLocalDate(date), month: String(date.getMonth() + 1), year: String(date.getFullYear()) })
-    return withPremiumTheme(`/dashboard-v2/time?${params.toString()}`, mode)
-  }
-
-  function navigateTime(section: TimeSectionKey, date = selectedDate) {
-    router.push(timeHref(section, date))
-  }
-
-  function moveDate(direction: -1 | 1) {
-    const nextDate =
-      activeSection === "arbeitstag" ? addLocalDays(selectedDate, direction) :
-      activeSection === "wochenzeiten" ? addLocalDays(selectedDate, direction * 7) :
-      addLocalMonths(selectedPeriodDate, direction)
-    navigateTime(activeSection, nextDate)
-  }
-
-  function changePeriod(value: string) {
-    const section = value === "day" ? "arbeitstag" : value === "month" ? "monatsansicht" : value === "reports" ? "berichte" : value === "admin" ? "verwaltung" : "wochenzeiten"
-    navigateTime(section, selectedPeriodDate)
-  }
-
-  function updateMonth(month: string) {
-    const nextDate = new Date(selectedPeriodDate.getFullYear(), Number(month), Math.min(selectedPeriodDate.getDate(), new Date(selectedPeriodDate.getFullYear(), Number(month) + 1, 0).getDate()))
-    navigateTime(activeSection, nextDate)
-  }
-
-  function updateYear(year: string) {
-    const parsedYear = Number(year)
-    if (!Number.isFinite(parsedYear)) return
-    const nextDate = new Date(parsedYear, selectedPeriodDate.getMonth(), Math.min(selectedPeriodDate.getDate(), new Date(parsedYear, selectedPeriodDate.getMonth() + 1, 0).getDate()))
-    navigateTime(activeSection, nextDate)
-  }
-
-  function entryDurationMinutes(entry: TimeEntryDraft) {
-    return Math.max(0, entrySafeEndMinutes(entry) - minutesFromTime(entry.start) - minutesFromTime(entry.pause))
-  }
-
-  function formatMinutes(minutes: number) {
-    const abs = Math.abs(minutes)
-    return `${Math.floor(abs / 60)}:${padDatePart(abs % 60)} h`
-  }
-
-  function formatSignedMinutes(minutes: number) {
-    return `${minutes >= 0 ? "+" : "-"}${formatMinutes(minutes)}`
-  }
-
-  function shiftTime(time: string, minutes: number) {
-    const next = Math.max(0, Math.min(23 * 60 + 59, minutesFromTime(time) + minutes))
-    return `${padDatePart(Math.floor(next / 60))}:${padDatePart(next % 60)}`
-  }
-
-  function timeFromMinutes(totalMinutes: number) {
-    const next = Math.max(0, Math.min(23 * 60 + 59, totalMinutes))
-    return `${padDatePart(Math.floor(next / 60))}:${padDatePart(next % 60)}`
-  }
-
-  function entrySafeEndMinutes(entry: TimeEntryDraft) {
-    const startMinutes = minutesFromTime(entry.start)
-    const endMinutes = minutesFromTime(entry.end)
-    return endMinutes > startMinutes ? endMinutes : Math.min(23 * 60 + 59, startMinutes + 30)
-  }
-
-  function displayEntryEnd(entry: TimeEntryDraft) {
-    return timeFromMinutes(entrySafeEndMinutes(entry))
-  }
-
-  function normalizeEntryTimes(entry: TimeEntryDraft) {
-    const end = displayEntryEnd(entry)
-    return end === entry.end ? entry : { ...entry, end }
-  }
-
-  function timeBlockStyle(start: string, end: string): CSSProperties {
-    const dayStart = 8 * 60
-    const dayDuration = 10 * 60
-    const startOffset = Math.max(0, minutesFromTime(start) - dayStart)
-    const rawEndOffset = minutesFromTime(end) > minutesFromTime(start) ? minutesFromTime(end) - dayStart : startOffset + 30
-    const endOffset = Math.min(dayDuration, Math.max(startOffset + 45, rawEndOffset))
-    return {
-      top: `${(startOffset / dayDuration) * 100}%`,
-      height: `${((endOffset - startOffset) / dayDuration) * 100}%`
-    }
-  }
-
-  function groupEntries(source: TimeEntryDraft[], key: "project" | "activity") {
-    const total = source.reduce((sum, entry) => sum + entryDurationMinutes(entry), 0) || 1
-    const grouped = new Map<string, number>()
-    source.forEach((entry) => grouped.set(entry[key], (grouped.get(entry[key]) ?? 0) + entryDurationMinutes(entry)))
-    return Array.from(grouped.entries()).map(([label, minutes], index) => ({
-      label,
-      value: formatMinutes(minutes),
-      percent: `${Math.round((minutes / total) * 100)}%`,
-      tone: ["violet", "blue", "green", "amber", "orange"][index % 5]
-    }))
-  }
-
-  async function createEntryViaApi(entry: TimeEntryDraft) {
-    const hours = Math.max(entryDurationMinutes(entry) / 60, 0.01)
-    const project = projectsSource.find((item) => item.name === entry.project)
-    const customerId = project?.customerId ?? data.customers[0]?.id
-    const articleId = data.articles[0]?.id
-    const payload = project?.id && customerId && articleId
-      ? {
-          customerId,
-          projectId: project.id,
-          articleId,
-          duration: hours,
-          date: entry.date,
-          note: entry.note,
-          billable: true
-        }
-      : null
-    const fallbackPayload = {
-      project: entry.project,
-      task: entry.activity,
-      description: entry.note,
-      hours: hours.toFixed(2),
-      rate: "0",
-      status: "internal"
-    }
-    const response = await fetch(payload ? "/api/time-tracking/create" : "/api/time/create", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "same-origin",
-      body: JSON.stringify(payload ?? fallbackPayload)
-    })
-    const result = await response.json().catch(() => ({}))
-    if ((!response.ok || !result?.ok) && payload) {
-      const fallbackResponse = await fetch("/api/time/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        body: JSON.stringify(fallbackPayload)
-      })
-      const fallbackResult = await fallbackResponse.json().catch(() => ({}))
-      if (!fallbackResponse.ok || !fallbackResult?.ok) throw new Error("create failed")
-      return fallbackResult?.entry?.id || fallbackResult?.timeEntry?.id || fallbackResult?.id
-    }
-    if (!response.ok || !result?.ok) throw new Error("create failed")
-    return result?.entry?.id || result?.timeEntry?.id || result?.id
-  }
-
-  async function saveEntry(entry: TimeEntryDraft) {
-    const normalizedEntry = normalizeEntryTimes(entry)
-    const exists = entries.some((item) => item.id === normalizedEntry.id)
-    setEntries((current) => exists ? current.map((item) => item.id === normalizedEntry.id ? normalizedEntry : item) : [...current, normalizedEntry])
-    setEditorDraft(null)
-    setSelectedEntryId(null)
-    try {
-      if (!exists || normalizedEntry.source !== "api") {
-        const apiId = await createEntryViaApi(normalizedEntry)
-        if (apiId) setEntries((current) => current.map((item) => item.id === normalizedEntry.id ? { ...item, id: String(apiId), source: "api" } : item))
-      }
-      setTimerNotice(exists ? "Zeiteintrag gespeichert." : "Zeiteintrag per API erstellt.")
-    } catch {
-      setTimerNotice(exists ? "Zeiteintrag lokal gespeichert. Update-API ist vorbereitet." : "Zeiteintrag lokal erstellt. API-Speicherung ist nicht bestaetigt.")
-    }
-  }
-
-  function deleteEntry(entryId: string) {
-    setEntries((current) => current.filter((entry) => entry.id !== entryId))
-    setSelectedEntryId(null)
-    setTimerNotice("Eintrag entfernt. Delete-API ist vorbereitet, aber nicht vorhanden.")
-  }
-
-  function duplicateEntry(entry: TimeEntryDraft) {
-    const originalLength = Math.max(30, entrySafeEndMinutes(entry) - minutesFromTime(entry.start))
-    const nextStart = shiftTime(entry.start, 15)
-    const clone = { ...entry, id: `copy-${Date.now()}`, start: nextStart, end: timeFromMinutes(minutesFromTime(nextStart) + originalLength), source: "local" as const }
-    setEntries((current) => [...current, clone])
-    setSelectedEntryId(clone.id)
-    void createEntryViaApi(clone).catch(() => setTimerNotice("Duplikat lokal erstellt. API-Speicherung ist nicht bestaetigt."))
-  }
-
-  function openEditor(entry: TimeEntryDraft) {
-    setEditorDraft(entry)
-    setSelectedEntryId(null)
-  }
-
-  function openNewEntry(day = 0, start = "09:00") {
-    const startMinutes = minutesFromTime(start)
-    const endMinutes = Math.min(18 * 60, startMinutes + 90)
-    setEditorDraft({
-      id: `new-${Date.now()}`,
-      day,
-      date: isoLocalDate(addLocalDays(weekStart, day)),
-      start,
-      end: `${padDatePart(Math.floor(endMinutes / 60))}:${padDatePart(endMinutes % 60)}`,
-      pause: "00:00",
-      project: defaultProject,
-      activity: defaultActivity,
-      note: "",
-      tone: "violet",
-      source: "local"
-    })
-  }
-
-  function startEntryTimer(entry?: TimeEntryDraft) {
-    if (entry) setTimerContext({ project: entry.project, activity: entry.activity, note: entry.note || "Timer fortsetzen" })
-    setTimerState("active")
-    setTimerNotice("Timer laeuft.")
-  }
-
-  function pauseTimer() {
-    setTimerState((current) => current === "active" ? "paused" : "active")
-  }
-
-  function stopTimer() {
-    if (timerSeconds <= 0) {
-      setTimerState("idle")
-      setTimerNotice("Timer ist noch nicht gestartet.")
-      return
-    }
-    setTimerState("paused")
-    setTimerNotice("Timer gestoppt. Speichern erstellt den Zeiteintrag.")
-  }
-
-  async function saveTimer() {
-    if (timerSeconds <= 0) {
-      setTimerNotice("Timer ist noch nicht gestartet.")
-      return
-    }
-    const now = new Date()
-    const end = `${padDatePart(now.getHours())}:${padDatePart(now.getMinutes())}`
-    const startMinutes = Math.max(8 * 60, minutesFromTime(end) - Math.round(timerSeconds / 60))
-    const timerEntry: TimeEntryDraft = {
-      id: `timer-${Date.now()}`,
-      date: isoLocalDate(selectedDate),
-      day: (selectedDate.getDay() + 6) % 7,
-      start: `${padDatePart(Math.floor(startMinutes / 60))}:${padDatePart(startMinutes % 60)}`,
-      end,
-      pause: "00:00",
-      project: timerContext.project,
-      activity: timerContext.activity,
-      note: timerContext.note,
-      tone: "green",
-      source: "local"
-    }
-    try {
-      const apiId = await createEntryViaApi(timerEntry)
-      setEntries((current) => [...current, { ...timerEntry, id: apiId ? String(apiId) : timerEntry.id, source: apiId ? "api" : "local" }])
-      onDataChange((current) => ({
-        ...current,
-        projects: current.projects.map((project) => project.name === timerContext.project
-          ? { ...project, progress: `${Math.min(parsePercent(project.progress) + 1, 100)}%` }
-          : project)
+  const fallbackTimeProjects: TimeProject[] = [
+    { id: "p1", name: "Webentwicklung Projekt X", customer: "Acme GmbH", hourlyRate: 75 },
+    { id: "p2", name: "Kundenportal UI", customer: "Muster AG", hourlyRate: 85 },
+    { id: "p3", name: "Bugfixing Tickets", customer: "Interne Arbeit", hourlyRate: 60 }
+  ]
+  const projectDirectory: TimeProject[] = data.projects.length
+    ? data.projects.slice(0, 6).map((project, index) => ({
+        id: project.id,
+        name: project.name,
+        customer: data.customers.find((customer) => customer.id === project.customerId)?.name || "Projektkunde",
+        hourlyRate: [75, 85, 60, 95, 70, 80][index] ?? 75
       }))
-      setTimerSeconds(0)
-      setTimerState("idle")
-      setTimerNotice("Timer gespeichert.")
-    } catch {
-      setEntries((current) => [...current, timerEntry])
-      setTimerNotice("Timer lokal gespeichert. API-Speicherung ist nicht bestaetigt.")
-    }
+    : fallbackTimeProjects
+
+  function initialsFromName(name: string) {
+    return name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase() ?? "")
+      .join("") || "U"
   }
 
-  function handleSlotDoubleClick(event: { currentTarget: HTMLDivElement; clientY: number }, dayIndex: number) {
-    const rect = event.currentTarget.getBoundingClientRect()
-    const relative = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height))
-    const minutes = 8 * 60 + Math.round((relative * 10 * 60) / 15) * 15
-    openNewEntry(dayIndex, `${padDatePart(Math.floor(minutes / 60))}:${padDatePart(minutes % 60)}`)
+  function pinForUser(role: EmployeeRole, employeeIndex: number) {
+    if (role === "admin") return "9999"
+    return ["1234", "2222", "3333", "4444", "5555", "6666"][employeeIndex] ?? String(1234 + employeeIndex).padStart(4, "0").slice(0, 4)
   }
 
-  function updateEditor(field: keyof TimeEntryDraft, value: string) {
-    setEditorDraft((current) => current ? { ...current, [field]: value } : current)
-  }
-
-  function updateTimeUserDraft(field: keyof typeof timeUserDraft, value: string) {
-    setTimeUserDraft((current) => ({ ...current, [field]: value }))
-  }
-
-  function resetTimeUserDraft() {
-    setTimeUserDraft({ name: "", initials: "", pin: "", role: "employee", projectId: projectsSource[0]?.id || "", status: "active" })
-  }
-
-  async function saveTimeUser() {
-    const name = timeUserDraft.name.trim()
-    if (!name) {
-      setTimerNotice("Bitte einen Namen fuer den Zeiterfassungs-Benutzer eingeben.")
-      return
-    }
-    const initials = (timeUserDraft.initials.trim() || name.split(/\s+/).map((part) => part[0]).join("").slice(0, 2) || "MA").toUpperCase()
-    const tones = ["green", "blue", "amber", "violet", "pink"]
-    const project = projectsSource.find((item) => item.id === timeUserDraft.projectId)?.name || defaultProject
-    const nextEmployee: ClockEmployee = {
-      name,
-      initials,
-      tone: tones[clockEmployees.length % tones.length],
-      role: timeUserDraft.role === "admin" ? "Admin" : timeUserDraft.role === "lead" ? "Teamleitung" : "Mitarbeiter",
-      status: timeUserDraft.status === "active" ? "Bereit" : "Pausiert",
-      project,
-      pin: timeUserDraft.pin.trim() || "0000"
-    }
-    const emailSlug = name.toLowerCase().replace(/[^a-z0-9]+/g, ".").replace(/^\.+|\.+$/g, "") || `zeit-${Date.now()}`
-    setClockEmployees((current) => current.some((employee) => employee.name.toLowerCase() === name.toLowerCase())
-      ? current.map((employee) => employee.name.toLowerCase() === name.toLowerCase() ? { ...employee, ...nextEmployee } : employee)
-      : [...current, nextEmployee])
-    try {
-      const response = await fetch("/api/settings/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        body: JSON.stringify({
+  const seededEmployees = useMemo<Employee[]>(() => {
+    const sourceUsers = Array.isArray(data.appUsers) && data.appUsers.length ? data.appUsers : []
+    let employeePinIndex = 0
+    const mapped = sourceUsers
+      .filter((user) => String(user.status ?? "active") === "active")
+      .map((user, index) => {
+        const name = user.name || user.email?.split("@")[0] || "Mitarbeiter " + String(index + 1)
+        const role: EmployeeRole = String(user.role ?? "user") === "admin" ? "admin" : "employee"
+        const pinIndex = role === "admin" ? 0 : employeePinIndex++
+        const rate = role === "admin" ? 0 : [75, 65, 80, 70, 85, 60][pinIndex % 6]
+        return {
+          id: user.id,
           name,
-          email: `${emailSlug}@zeiterfassung.local`,
-          role: timeUserDraft.role === "admin" ? "admin" : "user",
-          status: timeUserDraft.status === "active" ? "active" : "disabled"
-        })
+          email: user.email ?? undefined,
+          role,
+          pin: pinForUser(role, pinIndex),
+          initials: initialsFromName(name),
+          hourlyRate: rate,
+          monthlySalary: role === "admin" ? undefined : [3200, 2950, 3600, 3100, 3400, 3000][pinIndex % 6],
+          status: "active" as const
+        }
       })
-      const result = await response.json().catch(() => ({}))
-      if (response.ok && result?.ok && result?.user) {
-        onDataChange((current) => ({
-          ...current,
-          appUsers: [result.user as AppUser, ...current.appUsers.filter((item) => item.id !== result.user.id)]
-        }))
-        setTimerNotice(`${name} wurde gespeichert und fuer die Stempeluhr aktiviert.`)
-        return
-      }
-      setTimerNotice(`${name} wurde fuer die Stempeluhr aktiviert. Persistente Speicherung: ${result?.error || "nicht bestaetigt"}.`)
-    } catch {
-      setTimerNotice(`${name} wurde fuer die Stempeluhr aktiviert. Persistente Speicherung ist offline.`)
-    }
-  }
 
-  const periodLabel = activeSection === "verwaltung"
-    ? "Verwaltung"
-    : activeSection === "arbeitstag"
-    ? formatGermanDate(selectedDate)
-    : activeSection === "monatsansicht" || activeSection === "berichte"
-      ? formatMonthYear(selectedPeriodDate)
-      : formatWeekRange(selectedDate)
-  const periodValue = activeSection === "arbeitstag" ? "day" : activeSection === "monatsansicht" ? "month" : activeSection === "berichte" ? "reports" : activeSection === "verwaltung" ? "admin" : "week"
-  const availableYears = Array.from({ length: 7 }).map((_, index) => selectedPeriodDate.getFullYear() - 3 + index)
-  const visibleWeekEntries = entries.filter((entry) => weekDates.some((date) => entry.date === isoLocalDate(date)))
-  const dayEntries = entries.filter((entry) => entry.date === isoLocalDate(selectedDate)).sort((a, b) => minutesFromTime(a.start) - minutesFromTime(b.start))
-  const monthEntries = entries.filter((entry) => {
-    const entryDate = parseLocalDate(entry.date)
-    return entryDate?.getFullYear() === selectedPeriodDate.getFullYear() && entryDate.getMonth() === selectedPeriodDate.getMonth()
-  })
-  const weekRows = weekDates.map((date, index) => {
-    const valueMinutes = entries.filter((entry) => entry.date === isoLocalDate(date)).reduce((sum, entry) => sum + entryDurationMinutes(entry), 0)
-    return { day: `${shortGermanWeekdays[date.getDay()]}. ${formatShortDate(date)}`, minutes: valueMinutes, value: formatMinutes(valueMinutes), tone: date.getDay() === 0 || date.getDay() === 6 ? "neutral" : valueMinutes >= 8 * 60 ? "green" : "rose", index }
-  })
-  const weekTotalMinutes = weekRows.reduce((sum, row) => sum + row.minutes, 0)
-  const timerMinutes = timerState === "active" ? Math.floor(timerSeconds / 60) : 0
-  const sidebarWeekMinutes = weekTotalMinutes + timerMinutes
-  const weekTargetMinutes = 40 * 60
-  const weekProgress = Math.min(100, Math.round((sidebarWeekMinutes / weekTargetMinutes) * 100))
-  const calendarHours = Array.from({ length: 11 }).map((_, index) => 8 + index)
-  const nowDate = new Date()
-  const nowMinutesOfDay = nowDate.getHours() * 60 + nowDate.getMinutes()
-  const nowLineTop = Math.max(0, Math.min(100, ((nowMinutesOfDay - 8 * 60) / (10 * 60)) * 100))
-  const nowLineLabel = timeFromMinutes(nowMinutesOfDay)
-  const selectedEntry = entries.find((entry) => entry.id === selectedEntryId) ?? null
-  const projectGroups = groupEntries(entries, "project")
-  const activityGroups = groupEntries(entries, "activity")
-  const reportKpis = [
-    { label: "Gesamtstunden", value: formatMinutes(entries.reduce((sum, entry) => sum + entryDurationMinutes(entry), 0)), tone: "violet", hint: "Aktuelle Daten" },
-    { label: "Abrechenbar", value: formatMinutes(Math.round(entries.reduce((sum, entry) => sum + entryDurationMinutes(entry), 0) * 0.8)), tone: "green", hint: "80%" },
-    { label: "Nicht exportiert", value: formatMinutes(Math.round(entries.reduce((sum, entry) => sum + entryDurationMinutes(entry), 0) * 0.2)), tone: "amber", hint: `${entries.length} Eintraege` },
-    { label: "Differenz", value: formatSignedMinutes(sidebarWeekMinutes - weekTargetMinutes), tone: sidebarWeekMinutes >= weekTargetMinutes ? "green" : "rose", hint: "Aktuelle Woche" }
+    return mapped.length ? mapped : fallbackEmployees
+  }, [data.appUsers])
+
+  const [employeeDirectory, setEmployeeDirectory] = useState<Employee[]>(seededEmployees)
+  const [running, setRunning] = useState(false)
+  const [paused, setPaused] = useState(false)
+  const [seconds, setSeconds] = useState(0)
+  const [pauseSeconds, setPauseSeconds] = useState(0)
+  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null)
+  const [selectedProject, setSelectedProject] = useState<TimeProject>(projectDirectory[0] ?? fallbackTimeProjects[0])
+  const [startTime, setStartTime] = useState<Date | null>(null)
+  const [pinOpen, setPinOpen] = useState(false)
+  const [pinValue, setPinValue] = useState("")
+  const [action, setAction] = useState<"start" | "pause" | "end" | null>(null)
+  const [error, setError] = useState("")
+  const [savedEntries, setSavedEntries] = useState<TimeEntry[]>([])
+  const [completionNotice, setCompletionNotice] = useState<CompletionNotice | null>(null)
+  const [editingMonthEntry, setEditingMonthEntry] = useState<EditableMonthEntry | null>(null)
+  const [editingWeekEntry, setEditingWeekEntry] = useState<WeekEntry | null>(null)
+  const [invoiceEmployeeId, setInvoiceEmployeeId] = useState(seededEmployees.find((employee) => employee.role !== "admin")?.id ?? seededEmployees[0]?.id ?? "u1")
+  const [invoiceProjectId, setInvoiceProjectId] = useState(projectDirectory[0]?.id ?? fallbackTimeProjects[0].id)
+  const [invoiceMinutes, setInvoiceMinutes] = useState(210)
+  const [invoiceHourlyRate, setInvoiceHourlyRate] = useState(projectDirectory[0]?.hourlyRate ?? fallbackTimeProjects[0].hourlyRate)
+  const [invoiceTaxRate, setInvoiceTaxRate] = useState(19)
+  const [invoiceDescription, setInvoiceDescription] = useState("Webentwicklung und UI-Anpassungen")
+  const [invoiceLines, setInvoiceLines] = useState<InvoiceLine[]>([])
+  type ReportMode = "overview" | "day" | "week" | "month" | "year" | "invoice"
+  type TimePageView = "tracking" | "billing"
+  const [timePageView, setTimePageView] = useState<TimePageView>("tracking")
+  type WeekEntry = {
+    id: string
+    day: string
+    date: string
+    time: string
+    project: string
+    user: string
+    hours: string
+    amount: string
+    color: string
+    category: "Arbeit" | "Pause" | "Urlaub" | "Krankheit" | "Feiertag"
+  }
+  const [reportMode, setReportMode] = useState<ReportMode>("overview")
+  const reportTabs: { key: ReportMode; label: string }[] = [
+    { key: "overview", label: "Übersicht" },
+    { key: "day", label: "Tagesansicht" },
+    { key: "week", label: "Wochenansicht" },
+    { key: "month", label: "Monatsansicht" },
+    { key: "year", label: "Jahresansicht" },
+    { key: "invoice", label: "Rechnung" }
   ]
-  const currentClockTime = new Intl.DateTimeFormat("de-DE", { hour: "2-digit", minute: "2-digit" }).format(new Date())
-  const clockStatusLabel = timerState === "active" ? "Schicht laeuft" : timerState === "paused" ? "Bereit zum Speichern" : "Bereit"
+  const [weekEntries, setWeekEntries] = useState<WeekEntry[]>([
+    { id: "w1", day: "Mo", date: "06.07.", time: "08:00 - 11:30", project: "Webentwicklung Projekt X", user: "Max", hours: "3:30 h", amount: "262,50 €", color: "#0ea5e9", category: "Arbeit" },
+    { id: "w2", day: "Di", date: "07.07.", time: "09:00 - 12:00", project: "System Design UI", user: "Anna", hours: "3:00 h", amount: "195,00 €", color: "#6366f1", category: "Arbeit" },
+    { id: "w3", day: "Mi", date: "08.07.", time: "09:00 - 12:00", project: "Kundenportal Acme", user: "Peter", hours: "3:00 h", amount: "225,00 €", color: "#22c55e", category: "Arbeit" },
+    { id: "w4", day: "Fr", date: "10.07.", time: "15:30 - 17:00", project: "Bugfixing Tickets", user: "Max", hours: "1:30 h", amount: "112,50 €", color: "#ec4899", category: "Arbeit" }
+  ])
+  const [monthEntries, setMonthEntries] = useState<EditableMonthEntry[]>(() => [
+    { id: "m1", day: 6, employeeId: seededEmployees[0]?.id ?? "u1", projectId: projectDirectory[0]?.id ?? "p1", start: "08:44", end: "10:15", color: "#99f6e4", note: "Meeting" },
+    { id: "m2", day: 7, employeeId: seededEmployees[1]?.id ?? "u2", projectId: projectDirectory[1]?.id ?? "p2", start: "09:40", end: "12:00", color: "#fde68a", note: "System" },
+    { id: "m3", day: 8, employeeId: seededEmployees[2]?.id ?? "u3", projectId: projectDirectory[0]?.id ?? "p1", start: "13:00", end: "16:00", color: "#bfdbfe", note: "Portal" },
+    { id: "m4", day: 10, employeeId: seededEmployees[0]?.id ?? "u1", projectId: projectDirectory[2]?.id ?? "p3", start: "15:30", end: "17:00", color: "#f9a8d4", note: "Ticket" }
+  ])
+  const yearData = [
+    { month: "Jan", work: 120, overtime: 5, vacation: 16 },
+    { month: "Feb", work: 115, overtime: 3, vacation: 8 },
+    { month: "Mär", work: 130, overtime: 10, vacation: 0 },
+    { month: "Apr", work: 118, overtime: 6, vacation: 4 },
+    { month: "Mai", work: 125, overtime: 7, vacation: 8 },
+    { month: "Jun", work: 122, overtime: 5, vacation: 4 },
+    { month: "Jul", work: 128, overtime: 8, vacation: 0 },
+    { month: "Aug", work: 110, overtime: 2, vacation: 16 },
+    { month: "Sep", work: 123, overtime: 6, vacation: 0 },
+    { month: "Okt", work: 119, overtime: 4, vacation: 4 },
+    { month: "Nov", work: 121, overtime: 5, vacation: 0 },
+    { month: "Dez", work: 115, overtime: 3, vacation: 8 }
+  ]
 
-  function openClockAction(action: "kommen" | "gehen") {
-    setClockAction(action)
-    setClockEmployee(null)
-    setClockPin("")
-    setClockFeedback(null)
-  }
+  useEffect(() => {
+    setEmployeeDirectory((current) => seededEmployees.map((employee) => {
+      const existing = current.find((item) => item.id === employee.id)
+      return existing ? { ...employee, status: existing.status } : employee
+    }))
+  }, [seededEmployees])
 
-  function resetClockFlow() {
-    setClockAction(null)
-    setClockEmployee(null)
-    setClockPin("")
-  }
-
-  function chooseClockEmployee(employee: ClockEmployee) {
-    setClockEmployee(employee)
-    setClockPin("")
-  }
-
-  function findEmployeeByPin(pin: string) {
-    return clockEmployees.find((employee) => employee.pin === pin) ?? null
-  }
-
-  function clockActionForEmployee(employee: ClockEmployee) {
-    return activeClockShifts[employee.name] ? "gehen" : "kommen"
-  }
-
-  async function createInvoiceFromTimeEntries(timeEntryIds: string[]) {
-    if (!timeEntryIds.length) {
-      setInvoiceStatus("Keine API-Zeiten ausgewaehlt. Lokale Zeiten sind im Dialog vorbereitet, koennen aber erst nach dem Speichern fakturiert werden.")
-      return
+  useEffect(() => {
+    const firstEmployee = employeeDirectory.find((employee) => employee.role !== "admin") ?? employeeDirectory[0]
+    if (firstEmployee && !employeeDirectory.some((employee) => employee.id === invoiceEmployeeId)) {
+      setInvoiceEmployeeId(firstEmployee.id)
     }
-    setInvoiceStatus("Rechnung wird erstellt...")
-    try {
-      const response = await fetch("/api/time-tracking/create-invoice", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "same-origin",
-        body: JSON.stringify({ timeEntryIds })
-      })
-      const result = await response.json().catch(() => ({}))
-      if (!response.ok || !result?.ok) throw new Error(result?.error || "create invoice failed")
-      setInvoiceStatus("Rechnung wurde erstellt und die Arbeitszeit wurde uebernommen.")
-      if (result?.href) router.push(withPremiumTheme(result.href, mode))
-    } catch {
-      setInvoiceStatus("Rechnung konnte nicht automatisch erstellt werden. Die Positionen bleiben im Dialog vorbereitet.")
-    }
+  }, [employeeDirectory, invoiceEmployeeId])
+
+  const timerState = running ? (paused ? "paused" : "running") : savedEntries[0]?.status === "finished" ? "done" : "idle"
+  const activeEmployeeId = selectedEmployee?.id
+  const visibleEntries = activeEmployeeId ? savedEntries.filter((entry) => entry.employeeId === activeEmployeeId) : savedEntries
+
+  const amount = useMemo(() => {
+    const hours = seconds / 3600
+    return hours * selectedProject.hourlyRate
+  }, [seconds, selectedProject.hourlyRate])
+
+  const invoiceEmployee = employeeDirectory.find((item) => item.id === invoiceEmployeeId)
+  const invoiceProject = projectDirectory.find((item) => item.id === invoiceProjectId)
+  const invoiceNet = useMemo(() => (invoiceMinutes / 60) * invoiceHourlyRate, [invoiceMinutes, invoiceHourlyRate])
+  const invoiceTax = useMemo(() => invoiceNet * (invoiceTaxRate / 100), [invoiceNet, invoiceTaxRate])
+  const invoiceGross = useMemo(() => invoiceNet + invoiceTax, [invoiceNet, invoiceTax])
+  const invoiceTotalNet = invoiceLines.reduce((sum, line) => sum + (line.minutes / 60) * line.hourlyRate, 0)
+  const invoiceTotalTax = invoiceLines.reduce((sum, line) => sum + (line.minutes / 60) * line.hourlyRate * (line.taxRate / 100), 0)
+  const invoiceTotalGross = invoiceTotalNet + invoiceTotalTax
+
+  useEffect(() => {
+    if (!running || paused) return
+    const timer = window.setInterval(() => {
+      setSeconds((prev) => prev + 1)
+    }, 1000)
+    return () => window.clearInterval(timer)
+  }, [running, paused])
+
+  useEffect(() => {
+    if (!running || !paused) return
+    const timer = window.setInterval(() => {
+      setPauseSeconds((prev) => prev + 1)
+    }, 1000)
+    return () => window.clearInterval(timer)
+  }, [running, paused])
+
+  function formatTime(value: number) {
+    const h = Math.floor(value / 3600)
+    const m = Math.floor((value % 3600) / 60)
+    const s = value % 60
+    return String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0")
   }
 
-  async function confirmClockPin(code = clockPin) {
-    if (!clockAction || code.length < 4) return
-    const employee = clockEmployee ?? findEmployeeByPin(code)
+  function formatShortDuration(value: number) {
+    const h = Math.floor(value / 3600)
+    const m = Math.floor((value % 3600) / 60)
+    return String(h) + ":" + String(m).padStart(2, "0") + " h"
+  }
+
+  function openPinDialog(nextAction: "start" | "pause" | "end") {
+    setAction(nextAction)
+    setPinValue("")
+    setError("")
+    setPinOpen(true)
+  }
+
+  function updateEmployeeStatus(employeeId: string, status: Employee["status"]) {
+    setEmployeeDirectory((current) => current.map((employee) => employee.id === employeeId ? { ...employee, status } : employee))
+  }
+
+  function confirmPin() {
+    const employee = employeeDirectory.find((item) => item.pin === pinValue)
     if (!employee) {
-      setTimerNotice("PIN wurde keinem Zeiterfassungs-Benutzer zugeordnet.")
-      setClockPin("")
+      setError("PIN ist falsch oder Mitarbeiter wurde nicht gefunden.")
       return
     }
-    if (employee.pin && employee.pin !== code) {
-      setTimerNotice("PIN passt nicht zu diesem Mitarbeiter.")
-      setClockPin("")
-      return
+
+    setSelectedEmployee(employee)
+    setError("")
+
+    if (action === "start") {
+      setRunning(true)
+      setPaused(false)
+      setSeconds(0)
+      setPauseSeconds(0)
+      setStartTime(new Date())
+      updateEmployeeStatus(employee.id, "running")
     }
-    const now = new Date()
-    const stamp = `${padDatePart(now.getHours())}:${padDatePart(now.getMinutes())}`
-    const activeShift = activeClockShifts[employee.name]
-    const resolvedAction = activeShift ? "gehen" : "kommen"
-    if (resolvedAction === "kommen") {
-      const project = employee.project || defaultProject
-      setTimerContext({ project, activity: defaultActivity, note: `Kommen: ${employee.name}` })
-      setTimerSeconds(0)
-      setTimerState("active")
-      setActiveClockShifts((current) => ({ ...current, [employee.name]: { start: stamp, project, activity: defaultActivity, date: isoLocalDate(selectedDate) } }))
-      setTimerNotice(`${employee.name} ist eingestempelt.`)
-      setClockFeedback({ action: "kommen", name: employee.name, start: stamp })
-    } else {
-      if (!activeShift) return
-      const startMinutes = minutesFromTime(activeShift.start)
-      const endMinutes = Math.max(startMinutes + 1, minutesFromTime(stamp))
-      const total = formatMinutes(endMinutes - startMinutes)
-      const timerEntry: TimeEntryDraft = {
-        id: `clock-${Date.now()}`,
-        date: activeShift.date,
-        day: (selectedDate.getDay() + 6) % 7,
-        start: activeShift.start,
-        end: timeFromMinutes(endMinutes),
-        pause: "00:00",
-        project: activeShift.project,
-        activity: activeShift.activity,
-        note: `Automatisch erfasst: ${employee.name}`,
-        tone: employee.tone === "pink" ? "violet" : employee.tone,
-        source: "local"
-      }
-      setEntries((current) => [...current, timerEntry])
-      setActiveClockShifts((current) => {
-        const next = { ...current }
-        delete next[employee.name]
-        return next
+
+    if (action === "pause") {
+      setPaused((prev) => {
+        const nextPaused = !prev
+        updateEmployeeStatus(employee.id, nextPaused ? "paused" : "running")
+        return nextPaused
       })
-      setTimerState("idle")
-      setTimerSeconds(0)
-      setTimerNotice(`${employee.name} wurde ausgestempelt. Arbeitszeit: ${total}.`)
-      void createEntryViaApi(timerEntry).catch(() => setTimerNotice(`${employee.name} wurde lokal ausgestempelt. API-Speicherung ist nicht bestaetigt.`))
-      setClockFeedback({ action: "gehen", name: employee.name, start: activeShift.start, end: stamp, total })
     }
-    resetClockFlow()
+
+    if (action === "end") {
+      setRunning(false)
+      setPaused(false)
+      updateEmployeeStatus(employee.id, "done")
+      const entry: TimeEntry = {
+        id: typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : "time-" + Date.now(),
+        employeeId: employee.id,
+        projectId: selectedProject.id,
+        startTime: startTime ?? new Date(),
+        endTime: new Date(),
+        pauseSeconds,
+        totalSeconds: seconds,
+        status: "finished"
+      }
+      setSavedEntries((current) => [entry, ...current].slice(0, 8))
+      setCompletionNotice({ employeeName: employee.name, totalSeconds: seconds })
+      console.log("Zeit gespeichert:", entry)
+    }
+
+    setPinOpen(false)
   }
 
-  function pressClockPin(value: string) {
-    if (value === "back") {
-      setClockPin((current) => current.slice(0, -1))
-      return
-    }
-    const next = `${clockPin}${value}`.slice(0, 4)
-    setClockPin(next)
-    if (next.length === 4) window.setTimeout(() => void confirmClockPin(next), 120)
+  function appendPinDigit(value: string) {
+    setError("")
+    setPinValue((current) => (current.length >= 4 ? current : current + value))
   }
 
-  function renderEntryEditor() {
-    if (!editorDraft) return null
-    const activityOptions = ["Design & UI/UX", "Operations Integration", "Client Portal Setup", "Kundengespraech", "Projektsteuerung", "Dokumentation"]
-    const selectedProjectValue = projectsSource.some((project) => project.name === editorDraft.project) ? editorDraft.project : "manual"
-    const selectedActivityValue = activityOptions.includes(editorDraft.activity) ? editorDraft.activity : "manual"
+  function backspacePin() {
+    setPinValue((current) => current.slice(0, -1))
+  }
+
+  function renderInfo(label: string, value: string) {
     return (
-      <div className={styles.timeEditorOverlay} role="presentation" onMouseDown={(event) => {
-        if (event.target === event.currentTarget) setEditorDraft(null)
-      }}>
-        <form className={styles.timeEditorDialog} onSubmit={(event) => { event.preventDefault(); void saveEntry(editorDraft) }}>
-          <header>
-            <div><span>Zeiteintrag</span><h2>{editorDraft.id.startsWith("new-") ? "Neue Zeit erfassen" : "Eintrag bearbeiten"}</h2></div>
-            <button type="button" aria-label="Schliessen" onClick={() => setEditorDraft(null)}><X size={18} /></button>
-          </header>
-          <div className={styles.timeEditorFields}>
-            <label>Projekt
-              <select value={selectedProjectValue} onChange={(event) => updateEditor("project", event.target.value === "manual" ? editorDraft.project : event.target.value)}>
-                {projectsSource.map((project) => <option key={project.id} value={project.name}>{project.name}</option>)}
-                <option value="manual">Manuell bearbeiten</option>
-              </select>
-              <input type="text" value={editorDraft.project} onChange={(event) => updateEditor("project", event.target.value)} placeholder="Projekt waehlen oder manuell eingeben" />
-            </label>
-            <label>Taetigkeit
-              <select value={selectedActivityValue} onChange={(event) => updateEditor("activity", event.target.value === "manual" ? editorDraft.activity : event.target.value)}>
-                {activityOptions.map((activity) => <option key={activity}>{activity}</option>)}
-                <option value="manual">Manuell bearbeiten</option>
-              </select>
-              <input type="text" value={editorDraft.activity} onChange={(event) => updateEditor("activity", event.target.value)} placeholder="Taetigkeit waehlen oder manuell eingeben" />
-            </label>
-            <label>Startzeit<input type="time" value={editorDraft.start} onChange={(event) => updateEditor("start", event.target.value)} /></label>
-            <label>Endzeit<input type="time" value={editorDraft.end} onChange={(event) => updateEditor("end", event.target.value)} /></label>
-            <label>Pause<input type="time" value={editorDraft.pause} onChange={(event) => updateEditor("pause", event.target.value)} /></label>
-            <label className={styles.timeEditorWide}>Notiz<textarea value={editorDraft.note} onChange={(event) => updateEditor("note", event.target.value)} rows={5} placeholder="Notiz zum Eintrag bearbeiten" /></label>
-          </div>
-          <footer>
-            <span><Clock3 size={16} />Dauer: <strong>{formatMinutes(entryDurationMinutes(editorDraft))}</strong></span>
-            <button type="button" onClick={() => setEditorDraft(null)}>Abbrechen</button>
-            <button type="submit"><Save size={16} />Speichern</button>
-          </footer>
-        </form>
+      <div style={timeTrackerStyles.infoCard}>
+        <div style={timeTrackerStyles.infoLabel}>{label}</div>
+        <div style={timeTrackerStyles.infoValue}>{value}</div>
       </div>
     )
   }
 
-  function renderTimeInvoiceDialog(sourceEntries: TimeEntryDraft[], hourlyRate: number) {
-    if (!invoiceDialogOpen) return null
-    const billable = sourceEntries.length ? sourceEntries : visibleWeekEntries.slice(0, 4)
-    const totalMinutes = billable.reduce((sum, entry) => sum + entryDurationMinutes(entry), 0)
-    const netTotal = (totalMinutes / 60) * hourlyRate
-    const apiEntryIds = billable.filter((entry) => entry.source === "api").map((entry) => entry.id)
+  function renderReportHeader(title: string, text: string) {
     return (
-      <div className={styles.timeEditorOverlay} role="presentation" onMouseDown={(event) => {
-        if (event.target === event.currentTarget) setInvoiceDialogOpen(false)
-      }}>
-        <section className={styles.timeInvoiceDialog} role="dialog" aria-modal="true" aria-labelledby="time-invoice-title">
-          <header>
-            <div><span>Rechnung</span><h2 id="time-invoice-title">Arbeitszeit in Rechnung uebernehmen</h2></div>
-            <button type="button" aria-label="Schliessen" onClick={() => setInvoiceDialogOpen(false)}><X size={18} /></button>
-          </header>
-          <div className={styles.timeInvoiceDialogSummary}>
-            <p><span>Mitarbeiter</span><strong>Max Mustermann</strong></p>
-            <p><span>Projekt</span><strong>{billable[0]?.project || defaultProject}</strong></p>
-            <p><span>Arbeitszeit</span><strong>{formatMinutes(totalMinutes)}</strong></p>
-            <label>Lohn / Stundensatz<input value={invoiceRate} onChange={(event) => setInvoiceRate(event.target.value)} inputMode="decimal" /><em>EUR pro Stunde</em></label>
-            <p data-total="true"><span>Rechnungssumme netto</span><strong>{formatEuro(netTotal)}</strong></p>
-          </div>
-          <div className={styles.timeInvoiceDialogRows}>
-            {billable.map((entry) => (
-              <p key={entry.id}><span>{entry.start} - {displayEntryEnd(entry)}</span><strong>{entry.activity}</strong><small>{entry.project}</small><b>{formatMinutes(entryDurationMinutes(entry))}</b></p>
+      <div style={timeReportStyles.header}>
+        <div>
+          <h2 style={timeReportStyles.title}>{title}</h2>
+          <p style={timeReportStyles.sub}>{text}</p>
+        </div>
+        <button type="button" style={timeReportStyles.exportButton}>Export</button>
+      </div>
+    )
+  }
+
+  function renderKpi(label: string, value: string, sub: string) {
+    return (
+      <div style={timeReportStyles.kpi}>
+        <span>{label}</span>
+        <strong>{value}</strong>
+        <small>{sub}</small>
+      </div>
+    )
+  }
+
+  function renderBadge(label: string, value: string, danger = false) {
+    return (
+      <div style={danger ? { ...timeReportStyles.badge, ...timeReportStyles.badgeDanger } : timeReportStyles.badge}>
+        {label}: <strong>{value}</strong>
+      </div>
+    )
+  }
+
+  function renderBar(label: string, value: number, max: number, color: string) {
+    return (
+      <div style={timeReportStyles.barWrap}>
+        <div style={timeReportStyles.barLabel}>
+          <span>{label}</span>
+          <span>{value} h</span>
+        </div>
+        <div style={timeReportStyles.barTrack}>
+          <div style={{ ...timeReportStyles.barFill, width: String(Math.min((value / max) * 100, 100)) + "%", background: color }} />
+        </div>
+      </div>
+    )
+  }
+
+  function renderWeekReport(compact = false) {
+    const weekDays = [
+      { key: "Mo", date: "06.07.", total: "6:00 h" },
+      { key: "Di", date: "07.07.", total: "3:00 h" },
+      { key: "Mi", date: "08.07.", total: "12:00 h" },
+      { key: "Do", date: "09.07.", total: "13:00 h" },
+      { key: "Fr", date: "10.07.", total: "13:00 h" },
+      { key: "Sa", date: "11.07.", total: "0:00 h" },
+      { key: "So", date: "12.07.", total: "12:00 h" }
+    ]
+    const hourRows = ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"]
+    const blockPlacements: Record<string, { top: number; height: number; left?: number; width?: number }> = {
+      w1: { top: 78, height: 168 },
+      w2: { top: 110, height: 144 },
+      w3: { top: 54, height: 132 },
+      w4: { top: 330, height: 96 },
+      pause: { top: 250, height: 74, left: 8, width: 45 },
+      meeting: { top: 92, height: 92, left: 53, width: 43 }
+    }
+    const extraWeekBlocks = [
+      { id: "pause", day: "Mi", time: "12:00 - 13:00", title: "Pause", meta: "1:00 h", color: "#fef3c7" },
+      { id: "meeting", day: "Mo", time: "10:15", title: "Kundentermin", meta: "1:00 h", color: "#fbcfe8" }
+    ]
+
+    if (compact) {
+      return (
+        <>
+          <div style={timeReportStyles.weekGridCompact}>
+            {weekDays.map((day) => (
+              <div key={day.key} style={timeReportStyles.dayColCompact}>
+                <div style={timeReportStyles.dayHead}>{day.key}</div>
+                {weekEntries
+                  .filter((entry) => entry.day === day.key)
+                  .map((entry) => (
+                    <button key={entry.id} type="button" style={{ ...timeReportStyles.weekEvent, background: entry.color }} onClick={() => setEditingWeekEntry(entry)}>
+                      <div style={timeReportStyles.weekTime}>{entry.time}</div>
+                      <strong>{entry.project}</strong>
+                      <span>{entry.hours}</span>
+                    </button>
+                  ))}
+              </div>
             ))}
           </div>
-          {invoiceStatus ? <small className={styles.timeInvoiceStatus}>{invoiceStatus}</small> : null}
-          <footer>
-            <button type="button" onClick={() => setInvoiceDialogOpen(false)}>Abbrechen</button>
-            <button type="button" onClick={() => void createInvoiceFromTimeEntries(apiEntryIds)}><Receipt size={16} />Rechnung jetzt erstellen</button>
-          </footer>
-        </section>
-      </div>
-    )
-  }
+          <div style={timeReportStyles.summaryRow}>
+            {renderBadge("Gesamt", "32:45 h")}
+            {renderBadge("Soll", "35:00 h")}
+            {renderBadge("Differenz", "-2:15 h", true)}
+          </div>
+        </>
+      )
+    }
 
-  function renderTimerCard() {
-    const activeEmployeeName = clockFeedback?.name || timerContext.note.replace(/^Kommen: /, "") || "Team"
     return (
-      <article className={styles.timePlannerTimer} data-state={timerState}>
-        <section className={styles.clockStationHero}>
-          <div>
-            <span><TimerReset size={20} /> Stempeluhr</span>
-            <strong>{currentClockTime}</strong>
-            <small>{formatGermanDate(selectedDate)}</small>
-          </div>
-          <div>
-            <b>{timerState === "active" || timerState === "paused" ? formatPremiumTimer(timerSeconds) : "00:00:00"}</b>
-            <small><i />{clockStatusLabel}</small>
-          </div>
-        </section>
-        <section className={styles.clockStationActions}>
-          <button type="button" data-action="kommen" onClick={() => openClockAction("kommen")}><Play size={22} />Arbeit starten<span>Startzeit automatisch erfassen</span></button>
-          <button type="button" data-action="gehen" onClick={() => openClockAction("gehen")}><Square size={22} />Feierabend<span>Endzeit automatisch berechnen</span></button>
-        </section>
-        <section className={styles.clockStationMeta}>
-          <div><small>Mitarbeiter</small><strong>{activeEmployeeName}</strong></div>
-          <div><small>Projekt</small><strong>{timerContext.project}</strong></div>
-          <div><small>Taetigkeit</small><strong>{timerContext.activity}</strong></div>
-          <div><small>Status</small><strong>{timerNotice || "Bereit fuer Kommen oder Gehen"}</strong></div>
-        </section>
-        <section className={styles.clockStationControls}>
-          <button type="button" onClick={() => startEntryTimer()}><Play size={14} />Direkt starten</button>
-          <button type="button" onClick={pauseTimer}><Pause size={14} />Pause</button>
-          <button type="button" data-danger="true" onClick={stopTimer}><Square size={12} />Stopp</button>
-          <button type="button" data-save="true" onClick={() => void saveTimer()}><Save size={14} />Speichern</button>
-        </section>
-        {clockAction ? (
-          <div className={styles.clockStationPanel}>
-            <header>
-              <span>{clockEmployee?.initials || (clockAction === "kommen" ? "IN" : "OUT")}</span>
-              <strong>Mitarbeiter identifizieren</strong>
-              <small>{clockEmployee ? `${clockEmployee.name} - ${clockActionForEmployee(clockEmployee) === "gehen" ? "Feierabend wird erfasst" : "Arbeitstag wird gestartet"}` : "PIN eingeben oder Namen waehlen"}</small>
-            </header>
-            <div className={styles.clockIdentifyLayout}>
-              <section className={styles.clockPinSection}>
-                <div className={styles.clockPinStatus}>
-                  <strong>{clockEmployee ? clockEmployee.name : "Direkt per PIN"}</strong>
-                  <small>{clockEmployee ? `${clockEmployee.project || defaultProject} · ${clockActionForEmployee(clockEmployee) === "gehen" ? "Eingestempelt" : "Bereit"}` : "Der PIN erkennt den Mitarbeiter automatisch."}</small>
+      <>
+        {renderReportHeader("Wochenansicht", "Ruhiges Stundenraster mit direkt bearbeitbaren Tages- und Projektzeiten.")}
+        <div style={timeReportStyles.weekToolbar}>
+          <button type="button" style={timeReportStyles.weekToolbarButton}><ChevronLeft size={15} /> Heute <ChevronRight size={15} /></button>
+          <button type="button" style={timeReportStyles.weekToolbarButton}><Plus size={15} /> Neue Zeit</button>
+          <button type="button" style={timeReportStyles.weekToolbarButton}><List size={15} /> Kategorien</button>
+          <button type="button" style={timeReportStyles.weekToolbarButton}><RefreshCcw size={15} /> Filter</button>
+          <button type="button" style={timeReportStyles.weekToolbarIcon}><Settings size={15} /></button>
+        </div>
+        <div style={timeReportStyles.weekPlannerLayout}>
+          <div style={timeReportStyles.weekPlannerMain}>
+            <div style={timeReportStyles.weekPlannerTitleRow}>
+              <div style={timeReportStyles.weekPlannerTitle}><ChevronLeft size={18} /> <strong>KW 27</strong><span>Juli 2026</span> <ChevronRight size={18} /></div>
+              <span style={timeReportStyles.weekHint}>Klick auf einen Zeitblock öffnet Bearbeiten.</span>
+            </div>
+            <div style={timeReportStyles.weekCalendarGrid}>
+              <div style={timeReportStyles.weekCorner} />
+              {weekDays.map((day) => (
+                <div key={day.key} style={timeReportStyles.weekCalendarHead}>
+                  <strong>{day.key} {day.date}</strong>
+                  <span>{day.total}</span>
                 </div>
-                <div className={styles.clockPinDots}>{[0, 1, 2, 3].map((index) => <i key={index} data-filled={index < clockPin.length} />)}</div>
-                <div className={styles.clockPinPad}>
-                  {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((digit) => <button key={digit} type="button" onClick={() => pressClockPin(digit)}>{digit}</button>)}
-                  <button type="button" onClick={() => { setClockEmployee(null); setClockPin("") }}>Zurueck</button>
-                  <button type="button" onClick={() => pressClockPin("0")}>0</button>
-                  <button type="button" onClick={() => pressClockPin("back")}><X size={18} /></button>
-                </div>
-              </section>
-              <section className={styles.clockEmployeeSection}>
-                <div className={styles.clockEmployeeSectionHeader}>
-                  <strong>Mitarbeiter</strong>
-                  <small>{Object.keys(activeClockShifts).length} eingestempelt</small>
-                </div>
-                <div className={styles.clockEmployeeGrid}>
-                  {clockEmployees.map((employee) => {
-                    const employeeAction = clockActionForEmployee(employee)
+              ))}
+              <div style={timeReportStyles.weekTimeRail}>
+                {hourRows.map((hour) => <span key={hour}>{hour}</span>)}
+              </div>
+              {weekDays.map((day) => (
+                <div key={day.key} style={timeReportStyles.weekDayLane}>
+                  {hourRows.slice(0, -1).map((hour) => <span key={hour} style={timeReportStyles.weekHourLine} />)}
+                  {weekEntries
+                    .filter((entry) => entry.day === day.key)
+                    .map((entry) => {
+                      const placement = blockPlacements[entry.id] ?? { top: 82, height: 112 }
+                      return (
+                        <button
+                          key={entry.id}
+                          type="button"
+                          style={{
+                            ...timeReportStyles.weekBlock,
+                            top: placement.top,
+                            height: placement.height,
+                            background: entry.color
+                          }}
+                          onClick={() => setEditingWeekEntry(entry)}
+                        >
+                          <span>{entry.time}</span>
+                          <strong>{entry.project}</strong>
+                          <small>{entry.category} · {entry.hours}</small>
+                        </button>
+                      )
+                    })}
+                  {extraWeekBlocks.filter((entry) => entry.day === day.key).map((entry) => {
+                    const placement = blockPlacements[entry.id] ?? { top: 80, height: 90 }
                     return (
-                      <button key={employee.name} type="button" data-tone={employee.tone} data-active={employeeAction === "gehen"} data-selected={clockEmployee?.name === employee.name} onClick={() => chooseClockEmployee(employee)}>
-                        <i>{employee.initials}</i>
-                        <span><strong>{employee.name}</strong><small>{employeeAction === "gehen" ? "Eingestempelt · Feierabend" : "Bereit · Arbeit starten"}</small></span>
+                      <button
+                        key={entry.id}
+                        type="button"
+                        style={{
+                          ...timeReportStyles.weekBlock,
+                          top: placement.top,
+                          height: placement.height,
+                          left: String(placement.left ?? 8) + "%",
+                          width: String(placement.width ?? 84) + "%",
+                          background: entry.color,
+                          color: "#1f2937"
+                        }}
+                      >
+                        <span>{entry.time}</span>
+                        <strong>{entry.title}</strong>
+                        <small>{entry.meta}</small>
                       </button>
                     )
                   })}
                 </div>
-              </section>
+              ))}
+              <div style={timeReportStyles.weekNowLine}><span>10:15</span></div>
+              {editingWeekEntry ? (
+                <div style={timeReportStyles.weekEditPopover}>
+                  <button type="button" aria-label="Schließen" style={timeReportStyles.weekPopoverClose} onClick={() => setEditingWeekEntry(null)}><X size={16} /></button>
+                  <div style={timeReportStyles.weekPopoverTitle}>
+                    <CheckCircle2 size={17} />
+                    <strong>{editingWeekEntry.project}</strong>
+                  </div>
+                  <span style={timeReportStyles.weekPopoverSub}>{editingWeekEntry.category} · {editingWeekEntry.user}</span>
+                  <div style={timeReportStyles.weekPopoverMeta}><Clock3 size={16} /> {editingWeekEntry.time} | {editingWeekEntry.hours}</div>
+                  <div style={timeReportStyles.weekPopoverMeta}><Banknote size={16} /> {editingWeekEntry.amount}</div>
+                  <label style={timeInvoiceStyles.label}>Projekt / Text</label>
+                  <input style={timeInvoiceStyles.input} value={editingWeekEntry.project} onChange={(event) => setEditingWeekEntry({ ...editingWeekEntry, project: event.target.value })} />
+                  <div style={timeInvoiceStyles.twoCols}>
+                    <div><label style={timeInvoiceStyles.label}>Zeit</label><input style={timeInvoiceStyles.input} value={editingWeekEntry.time} onChange={(event) => setEditingWeekEntry({ ...editingWeekEntry, time: event.target.value })} /></div>
+                    <div><label style={timeInvoiceStyles.label}>Stunden</label><input style={timeInvoiceStyles.input} value={editingWeekEntry.hours} onChange={(event) => setEditingWeekEntry({ ...editingWeekEntry, hours: event.target.value })} /></div>
+                  </div>
+                  <div style={timeReportStyles.weekPopoverActions}>
+                    <button type="button" style={timeReportStyles.weekPopoverIcon}><Pencil size={16} /></button>
+                    <button type="button" style={timeReportStyles.weekPopoverIcon}><Save size={16} /></button>
+                    <button type="button" style={timeReportStyles.weekPopoverIconDanger}><Trash2 size={16} /></button>
+                    <button type="button" style={timeTrackerStyles.confirmButton} onClick={saveWeekEntry}>Speichern</button>
+                  </div>
+                </div>
+              ) : null}
             </div>
-            <button type="button" data-ghost="true" onClick={resetClockFlow}>Abbrechen</button>
+            <div style={timeReportStyles.weekBottomSummary}>
+              <div><CalendarDays size={16} /><span>Gesamtstunden</span><strong>33:45 h</strong></div>
+              <div><TimerReset size={16} /><span>Sollzeit</span><strong>35:00 h</strong></div>
+              <div><Activity size={16} /><span>Differenz</span><strong>+8:30 h</strong></div>
+            </div>
           </div>
-        ) : null}
-        {clockFeedback ? (
-          <div className={styles.clockStationFeedback} data-action={clockFeedback.action}>
-            <span><CheckCircle2 size={28} /></span>
-            <strong>{clockFeedback.action === "kommen" ? "Willkommen!" : "Schoenen Feierabend!"}</strong>
-            <small>{clockFeedback.name} - {clockFeedback.action === "kommen" ? `Kommen erfasst um ${clockFeedback.start} Uhr` : `Gehen erfasst um ${clockFeedback.end} Uhr`}</small>
-            {clockFeedback.action === "gehen" ? <p><b>Arbeitszeit heute</b><strong>{clockFeedback.total}</strong></p> : null}
-            <button type="button" onClick={() => setClockFeedback(null)}>Fertig</button>
-          </div>
-        ) : null}
-      </article>
-    )
-  }
-
-  function renderPopover(entry: TimeEntryDraft, dayMode = false) {
-    return (
-      <aside className={styles.timeEntryPopover} data-day={dayMode} onClick={(event) => event.stopPropagation()}>
-        <strong><i /> {entry.project}</strong>
-        <small>{entry.activity}</small>
-        <p><Clock3 size={14} /> {entry.start} - {displayEntryEnd(entry)}</p>
-        <p><TimerReset size={14} /> Dauer: {formatMinutes(entryDurationMinutes(entry))}</p>
-        <p><Folder size={14} /> Projekt: {entry.project}</p>
-        <p><Tag size={14} /> Taetigkeit: {entry.activity}</p>
-        <div>
-          <button type="button" aria-label="Bearbeiten" onClick={() => openEditor(entry)}><Pencil size={15} /><span>Bearbeiten</span></button>
-          <button type="button" aria-label="Timer fortsetzen" onClick={() => startEntryTimer(entry)}><Play size={15} /><span>Starten</span></button>
-          <button type="button" aria-label="Duplizieren" onClick={() => duplicateEntry(entry)}><Archive size={15} /><span>Kopieren</span></button>
-          <button type="button" aria-label="Loeschen" onClick={() => deleteEntry(entry.id)}><Trash2 size={15} /><span>Loeschen</span></button>
         </div>
-      </aside>
+      </>
     )
   }
 
-  function renderTimeRightRail() {
+  function addInvoiceLine() {
+    setInvoiceLines((current) => [
+      ...current,
+      {
+        id: typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : "invoice-line-" + Date.now(),
+        employeeId: invoiceEmployeeId,
+        projectId: invoiceProjectId,
+        description: invoiceDescription,
+        minutes: invoiceMinutes,
+        hourlyRate: invoiceHourlyRate,
+        taxRate: invoiceTaxRate
+      }
+    ])
+  }
+
+  function removeInvoiceLine(id: string) {
+    setInvoiceLines((current) => current.filter((line) => line.id !== id))
+  }
+
+  function saveMonthEntry() {
+    if (!editingMonthEntry) return
+    setMonthEntries((current) => current.map((entry) => entry.id === editingMonthEntry.id ? editingMonthEntry : entry))
+    setEditingMonthEntry(null)
+  }
+
+  function saveWeekEntry() {
+    if (!editingWeekEntry) return
+    setWeekEntries((current) => current.map((entry) => entry.id === editingWeekEntry.id ? editingWeekEntry : entry))
+    setEditingWeekEntry(null)
+  }
+
+  function renderInvoiceRow(label: string, value: string, strong = false) {
     return (
-      <aside className={styles.timeRightRail}>
-        <section>
-          <h3>Wochenzeiten</h3>
-          <p><span>Geplante Stunden</span><strong>40:00 h</strong></p>
-          <p><span>Erfasste Stunden</span><strong>{formatMinutes(sidebarWeekMinutes)}</strong></p>
-          <p><span>Differenz</span><strong data-negative={sidebarWeekMinutes < weekTargetMinutes}>{formatSignedMinutes(sidebarWeekMinutes - weekTargetMinutes)}</strong></p>
-          <div className={styles.timeProgress}><i style={{ width: `${weekProgress}%` }} /></div>
-          <Link href={timeHref("wochenzeiten")}>Zur Wochenansicht</Link>
-        </section>
-        <section>
-          <h3>Projekt Budget</h3>
-          {projectGroups.slice(0, 3).map((project, index) => <p key={project.label}><span><i data-tone={project.tone} />{project.label}</span><strong>{project.value}</strong><em>{project.percent}</em></p>)}
-          <Link href={timeHref("berichte")}>Alle Projekte</Link>
-        </section>
-        <section>
-          <h3>Monatszeiten - {formatMonthYear(selectedPeriodDate)}</h3>
-          <div className={styles.timeMiniHeatmap}>{Array.from({ length: 35 }).map((_, index) => <i key={index} data-level={index % 7 > 4 ? 0 : (index % 4) + 1} />)}</div>
-          <small>0 h · 1-4 h · 4-8 h · 8+ h</small>
-          <Link href={timeHref("monatsansicht")}>Zum Monatsreport</Link>
-        </section>
-        <section>
-          <h3>Auswertung</h3>
-          {activityGroups.slice(0, 5).map((activity) => <p key={activity.label}><span><i data-tone={activity.tone} />{activity.label}</span><strong>{activity.value}</strong><em>{activity.percent}</em></p>)}
-          <Link href={timeHref("berichte")}>Detaillierte Auswertung</Link>
-        </section>
-      </aside>
+      <div style={timeInvoiceStyles.row}>
+        <span>{label}</span>
+        <strong style={strong ? timeInvoiceStyles.strongValue : undefined}>{value}</strong>
+      </div>
     )
   }
 
-  function renderWeeklyDashboard() {
-    const compactEntry = (entry: TimeEntryDraft) => entrySafeEndMinutes(entry) - minutesFromTime(entry.start) <= 60
+  function renderTimeInvoice() {
     return (
-      <section className={styles.timePlannerShell} onClick={() => setSelectedEntryId(null)}>
-        {renderTimerCard()}
-        <section className={styles.timePlannerLayout}>
-          <article className={styles.timeWeekCalendar}>
-            <div className={styles.timeWeekHeader}>
-              <span>KW 26</span>
-              {weekRows.map((row, index) => <Link key={row.day} href={timeHref("arbeitstag", weekDates[index])} data-active={isoLocalDate(weekDates[index]) === isoLocalDate(selectedDate)}><strong>{row.day}</strong><small>{row.value}</small></Link>)}
+      <section style={timeInvoiceStyles.card}>
+        <div style={timeInvoiceStyles.header}>
+          <div>
+            <h2 style={timeInvoiceStyles.title}>Projekte, Zeitkonto & Rechnung</h2>
+            <p style={timeInvoiceStyles.sub}>Aus gespeicherten Zeiten oder manuellen Zeiten direkt Rechnungspositionen erstellen.</p>
+          </div>
+          <button type="button" style={timeInvoiceStyles.primaryButton}>Rechnung erstellen</button>
+        </div>
+
+        <div style={timeInvoiceStyles.grid}>
+          <div style={timeInvoiceStyles.panel}>
+            <h3 style={timeInvoiceStyles.panelTitle}>Zeitposition vorbereiten</h3>
+
+            <label style={timeInvoiceStyles.label}>Mitarbeiter</label>
+            <select style={timeInvoiceStyles.input} value={invoiceEmployeeId} onChange={(event) => setInvoiceEmployeeId(event.target.value)}>
+              {employeeDirectory.filter((item) => item.role !== "admin").map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+            </select>
+
+            <label style={timeInvoiceStyles.label}>Projekt</label>
+            <select
+              style={timeInvoiceStyles.input}
+              value={invoiceProjectId}
+              onChange={(event) => {
+                const nextProject = projectDirectory.find((item) => item.id === event.target.value)
+                setInvoiceProjectId(event.target.value)
+                if (nextProject) setInvoiceHourlyRate(nextProject.hourlyRate)
+              }}
+            >
+              {projectDirectory.map((item) => <option key={item.id} value={item.id}>{item.name} - {item.customer}</option>)}
+            </select>
+
+            <label style={timeInvoiceStyles.label}>Beschreibung</label>
+            <input style={timeInvoiceStyles.input} value={invoiceDescription} onChange={(event) => setInvoiceDescription(event.target.value)} />
+
+            <div style={timeInvoiceStyles.twoCols}>
+              <div>
+                <label style={timeInvoiceStyles.label}>Minuten</label>
+                <input style={timeInvoiceStyles.input} type="number" value={invoiceMinutes} onChange={(event) => setInvoiceMinutes(Number(event.target.value))} />
+              </div>
+              <div>
+                <label style={timeInvoiceStyles.label}>Stundensatz netto</label>
+                <input style={timeInvoiceStyles.input} type="number" value={invoiceHourlyRate} onChange={(event) => setInvoiceHourlyRate(Number(event.target.value))} />
+              </div>
             </div>
-            <div className={styles.timeWeekGrid}>
-              <div className={styles.timeHourRail}>{calendarHours.map((hour) => <span key={hour}>{padDatePart(hour)}:00</span>)}</div>
-              {weekRows.map((row, dayIndex) => (
-                <div key={row.day} className={styles.timeDayColumn} data-weekend={dayIndex > 4} onDoubleClick={(event) => handleSlotDoubleClick(event, dayIndex)}>
-                  {dayIndex > 4 ? <div className={styles.timeEmptyDay}>Kein Eintrag</div> : null}
-                  {visibleWeekEntries.filter((entry) => entry.day === dayIndex).map((entry) => (
-                    <button key={entry.id} type="button" className={styles.timeCalendarBlock} data-tone={entry.tone} data-selected={selectedEntryId === entry.id} data-compact={compactEntry(entry)} style={timeBlockStyle(entry.start, displayEntryEnd(entry))} onClick={(event) => { event.stopPropagation(); setSelectedEntryId(entry.id) }} onDoubleClick={(event) => { event.stopPropagation(); openEditor(entry) }}>
-                      <span>{entry.start} - {displayEntryEnd(entry)}</span>
-                      <strong>{entry.activity}</strong>
-                      <small>{entry.project}</small>
-                      <em>{formatMinutes(entryDurationMinutes(entry))}</em>
-                    </button>
+
+            <label style={timeInvoiceStyles.label}>MwSt. %</label>
+            <input style={timeInvoiceStyles.input} type="number" value={invoiceTaxRate} onChange={(event) => setInvoiceTaxRate(Number(event.target.value))} />
+
+            <button type="button" style={timeInvoiceStyles.addButton} onClick={addInvoiceLine}>+ Position hinzufügen</button>
+          </div>
+
+          <div style={timeInvoiceStyles.panel}>
+            <h3 style={timeInvoiceStyles.panelTitle}>Vorschau</h3>
+            <div style={timeInvoiceStyles.previewBox}>
+              {renderInvoiceRow("Mitarbeiter", invoiceEmployee?.name ?? "-")}
+              {renderInvoiceRow("Projekt", invoiceProject?.name ?? "-")}
+              {renderInvoiceRow("Kunde", invoiceProject?.customer ?? "-")}
+              {renderInvoiceRow("Zeit", String(invoiceMinutes) + " Minuten / " + (invoiceMinutes / 60).toFixed(2) + " h")}
+              {renderInvoiceRow("Netto", invoiceNet.toFixed(2) + " €")}
+              {renderInvoiceRow("MwSt.", invoiceTax.toFixed(2) + " €")}
+              {renderInvoiceRow("Brutto", invoiceGross.toFixed(2) + " €", true)}
+            </div>
+
+            <div style={timeInvoiceStyles.salaryBox}>
+              <h4 style={timeInvoiceStyles.smallTitle}>Zeitkonto / Gehalt</h4>
+              {renderInvoiceRow("Monatsgehalt", String(invoiceEmployee?.monthlySalary ?? 0) + " €")}
+              {renderInvoiceRow("Stundensatz", String(invoiceEmployee?.hourlyRate ?? 0) + " €/h")}
+              {renderInvoiceRow("Heute berechnet", (invoiceMinutes / 60).toFixed(2) + " h")}
+            </div>
+          </div>
+        </div>
+
+        <div style={timeInvoiceStyles.linesPanel}>
+          <div style={timeInvoiceStyles.linesHeader}>
+            <h3 style={timeInvoiceStyles.panelTitle}>Rechnungspositionen</h3>
+            <span style={timeInvoiceStyles.muted}>{invoiceLines.length} Positionen</span>
+          </div>
+
+          {invoiceLines.length === 0 ? (
+            <div style={timeInvoiceStyles.empty}>Noch keine Rechnungsposition hinzugefügt.</div>
+          ) : (
+            <div style={timeInvoiceStyles.table}>
+              {invoiceLines.map((line) => {
+                const lineEmployee = employeeDirectory.find((item) => item.id === line.employeeId)
+                const lineProject = projectDirectory.find((item) => item.id === line.projectId)
+                const lineNet = (line.minutes / 60) * line.hourlyRate
+                const lineTax = lineNet * (line.taxRate / 100)
+                const lineGross = lineNet + lineTax
+
+                return (
+                  <div key={line.id} style={timeInvoiceStyles.tableRow}>
+                    <div>
+                      <strong>{line.description}</strong>
+                      <div style={timeInvoiceStyles.muted}>{lineEmployee?.name} · {lineProject?.name}</div>
+                    </div>
+                    <div>{(line.minutes / 60).toFixed(2)} h</div>
+                    <div>{line.hourlyRate.toFixed(2)} €/h</div>
+                    <div>{lineNet.toFixed(2)} € netto</div>
+                    <div>{lineGross.toFixed(2)} € brutto</div>
+                    <button type="button" style={timeInvoiceStyles.deleteButton} onClick={() => removeInvoiceLine(line.id)}>Entfernen</button>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          <div style={timeInvoiceStyles.totalBox}>
+            {renderInvoiceRow("Gesamt Netto", invoiceTotalNet.toFixed(2) + " €")}
+            {renderInvoiceRow("MwSt.", invoiceTotalTax.toFixed(2) + " €")}
+            {renderInvoiceRow("Gesamt Brutto", invoiceTotalGross.toFixed(2) + " €", true)}
+          </div>
+        </div>
+      </section>
+    )
+  }
+
+  function renderMonthReport() {
+    const monthSections = [
+      {
+        label: "Juli 2026",
+        weeks: [
+          { kw: "27", days: ["+0:51", "+8:00", "-8:00", "+8:00", "+8:00", "", ""], badges: ["", "Urlaub", "Krank", "", "", "", ""], sum: "40:32" },
+          { kw: "28", days: ["+23:00", "+8:00", "+8:00", "+8:00", "8:00", "", ""], badges: ["Abbau", "", "", "", "", "", ""], sum: "39:00" },
+          { kw: "29", days: ["+8:00", "+8:00", "+8:00", "+8:00", "8:00", "", ""], badges: ["", "", "", "", "", "", ""], sum: "41:01" },
+          { kw: "30", days: ["-4:00", "+8:00", "+8:00", "", "", "", ""], badges: ["", "", "", "", "", "", ""], sum: "24:00" }
+        ]
+      },
+      {
+        label: "August 2026",
+        weeks: [
+          { kw: "31", days: ["+0:51", "+1:30", "-8:00", "+1:30", "+1:30", "", ""], badges: ["Urlaub", "", "Abbau", "", "", "", ""], sum: "40:00" },
+          { kw: "32", days: ["8:51 / 8:00", "9:30 / 8:00", "9:30 / 8:00", "9:30 / 8:00", "9:30 / 8:00", "", ""], badges: ["", "", "", "Krank", "", "", ""], sum: "35:00" },
+          { kw: "33", days: ["0:00 / 8:00", "-8:00", "+1:30", "-8:00", "0:00 / 8:00", "", ""], badges: ["", "", "", "", "U K", "", ""], sum: "39:14" },
+          { kw: "34", days: ["+1:30", "+1:30", "+1:30", "+1:30", "+1:30", "", ""], badges: ["", "", "", "", "", "", ""], sum: "18:00" }
+        ]
+      }
+    ]
+
+    return (
+      <>
+        {renderReportHeader("Monatsansicht", "Zeitkonto, Wochenstunden und Abwesenheiten im Monatsraster.")}
+        <div style={timeReportStyles.monthAccountLayout}>
+          <div style={timeReportStyles.monthAccountMain}>
+            <div style={timeReportStyles.monthAccountToolbar}>
+              <select style={timeReportStyles.monthSelect} defaultValue="Nuovo"><option>Nuovo</option><option>admin</option></select>
+              <button type="button" style={timeReportStyles.monthNavButton}><ChevronLeft size={15} /></button>
+              <strong>2026</strong>
+              <button type="button" style={timeReportStyles.monthNavButton}><ChevronRight size={15} /></button>
+              <label style={timeReportStyles.monthToggle}><span /> Details anzeigen</label>
+              <button type="button" style={timeReportStyles.monthExportButton}>Exportieren <ChevronDown size={14} /></button>
+            </div>
+            <div style={timeReportStyles.monthEmployeeSummary}>
+              <div style={timeReportStyles.monthSummaryBox}><span>Mitarbeiter</span><strong>{selectedEmployee?.name ?? invoiceEmployee?.name ?? "Nuovo"}</strong><small>Aktive Zeiterfassung</small></div>
+              <div style={timeReportStyles.monthSummaryBox}><span>Abwesenheiten</span><strong>Urlaubstage: 0 von 20</strong><small>Krankheitstage: 0 · Sonderurlaub: 4</small></div>
+              <div style={timeReportStyles.monthSummaryBoxStrong}><span>Stundenkonto</span><strong>41:30 h von 468:00 h Soll-Stunden</strong><small>Überstundenvortrag: +120:00 h</small><b>+60:30 h</b></div>
+            </div>
+            {monthSections.map((section) => (
+              <section key={section.label} style={timeReportStyles.monthAccountSection}>
+                <div style={timeReportStyles.monthAccountSectionHead}>
+                  <h3>{section.label}</h3>
+                  <strong>{section.label.startsWith("Juli") ? "+160:30 h" : "+60:30 h"}</strong>
+                </div>
+                <div style={timeReportStyles.monthAccountGrid}>
+                  <div style={timeReportStyles.monthKwHead}>KW</div>
+                  {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So", "Summe"].map((day) => <div key={day} style={timeReportStyles.monthDayHead}>{day}</div>)}
+                  {section.weeks.map((week) => (
+                    <Fragment key={week.kw}>
+                      <div style={timeReportStyles.monthKwCell}>{week.kw}</div>
+                      {week.days.map((value, index) => {
+                        const badge = week.badges[index]
+                        const isNegative = value.includes("-") || badge === "Krank"
+                        const isHoliday = badge === "Urlaub" || badge === "Abbau"
+                        return (
+                          <button key={String(week.kw) + String(index)} type="button" style={isNegative ? timeReportStyles.monthAccountCellNegative : isHoliday ? timeReportStyles.monthAccountCellBadge : timeReportStyles.monthAccountCell} onClick={() => setEditingMonthEntry(monthEntries[index % monthEntries.length] ?? null)}>
+                            <span>{String(index + 1).padStart(2, "0")}</span>
+                            {badge ? <b>{badge}</b> : null}
+                            <strong>{value || ""}</strong>
+                          </button>
+                        )
+                      })}
+                      <div style={timeReportStyles.monthSumCell}>{week.sum}</div>
+                    </Fragment>
                   ))}
                 </div>
-              ))}
-              <div className={styles.timeNowLine} style={{ top: `${nowLineTop}%` }}><span>{nowLineLabel}</span></div>
-              {selectedEntry ? renderPopover(selectedEntry) : null}
-            </div>
-            <div className={styles.timeWeekFooter}>
-              <span>Tages-Summe</span>
-              {weekRows.map((row) => <strong key={row.day}>{row.value}</strong>)}
-            </div>
-            <div className={styles.timeLegend}>
-              {[["Design & UI/UX", "violet"], ["Operations Integration", "blue"], ["Client Portal Setup", "orange"], ["Projektsteuerung", "amber"], ["Kundengespraech", "green"], ["Dokumentation", "gray"]].map(([label, tone]) => <span key={label}><i data-tone={tone} />{label}</span>)}
-            </div>
-          </article>
-          {renderTimeRightRail()}
-        </section>
-        {renderEntryEditor()}
-      </section>
-    )
-  }
-
-  function renderDayView() {
-    const dayTotal = dayEntries.reduce((sum, entry) => sum + entryDurationMinutes(entry), 0)
-    const pauseTotal = dayEntries.reduce((sum, entry) => sum + minutesFromTime(entry.pause), 0)
-    return (
-      <section className={styles.timeDayPremium} onClick={() => setSelectedEntryId(null)}>
-        {renderTimerCard()}
-        <article className={styles.timeDayTimeline}>
-          <header><div><span>Tagesansicht</span><h2>{formatGermanDate(selectedDate)}</h2></div><button type="button" onClick={() => openNewEntry((selectedDate.getDay() + 6) % 7, "09:00")}><Plus size={16} />Eintrag</button></header>
-          {dayEntries.map((entry) => (
-            <button key={entry.id} type="button" data-tone={entry.tone} onClick={(event) => { event.stopPropagation(); setSelectedEntryId(entry.id) }} onDoubleClick={(event) => { event.stopPropagation(); openEditor(entry) }}>
-              <span><Clock3 size={18} /></span>
-              <div><strong>{entry.project}</strong><small>{entry.activity}</small></div>
-              <b>{entry.start} - {displayEntryEnd(entry)}</b>
-              <em>{formatMinutes(entryDurationMinutes(entry))}</em>
-            </button>
-          ))}
-          {!dayEntries.length ? <button type="button" data-empty="true" onDoubleClick={() => openNewEntry((selectedDate.getDay() + 6) % 7, "09:00")}>Doppelklick fuer neuen Eintrag</button> : null}
-        </article>
-        <aside className={styles.timeDaySummary}>
-          <h3>Tagesuebersicht</h3>
-          <p><span>Sollzeit</span><strong>08:00 h</strong></p>
-          <p><span>Istzeit</span><strong>{formatMinutes(dayTotal)}</strong></p>
-          <p><span>Pause</span><strong>{formatMinutes(pauseTotal)}</strong></p>
-          <p><span>Differenz</span><strong>{formatSignedMinutes(dayTotal - 8 * 60)}</strong></p>
-          <button type="button" onClick={() => openNewEntry((selectedDate.getDay() + 6) % 7, "09:00")}><Plus size={16} />Zeit erfassen</button>
-          {selectedEntry ? renderPopover(selectedEntry, true) : null}
-        </aside>
-        {renderEntryEditor()}
-      </section>
-    )
-  }
-
-  function renderMonthView() {
-    const daysInMonth = new Date(selectedPeriodDate.getFullYear(), selectedPeriodDate.getMonth() + 1, 0).getDate()
-    const firstWeekdayOffset = (new Date(selectedPeriodDate.getFullYear(), selectedPeriodDate.getMonth(), 1).getDay() + 6) % 7
-    const statusFromEntries = (iso: string) => {
-      const text = entries.filter((entry) => entry.date === iso).map((entry) => `${entry.activity} ${entry.project} ${entry.note}`).join(" ").toLowerCase()
-      if (text.includes("urlaub")) return "Urlaub"
-      if (text.includes("krank")) return "Krank"
-      if (text.includes("feiertag")) return "Feiertag"
-      if (text.includes("abbau")) return "Abbau"
-      return ""
-    }
-    const monthDays = Array.from({ length: daysInMonth }).map((_, index) => {
-      const date = new Date(selectedPeriodDate.getFullYear(), selectedPeriodDate.getMonth(), index + 1)
-      const iso = isoLocalDate(date)
-      const minutes = entries.filter((entry) => entry.date === iso).reduce((sum, entry) => sum + entryDurationMinutes(entry), 0)
-      const status = statusFromEntries(iso)
-      return { date, iso, minutes, status }
-    })
-    const monthTotal = monthDays.reduce((sum, day) => sum + day.minutes, 0)
-    const selectedDay = monthDays.find((day) => day.iso === activeDayDetails) ?? monthDays[0]
-    const selectedEntries = entries.filter((entry) => entry.date === selectedDay.iso)
-    return (
-      <section className={styles.timeMonthPremium}>
-        <article className={styles.timeMonthMain}>
-          <header><div><span>Monatsansicht</span><h2>{formatMonthYear(selectedPeriodDate)}</h2></div><strong>{formatMinutes(monthTotal)}</strong></header>
-          <div className={styles.timeMonthKpis}>
-            <span><small>Sollstunden</small><strong>176:00 h</strong><em>Plan fuer {germanMonths[selectedPeriodDate.getMonth()]}</em></span>
-            <span><small>Iststunden</small><strong>{formatMinutes(monthTotal)}</strong><em>Erfasst im Monat</em></span>
-            <span data-tone={monthTotal >= 176 * 60 ? "green" : "rose"}><small>Differenz</small><strong>{formatSignedMinutes(monthTotal - 176 * 60)}</strong><em>Abweichung</em></span>
-          </div>
-          <div className={styles.timeMonthGridLarge}>
-            {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((day) => <b key={day}>{day}</b>)}
-            {Array.from({ length: firstWeekdayOffset }).map((_, index) => <em key={`blank-${index}`} aria-hidden="true" />)}
-            {monthDays.map((day) => (
-              <button key={day.iso} type="button" data-level={day.minutes === 0 ? 0 : day.minutes < 240 ? 1 : day.minutes < 480 ? 2 : 3} data-active={day.iso === selectedDay.iso} onClick={() => setActiveDayDetails(day.iso)} onDoubleClick={() => openNewEntry((day.date.getDay() + 6) % 7, "09:00")}>
-                <strong>{day.date.getDate()}</strong>
-                <span>{day.status || (day.minutes ? formatMinutes(day.minutes) : "Kein Eintrag")}</span>
-              </button>
+              </section>
             ))}
           </div>
-          <footer>
-            <span><i data-tone="gray" />0 h</span>
-            <span><i data-tone="blue" />0-4 h</span>
-            <span><i data-tone="violet" />4-8 h</span>
-            <span><i data-tone="rose" />8+ h</span>
-            <span><i data-tone="amber" />Urlaub</span>
-            <span><i data-tone="blue" />Krank</span>
-            <span><i data-tone="green" />Feiertag</span>
-            <span><i data-tone="green" />Abbau</span>
-          </footer>
-        </article>
-        <aside className={styles.timeMonthEditor}>
-          <header><div><span>Tag bearbeiten</span><h2>{formatGermanDate(selectedDay.date)}</h2></div><button type="button" onClick={() => openNewEntry((selectedDay.date.getDay() + 6) % 7, "09:00")}><Plus size={15} />Eintrag</button></header>
-          <div><small>Status</small><strong>{selectedDay.status || "Arbeitstag"}</strong></div>
-          {selectedEntries.map((entry) => <button key={entry.id} type="button" onClick={() => setSelectedEntryId(entry.id)} onDoubleClick={() => openEditor(entry)}><span>{entry.start} - {displayEntryEnd(entry)}</span><strong>{entry.activity}</strong><small>{entry.project}</small></button>)}
-          {!selectedEntries.length ? <p>Keine Eintraege fuer diesen Tag.</p> : null}
-          <button type="button" data-primary="true" onClick={() => startEntryTimer(selectedEntries[0])}><Play size={15} />Timer starten</button>
-        </aside>
-        {renderEntryEditor()}
-      </section>
-    )
-  }
-
-  function renderReportsView() {
-    const reportGroups = [
-      { title: "Wochenreport", tone: "violet", items: [{ title: "Wochenansicht fuer einen Benutzer", description: "Arbeitszeiten einer Person pro Kalenderwoche.", icon: Clock3, href: timeHref("wochenzeiten") }, { title: "Wochenansicht fuer alle Benutzer", description: "Teamzeiten fuer die aktuelle Woche vergleichen.", icon: Users, href: timeHref("wochenzeiten") }] },
-      { title: "Monatsreport", tone: "blue", items: [{ title: "Monatsansicht fuer einen Benutzer", description: "Monatswerte, Tage und Export fuer eine Person.", icon: CalendarDays, href: timeHref("monatsansicht") }, { title: "Monatsansicht fuer alle Benutzer", description: "Monatsauswertung aller aktiven Benutzer.", icon: Users, href: timeHref("monatsansicht") }, { title: "Monatsauswertung", description: "Soll, Ist, Differenz und Status pro Tag.", icon: BarChart3, href: timeHref("monatsansicht") }] },
-      { title: "Projektzeiten", tone: "green", items: [{ title: "Projektdetails", description: "Zeiten, Kontingent und letzte Eintraege pro Projekt.", icon: Briefcase, href: timeHref("berichte") }, { title: "Projektuebersicht", description: "Alle Projektzeiten kompakt nebeneinander.", icon: Folder, href: timeHref("berichte") }, { title: "Inaktive Projekte", description: "Archivierte oder pausierte Projekte auswerten.", icon: Archive, href: timeHref("berichte") }, { title: "Projekte nach Monat, Taetigkeit und Benutzer", description: "Projektzeiten nach Zeitraum, Aufgabe und Person filtern.", icon: Grid3X3, href: timeHref("berichte") }] },
-      { title: "Export", tone: "amber", items: [{ title: "PDF", description: "Bericht als PDF exportieren.", icon: FileText, href: "/api/time-tracking/export?format=pdf" }, { title: "CSV", description: "Tabellarische Rohdaten exportieren.", icon: Download, href: "/api/time-tracking/export?format=csv" }, { title: "XML", description: "XML Export fuer Weiterverarbeitung.", icon: FileText, href: "/api/time-tracking/export?format=xml" }, { title: "Excel", description: "Excel Export vorbereiten.", icon: Download, href: "/api/time-tracking/export?format=xls" }] }
-    ]
-    return (
-      <article className={`${styles.timeDetailPanel} ${styles.timeReportsOverview}`}>
-        <div className={styles.timePanelHead}>
-          <div><span>Berichte</span><h2>Report Center</h2></div>
-          <div className={styles.timeReportQuickExport}>
-            <Link href="/api/time-tracking/export?format=pdf"><Download size={15} />PDF</Link>
-            <Link href="/api/time-tracking/export?format=csv"><Download size={15} />CSV</Link>
-            <Link href="/api/time-tracking/export?format=xml"><Download size={15} />XML</Link>
-            <Link href="/api/time-tracking/export?format=xls"><Download size={15} />Excel</Link>
-          </div>
-        </div>
-        <div className={styles.timeReportsToolbar}>
-          <label><Search size={16} /><input placeholder="Bericht suchen" /></label>
-          <select defaultValue="month" aria-label="Zeitraum"><option value="week">Aktuelle Woche</option><option value="month">Aktueller Monat</option><option value="year">Aktuelles Jahr</option></select>
-          <select defaultValue={usersSource[0]?.id} aria-label="Benutzer">{usersSource.map((user) => <option key={user.id} value={user.id}>{user.name || user.email}</option>)}</select>
-          <select defaultValue={projectsSource[0]?.id} aria-label="Projekt">{projectsSource.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select>
-          <button type="button" data-active="true">Alle</button>
-          <button type="button">Benutzer</button>
-          <button type="button">Projekte</button>
-          <button type="button">Taetigkeit</button>
-          <button type="button">Export</button>
-        </div>
-        <div className={styles.timeReportKpis}>{reportKpis.map((item) => <span key={item.label} data-tone={item.tone}><small>{item.label}</small><strong>{item.value}</strong><em>{item.hint}</em></span>)}</div>
-        <div className={styles.timeReportCenterGrid}>
-          <div className={styles.timeReportGroupGrid}>{reportGroups.map((group) => <section key={group.title} className={styles.timeReportGroup} data-tone={group.tone}><header><span /> <strong>{group.title}</strong></header><div>{group.items.map((item, index) => { const Icon = item.icon; return <Link key={item.title} href={item.href} className={styles.timeReportTile}><span><Icon size={20} /></span><div><strong>{item.title}</strong><small>{item.description}</small><i style={{ width: `${72 - index * 11}%` }} /></div><ChevronRight size={17} /></Link> })}</div></section>)}</div>
-          <aside className={styles.timeReportSidePanel}>
-            <section><h3>Letzte Berichte</h3><p><FileText size={15} /><span>Wochenansicht Benutzer</span><small>Heute</small></p><p><Folder size={15} /><span>Projektuebersicht</span><small>Gestern</small></p><p><Activity size={15} /><span>Taetigkeiten</span><small>Juni</small></p></section>
-            <section><h3>Schnell exportieren</h3><Link href="/api/time-tracking/export?format=pdf"><Download size={15} />PDF exportieren</Link><Link href="/api/time-tracking/export?format=csv"><Download size={15} />CSV exportieren</Link><Link href="/api/time-tracking/export?format=xml"><Download size={15} />XML exportieren</Link><Link href="/api/time-tracking/export?format=xls"><Download size={15} />Excel exportieren</Link></section>
+          <aside style={timeReportStyles.monthAccountSide}>
+            <h3>Monatskonto</h3>
+            <p style={timeReportStyles.monthAccountMetric}><span>Arbeitszeit</span><strong>168:30 h</strong></p>
+            <p style={timeReportStyles.monthAccountMetric}><span>Sollzeit</span><strong>160:00 h</strong></p>
+            <p style={timeReportStyles.monthAccountMetric}><span>Differenz</span><strong>+8:30 h</strong></p>
+            <p style={timeReportStyles.monthAccountMetric}><span>Überstunden</span><strong>+60:30 h</strong></p>
+            <div style={timeReportStyles.monthLegendGrid}>
+              {[['Urlaub', '#22c55e'], ['Krank', '#4f46e5'], ['Abbau', '#16a34a'], ['Feiertag', '#94a3b8'], ['Warnung', '#ef4444']].map(([label, color]) => <span key={label} style={timeReportStyles.monthLegendItem}><i style={{ ...timeReportStyles.monthLegendSwatch, background: color }} />{label}</span>)}
+            </div>
           </aside>
         </div>
-      </article>
+      </>
     )
   }
 
-  function renderTimeManagementView() {
-    const billableMinutes = dayEntries.reduce((sum, entry) => sum + entryDurationMinutes(entry), 0)
-    const rate = Number(invoiceRate.replace(",", ".")) || 85
-    const billableAmount = (billableMinutes / 60) * rate
-    const editRows = dayEntries.length ? dayEntries : visibleWeekEntries.slice(0, 4)
-    return (
-      <section className={styles.timeAdminDashboard}>
-        <div className={styles.timeAdminTopGrid}>
-          <article className={styles.timeUserCreatePanel}>
-            <header><span><UserPlus size={18} /></span><div><strong>Benutzer fuer Zeiterfassung erstellen</strong></div></header>
-            <div className={styles.timeUserCreateForm}>
-              <label>Name<input value={timeUserDraft.name} onChange={(event) => updateTimeUserDraft("name", event.target.value)} /></label>
-              <label>Initialen<input value={timeUserDraft.initials} onChange={(event) => updateTimeUserDraft("initials", event.target.value)} /></label>
-              <label>PIN<input value={timeUserDraft.pin} onChange={(event) => updateTimeUserDraft("pin", event.target.value)} type="password" /></label>
-              <label>Rolle<select value={timeUserDraft.role} onChange={(event) => updateTimeUserDraft("role", event.target.value)}><option value="employee">Mitarbeiter</option><option value="lead">Teamleitung</option><option value="admin">Admin</option></select></label>
-              <label>Projekt<select value={timeUserDraft.projectId} onChange={(event) => updateTimeUserDraft("projectId", event.target.value)}>{projectsSource.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
-              <label>Status<select value={timeUserDraft.status} onChange={(event) => updateTimeUserDraft("status", event.target.value)}><option value="active">Aktiv</option><option value="paused">Pausiert</option></select></label>
-            </div>
-            <button type="button" onClick={saveTimeUser}><Save size={15} />Benutzer speichern</button>
-          </article>
-          <article className={styles.timeInvoicePanel}>
-            <header><span><Receipt size={18} /></span><div><strong>Arbeitszeit in Rechnung umwandeln</strong><small>Abrechenbare Zeit direkt als Entwurf uebernehmen.</small></div></header>
-            <div>
-              <p><span>Mitarbeiter</span><strong>Max Mustermann</strong></p>
-              <p><span>Projekt</span><strong>{defaultProject}</strong></p>
-              <p><span>Abrechenbar</span><strong>{formatMinutes(billableMinutes)}</strong></p>
-              <p><span>Lohn / Stundensatz</span><strong>{formatEuro(rate)}</strong></p>
-              <p data-total="true"><span>Summe</span><strong>{formatEuro(billableAmount)}</strong></p>
-            </div>
-            <button type="button" onClick={() => { setInvoiceStatus(""); setInvoiceDialogOpen(true) }}><Receipt size={15} />Rechnung erstellen</button>
-          </article>
-        </div>
-        <div className={styles.timeAdminGrid}>
-          <article className={styles.timeTeamManagePanel}>
-            <header><div><span>Team</span><h2>Benutzer in der Stempeluhr</h2></div><button type="button" onClick={resetTimeUserDraft}><UserPlus size={15} />Neu</button></header>
-            <div>
-              {clockEmployees.map((employee, index) => (
-                <button key={employee.name} type="button" data-tone={employee.tone}>
-                  <i>{employee.initials}</i>
-                  <span><strong>{employee.name}</strong><small>{employee.role || "Mitarbeiter"} · PIN erforderlich</small></span>
-                  <em>{employee.status || "Bereit"}</em>
-                  <b>{index === 4 ? formatMinutes(dayEntries.reduce((sum, entry) => sum + entryDurationMinutes(entry), 0)) : index === 0 ? "7:30 h" : index === 1 ? "4:10 h" : index === 3 ? "8:05 h" : "0:00 h"}</b>
-                </button>
-              ))}
-            </div>
-          </article>
-          <article className={styles.timeAdminReportsPanel}>
-            <header><div><span>Berichte</span><h2>Zeiten auswerten</h2></div><div><button type="button" data-active="true">Tag</button><button type="button">Woche</button><button type="button">Monat</button><button type="button">Jahr</button></div></header>
-            <div className={styles.timeAdminReportCards}>
-              <span><small>Tageszeit</small><strong>{formatMinutes(dayEntries.reduce((sum, entry) => sum + entryDurationMinutes(entry), 0))}</strong></span>
-              <span><small>Wochenzeit</small><strong>{formatMinutes(sidebarWeekMinutes)}</strong></span>
-              <span><small>Monatszeit</small><strong>{formatMinutes(monthEntries.reduce((sum, entry) => sum + entryDurationMinutes(entry), 0))}</strong></span>
-              <span><small>Jahreszeit</small><strong>428:15 h</strong></span>
-            </div>
-            <div className={styles.timeAdminExportRow}>
-              <Link href="/api/time-tracking/export?format=pdf"><Download size={15} />PDF</Link>
-              <Link href="/api/time-tracking/export?format=csv"><Download size={15} />CSV</Link>
-              <Link href="/api/time-tracking/export?format=xls"><Download size={15} />Excel</Link>
-            </div>
-          </article>
-        </div>
-        <article className={styles.timeAdminEditPanel}>
-          <header><div><span>Bearbeitung</span><h2>Zeiten, Projekte und Taetigkeiten bearbeiten</h2></div><button type="button" onClick={() => openNewEntry((selectedDate.getDay() + 6) % 7, "09:00")}><Plus size={15} />Zeit hinzufuegen</button></header>
-          <div className={styles.timeAdminEditTable}>
-            <span>Mitarbeiter</span><span>Projekt</span><span>Taetigkeit</span><span>Start</span><span>Ende</span><span>Dauer</span><span />
-            {editRows.map((entry) => (
-              <Fragment key={entry.id}>
-                <strong>Max Mustermann</strong>
-                <p>{entry.project}</p>
-                <p>{entry.activity}</p>
-                <p>{entry.start}</p>
-                <p>{displayEntryEnd(entry)}</p>
-                <b>{formatMinutes(entryDurationMinutes(entry))}</b>
-                <button type="button" onClick={() => openEditor(entry)}><Pencil size={14} /></button>
-              </Fragment>
+  function renderTimeReports() {
+    if (reportMode === "overview") {
+      return (
+        <>
+          {renderReportHeader("Übersicht", "Aktuelle Zeitkonten, Projekte und abrechenbare Zeiten.")}
+          <div style={timeReportStyles.kpiGrid}>
+            {renderKpi("Heute", "07:45 h", "+0:15 h über Soll")}
+            {renderKpi("Woche", "32:45 h", "35:00 h Soll")}
+            {renderKpi("Monat", "128:20 h", "9 aktive Projekte")}
+            {renderKpi("Abrechenbar", "6.420,00 €", "netto geschätzt")}
+          </div>
+          {renderWeekReport(true)}
+        </>
+      )
+    }
+
+    if (reportMode === "day") {
+      return (
+        <>
+          {renderReportHeader("Tagesansicht", "Alle Arbeitszeiten pro Mitarbeiter minutengenau.")}
+          <div style={timeReportStyles.timeline}>
+            {weekEntries.slice(0, 3).map((entry) => (
+              <div key={entry.project} style={timeReportStyles.timelineRow}>
+                <div style={timeReportStyles.timeCol}>{entry.time}</div>
+                <div style={{ ...timeReportStyles.eventCard, borderLeftColor: entry.color }}>
+                  <strong>{entry.project}</strong>
+                  <span>{entry.user} · {entry.hours} · {entry.amount}</span>
+                </div>
+              </div>
             ))}
           </div>
-        </article>
-        {renderTimeInvoiceDialog(dayEntries.length ? dayEntries : visibleWeekEntries.slice(0, 4), rate)}
-        {renderEntryEditor()}
-      </section>
-    )
-  }
+        </>
+      )
+    }
 
-  function renderCurrentView() {
-    if (activeSection === "arbeitstag") return renderDayView()
-    if (activeSection === "monatsansicht") return renderMonthView()
-    if (activeSection === "berichte") return renderReportsView()
-    if (activeSection === "verwaltung") return renderTimeManagementView()
-    return renderWeeklyDashboard()
+    if (reportMode === "week") return renderWeekReport()
+    if (reportMode === "month") return renderMonthReport()
+
+    return (
+      <>
+        {renderReportHeader("Jahresansicht", "Jahresstatistik mit Arbeitszeit, Urlaub und Überstunden.")}
+        <div style={timeReportStyles.yearGrid}>
+          {yearData.map((item) => (
+            <div key={item.month} style={timeReportStyles.yearCard}>
+              <strong>{item.month}</strong>
+              {renderBar("Arbeit", item.work, 140, "#3b82f6")}
+              {renderBar("Überstunden", item.overtime, 16, "#ef4444")}
+              {renderBar("Urlaub", item.vacation, 24, "#22c55e")}
+            </div>
+          ))}
+        </div>
+        <div style={timeReportStyles.kpiGrid}>
+          {renderKpi("Jahr Gesamt", "1.448 h", "Arbeitszeit")}
+          {renderKpi("Sollzeit", "1.400 h", "Jahressoll")}
+          {renderKpi("Übertrag", "+48 h", "Zeitkonto")}
+          {renderKpi("Urlaub", "68 h", "genutzt")}
+        </div>
+      </>
+    )
   }
 
   return (
-    <section className={styles.timePremiumPage}>
-      <header className={styles.timePremiumHeader}>
-        <Link href={withPremiumTheme("/dashboard-v2", mode)}><ChevronLeft size={16} />Zurueck</Link>
-        <div><h1>Zeiterfassung</h1></div>
-        <div className={styles.timeHeaderActions}>
-          <select value={periodValue} aria-label="Zeitraum" onChange={(event) => changePeriod(event.target.value)}><option value="day">Tag</option><option value="week">Woche</option><option value="month">Monat</option><option value="reports">Berichte</option><option value="admin">Verwaltung</option></select>
-          <div className={styles.timeDateStepper}>
-            <button type="button" aria-label="Vorheriger Zeitraum" onClick={() => moveDate(-1)}><ChevronLeft size={16} /></button>
-            <strong>{periodLabel}</strong>
-            <button type="button" aria-label="Naechster Zeitraum" onClick={() => moveDate(1)}><ChevronRight size={16} /></button>
+    <section style={timeTrackerStyles.page} data-theme={mode}>
+      <style>{"@keyframes timeTimerSpin { to { transform: rotate(360deg); } }"}</style>
+      <div style={timeTrackerStyles.pageHeader}>
+        <div>
+          <span style={timeTrackerStyles.kicker}>Zeiterfassung</span>
+          <h1 style={timeTrackerStyles.pageTitle}>{timePageView === "tracking" ? "Live-Zeiterfassung" : "Berichte & Rechnung"}</h1>
+          <p style={timeTrackerStyles.pageText}>
+            {timePageView === "tracking"
+              ? "PIN erkennt den Mitarbeiter automatisch und schreibt Zeiten dem richtigen User zu."
+              : "Zeitkonten, Auswertungen und Rechnungspositionen als eigene Ansicht."}
+          </p>
+        </div>
+        <span style={timerState === "running" ? timeTrackerStyles.badgeActive : timerState === "paused" ? timeTrackerStyles.badgePaused : timeTrackerStyles.badgeIdle}>
+          {timerState === "running" ? "Aktiv" : timerState === "paused" ? "Pause" : timerState === "done" ? "Abgeschlossen" : "Bereit"}
+        </span>
+      </div>
+
+      <div style={timeTrackerStyles.viewSwitch}>
+        <button
+          type="button"
+          style={timePageView === "tracking" ? { ...timeTrackerStyles.viewSwitchButton, ...timeTrackerStyles.viewSwitchButtonActive } : timeTrackerStyles.viewSwitchButton}
+          onClick={() => setTimePageView("tracking")}
+        >
+          Zeiterfassung
+        </button>
+        <button
+          type="button"
+          style={timePageView === "billing" ? { ...timeTrackerStyles.viewSwitchButton, ...timeTrackerStyles.viewSwitchButtonActive } : timeTrackerStyles.viewSwitchButton}
+          onClick={() => setTimePageView("billing")}
+        >
+          Berichte & Rechnung
+        </button>
+      </div>
+
+      {timePageView === "tracking" && (
+      <div style={timeTrackerStyles.layoutGrid}>
+        <section style={timeTrackerStyles.card}>
+          <div style={timeTrackerStyles.header}>
+            <div>
+              <h2 style={timeTrackerStyles.title}>Live-Zeiterfassung</h2>
+              <p style={timeTrackerStyles.sub}>PIN eingeben, Mitarbeiter wird automatisch erkannt und zugeordnet.</p>
+            </div>
+            <span style={timerState === "running" ? timeTrackerStyles.badgeActive : timerState === "paused" ? timeTrackerStyles.badgePaused : timeTrackerStyles.badgeIdle}>
+              {timerState === "running" ? "Aktiv" : timerState === "paused" ? "Pause" : "Bereit"}
+            </span>
           </div>
-          <select value={selectedPeriodDate.getMonth()} aria-label="Monat wechseln" onChange={(event) => updateMonth(event.target.value)}>{germanMonths.map((month, index) => <option key={month} value={index}>{month}</option>)}</select>
-          <select value={selectedPeriodDate.getFullYear()} aria-label="Jahr wechseln" onChange={(event) => updateYear(event.target.value)}>{availableYears.map((year) => <option key={year} value={year}>{year}</option>)}</select>
-          <button type="button" onClick={() => navigateTime(activeSection, new Date())}>Heute</button>
-          <button type="button" className={styles.timeCaptureButton} onClick={() => openNewEntry((selectedDate.getDay() + 6) % 7, "09:00")}><Plus size={16} />Zeit erfassen</button>
+
+          <div style={timeTrackerStyles.timerWrap}>
+            <div style={{ ...timeTrackerStyles.timerCircle, ...(timerState === "running" ? timeTrackerStyles.timerCircleRunning : timerState === "paused" ? timeTrackerStyles.timerCirclePaused : timerState === "done" ? timeTrackerStyles.timerCircleDone : {}) }}>
+              <div style={timeTrackerStyles.timerInner}>
+                <div style={timeTrackerStyles.timerText}>{formatTime(seconds)}</div>
+                <div style={timeTrackerStyles.timerSub}>{selectedEmployee ? selectedEmployee.name : "PIN starten"}</div>
+              </div>
+            </div>
+          </div>
+
+          <div style={timeTrackerStyles.actions}>
+            {!running && (
+              <button type="button" style={timeTrackerStyles.startButton} onClick={() => openPinDialog("start")}>
+                <Play size={16} /> Starten
+              </button>
+            )}
+            {running && (
+              <>
+                <button type="button" style={timeTrackerStyles.pauseButton} onClick={() => openPinDialog("pause")}>
+                  <Pause size={16} /> {paused ? "Fortsetzen" : "Pause"}
+                </button>
+                <button type="button" style={timeTrackerStyles.endButton} onClick={() => openPinDialog("end")}>
+                  <Square size={16} /> Feierabend
+                </button>
+              </>
+            )}
+          </div>
+
+          <div style={timeTrackerStyles.statsGrid}>
+            {renderInfo("Start", startTime ? startTime.toLocaleTimeString("de-DE") : "--:--")}
+            {renderInfo("Pause", formatTime(pauseSeconds))}
+            {renderInfo("Gesamt", formatTime(seconds))}
+            {renderInfo("Arbeitszeit", formatShortDuration(seconds))}
+            {renderInfo("Status", timerState === "running" ? "Eingestempelt" : timerState === "paused" ? "Pause" : "Bereit")}
+            {renderInfo("User", selectedEmployee?.name ?? "Nicht gewählt")}
+          </div>
+        </section>
+
+        <aside style={timeTrackerStyles.sideColumn}>
+          <section style={timeTrackerStyles.employeeBox}>
+            <div style={timeTrackerStyles.employeeBoxHeader}>
+              <div>
+                <div style={timeTrackerStyles.smallTitle}>Mitarbeiter</div>
+                <span style={timeTrackerStyles.mutedText}>Aus verbundenen App-Usern</span>
+              </div>
+              <Users size={18} />
+            </div>
+            <div style={timeTrackerStyles.employeeList}>
+              {employeeDirectory.map((employee) => (
+                <button
+                  key={employee.id}
+                  type="button"
+                  style={{
+                    ...timeTrackerStyles.employeeRow,
+                    ...(selectedEmployee?.id === employee.id ? timeTrackerStyles.employeeChipActive : {})
+                  }}
+                  onClick={() => setSelectedEmployee(employee)}
+                >
+                  <span style={timeTrackerStyles.employeeAvatar}>{employee.initials}</span>
+                  <span>
+                    <strong>{employee.name}</strong>
+                    <small>{employee.role === "admin" ? "Admin" : employee.status === "running" ? "Eingestempelt" : employee.status === "paused" ? "Pause" : employee.status === "done" ? "Tag beendet" : "Bereit"}</small>
+                  </span>
+                  <i style={{ ...timeTrackerStyles.employeeStatusDot, ...(employee.status === "running" ? timeTrackerStyles.statusRunning : employee.status === "paused" ? timeTrackerStyles.statusPaused : employee.status === "done" ? timeTrackerStyles.statusDone : {}) }} />
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section style={timeTrackerStyles.summaryCard}>
+            <div style={timeTrackerStyles.smallTitle}>Aktuelle Buchung</div>
+            <p><span>Mitarbeiter</span><strong>{selectedEmployee?.name ?? "Nicht ausgewählt"}</strong></p>
+            <p><span>Status</span><strong>{timerState === "running" ? "Aktiv" : timerState === "paused" ? "Pause" : "Bereit"}</strong></p>
+            <p><span>Pause</span><strong>{formatTime(pauseSeconds)}</strong></p>
+            <p><span>Gesamt</span><strong>{formatTime(seconds)}</strong></p>
+          </section>
+
+          <section style={timeTrackerStyles.summaryCard}>
+            <div style={timeTrackerStyles.smallTitle}>Gespeicherte Zeiten</div>
+            {visibleEntries.length ? visibleEntries.map((entry) => {
+              const employee = employeeDirectory.find((item) => item.id === entry.employeeId)
+              return (
+                <p key={entry.id}>
+                  <span>{employee?.name ?? "Mitarbeiter"}</span>
+                  <strong>{formatTime(entry.totalSeconds)}</strong>
+                </p>
+              )
+            }) : <p><span>Noch keine Buchung</span><strong>--:--</strong></p>}
+          </section>
+        </aside>
+      </div>
+      )}
+
+      {timePageView === "billing" && (
+        <>
+          <section style={timeReportStyles.card}>
+            <div style={timeReportStyles.tabs}>
+              {reportTabs.map((tab) => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => { setReportMode(tab.key); setEditingWeekEntry(null); setEditingMonthEntry(null) }}
+                  style={reportMode === tab.key ? { ...timeReportStyles.tabButton, ...timeReportStyles.tabButtonActive } : timeReportStyles.tabButton}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+            {reportMode !== "invoice" ? renderTimeReports() : null}
+          </section>
+
+          {reportMode === "invoice" ? renderTimeInvoice() : null}
+        </>
+      )}
+
+      {pinOpen && (
+        <div style={timeTrackerStyles.overlay}>
+          <div style={timeTrackerStyles.pinDialog}>
+            <button type="button" aria-label="Schließen" style={timeTrackerStyles.dialogCloseButton} onClick={() => setPinOpen(false)}><X size={18} /></button>
+            <h3 style={timeTrackerStyles.dialogTitle}>
+              {action === "start" && "PIN-Code eingeben"}
+              {action === "pause" && (paused ? "Pause beenden" : "Pause starten")}
+              {action === "end" && "Feierabend bestätigen"}
+            </h3>
+            <p style={timeTrackerStyles.dialogText}>Der PIN erkennt den Mitarbeiter automatisch und schreibt die Zeit dem richtigen User zu.</p>
+            <div style={timeTrackerStyles.pinDots}>
+              {[0, 1, 2, 3].map((index) => <span key={index} style={pinValue.length > index ? { ...timeTrackerStyles.pinDot, ...timeTrackerStyles.pinDotFilled } : timeTrackerStyles.pinDot}>{pinValue.length > index ? "•" : ""}</span>)}
+            </div>
+            <div style={timeTrackerStyles.pinPad}>
+              {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((digit) => <button key={digit} type="button" style={timeTrackerStyles.pinKey} onClick={() => appendPinDigit(digit)}>{digit}</button>)}
+              <button type="button" style={timeTrackerStyles.pinKeyGhost} onClick={() => setPinValue("")}>C</button>
+              <button type="button" style={timeTrackerStyles.pinKey} onClick={() => appendPinDigit("0")}>0</button>
+              <button type="button" style={timeTrackerStyles.pinKeyGhost} onClick={backspacePin}><KeyRound size={18} /></button>
+            </div>
+            {error ? <div style={timeTrackerStyles.error}>{error}</div> : null}
+            <button type="button" style={timeTrackerStyles.confirmButtonWide} onClick={confirmPin} disabled={pinValue.length < 4}>Bestätigen</button>
+          </div>
         </div>
-      </header>
-      <nav className={styles.timeSubNav} aria-label="Zeiterfassung Ansichten">
-        <div className={styles.timePrimaryTabs}>
-          {[{ key: "wochenzeiten" as TimeSectionKey, title: "Stempeluhr" }, { key: "arbeitstag" as TimeSectionKey, title: "Zeiten" }, { key: "berichte" as TimeSectionKey, title: "Berichte" }, { key: "verwaltung" as TimeSectionKey, title: "Verwaltung" }].map((item) => <Link key={item.key} href={timeHref(item.key)} data-active={activeSection === item.key || (item.key === "wochenzeiten" && rawSection === "overview")}>{item.title}</Link>)}
+      )}
+
+      {completionNotice && (
+        <div style={timeTrackerStyles.overlay}>
+          <div style={timeTrackerStyles.doneDialog}>
+            <button type="button" aria-label="Schließen" style={timeTrackerStyles.dialogCloseButton} onClick={() => setCompletionNotice(null)}><X size={18} /></button>
+            <div style={timeTrackerStyles.doneIcon}><CheckCircle2 size={42} /></div>
+            <h3 style={timeTrackerStyles.doneTitle}>Tag abgeschlossen!</h3>
+            <p style={timeTrackerStyles.doneText}><strong>Gesamtzeit: {formatShortDuration(completionNotice.totalSeconds)}</strong></p>
+            <p style={timeTrackerStyles.doneText}>Bis morgen, {completionNotice.employeeName}!</p>
+            <button type="button" style={timeTrackerStyles.confirmButtonWide} onClick={() => setCompletionNotice(null)}>OK</button>
+          </div>
         </div>
-      </nav>
-      {renderCurrentView()}
+      )}
+
+      {editingMonthEntry && (
+        <div style={timeTrackerStyles.overlay}>
+          <div style={timeTrackerStyles.dialog}>
+            <button type="button" aria-label="Schließen" style={timeTrackerStyles.dialogCloseButton} onClick={() => setEditingMonthEntry(null)}><X size={18} /></button>
+            <h3 style={timeTrackerStyles.dialogTitle}>Zeitblock bearbeiten</h3>
+            <label style={timeInvoiceStyles.label}>Mitarbeiter</label>
+            <select style={timeInvoiceStyles.input} value={editingMonthEntry.employeeId} onChange={(event) => setEditingMonthEntry({ ...editingMonthEntry, employeeId: event.target.value })}>
+              {employeeDirectory.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}
+            </select>
+            <label style={timeInvoiceStyles.label}>Projekt</label>
+            <select style={timeInvoiceStyles.input} value={editingMonthEntry.projectId} onChange={(event) => setEditingMonthEntry({ ...editingMonthEntry, projectId: event.target.value })}>
+              {projectDirectory.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+            </select>
+            <div style={timeInvoiceStyles.twoCols}>
+              <div><label style={timeInvoiceStyles.label}>Start</label><input style={timeInvoiceStyles.input} value={editingMonthEntry.start} onChange={(event) => setEditingMonthEntry({ ...editingMonthEntry, start: event.target.value })} /></div>
+              <div><label style={timeInvoiceStyles.label}>Ende</label><input style={timeInvoiceStyles.input} value={editingMonthEntry.end} onChange={(event) => setEditingMonthEntry({ ...editingMonthEntry, end: event.target.value })} /></div>
+            </div>
+            <label style={timeInvoiceStyles.label}>Notiz</label>
+            <input style={timeInvoiceStyles.input} value={editingMonthEntry.note} onChange={(event) => setEditingMonthEntry({ ...editingMonthEntry, note: event.target.value })} />
+            <div style={timeTrackerStyles.dialogActions}>
+              <button type="button" style={timeTrackerStyles.cancelButton} onClick={() => setEditingMonthEntry(null)}>Abbrechen</button>
+              <button type="button" style={timeTrackerStyles.confirmButton} onClick={saveMonthEntry}>Speichern</button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   )
+}
+
+
+const timeInvoiceStyles: Record<string, CSSProperties> = {
+  card: {
+    background: "#ffffff",
+    borderRadius: 8,
+    padding: 22,
+    border: "1px solid #e5e7eb",
+    boxShadow: "0 22px 60px rgba(15,23,42,0.08)",
+    display: "flex",
+    flexDirection: "column",
+    gap: 18
+  },
+  header: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 16,
+    alignItems: "flex-start"
+  },
+  title: {
+    margin: 0,
+    fontSize: 20,
+    fontWeight: 900
+  },
+  sub: {
+    margin: "6px 0 0",
+    color: "#6b7280",
+    fontSize: 13,
+    lineHeight: 1.5
+  },
+  primaryButton: {
+    border: 0,
+    borderRadius: 999,
+    background: "#7c3aed",
+    color: "#ffffff",
+    padding: "10px 16px",
+    fontWeight: 900,
+    cursor: "pointer"
+  },
+  grid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 16
+  },
+  panel: {
+    background: "#f9fafb",
+    border: "1px solid #e5e7eb",
+    borderRadius: 8,
+    padding: 16,
+    display: "flex",
+    flexDirection: "column",
+    gap: 10
+  },
+  panelTitle: {
+    margin: 0,
+    fontSize: 16,
+    fontWeight: 900
+  },
+  label: {
+    fontSize: 12,
+    fontWeight: 800,
+    color: "#6b7280"
+  },
+  input: {
+    height: 42,
+    borderRadius: 14,
+    border: "1px solid #d1d5db",
+    padding: "0 12px",
+    background: "#ffffff",
+    fontWeight: 700,
+    outline: "none",
+    width: "100%",
+    boxSizing: "border-box"
+  },
+  twoCols: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 10
+  },
+  addButton: {
+    marginTop: 6,
+    border: 0,
+    borderRadius: 999,
+    background: "#111827",
+    color: "#ffffff",
+    padding: "11px 14px",
+    fontWeight: 900,
+    cursor: "pointer"
+  },
+  previewBox: {
+    background: "#ffffff",
+    border: "1px solid #e5e7eb",
+    borderRadius: 8,
+    padding: 14,
+    display: "flex",
+    flexDirection: "column",
+    gap: 10
+  },
+  salaryBox: {
+    background: "#ffffff",
+    border: "1px solid #e5e7eb",
+    borderRadius: 8,
+    padding: 14,
+    display: "flex",
+    flexDirection: "column",
+    gap: 10
+  },
+  smallTitle: {
+    margin: 0,
+    fontSize: 14,
+    fontWeight: 900
+  },
+  row: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 12,
+    fontSize: 13,
+    color: "#374151"
+  },
+  strongValue: {
+    color: "#7c3aed",
+    fontSize: 16
+  },
+  linesPanel: {
+    background: "#f9fafb",
+    border: "1px solid #e5e7eb",
+    borderRadius: 8,
+    padding: 16,
+    display: "flex",
+    flexDirection: "column",
+    gap: 12
+  },
+  linesHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center"
+  },
+  muted: {
+    fontSize: 12,
+    color: "#6b7280"
+  },
+  empty: {
+    borderRadius: 8,
+    background: "#ffffff",
+    border: "1px dashed #d1d5db",
+    padding: 18,
+    color: "#6b7280",
+    fontSize: 13
+  },
+  table: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 8
+  },
+  tableRow: {
+    display: "grid",
+    gridTemplateColumns: "1.4fr 0.5fr 0.7fr 0.8fr 0.8fr auto",
+    gap: 10,
+    alignItems: "center",
+    background: "#ffffff",
+    border: "1px solid #e5e7eb",
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 12
+  },
+  deleteButton: {
+    border: 0,
+    borderRadius: 999,
+    background: "#fee2e2",
+    color: "#b91c1c",
+    padding: "8px 10px",
+    fontWeight: 900,
+    cursor: "pointer"
+  },
+  totalBox: {
+    marginLeft: "auto",
+    width: "min(360px, 100%)",
+    background: "#ffffff",
+    border: "1px solid #e5e7eb",
+    borderRadius: 8,
+    padding: 14,
+    display: "flex",
+    flexDirection: "column",
+    gap: 10
+  }
+}
+
+const timeReportStyles: Record<string, CSSProperties> = {
+  card: {
+    background: "#ffffff",
+    borderRadius: 8,
+    padding: 22,
+    border: "1px solid #e5e7eb",
+    boxShadow: "0 22px 60px rgba(15,23,42,0.08)",
+    display: "flex",
+    flexDirection: "column",
+    gap: 18
+  },
+  tabs: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 8,
+    padding: 6,
+    borderRadius: 16,
+    background: "#f9fafb",
+    border: "1px solid #e5e7eb"
+  },
+  tabButton: {
+    border: 0,
+    borderRadius: 999,
+    background: "transparent",
+    color: "#4b5563",
+    padding: "9px 14px",
+    fontWeight: 900,
+    cursor: "pointer"
+  },
+  tabButtonActive: {
+    background: "#111827",
+    color: "#ffffff"
+  },
+  header: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 16,
+    alignItems: "flex-start"
+  },
+  title: { margin: 0, fontSize: 20, fontWeight: 900 },
+  sub: { margin: "6px 0 0", color: "#6b7280", fontSize: 13, lineHeight: 1.5 },
+  exportButton: { border: 0, borderRadius: 999, background: "#ede9fe", color: "#5b21b6", padding: "9px 14px", fontWeight: 900, cursor: "pointer" },
+  kpiGrid: { display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12 },
+  kpi: { background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 8, padding: 14, display: "flex", flexDirection: "column", gap: 5 },
+  timeline: { display: "flex", flexDirection: "column", gap: 12 },
+  timelineRow: { display: "grid", gridTemplateColumns: "110px minmax(0, 1fr)", gap: 12, alignItems: "center" },
+  timeCol: { fontSize: 12, color: "#6b7280", fontWeight: 800 },
+  eventCard: { borderLeft: "5px solid", background: "#f9fafb", borderRadius: 8, padding: 14, display: "flex", flexDirection: "column", gap: 4 },
+  weekGrid: { display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 8, minHeight: 260 },
+  dayCol: { background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 8, padding: 8 },
+  dayHead: { textAlign: "center", fontSize: 12, fontWeight: 900, marginBottom: 8 },
+  weekEvent: { width: "100%", border: 0, borderRadius: 8, padding: 9, color: "#ffffff", fontSize: 11, display: "flex", flexDirection: "column", gap: 4, textAlign: "left", boxShadow: "0 12px 24px rgba(15,23,42,0.16)", cursor: "pointer" },
+  weekTime: { opacity: 0.9 },
+  summaryRow: { display: "flex", gap: 10, flexWrap: "wrap" },
+  badge: { padding: "8px 12px", borderRadius: 999, background: "#f9fafb", border: "1px solid #e5e7eb", fontSize: 12 },
+  badgeDanger: { background: "#fee2e2", borderColor: "#fecaca", color: "#b91c1c" },
+  monthGrid: { display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 8 },
+  monthDay: { minHeight: 72, borderRadius: 8, border: "1px solid #e5e7eb", background: "#f9fafb", padding: 10, display: "flex", flexDirection: "column", justifyContent: "space-between", color: "#6b7280" },
+  monthDayActive: { background: "#ede9fe", color: "#5b21b6", borderColor: "#c4b5fd" },
+  monthPlanner: { display: "grid", gridTemplateColumns: "minmax(620px, 1fr) minmax(280px, 0.42fr)", gap: 14, alignItems: "start" },
+  monthPlannerMain: { border: "1px solid #e5e7eb", borderRadius: 8, overflow: "hidden", background: "#ffffff" },
+  monthPlannerToolbar: { display: "flex", justifyContent: "space-between", gap: 12, padding: "14px 16px", borderBottom: "1px solid #e5e7eb", color: "#334155" },
+  monthPlannerGrid: { display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))" },
+  monthPlannerHead: { padding: "10px 8px", textAlign: "center", fontSize: 12, fontWeight: 900, color: "#334155", borderRight: "1px solid #e5e7eb", borderBottom: "1px solid #e5e7eb" },
+  monthPlannerDay: { minHeight: 94, padding: 8, borderRight: "1px solid #e5e7eb", borderBottom: "1px solid #e5e7eb", color: "#64748b", display: "flex", flexDirection: "column", gap: 6 },
+  monthPlannerDayActive: { background: "#f8fafc", color: "#0f172a" },
+  monthPlannerEntry: { border: "1px solid rgba(15,23,42,0.12)", borderRadius: 6, padding: 7, color: "#172033", display: "grid", gap: 3, textAlign: "left", cursor: "pointer", fontSize: 11, boxShadow: "0 8px 18px rgba(15,23,42,0.08)" },
+  monthSummaryCard: { background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 8, padding: 16, boxShadow: "0 18px 42px rgba(15,23,42,0.08)" },
+  monthMiniGrid: { display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 4, marginTop: 12 },
+  monthMiniDay: { height: 34, border: "1px solid #e5e7eb", background: "#f8fafc", borderRadius: 6, color: "#64748b", cursor: "pointer" },
+  monthMiniDayActive: { height: 34, border: "1px solid #a78bfa", background: "#ede9fe", borderRadius: 6, color: "#4c1d95", fontWeight: 900, cursor: "pointer" },
+  monthTotals: { marginTop: 16, display: "grid", gap: 8 },
+  weekGridCompact: { display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: 8, minHeight: 260 },
+  dayColCompact: { background: "#f9fafb", border: "1px solid #e5e7eb", borderRadius: 8, padding: 8 },
+  weekToolbar: { display: "flex", flexWrap: "wrap", gap: 10, alignItems: "center" },
+  weekToolbarButton: { height: 38, border: "1px solid #dbe3ef", borderRadius: 6, background: "#ffffff", color: "#172033", padding: "0 14px", fontWeight: 800, display: "inline-flex", alignItems: "center", gap: 8, cursor: "pointer", boxShadow: "0 8px 18px rgba(15,23,42,0.05)" },
+  weekToolbarIcon: { width: 42, height: 38, border: "1px solid #dbe3ef", borderRadius: 6, background: "#ffffff", color: "#172033", display: "grid", placeItems: "center", cursor: "pointer", boxShadow: "0 8px 18px rgba(15,23,42,0.05)" },
+  weekPlannerLayout: { display: "grid", gridTemplateColumns: "minmax(920px, 1fr)", gap: 14, alignItems: "start" },
+  weekPlannerMain: { position: "relative", background: "#ffffff", border: "1px solid #dbe3ef", borderRadius: 8, boxShadow: "0 20px 50px rgba(15,23,42,0.08)", overflow: "hidden" },
+  weekPlannerTitleRow: { display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", padding: "16px 18px", borderBottom: "1px solid #dbe3ef" },
+  weekPlannerTitle: { display: "flex", alignItems: "center", gap: 12, color: "#172033", fontSize: 18 },
+  weekHint: { color: "#64748b", fontSize: 12, fontWeight: 800 },
+  weekCalendarGrid: { position: "relative", display: "grid", gridTemplateColumns: "72px repeat(7, minmax(118px, 1fr))", minHeight: 670, background: "#ffffff" },
+  weekCorner: { borderRight: "1px solid #e5e7eb", borderBottom: "1px solid #e5e7eb", background: "#f8fafc" },
+  weekCalendarHead: { height: 58, borderRight: "1px solid #e5e7eb", borderBottom: "1px solid #e5e7eb", display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "center", color: "#172033", background: "#f8fafc" },
+  weekTimeRail: { gridColumn: "1 / 2", gridRow: "2 / 3", borderRight: "1px solid #e5e7eb", display: "grid", gridTemplateRows: "repeat(11, 54px)", color: "#475569", fontSize: 13, paddingTop: 9, background: "#ffffff" },
+  weekDayLane: { position: "relative", minHeight: 594, borderRight: "1px solid #e5e7eb", background: "#ffffff" },
+  weekHourLine: { display: "block", height: 54, borderBottom: "1px solid #eef2f7" },
+  weekBlock: { position: "absolute", left: "8%", width: "84%", border: "1px solid rgba(15,23,42,0.14)", borderRadius: 6, color: "#ffffff", padding: 9, display: "flex", flexDirection: "column", gap: 4, textAlign: "left", cursor: "pointer", boxShadow: "0 10px 24px rgba(15,23,42,0.14)", overflow: "hidden" },
+  weekNowLine: { position: "absolute", left: 0, right: 0, top: 318, height: 1, background: "#fb7185", pointerEvents: "none" },
+  weekEditPopover: { position: "absolute", left: "43%", top: 174, width: 318, border: "1px solid #e5e7eb", borderRadius: 8, background: "#ffffff", boxShadow: "0 24px 70px rgba(15,23,42,0.22)", padding: 16, zIndex: 4, display: "flex", flexDirection: "column", gap: 9 },
+  weekPopoverClose: { position: "absolute", top: 10, right: 10, border: 0, background: "transparent", color: "#64748b", cursor: "pointer" },
+  weekPopoverTitle: { display: "flex", alignItems: "center", gap: 8, color: "#172033", paddingRight: 22 },
+  weekPopoverSub: { color: "#475569", fontSize: 13 },
+  weekPopoverMeta: { display: "flex", alignItems: "center", gap: 9, color: "#172033", fontWeight: 800, borderTop: "1px solid #e5e7eb", paddingTop: 8 },
+  weekPopoverActions: { display: "flex", alignItems: "center", gap: 8, borderTop: "1px solid #e5e7eb", paddingTop: 10 },
+  weekPopoverIcon: { width: 36, height: 34, border: "1px solid #e5e7eb", borderRadius: 6, background: "#ffffff", color: "#1e2a5a", display: "grid", placeItems: "center", cursor: "pointer" },
+  weekPopoverIconDanger: { width: 36, height: 34, border: "1px solid #fecaca", borderRadius: 6, background: "#fff1f2", color: "#e11d48", display: "grid", placeItems: "center", cursor: "pointer" },
+  weekBottomSummary: { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 0, margin: 14, border: "1px solid #e5e7eb", borderRadius: 8, overflow: "hidden", background: "#ffffff", boxShadow: "0 14px 32px rgba(15,23,42,0.07)" },
+  weekSidePanel: { display: "flex", flexDirection: "column", gap: 12 },
+  weekSideCard: { background: "#ffffff", border: "1px solid #dbe3ef", borderRadius: 8, padding: 16, boxShadow: "0 18px 42px rgba(15,23,42,0.08)" },
+  weekMiniMatrix: { display: "grid", gridTemplateColumns: "repeat(6, minmax(0, 1fr))", gap: 0, marginTop: 14, border: "1px solid #e5e7eb", borderRadius: 6, overflow: "hidden" },
+  weekMiniCell: { height: 34, border: 0, borderRight: "1px solid #e5e7eb", borderBottom: "1px solid #e5e7eb", background: "#ffffff", color: "#172033", fontWeight: 700 },
+  weekMiniCellGreen: { height: 34, border: 0, borderRight: "1px solid #e5e7eb", borderBottom: "1px solid #e5e7eb", background: "#86efac", color: "#064e3b", fontWeight: 900 },
+  weekMiniCellPurple: { height: 34, border: 0, borderRight: "1px solid #e5e7eb", borderBottom: "1px solid #e5e7eb", background: "#ddd6fe", color: "#312e81", fontWeight: 900 },
+  weekSideTotals: { display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderBottom: "1px solid #e5e7eb" },
+  weekLegendGrid: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginTop: 12 },
+  weekSideGrand: { marginTop: 12, paddingTop: 12, borderTop: "1px solid #e5e7eb", textAlign: "center" },
+  monthAccountLayout: { display: "grid", gridTemplateColumns: "minmax(760px, 1fr) minmax(260px, 0.32fr)", gap: 16, alignItems: "start" },
+  monthAccountMain: { background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 8, padding: 18, boxShadow: "0 18px 42px rgba(15,23,42,0.07)" },
+  monthAccountToolbar: { display: "flex", alignItems: "center", gap: 10, marginBottom: 18 },
+  monthSelect: { height: 36, border: "1px solid #dbe3ef", borderRadius: 6, background: "#ffffff", padding: "0 12px", fontWeight: 800 },
+  monthNavButton: { width: 34, height: 34, border: 0, background: "transparent", color: "#1e2a5a", display: "grid", placeItems: "center", cursor: "pointer" },
+  monthToggle: { marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 8, color: "#334155", fontSize: 12, fontWeight: 800 },
+  monthExportButton: { height: 36, border: "1px solid #e5e7eb", borderRadius: 6, background: "#ffffff", color: "#334155", padding: "0 12px", display: "inline-flex", alignItems: "center", gap: 6, fontWeight: 800, cursor: "pointer" },
+  monthEmployeeSummary: { display: "grid", gridTemplateColumns: "1fr 1fr 1.35fr", gap: 14, marginBottom: 20 },
+  monthSummaryBox: { minHeight: 84, border: "1px solid #e5e7eb", borderRadius: 8, padding: 14, background: "#ffffff", display: "flex", flexDirection: "column", gap: 5, color: "#334155" },
+  monthSummaryBoxStrong: { minHeight: 84, border: "1px solid #ddd6fe", borderRadius: 8, padding: 14, background: "#f8f7ff", display: "flex", flexDirection: "column", gap: 5, color: "#334155", position: "relative" },
+  monthAccountSection: { marginTop: 20 },
+  monthAccountSectionHead: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 },
+  monthAccountGrid: { display: "grid", gridTemplateColumns: "52px repeat(7, minmax(82px, 1fr)) 90px", borderTop: "1px solid #e5e7eb", borderLeft: "1px solid #e5e7eb" },
+  monthKwHead: { padding: 8, fontWeight: 900, color: "#64748b", borderRight: "1px solid #e5e7eb", borderBottom: "1px solid #e5e7eb" },
+  monthDayHead: { padding: 8, fontWeight: 900, color: "#64748b", borderRight: "1px solid #e5e7eb", borderBottom: "1px solid #e5e7eb", textAlign: "center" },
+  monthKwCell: { padding: 8, color: "#94a3b8", borderRight: "1px solid #e5e7eb", borderBottom: "1px solid #e5e7eb", fontWeight: 900 },
+  monthAccountCell: { minHeight: 58, border: 0, borderRight: "1px solid #e5e7eb", borderBottom: "1px solid #e5e7eb", background: "#ffffff", color: "#22c55e", padding: 7, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, cursor: "pointer", fontWeight: 800 },
+  monthAccountCellNegative: { minHeight: 58, border: 0, borderRight: "1px solid #e5e7eb", borderBottom: "1px solid #e5e7eb", background: "#ffffff", color: "#ef4444", padding: 7, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, cursor: "pointer", fontWeight: 800 },
+  monthAccountCellBadge: { minHeight: 58, border: 0, borderRight: "1px solid #e5e7eb", borderBottom: "1px solid #e5e7eb", background: "#ffffff", color: "#16a34a", padding: 7, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 3, cursor: "pointer", fontWeight: 800 },
+  monthSumCell: { padding: 8, borderRight: "1px solid #e5e7eb", borderBottom: "1px solid #e5e7eb", background: "#f8fafc", color: "#22c55e", fontWeight: 900, display: "grid", placeItems: "center" },
+  monthAccountSide: { background: "#ffffff", border: "1px solid #e5e7eb", borderRadius: 8, padding: 16, boxShadow: "0 18px 42px rgba(15,23,42,0.08)", display: "flex", flexDirection: "column", gap: 10 },
+  monthLegendGrid: { display: "grid", gap: 8, marginTop: 10 },
+  monthAccountMetric: { display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, margin: 0, padding: "9px 0", borderBottom: "1px solid #eef2f7", color: "#334155" },
+  monthLegendItem: { display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12, fontWeight: 800, color: "#475569" },
+  monthLegendSwatch: { width: 12, height: 12, borderRadius: 4, display: "inline-block", flex: "0 0 auto" },
+
+  yearGrid: { display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 12 },
+  yearCard: { borderRadius: 8, background: "#f9fafb", border: "1px solid #e5e7eb", padding: 14, display: "flex", flexDirection: "column", gap: 10 },
+  barWrap: { display: "flex", flexDirection: "column", gap: 4 },
+  barLabel: { display: "flex", justifyContent: "space-between", fontSize: 11, color: "#4b5563", fontWeight: 800 },
+  barTrack: { height: 7, background: "#e5e7eb", borderRadius: 999, overflow: "hidden" },
+  barFill: { height: "100%", borderRadius: 999 }
+}
+
+const timeTrackerStyles: Record<string, CSSProperties> = {
+  page: { minHeight: "100%", padding: 24, display: "flex", flexDirection: "column", gap: 18, background: "#f6f7fb", color: "#111827" },
+  pageHeader: { display: "flex", justifyContent: "space-between", gap: 16, alignItems: "flex-start" },
+  kicker: { display: "block", marginBottom: 6, color: "#6b7280", fontSize: 12, fontWeight: 900, textTransform: "uppercase", letterSpacing: 0 },
+  pageTitle: { margin: 0, fontSize: 26, fontWeight: 900, letterSpacing: 0 },
+  pageText: { margin: "6px 0 0", fontSize: 14, color: "#6b7280", lineHeight: 1.5 },
+  viewSwitch: { display: "inline-flex", alignSelf: "flex-start", gap: 6, padding: 4, border: "1px solid #e5e7eb", borderRadius: 8, background: "#ffffff" },
+  viewSwitchButton: { border: 0, borderRadius: 6, padding: "10px 14px", background: "transparent", color: "#64748b", fontSize: 13, fontWeight: 900, cursor: "pointer" },
+  viewSwitchButtonActive: { background: "#111827", color: "#ffffff", boxShadow: "0 10px 22px rgba(15,23,42,0.14)" },
+  layoutGrid: { display: "grid", gridTemplateColumns: "minmax(420px, 1fr) minmax(320px, 0.45fr)", gap: 18, alignItems: "start" },
+  card: { background: "#ffffff", borderRadius: 8, padding: 22, border: "1px solid #e5e7eb", boxShadow: "0 22px 60px rgba(15,23,42,0.08)", display: "flex", flexDirection: "column", gap: 18 },
+  header: { display: "flex", justifyContent: "space-between", gap: 16, alignItems: "flex-start" },
+  title: { margin: 0, fontSize: 20, fontWeight: 800 },
+  sub: { margin: "6px 0 0", fontSize: 13, color: "#6b7280", lineHeight: 1.5 },
+  badgeActive: { borderRadius: 999, padding: "7px 12px", fontSize: 12, fontWeight: 800, color: "#166534", background: "#dcfce7" },
+  badgePaused: { borderRadius: 999, padding: "7px 12px", fontSize: 12, fontWeight: 800, color: "#92400e", background: "#fef3c7" },
+  badgeIdle: { borderRadius: 999, padding: "7px 12px", fontSize: 12, fontWeight: 800, color: "#374151", background: "#f3f4f6" },
+  projectBox: { display: "flex", flexDirection: "column", gap: 7 },
+  label: { fontSize: 12, color: "#6b7280", fontWeight: 700 },
+  select: { height: 42, borderRadius: 14, border: "1px solid #e5e7eb", padding: "0 12px", background: "#f9fafb", fontWeight: 700, outline: "none" },
+  timerWrap: { display: "flex", justifyContent: "center", padding: "18px 0 12px" },
+  timerCircle: { width: 310, height: 310, borderRadius: "50%", background: "conic-gradient(from 180deg, #94a3b8 0deg, #cbd5e1 120deg, #e2e8f0 240deg, #94a3b8 360deg)", display: "grid", placeItems: "center", boxShadow: "0 30px 70px rgba(99,102,241,0.18)", transition: "background 240ms ease" },
+  timerCircleRunning: { background: "conic-gradient(from 180deg, #22c55e 0deg, #0ea5e9 120deg, #6366f1 240deg, #22c55e 360deg)", animation: "timeTimerSpin 6s linear infinite" },
+  timerCirclePaused: { background: "conic-gradient(from 180deg, #f59e0b 0deg, #f97316 120deg, #facc15 240deg, #f59e0b 360deg)", animation: "timeTimerSpin 11s linear infinite" },
+  timerCircleDone: { background: "conic-gradient(from 180deg, #22c55e 0deg, #86efac 180deg, #14b8a6 360deg)" },
+  timerInner: { width: 248, height: 248, borderRadius: "50%", background: "#ffffff", display: "grid", placeItems: "center", textAlign: "center", border: "1px solid #eef2ff" },
+  timerText: { fontSize: 46, fontWeight: 900, letterSpacing: 0 },
+  timerSub: { fontSize: 14, color: "#4b5563", marginTop: -58, fontWeight: 800 },
+  actions: { display: "flex", justifyContent: "center", gap: 12, flexWrap: "wrap" },
+  startButton: { border: 0, borderRadius: 999, padding: "12px 24px", background: "#22c55e", color: "#ffffff", fontWeight: 900, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 },
+  pauseButton: { border: 0, borderRadius: 999, padding: "12px 24px", background: "#fef3c7", color: "#92400e", fontWeight: 900, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 },
+  endButton: { border: 0, borderRadius: 999, padding: "12px 24px", background: "#ef4444", color: "#ffffff", fontWeight: 900, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8 },
+  statsGrid: { display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10 },
+  infoCard: { borderRadius: 8, padding: 12, background: "#f9fafb", border: "1px solid #e5e7eb", minHeight: 64 },
+  infoLabel: { fontSize: 11, color: "#6b7280", fontWeight: 800, marginBottom: 6 },
+  infoValue: { fontSize: 13, fontWeight: 900, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" },
+  sideColumn: { display: "flex", flexDirection: "column", gap: 14 },
+  employeeBox: { borderRadius: 8, background: "#ffffff", border: "1px solid #e5e7eb", padding: 14, boxShadow: "0 16px 42px rgba(15,23,42,0.07)" },
+  employeeBoxHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10, color: "#4f46e5" },
+  smallTitle: { fontSize: 13, fontWeight: 900, marginBottom: 4 },
+  mutedText: { color: "#64748b", fontSize: 11, fontWeight: 800 },
+  employeeList: { display: "flex", flexDirection: "column", gap: 8 },
+  employeeChip: { border: "1px solid #e5e7eb", background: "#ffffff", borderRadius: 999, padding: "8px 12px", fontSize: 12, fontWeight: 800, cursor: "pointer" },
+  employeeRow: { border: "1px solid #e5e7eb", background: "#ffffff", borderRadius: 8, padding: 10, fontSize: 12, fontWeight: 800, cursor: "pointer", display: "grid", gridTemplateColumns: "38px minmax(0, 1fr) auto", alignItems: "center", gap: 10, textAlign: "left" },
+  employeeAvatar: { width: 36, height: 36, borderRadius: 999, background: "#eef2ff", color: "#4338ca", display: "grid", placeItems: "center", fontWeight: 900 },
+  employeeChipActive: { background: "#ede9fe", color: "#5b21b6", borderColor: "#c4b5fd" },
+  employeeStatusDot: { width: 10, height: 10, borderRadius: 999, background: "#cbd5e1" },
+  statusRunning: { background: "#22c55e", boxShadow: "0 0 0 4px #dcfce7" },
+  statusPaused: { background: "#f59e0b", boxShadow: "0 0 0 4px #fef3c7" },
+  statusDone: { background: "#6366f1", boxShadow: "0 0 0 4px #e0e7ff" },
+  summaryCard: { borderRadius: 8, background: "#ffffff", border: "1px solid #e5e7eb", padding: 14, boxShadow: "0 16px 42px rgba(15,23,42,0.07)", display: "flex", flexDirection: "column", gap: 8 },
+  overlay: { position: "fixed", inset: 0, background: "rgba(15,23,42,0.35)", display: "grid", placeItems: "center", zIndex: 50, backdropFilter: "blur(5px)" },
+  dialog: { position: "relative", width: "min(440px, calc(100vw - 32px))", borderRadius: 12, background: "#ffffff", padding: 22, border: "1px solid #e5e7eb", boxShadow: "0 30px 90px rgba(15,23,42,0.25)", display: "flex", flexDirection: "column", gap: 10 },
+  pinDialog: { position: "relative", width: "min(430px, calc(100vw - 32px))", borderRadius: 12, background: "#ffffff", padding: 22, border: "1px solid #e5e7eb", boxShadow: "0 30px 90px rgba(15,23,42,0.25)", display: "flex", flexDirection: "column", gap: 14, textAlign: "center" },
+  dialogCloseButton: { position: "absolute", right: 14, top: 14, border: 0, background: "transparent", color: "#64748b", cursor: "pointer" },
+  dialogTitle: { margin: 0, fontSize: 20, fontWeight: 900 },
+  dialogText: { fontSize: 13, color: "#6b7280", lineHeight: 1.5, margin: 0 },
+  pinDots: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10 },
+  pinDot: { height: 44, borderRadius: 8, border: "1px solid #dbe3ef", background: "#ffffff", display: "grid", placeItems: "center", color: "#1e2a5a", fontSize: 22, fontWeight: 900, boxShadow: "0 8px 18px rgba(15,23,42,0.08)" },
+  pinDotFilled: { borderColor: "#7c3aed", background: "#f5f3ff" },
+  pinPad: { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 },
+  pinKey: { height: 48, borderRadius: 8, border: "1px solid #dbe3ef", background: "#ffffff", color: "#1e2a5a", fontSize: 22, fontWeight: 900, cursor: "pointer", boxShadow: "0 8px 18px rgba(15,23,42,0.08)" },
+  pinKeyGhost: { height: 48, borderRadius: 8, border: "1px solid #dbe3ef", background: "#f8fafc", color: "#1e2a5a", fontSize: 14, fontWeight: 900, cursor: "pointer", display: "grid", placeItems: "center" },
+  error: { color: "#b91c1c", background: "#fee2e2", border: "1px solid #fecaca", borderRadius: 8, padding: 10, fontSize: 12, fontWeight: 800 },
+  dialogActions: { display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 8 },
+  cancelButton: { border: "1px solid #e5e7eb", borderRadius: 999, padding: "10px 14px", background: "#ffffff", fontWeight: 800, cursor: "pointer" },
+  confirmButton: { border: 0, borderRadius: 999, padding: "10px 14px", background: "#7c3aed", color: "#ffffff", fontWeight: 900, cursor: "pointer" },
+  confirmButtonWide: { width: "100%", border: 0, borderRadius: 8, padding: "12px 14px", background: "#7c3aed", color: "#ffffff", fontWeight: 900, cursor: "pointer" },
+  doneDialog: { position: "relative", width: "min(420px, calc(100vw - 32px))", borderRadius: 12, background: "#ffffff", border: "1px solid #e5e7eb", boxShadow: "0 30px 90px rgba(15,23,42,0.25)", padding: "26px 26px 22px", display: "flex", flexDirection: "column", gap: 10, alignItems: "center", textAlign: "center" },
+  doneIcon: { width: 72, height: 72, borderRadius: 999, background: "#22c55e", color: "#ffffff", display: "grid", placeItems: "center" },
+  doneTitle: { margin: 0, fontSize: 24, fontWeight: 900 },
+  doneText: { margin: 0, color: "#334155", fontSize: 15 }
 }
 
 function PremiumModulePage({
