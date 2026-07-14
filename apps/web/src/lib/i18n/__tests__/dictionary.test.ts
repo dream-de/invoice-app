@@ -25,6 +25,21 @@ describe("i18n dictionary", () => {
     }
   })
 
+  it("does not reintroduce removed blank settings placeholder keys", () => {
+    const removedPlaceholderKeys = [
+      "settings.language.description",
+      "settings.language.hint",
+      "settings.backup.description"
+    ]
+
+    for (const language of supportedLanguages) {
+      const dictionary = appTranslations[language.code]
+      const presentRemovedKeys = removedPlaceholderKeys.filter((key) => key in dictionary)
+
+      assert.deepEqual(presentRemovedKeys, [])
+    }
+  })
+
   it("keeps the configured languages stable", () => {
     assert.equal(DEFAULT_LANGUAGE, "de")
     assert.equal(isAppLanguage("de"), true)
