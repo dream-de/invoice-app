@@ -19,8 +19,26 @@ describe("session tokens", () => {
     assert.equal(payload?.userId, "user_1")
   })
 
-  it("uses the production-derived secure cookie setting", () => {
-    assert.equal(getSessionCookieOptions().secure, process.env.NODE_ENV === "production")
+  it("keeps session cookies usable on HTTP unless secure cookies are requested", () => {
+    const previous = process.env.AUTH_COOKIE_SECURE
+    const previousUrl = process.env.NEXT_PUBLIC_APP_URL
+
+    delete process.env.AUTH_COOKIE_SECURE
+    delete process.env.NEXT_PUBLIC_APP_URL
+    assert.equal(getSessionCookieOptions().secure, false)
+
+    process.env.AUTH_COOKIE_SECURE = "true"
+    assert.equal(getSessionCookieOptions().secure, true)
+
+    delete process.env.AUTH_COOKIE_SECURE
+    process.env.NEXT_PUBLIC_APP_URL = "https://invoice.example.com"
+    assert.equal(getSessionCookieOptions().secure, true)
+
+    if (previous === undefined) delete process.env.AUTH_COOKIE_SECURE
+    else process.env.AUTH_COOKIE_SECURE = previous
+
+    if (previousUrl === undefined) delete process.env.NEXT_PUBLIC_APP_URL
+    else process.env.NEXT_PUBLIC_APP_URL = previousUrl
   })
 
   it("rejects tampered and expired tokens", () => {

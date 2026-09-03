@@ -1,5 +1,3 @@
-export const isProd = process.env.NODE_ENV === "production"
-
 const AUTH_PASSWORD = process.env.DREAM_INVOICE_AUTH_PASSWORD || null
 
 function envFlag(name: string, fallback: boolean) {
@@ -22,7 +20,6 @@ function publicUrlUsesHttps() {
 
 export const AUTH_REQUIRED = envFlag("DREAM_INVOICE_AUTH_REQUIRED", false)
 export const COOKIE_SECURE = envFlag("AUTH_COOKIE_SECURE", publicUrlUsesHttps())
-export const SETUP_PROTECTED = envFlag("DREAM_INVOICE_SETUP_PROTECTED", isProd)
 
 if (AUTH_REQUIRED && (!AUTH_PASSWORD || AUTH_PASSWORD.trim() === "")) {
   throw new Error(
