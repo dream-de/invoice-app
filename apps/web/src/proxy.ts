@@ -3,12 +3,6 @@ import { NextResponse } from "next/server"
 import { evaluateAppRequestGuard } from "@dream-invoice/auth"
 import { validateRuntimeEnv } from "@/lib/env/runtime"
 
-function envFlag(value: string | undefined) {
-  const normalized = String(value ?? "").trim().toLowerCase()
-  if (["1", "true", "yes", "on"].includes(normalized)) return true
-  if (["0", "false", "no", "off"].includes(normalized)) return false
-  return false
-}
 
 export async function proxy(request: NextRequest) {
   const runtimeEnv = validateRuntimeEnv(process.env)
@@ -29,7 +23,6 @@ export async function proxy(request: NextRequest) {
   }
 
   const isDemoMode = process.env.DREAM_INVOICE_DEMO_MODE === "true"
-  const authRequired = envFlag(process.env.DREAM_INVOICE_AUTH_REQUIRED)
   const decision = await evaluateAppRequestGuard({
     method: request.method,
     url: request.url,
@@ -38,8 +31,7 @@ export async function proxy(request: NextRequest) {
     basicAuthUserEnv: "DREAM_INVOICE_AUTH_USER",
     basicAuthPasswordEnv: "DREAM_INVOICE_AUTH_PASSWORD",
     basicAuthRequiredEnv: "DREAM_INVOICE_AUTH_REQUIRED",
-    defaultBasicAuthRequired: authRequired,
-    protectAppSession: authRequired && !isDemoMode,
+    protectAppSession: !isDemoMode,
     sessionSecretEnv: "AUTH_SECRET",
     publicPaths: ["/login", "/api/auth"]
   })
