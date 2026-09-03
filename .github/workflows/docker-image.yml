@@ -3,9 +3,9 @@ name: Docker Images
 on:
   push:
     branches:
-      - main
+      - dev/dreaminvoice-premium
     tags:
-      - "v*"
+      - "premium-v*"
   pull_request:
     paths:
       - "apps/**"
@@ -25,11 +25,11 @@ permissions:
 
 env:
   REGISTRY: ghcr.io
-  WEB_IMAGE: ghcr.io/dream-de/invoice-app
+  PREMIUM_IMAGE: ghcr.io/dream-de/invoice-premium
 
 jobs:
   build:
-    name: Build and publish images
+    name: Build and publish premium image
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -46,27 +46,24 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Web image metadata
-        id: web-meta
+      - name: Premium image metadata
+        id: premium-meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.WEB_IMAGE }}
+          images: ${{ env.PREMIUM_IMAGE }}
           tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=dev,enable=${{ github.ref == 'refs/heads/dev/dreaminvoice-premium' }}
             type=ref,event=branch
             type=ref,event=tag
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
             type=sha,prefix=sha-
 
-      - name: Build web image
+      - name: Build premium image
         uses: docker/build-push-action@v6
         with:
           context: .
           file: docker/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.web-meta.outputs.tags }}
-          labels: ${{ steps.web-meta.outputs.labels }}
-          cache-from: type=gha,scope=web
-          cache-to: type=gha,mode=max,scope=web
-
+          tags: ${{ steps.premium-meta.outputs.tags }}
+          labels: ${{ steps.premium-meta.outputs.labels }}
+          cache-from: type=gha,scope=premium
+          cache-to: type=gha,mode=max,scope=premium
