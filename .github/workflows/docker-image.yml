@@ -26,6 +26,7 @@ permissions:
 env:
   REGISTRY: ghcr.io
   WEB_IMAGE: ghcr.io/dream-de/invoice-app
+  DEMO_IMAGE: ghcr.io/dream-de/invoice-demo
 
 jobs:
   build:
@@ -59,6 +60,19 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=sha,prefix=sha-
 
+      - name: Demo image metadata
+        id: demo-meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DEMO_IMAGE }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=branch
+            type=ref,event=tag
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=sha-
+
       - name: Build web image
         uses: docker/build-push-action@v6
         with:
@@ -70,3 +84,13 @@ jobs:
           cache-from: type=gha,scope=web
           cache-to: type=gha,mode=max,scope=web
 
+      - name: Build demo image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.demo-meta.outputs.tags }}
+          labels: ${{ steps.demo-meta.outputs.labels }}
+          cache-from: type=gha,scope=demo
+          cache-to: type=gha,mode=max,scope=demo
