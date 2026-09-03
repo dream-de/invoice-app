@@ -19,7 +19,7 @@ services:
       retries: 10
 
   web-app:
-    image: ${DREAM_INVOICE_IMAGE:-ghcr.io/dream-de/invoice-app:latest}
+    image: ${DREAM_INVOICE_IMAGE:-ghcr.io/dream-de/invoice-premium:dev}
     restart: unless-stopped
     depends_on:
       postgres:
