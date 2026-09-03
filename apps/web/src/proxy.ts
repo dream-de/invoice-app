@@ -1,6 +1,7 @@
 import type { NextRequest } from "next/server"
 import { NextResponse } from "next/server"
 import { evaluateAppRequestGuard } from "@dream-invoice/auth"
+import { AUTH_REQUIRED } from "@/lib/auth/config"
 import { validateRuntimeEnv } from "@/lib/env/runtime"
 
 export async function proxy(request: NextRequest) {
@@ -42,7 +43,8 @@ export async function proxy(request: NextRequest) {
     basicAuthUserEnv: "DREAM_INVOICE_AUTH_USER",
     basicAuthPasswordEnv: "DREAM_INVOICE_AUTH_PASSWORD",
     basicAuthRequiredEnv: "DREAM_INVOICE_AUTH_REQUIRED",
-    protectAppSession: !isDemoMode,
+    defaultBasicAuthRequired: AUTH_REQUIRED,
+    protectAppSession: AUTH_REQUIRED && !isDemoMode,
     sessionSecretEnv: "AUTH_SECRET",
     publicPaths: [
       "/login",

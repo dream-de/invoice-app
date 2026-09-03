@@ -1,4 +1,4 @@
-name: dream-invoice
+name: dream-invoice-premium
 
 services:
   postgres:

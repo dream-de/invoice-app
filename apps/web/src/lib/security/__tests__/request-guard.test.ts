@@ -81,6 +81,24 @@ describe("request guard", () => {
     assert.equal(allowed.allowed, true)
   })
 
+  it("requires basic auth automatically in production", () => {
+    const decision = evaluateRequestGuard({
+      method: "GET",
+      url: "https://invoice.test/dashboard",
+      headers: headers(),
+      env: {
+        NODE_ENV: "production",
+        DREAM_INVOICE_AUTH_PASSWORD: "secret"
+      },
+      basicAuthUserEnv: "DREAM_INVOICE_AUTH_USER",
+      basicAuthPasswordEnv: "DREAM_INVOICE_AUTH_PASSWORD",
+      basicAuthRequiredEnv: "DREAM_INVOICE_AUTH_REQUIRED"
+    })
+
+    assert.equal(decision.allowed, false)
+    assert.equal(decision.status, 401)
+  })
+
   it("fails closed when auth is required but no password is configured", () => {
     const decision = evaluateRequestGuard({
       method: "GET",

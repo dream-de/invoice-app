@@ -6,6 +6,7 @@ import { assertSessionConfigured } from "@/lib/auth/session"
 import { readEmailSettings } from "@/lib/email/delivery"
 import { seedStarterWorkspace } from "@/lib/onboarding/starter-workspace"
 import { RequestBodyError, readJsonBodyWithLimit } from "@/lib/http/request-body"
+import { SETUP_PROTECTED } from "@/lib/auth/config"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -16,6 +17,13 @@ async function parseBody(request: Request): Promise<Record<string, unknown>> {
 
 export async function POST(request: Request) {
   try {
+    if (SETUP_PROTECTED) {
+      return NextResponse.json(
+        { ok: false, error: "Setup ist in Production geschuetzt.", code: "setup_protected" },
+        { status: 403 }
+      )
+    }
+
     assertSessionConfigured()
     const emailSettings = await readEmailSettings()
     const emailVerificationRequired = Boolean(emailSettings.provider && emailSettings.provider !== "disabled")

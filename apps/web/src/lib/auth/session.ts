@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto"
+import { COOKIE_OPTIONS } from "./config"
 
 export const SESSION_COOKIE_NAME = "dream_invoice_session"
 export const SESSION_DURATION_SECONDS = 60 * 60 * 24 * 7
@@ -146,26 +147,9 @@ export function verifyTwoFactorChallengeToken(token: string | null | undefined, 
   return payload
 }
 
-function envFlag(value: string | undefined) {
-  const normalized = String(value ?? "").trim().toLowerCase()
-  if (["1", "true", "yes", "on"].includes(normalized)) return true
-  if (["0", "false", "no", "off"].includes(normalized)) return false
-  return null
-}
-
-function shouldUseSecureSessionCookie() {
-  const configured = envFlag(process.env.AUTH_COOKIE_SECURE)
-  if (configured !== null) return configured
-
-  const appUrl = String(process.env.NEXT_PUBLIC_APP_URL ?? process.env.APP_URL ?? process.env.ORIGIN ?? "").trim()
-  return appUrl.startsWith("https://")
-}
-
 export function getSessionCookieOptions() {
   return {
-    httpOnly: true,
-    sameSite: "lax" as const,
-    secure: shouldUseSecureSessionCookie(),
+    ...COOKIE_OPTIONS,
     path: "/",
     maxAge: SESSION_DURATION_SECONDS
   }

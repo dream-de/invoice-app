@@ -1,3 +1,3 @@
 ALTER TABLE "AuditLog"
-  ADD COLUMN "accessProtocol" TEXT,
-  ADD COLUMN "accessOrigin" TEXT;
+  ADD COLUMN IF NOT EXISTS "accessProtocol" TEXT,
+  ADD COLUMN IF NOT EXISTS "accessOrigin" TEXT;

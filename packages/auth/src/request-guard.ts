@@ -48,6 +48,10 @@ function envFlag(env: RequestGuardEnv, key: string | undefined, fallback = false
   return ["1", "true", "yes", "on"].includes(value.toLowerCase())
 }
 
+function envIsProd(env: RequestGuardEnv) {
+  return envValue(env, "NODE_ENV") === "production"
+}
+
 function decodeBasicCredentials(header: string): { user: string; password: string } | null {
   const [scheme, encoded] = header.split(" ")
   if (scheme?.toLowerCase() !== "basic" || !encoded) return null
@@ -73,7 +77,7 @@ function basicAuthDecision(input: RequestGuardInput): RequestGuardDecision {
   const required = envFlag(
     env,
     input.basicAuthRequiredEnv,
-    input.defaultBasicAuthRequired ?? false
+    input.defaultBasicAuthRequired ?? envIsProd(env)
   )
   const password =
     envValue(env, input.basicAuthPasswordEnv) ??
