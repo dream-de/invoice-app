@@ -1,69 +1,97 @@
 #!/bin/sh
 set -eu
 
-# Root-Verzeichnis des Projekts bestimmen
 ROOT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
-cd "$ROOT_DIR"
+ENV_FILE="$ROOT_DIR/.env"
 
-echo "🔧 Starte automatische Installation von DreamInvoice..."
+random_secret() {
+  if command -v openssl >/dev/null 2>&1; then
+    openssl rand -hex "$1" | tr -d '\n'
+  else
+    date +%s | sha256sum | awk '{print $1}'
+  fi
+}
 
-###############################################################################
-# 1. Prüfen ob Docker vorhanden ist
-###############################################################################
-if ! command -v docker >/dev/null 2>&1; then
-  echo "❌ Docker ist nicht installiert."
-  exit 1
-fi
+need_command() {
+  if ! command -v "$1" >/dev/null 2>&1; then
+    echo "Missing required command: $1"
+    echo "Install Docker, Git, and OpenSSL first, then run this script again."
+    exit 1
+  fi
+}
+
+need_command docker
 
 if ! docker compose version >/dev/null 2>&1; then
-  echo "❌ Docker Compose Plugin fehlt."
+  echo "Docker Compose plugin is missing."
+  echo "Install docker-compose-plugin or Docker Engine from the official Docker repository."
   exit 1
 fi
 
-###############################################################################
-# 2. Postgres installieren (falls nicht vorhanden)
-###############################################################################
-echo "📦 Prüfe Postgres Image..."
+if [ ! -f "$ENV_FILE" ]; then
+  POSTGRES_PASSWORD="$(random_secret 32)"
+  AUTH_SECRET="$(random_secret 32)"
+  DEPLOYMENT_PASSWORD="$(random_secret 24)"
+  ADMIN_PASSWORD="$(random_secret 24)"
 
-if ! docker image inspect postgres:16-alpine >/dev/null 2>&1; then
-  echo "📥 Lade Postgres..."
-  docker pull postgres:16-alpine || {
-    echo "❌ Postgres konnte nicht installiert werden."
-    exit 1
-  }
+  umask 077
+  cat > "$ENV_FILE" <<EOF
+NODE_ENV=production
+NEXT_PUBLIC_APP_NAME="Dream Invoice"
+
+AUTH_SECRET="$AUTH_SECRET"
+AUTH_COOKIE_SECURE=false
+
+DREAM_INVOICE_AUTH_USER=admin
+DREAM_INVOICE_AUTH_PASSWORD="$DEPLOYMENT_PASSWORD"
+DREAM_INVOICE_AUTH_REQUIRED=false
+
+DREAM_INVOICE_ADMIN_USER=admin
+DREAM_INVOICE_ADMIN_PASSWORD="$ADMIN_PASSWORD"
+DREAM_INVOICE_ADMIN_AUTH_REQUIRED=true
+
+DREAM_INVOICE_LOGIN_WINDOW_MS=900000
+DREAM_INVOICE_LOGIN_MAX_ATTEMPTS=8
+
+# HTTP_PORT is only used when starting the optional Docker Nginx proxy profile.
+HTTP_PORT=80
+WEB_PORT=3010
+POSTGRES_PORT=127.0.0.1:5432
+
+POSTGRES_USER=dream_invoice
+POSTGRES_PASSWORD="$POSTGRES_PASSWORD"
+POSTGRES_DB=dream_invoice
+
+LICENSE_PUBLIC_KEY=""
+
+DREAM_INVOICE_IMAGE=ghcr.io/dream-de/invoice-app:latest
+EOF
+  chmod 600 "$ENV_FILE"
+  CREATED_ENV=1
 else
-  echo "✔ Postgres bereits vorhanden."
+  CREATED_ENV=0
 fi
 
-###############################################################################
-# 3. Web-App installieren (GHCR → Fallback → Lokal bauen)
-###############################################################################
-echo "📦 Installiere DreamInvoice Web-App..."
+cd "$ROOT_DIR"
 
-if docker pull ghcr.io/dream-de/invoice-app:latest; then
-  echo "✔ GHCR Image erfolgreich geladen."
-  export DREAM_INVOICE_IMAGE="ghcr.io/dream-de/invoice-app:latest"
-else
-  echo "⚠ GHCR nicht erreichbar – baue lokales Image..."
-  docker build -f docker/Dockerfile -t dream-invoice-local .
-  export DREAM_INVOICE_IMAGE="dream-invoice-local"
-fi
-
-###############################################################################
-# 4. Docker Compose starten
-###############################################################################
-echo "🚀 Starte Services..."
+echo "Starting Dream Invoice product stack..."
+docker compose pull
 docker compose up -d
 
-###############################################################################
-# 5. Status anzeigen
-###############################################################################
-echo "🎉 Installation abgeschlossen!"
 echo
-echo "📊 Status:"
+echo "Dream Invoice is starting."
+echo "Status:"
 docker compose ps
 echo
-echo "🌐 Öffne im Browser:"
-echo "  http://<server-ip>:3010/"
+echo "Open:"
+echo "  http://<your-server-ip>:3010/"
 echo
-echo "✔ DreamInvoice läuft."
+if [ "$CREATED_ENV" = "1" ]; then
+  echo "A private .env was generated with local HTTP defaults."
+  echo "Create the first owner account in the browser, then review production security before public exposure."
+  echo
+  echo "Secrets were written to:"
+  echo "  $ENV_FILE"
+else
+  echo "Existing .env was kept unchanged."
+fi
