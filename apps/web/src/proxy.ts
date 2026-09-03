@@ -44,7 +44,7 @@ export async function proxy(request: NextRequest) {
     basicAuthPasswordEnv: "DREAM_INVOICE_AUTH_PASSWORD",
     basicAuthRequiredEnv: "DREAM_INVOICE_AUTH_REQUIRED",
     defaultBasicAuthRequired: AUTH_REQUIRED,
-    protectAppSession: AUTH_REQUIRED && !isDemoMode,
+    protectAppSession: !isDemoMode,
     sessionSecretEnv: "AUTH_SECRET",
     publicPaths: [
       "/login",
