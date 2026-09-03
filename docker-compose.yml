@@ -1,4 +1,4 @@
-name: dream-invoice
+name: dream-invoice-main
 
 services:
   postgres:
@@ -29,23 +29,19 @@ services:
       PORT: 3010
       NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-Dream Invoice}
       AUTH_SECRET: ${AUTH_SECRET:?Set AUTH_SECRET in .env}
-      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-}
-      DREAM_INVOICE_AUTH_USER: ${DREAM_INVOICE_AUTH_USER:-admin}
-      DREAM_INVOICE_AUTH_PASSWORD: ${DREAM_INVOICE_AUTH_PASSWORD:-}
-      DREAM_INVOICE_AUTH_REQUIRED: ${DREAM_INVOICE_AUTH_REQUIRED:-false}
-      LICENSE_PUBLIC_KEY: ${LICENSE_PUBLIC_KEY:-}
-      DATABASE_URL: postgresql://${POSTGRES_USER:-dream_invoice}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/${POSTGRES_DB:-dream_invoice}
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium
     expose:
       - "3010"
     ports:
       - "${WEB_PORT:-3010}:3010"
     healthcheck:
-      test: ["CMD", "node", "-e", "const p=process.env.DREAM_INVOICE_AUTH_PASSWORD; const u=process.env.DREAM_INVOICE_AUTH_USER || 'admin'; const h=p ? { authorization: 'Basic ' + Buffer.from(u + ':' + p).toString('base64') } : {}; fetch('http://127.0.0.1:3010/login', { headers: h }).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3010/login').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 10s
       timeout: 5s
-      retries: 6
+      retries: 10
+      start_period: 20s
 
   nginx:
     profiles:
@@ -57,9 +53,6 @@ services:
         condition: service_healthy
     ports:
       - "${HTTP_PORT:-80}:80"
-    environment:
-      DREAM_INVOICE_AUTH_USER: ${DREAM_INVOICE_AUTH_USER:-admin}
-      DREAM_INVOICE_AUTH_PASSWORD: ${DREAM_INVOICE_AUTH_PASSWORD:-}
     volumes:
       - ./docker/nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     healthcheck:
@@ -70,3 +63,4 @@ services:
 
 volumes:
   dream_invoice_postgres:
+    name: dream-invoice_dream_invoice_postgres
