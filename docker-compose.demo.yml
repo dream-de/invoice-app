@@ -31,6 +31,7 @@ services:
       NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-Dream Invoice}
       AUTH_SECRET: ${AUTH_SECRET:?Set AUTH_SECRET in .env}
       AUTH_COOKIE_SECURE: "false"
+      DREAM_INVOICE_AUTH_REQUIRED: "false"
       DREAM_INVOICE_SHOWCASE_MODE: "true"
       DATABASE_URL: postgresql://dream_invoice_main:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@postgres:5432/dream_invoice_demo
       NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3011}
