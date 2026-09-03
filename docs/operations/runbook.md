@@ -7,7 +7,6 @@ This runbook lists practical steps for common Dream Invoice operational tasks in
 ```bash
 docker compose ps
 docker compose logs --tail=200 web-app
-docker compose logs --tail=200 nginx
 docker compose logs --tail=200 postgres
 ```
 
@@ -15,13 +14,19 @@ Expected:
 
 - PostgreSQL is healthy
 - Web app is healthy
-- Nginx proxy is healthy
 - App URL responds with HTTP 200 or redirects to login
+- Optional Nginx proxy is healthy only when the proxy profile is enabled
 
 ## Restart The Product Stack
 
 ```bash
-docker compose restart
+docker compose restart web-app postgres
+```
+
+When the optional Docker Nginx proxy is enabled:
+
+```bash
+docker compose --profile proxy restart nginx
 ```
 
 Restart one service:
@@ -60,9 +65,15 @@ Store backups outside the container volume and test restore steps regularly.
 Stop the app services, restore into PostgreSQL, then start the stack again.
 
 ```bash
-docker compose stop web-app nginx
+docker compose stop web-app
 docker compose exec -T postgres psql -U dream_invoice dream_invoice < dream-invoice-backup.sql
 docker compose up -d
+```
+
+If the optional Docker Nginx proxy is enabled, restart it after the app is healthy:
+
+```bash
+docker compose --profile proxy up -d nginx
 ```
 
 ## Migrations

@@ -87,7 +87,7 @@ The default stack starts:
 The included Nginx container is optional and only starts with the `proxy` profile:
 
 ```bash
-docker compose --profile proxy up -d
+docker compose --profile proxy up -d nginx
 ```
 
 Use the optional proxy only when it fits your hosting layout. Many production setups terminate TLS at an external reverse proxy instead.

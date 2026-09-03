@@ -93,7 +93,7 @@ docker compose up -d
 The optional Nginx container is not started by default. Use the `proxy` profile only when you want the included Docker Nginx in front of the app:
 
 ```bash
-docker compose --profile proxy up -d
+docker compose --profile proxy up -d nginx
 ```
 
 Check the installation:
@@ -208,7 +208,7 @@ docker compose up -d
 The web app is available on port `3010`. To also start the optional Nginx proxy on port `80`, run:
 
 ```bash
-docker compose --profile proxy up -d
+docker compose --profile proxy up -d nginx
 ```
 
 Check status and logs:
