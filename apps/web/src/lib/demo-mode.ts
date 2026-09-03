@@ -8,6 +8,10 @@ export function isShowcaseMode() {
   return process.env.DREAM_INVOICE_SHOWCASE_MODE === "true"
 }
 
+export function isPublicDemoMode() {
+  return isDemoMode() || isShowcaseMode()
+}
+
 export function isReadonlyShowcaseMode() {
   return process.env.DREAM_INVOICE_SHOWCASE_READONLY_MODE === "true"
 }
