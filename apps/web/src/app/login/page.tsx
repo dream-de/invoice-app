@@ -1,10 +1,15 @@
 import { prisma } from "@dream-invoice/database"
+import { redirect } from "next/navigation"
 import { LoginClient } from "./LoginClient"
-import { isDemoMode } from "@/lib/demo-mode"
+import { isDemoMode, isShowcaseMode } from "@/lib/demo-mode"
 
 export const dynamic = "force-dynamic"
 
 export default async function LoginPage() {
+  if (isShowcaseMode()) {
+    redirect("/dashboard")
+  }
+
   if (isDemoMode()) {
     return <LoginClient setupAvailable={false} demoMode />
   }

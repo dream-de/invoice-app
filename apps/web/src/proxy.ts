@@ -22,7 +22,9 @@ export async function proxy(request: NextRequest) {
     )
   }
 
-  const isDemoMode = process.env.DREAM_INVOICE_DEMO_MODE === "true"
+  const isPublicDemoMode =
+    process.env.DREAM_INVOICE_DEMO_MODE === "true" ||
+    process.env.DREAM_INVOICE_SHOWCASE_MODE === "true"
   const decision = await evaluateAppRequestGuard({
     method: request.method,
     url: request.url,
@@ -31,7 +33,7 @@ export async function proxy(request: NextRequest) {
     basicAuthUserEnv: "DREAM_INVOICE_AUTH_USER",
     basicAuthPasswordEnv: "DREAM_INVOICE_AUTH_PASSWORD",
     basicAuthRequiredEnv: "DREAM_INVOICE_AUTH_REQUIRED",
-    protectAppSession: !isDemoMode,
+    protectAppSession: !isPublicDemoMode,
     sessionSecretEnv: "AUTH_SECRET",
     publicPaths: ["/login", "/api/auth"]
   })
