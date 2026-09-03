@@ -14,7 +14,7 @@ Install these tools on the server before starting:
 The normal product install pulls the published image:
 
 ```text
-ghcr.io/dream-de/invoice-app:latest
+ghcr.io/dream-de/invoice-premium:dev
 ```
 
 Keep the package public when you want unauthenticated self-hosted installs from a public repository.

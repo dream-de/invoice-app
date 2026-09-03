@@ -3,5 +3,5 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile
-    image: ${DREAM_INVOICE_IMAGE:-ghcr.io/dream-de/invoice-app:latest}
+    image: ${DREAM_INVOICE_IMAGE:-ghcr.io/dream-de/invoice-premium:dev}
 

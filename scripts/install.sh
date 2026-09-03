@@ -66,7 +66,7 @@ POSTGRES_DB=invoice_platform
 LICENSE_PUBLIC_KEY=""
 
 
-DREAM_INVOICE_IMAGE=ghcr.io/dream-de/invoice-app:latest
+DREAM_INVOICE_IMAGE=ghcr.io/dream-de/invoice-premium:dev
 EOF
   chmod 600 "$ENV_FILE"
   CREATED_ENV=1

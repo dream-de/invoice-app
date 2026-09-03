@@ -81,7 +81,7 @@ chmod +x scripts/install.sh scripts/status.sh
 ./scripts/install.sh
 ```
 
-The installer creates a private `.env`, pulls the published image `ghcr.io/dream-de/invoice-app:latest`, starts PostgreSQL, and starts the web app. Premium runs on port `3012` by default. Open the app at:
+The installer creates a private `.env`, pulls the published image `ghcr.io/dream-de/invoice-premium:dev`, starts PostgreSQL, and starts the web app. Premium runs on port `3012` by default. Open the app at:
 
 ```text
 http://SERVER-IP:3012

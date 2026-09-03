@@ -19,7 +19,7 @@ Use this checklist before handing over a Dream Invoice installation.
 
 ## 2. Docker Stack
 
-- [ ] `ghcr.io/dream-de/invoice-app:latest` is reachable from the server
+- [ ] `ghcr.io/dream-de/invoice-premium:dev` is reachable from the server
 - [ ] `docker compose pull` succeeds
 - [ ] `docker compose up -d` starts successfully
 - [ ] `docker compose ps` shows healthy services
