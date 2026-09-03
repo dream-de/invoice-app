@@ -89,8 +89,8 @@ echo "Open:"
 echo "  http://<your-server-ip>:3012/"
 echo
 if [ "$CREATED_ENV" = "1" ]; then
-  echo "Basic Auth is disabled for the first local HTTP start."
-  echo "Enable DREAM_INVOICE_AUTH_REQUIRED=true in .env before exposing a production installation."
+  echo "A private .env was generated with local HTTP defaults."
+  echo "Create the first owner account in the browser, then review production security before public exposure."
   echo
   echo "Secrets were written to:"
   echo "  $ENV_FILE"

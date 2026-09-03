@@ -90,21 +90,9 @@ Use the optional proxy only when it fits your hosting layout. Many production se
 
 ## 5. Access And First Login
 
-For the first local HTTP start, deployment Basic Auth can stay disabled:
+For the first local HTTP start, the generated environment keeps deployment Basic Auth and HTTPS-only cookies disabled. This lets the setup screen open directly so the first owner account can be created in the browser.
 
-```env
-DREAM_INVOICE_AUTH_REQUIRED=false
-AUTH_COOKIE_SECURE=false
-```
-
-Before exposing the app publicly, enable deployment protection and HTTPS cookies:
-
-```env
-DREAM_INVOICE_AUTH_REQUIRED=true
-AUTH_COOKIE_SECURE=true
-```
-
-Use `AUTH_COOKIE_SECURE=true` only when the public app URL uses HTTPS.
+Before public exposure, review deployment protection in the private `.env`. Enable deployment Basic Auth for public installations, and enable secure cookies only when the public app URL uses HTTPS. Keep secure cookies disabled for HTTP-only LXC, lab, or intranet installs.
 
 After first setup, app users and roles are managed inside Dream Invoice.
 

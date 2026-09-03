@@ -87,14 +87,7 @@ The installer creates a private `.env`, pulls the published image `ghcr.io/dream
 http://SERVER-IP:3012
 ```
 
-For the first local HTTP start, deployment Basic Auth is disabled so the setup screen opens directly. Create the first owner account in the browser, then enable deployment protection before exposing the installation:
-
-```env
-DREAM_INVOICE_AUTH_REQUIRED=true
-AUTH_COOKIE_SECURE=true
-```
-
-Use `AUTH_COOKIE_SECURE=true` only when the public app URL uses HTTPS. Keep it `false` for local HTTP/LXC tests.
+For the first local HTTP start, the installer uses safe local defaults so the setup screen opens directly. Create the first owner account in the browser, then review production security before exposing the installation publicly.
 
 For a fully manual install, copy `.env.example` to `.env`, replace every `CHANGE_ME_*` value, then start the stack. The default Premium web port is `3012`, and PostgreSQL binds to local host port `55433`:
 
