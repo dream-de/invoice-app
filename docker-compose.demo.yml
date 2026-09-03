@@ -18,7 +18,7 @@ services:
     env_file:
       - .env.demo
 
-    image: ${DREAM_INVOICE_IMAGE:-dream-invoice-main:main}
+    image: ${DREAM_INVOICE_IMAGE:-ghcr.io/dream-de/invoice-demo:latest}
     restart: unless-stopped
 
     depends_on:
